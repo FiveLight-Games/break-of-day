@@ -1585,7 +1585,7 @@ function renderBase() {
     <div class="laneHdr">Rails</div><div class="list">${rails}</div>
     <div class="laneHdr">Jungle</div><div class="list">${['sight', 'heal', 'merc'].map(upCard).join('')}
     ${up.merc ? `<div class="town"><div class="tBot"><small>Hire a mercenary (follows you, jungle only). ${atBase ? '' : 'Must be at base.'}</small><button class="btn sm" id="hireMerc" ${atBase && me.g >= DW.MERC_COST ? '' : 'disabled'}>Hire ${DW.MERC_COST}g</button></div></div>` : ''}</div>
-    <div class="laneHdr">Base</div><div class="list">${['walls', 'drums', 'treasury'].map(upCard).join('')}</div>`, () => {
+    <div class="laneHdr">Base</div><div class="list">${['walls', 'treasury'].map(upCard).join('')}</div>`, () => {
     document.querySelectorAll('[data-upg]').forEach(b => b.onclick = () => send({ c: 'upg', k: b.dataset.upg }));
     document.querySelectorAll('[data-ride]').forEach(b => b.onclick = () => { send({ c: 'rail', lane: b.dataset.ride, to: +b.dataset.to }); closeModal(); });
     if ($('hireMerc')) $('hireMerc').onclick = () => send({ c: 'merc' });

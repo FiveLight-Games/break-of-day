@@ -383,7 +383,7 @@ table.stats{border-collapse:collapse;width:100%;font-size:12px}
 <div id="toasts"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>window.BOD_BUILD='716900';</script>
+<script>window.BOD_BUILD='e9fa5c';</script>
 <script>/* Break of Day — authoritative simulation (runs on host / solo). No DOM. */
 (function (G) {
 'use strict';
@@ -541,7 +541,6 @@ const BASE_UPG = {
   heal: { n: 'Jungle Healing Packs', cat: 'jungle', d: 'Four healing packs appear in the jungle. Touch one to restore 35% HP and resource (45s recharge).', c: [1000] },
   merc: { n: 'Mercenary Guild', cat: 'jungle', d: 'Hire mercenaries at base (250g, max 2 per hero). They follow you through the jungle but never enter lanes.', c: [1200] },
   walls: { n: 'Fortifications', cat: 'base', d: 'Walls and base turrets gain +40% HP and +15 Armor per level, and are fully repaired.', c: [800, 1600, 2400] },
-  drums: { n: 'War Drums', cat: 'base', d: 'Allied lane minions gain +20% HP and damage per level.', c: [1000, 2000] },
   treasury: { n: 'Royal Treasury', cat: 'base', d: '+1 gold per second for every hero, per level.', c: [900, 1800] },
 };
 const sc = p => [p[0] * SX, p[1] * SZ, p[2]];
@@ -629,6 +628,44 @@ const DYN = new Uint8Array(TER.cols * TER.rows);
 })();
 const dynBlocked = (team, x, z) => { const i = TER.ci(x, z); if (i < 0) return true; const d = DYN[i]; return d === 1 || (d === 2 && team !== 0) || (d === 3 && team !== 1); };
 const blockedT = (team, x, z) => blocked(x, z) || dynBlocked(team, x, z);
+// ---------- solid props & buildings (capsules: segment a→b with radius r; a circle has a === b) ----------
+const cap = (ax, az, bx, bz, r) => ({ ax, az, bx, bz, r, x0: Math.min(ax, bx) - r, x1: Math.max(ax, bx) + r, z0: Math.min(az, bz) - r, z1: Math.max(az, bz) + r });
+const capDir = (x, z, ang, half, r) => cap(x - Math.cos(ang) * half, z - Math.sin(ang) * half, x + Math.cos(ang) * half, z + Math.sin(ang) * half, r);
+let STATIC_OBS_C = null;
+const staticObs = () => STATIC_OBS_C || (STATIC_OBS_C = (() => {
+  const F = MAP.fountain, o = [];
+  o.push(cap(F.x, F.z + 2, F.x, F.z + 2, 3.5));                        // fountain basin
+  o.push(capDir(MAP.shop.x, MAP.shop.z, -0.4, 2.2, 1.2));              // shop stall
+  o.push(capDir(F.x + 11, F.z - 9, 0.4, 1.6, 0.5));                    // war council ledger
+  o.push(cap(MAP.secretShop.x, MAP.secretShop.z, MAP.secretShop.x, MAP.secretShop.z, 2.9));
+  o.push(capDir(MAP.forge.x, MAP.forge.z, 0, 1.4, 1.1));               // anvil
+  o.push(cap(MAP.forge.x - 3, MAP.forge.z + 1, MAP.forge.x - 3, MAP.forge.z + 1, 0.9));
+  o.push(cap(MAP.forge.x + 2.8, MAP.forge.z - 1.4, MAP.forge.x + 2.8, MAP.forge.z - 1.4, 0.7));
+  o.push(cap(MAP.forge.x - 1.8, MAP.forge.z - 1.6, MAP.forge.x - 1.8, MAP.forge.z - 1.6, 0.5));
+  for (const t of MAP.towns) {
+    o.push(cap(t.x, t.z, t.x, t.z, 0.9));                                // well + banner pole
+    for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283 + 0.5, hx = t.x + Math.cos(a) * 5.2, hz = t.z + Math.sin(a) * 5.2; if (laneDist(hx, hz) < 5.5) continue; o.push(cap(hx, hz, hx, hz, 1.4)); }
+  }
+  // jungle camp tents
+  for (const cp of MAP.camps) { const ang = Math.atan2(-cp.z, -cp.x); for (const [off, s] of [[0.9, 1], [-0.9, 0.85]]) { const x = cp.x + Math.cos(ang + Math.PI + off) * 5, z = cp.z + Math.sin(ang + Math.PI + off) * 5; o.push(cap(x, z, x, z, 1.3 * s)); } }
+  // lane war camp tents
+  LANE_CAMPS.forEach((cd, ti) => ['L', 'M', 'R'].forEach(ln => { const z0 = cd.z, x0 = laneX(ln, z0); for (const sd of [-1, 1]) { const tx = sd * (8.5 + ti); if (blocked(x0 + tx, z0)) continue; const x = x0 + tx, z = z0 + (ti - 1) * 2; o.push(cap(x, z, x, z, 1.4)); } }));
+  return o;
+})());
+// palisade ring around each town, stamped into DYN while we hold the town (lane openings stay clear)
+const FORT_CELLS = (() => {
+  const out = {};
+  for (const t of MAP.towns) {
+    const cells = [];
+    for (let r = 0; r < TER.rows; r++) for (let c = 0; c < TER.cols; c++) {
+      const x = TER.ox + (c + 0.5) * TER.cs, z = TER.oz + (r + 0.5) * TER.cs, d = Math.hypot(x - t.x, z - t.z);
+      if (Math.abs(d - 13) > 1.15 || laneDist(x, z) < 7) continue;
+      const i = r * TER.cols + c; if (!DYN[i] && !TER.blk[i]) cells.push(i);
+    }
+    out[t.id] = cells;
+  }
+  return out;
+})();
 function losT(team, x1, z1, x2, z2) { const L = Math.hypot(x2 - x1, z2 - z1), n = Math.ceil(L / 1.2); for (let s = 1; s < n; s++) if (blockedT(team, x1 + (x2 - x1) * s / n, z1 + (z2 - z1) * s / n)) return false; return true; }
 function los(x1, z1, x2, z2) { const L = Math.hypot(x2 - x1, z2 - z1), n = Math.ceil(L / 1.2); for (let s = 1; s < n; s++) if (blocked(x1 + (x2 - x1) * s / n, z1 + (z2 - z1) * s / n)) return false; return true; }
 function nearestFree(x, z) { if (!blocked(x, z)) return [x, z]; for (let r = 2; r < 24; r += 1.5) for (let a = 0; a < 6.283; a += 0.4) { const nx = x + Math.cos(a) * r, nz = z + Math.sin(a) * r; if (!blocked(nx, nz)) return [nx, nz]; } return [x, z]; }
@@ -874,7 +911,7 @@ class Sim {
     this.spawnLaneCamps();
     for (const t of MAP.towns) {
       const e = this.mk('town', 2, t.x, t.z, { hp: 2500, ad: 70, armor: 40, mr: 40, as: 0.9, range: 9, r: 3.2, ms: 0, v: 'town', untarget: 1, structure: 1, g: 0, xp: 0, pc: '#9fd0ff' });
-      Object.assign(e, { tid: t.id, name: t.name, lane: t.lane, upkeep: t.upkeep, ttier: t.tier, mine: !!t.mine, guards: [], cap: 0, inv: 0 });
+      Object.assign(e, { tid: t.id, name: t.name, lane: t.lane, upkeep: t.upkeep, ttier: t.tier, mine: !!t.mine, guards: [], cap: 0, inv: 0 }); this.stampFort(e, false);
       this.spawnGuards(e);
     }
     for (const b of MAP.bosses) {
@@ -999,7 +1036,7 @@ class Sim {
   kill(e, src) {
     if (e.kind !== 'town') this.fxq.push(['d', e.v, Math.round(e.x * 10) / 10, Math.round(e.z * 10) / 10, Math.round(e.face * 100) / 100, e.team, e.id]);
     if (e.kind === 'town') {
-      e.team = 2; e.untarget = 1; e.hp = e.maxhp; e.cap = 0; e.guards = []; e.inv = 0; e.pc = '#9fd0ff';
+      e.team = 2; e.untarget = 1; e.hp = e.maxhp; e.cap = 0; e.guards = []; e.inv = 0; e.pc = '#9fd0ff'; this.stampFort(e, false);
       this.ents.forEach(g => { if (g.kind === 'garrison' && g.town === e.id) g.dead = true; }); this.fx('ruin', e.x, e.z, 8, '#ff6a2a');
       this.msg(e.name + ' has fallen to the enemy!', 'r'); return;
     }
@@ -1210,10 +1247,46 @@ class Sim {
     let sp = e.ms * SPD * (e.slowU > this.t ? e.slowM : 1) * (e.nightFury ? 1.15 : 1);
     const step = Math.min(l - (stopDist || 0), sp * dt);
     let nx = clamp(e.x + dx / l * step, -MAP.W, MAP.W), nz = clamp(e.z + dz / l * step, -MAP.H, MAP.H);
+    // solid buildings/props: slide along their edge instead of walking through
+    const hit = this.obsHit(nx, nz, e.r);
+    if (hit) {
+      const th = this.obsHit(tx, tz, e.r), nh = this.obsHit(e.x, e.z, e.r * 1.8);
+      if (th && nh && th.o === hit.o && nh.o === hit.o) return true; // destination is inside this building: we're as close as we get
+      const [ox, oz] = hit.n, mx = nx - e.x, mz = nz - e.z, dn = mx * ox + mz * oz;
+      let sx = mx - dn * ox, sz = mz - dn * oz, sl = Math.hypot(sx, sz);
+      if (sl < step * 0.3) { const sg = (e.id & 1) ? 1 : -1; sx = -oz * sg; sz = ox * sg; sl = 1; }
+      nx = e.x + sx / sl * step; nz = e.z + sz / sl * step;
+      const h2 = this.obsHit(nx, nz, e.r); if (h2) { nx = h2.px; nz = h2.pz; }
+    }
     const T = e.team; if (blockedT(T, nx, nz) && !blockedT(T, e.x, e.z)) { if (!blockedT(T, nx, e.z)) nz = e.z; else if (!blockedT(T, e.x, nz)) nx = e.x; else { e.stuck = (e.stuck || 0) + dt; return false; } }
     e.x = nx; e.z = nz; e.face = Math.atan2(dz, dx); e.walkT = 0.15;
     return false;
   }
+  // nearest overlapping solid (returns outward normal and the pushed-out position), or null
+  obsHit(x, z, er) {
+    const L = this.obs || staticObs(), pad = (er || 0.8) * 0.55;
+    let best = null, bd = 0;
+    for (let i = 0; i < L.length; i++) {
+      const o = L[i]; if (x < o.x0 - pad || x > o.x1 + pad || z < o.z0 - pad || z > o.z1 + pad) continue;
+      const vx = o.bx - o.ax, vz = o.bz - o.az, vv = vx * vx + vz * vz;
+      const t = vv > 0 ? clamp(((x - o.ax) * vx + (z - o.az) * vz) / vv, 0, 1) : 0, cx = o.ax + vx * t, cz = o.az + vz * t;
+      const R = o.r + pad, dx = x - cx, dz = z - cz, dd = dx * dx + dz * dz; if (dd >= R * R) continue;
+      const l = Math.sqrt(dd), pen = R - l; if (pen <= bd) continue; bd = pen;
+      const nx = l > 1e-4 ? dx / l : 1, nz = l > 1e-4 ? dz / l : 0;
+      best = { o, n: [nx, nz], px: cx + nx * (R + 0.01), pz: cz + nz * (R + 0.01) };
+    }
+    return best;
+  }
+  refreshObs() {
+    const o = staticObs().slice();
+    for (const e of this.ents) {
+      if (e.dead || !e.structure) continue;
+      if (e.kind === 'core' || e.kind === 'tower' || e.kind === 'turret') o.push(cap(e.x, e.z, e.x, e.z, e.r * 0.95));
+      else if (e.kind === 'wall') o.push(capDir(e.x, e.z, e.face || 0, 4.4, 0.95));
+    }
+    this.obs = o;
+  }
+  stampFort(t, on) { const cells = FORT_CELLS[t.tid]; if (!cells) return; for (const i of cells) { if (on) { if (!DYN[i]) DYN[i] = 1; } else if (DYN[i] === 1) DYN[i] = 0; } }
   navTo(e, tx, tz, dt, stop) {
     stop = stop || 0.15; if (d2(e.x, e.z, tx, tz) <= stop * stop) { e.nav = null; return true; }
     let N = e.nav;
@@ -1302,6 +1375,12 @@ class Sim {
     if (this.tick % 2 === 0) {
       const arr = this.ents.filter(e => !e.dead && !e.structure && e.kind !== 'enc' && e.kind !== 'loot' && e.kind !== 'heal' && e.kind !== 'ward');
       for (let i = 0; i < arr.length; i++) { const a = arr[i]; for (let j = i + 1; j < arr.length; j++) { const b = arr[j]; const dx = b.x - a.x, dz = b.z - a.z; const min = (a.r + b.r) * 0.85; if (dx > min || dx < -min || dz > min || dz < -min) continue; const l = Math.hypot(dx, dz) || 0.01; if (l < min) { const p = (min - l) * 0.5, px = dx / l * p, pz = dz / l * p; const wa = a.kind === 'boss' ? 0.1 : 1, wb = b.kind === 'boss' ? 0.1 : 1; if (!blockedT(a.team, a.x - px * wa, a.z - pz * wa)) { a.x -= px * wa; a.z -= pz * wa; } if (!blockedT(b.team, b.x + px * wb, b.z + pz * wb)) { b.x += px * wb; b.z += pz * wb; } } } }
+    }
+    // keep everything that walks out of buildings and props (covers dashes, knockbacks, separation shoves)
+    if (this.tick % 10 === 1 || !this.obs) this.refreshObs();
+    for (const e of this.ents) {
+      if (e.dead || e.structure || !e.ms || e.kind === 'loot' || e.kind === 'enc' || e.kind === 'heal' || e.kind === 'ward') continue;
+      const hit = this.obsHit(e.x, e.z, e.r); if (hit && !blockedT(e.team, hit.px, hit.pz)) { e.x = hit.px; e.z = hit.pz; }
     }
     // projectiles
     for (const p of this.projs) {
@@ -1510,7 +1589,7 @@ class Sim {
     if (!guardsAlive && near && !foes) {
       e.cap += dt;
       if (e.cap >= 4) {
-        e.team = 0; e.untarget = 0; e.cap = 0; e.pc = '#6ab0ff'; this.fortify(e); this.fx('capture', e.x, e.z, 9, '#ffd36b');
+        e.team = 0; e.untarget = 0; e.cap = 0; e.pc = '#6ab0ff'; this.fortify(e); this.stampFort(e, true); this.fx('capture', e.x, e.z, 9, '#ffd36b');
         this.heroes.forEach(h => { this.giveGold(h, 100); if (d2(h.x, h.z, e.x, e.z) < 100) h.st.towns++; });
         this.msg(e.name + ' secured! +100 gold each. Upkeep ' + this.upkeepOf(e) + 'g at nightfall. Respawns and Waygates now use it.', 'gold');
       }
@@ -1744,8 +1823,8 @@ class Sim {
   }
   spawnWave() {
     const min = this.mins();
-    for (const team of [0, 1]) {
-      const mult = team === 1 ? 1 + 0.075 * min + (this.eclipse ? 0.4 : 0) : (1 + 0.05 * min) * (1 + 0.2 * this.upg.drums);
+    for (const team of [1]) { // allied lane minions are disabled for now — only the enemy sends waves
+      const mult = 1 + 0.075 * min + (this.eclipse ? 0.4 : 0);
       for (const ln of ['L', 'M', 'R']) {
         const kinds = ['melee', 'melee', 'melee', 'ranged', 'ranged'];
         if (team === 1 && ln === 'M') kinds.push('melee');
@@ -1798,7 +1877,7 @@ class Sim {
     return s;
   }
 }
-const API = { BASES, DYN, GATE_HALF, blockedT, LANE_CAMPS, CAMP_NAMES, LIEUT_NAMES, laneOf, laneDistK, laneX, TER, blocked, los, RIVER, SX, SZ, RAID_PTS, WARD_SPOTS, MODES, BASE_UPG, MERC_COST, HEAL_SPOTS, VAULT, LEGENDARIES, MYTHICS, rollLegendary, rollMythic, makeProc, VERSION, TOWN_BUFFS, TIER_DRAIN, Sim, HEROES, HERO_IDS, ITEMS, MAP, LANES, LANE_INFO, STAT_NAMES, PCT, RARITY, POTION_COST, DAY, NIGHT, CYC, ECLIPSE_T, DT, xpNext, laneDist, rollLoot, mulberry32 };
+const API = { staticObs, FORT_CELLS, BASES, DYN, GATE_HALF, blockedT, LANE_CAMPS, CAMP_NAMES, LIEUT_NAMES, laneOf, laneDistK, laneX, TER, blocked, los, RIVER, SX, SZ, RAID_PTS, WARD_SPOTS, MODES, BASE_UPG, MERC_COST, HEAL_SPOTS, VAULT, LEGENDARIES, MYTHICS, rollLegendary, rollMythic, makeProc, VERSION, TOWN_BUFFS, TIER_DRAIN, Sim, HEROES, HERO_IDS, ITEMS, MAP, LANES, LANE_INFO, STAT_NAMES, PCT, RARITY, POTION_COST, DAY, NIGHT, CYC, ECLIPSE_T, DT, xpNext, laneDist, rollLoot, mulberry32 };
 if (typeof module !== 'undefined') module.exports = API; else G.DW = API;
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
@@ -3466,7 +3545,7 @@ function renderBase() {
     <div class="laneHdr">Rails</div><div class="list">${rails}</div>
     <div class="laneHdr">Jungle</div><div class="list">${['sight', 'heal', 'merc'].map(upCard).join('')}
     ${up.merc ? `<div class="town"><div class="tBot"><small>Hire a mercenary (follows you, jungle only). ${atBase ? '' : 'Must be at base.'}</small><button class="btn sm" id="hireMerc" ${atBase && me.g >= DW.MERC_COST ? '' : 'disabled'}>Hire ${DW.MERC_COST}g</button></div></div>` : ''}</div>
-    <div class="laneHdr">Base</div><div class="list">${['walls', 'drums', 'treasury'].map(upCard).join('')}</div>`, () => {
+    <div class="laneHdr">Base</div><div class="list">${['walls', 'treasury'].map(upCard).join('')}</div>`, () => {
     document.querySelectorAll('[data-upg]').forEach(b => b.onclick = () => send({ c: 'upg', k: b.dataset.upg }));
     document.querySelectorAll('[data-ride]').forEach(b => b.onclick = () => { send({ c: 'rail', lane: b.dataset.ride, to: +b.dataset.to }); closeModal(); });
     if ($('hireMerc')) $('hireMerc').onclick = () => send({ c: 'merc' });
