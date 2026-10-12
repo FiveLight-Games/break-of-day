@@ -19,14 +19,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   }
   const ctxA = await browser.newContext(), ctxB = await browser.newContext();
   const A = await mkPage(ctxA, 'A'), B = await mkPage(ctxB, 'B');
-  await A.fill('#nameIn', 'HostElijah'); await B.fill('#nameIn', 'Guest');
-  await A.click('#btnCreate'); await sleep(400); await A.click('[data-gm="long"]'); await sleep(300);
-  const code = (await A.textContent('#lobbyCode')).trim(); console.log('room code', code);
-  await sleep(300); console.log('B room list:', (await B.textContent('#roomList')).trim().slice(0, 80));
-  await B.fill('#codeIn', code); await B.click('#btnJoin'); await sleep(400);
+  for (const [pg, n] of [[A, 'HostElijah'], [B, 'Guest']]) { await pg.fill('#nameIn', n); await pg.click('#nameForm button[type=submit]'); await sleep(150); }
+  await A.click('[data-act=hostform]'); await sleep(150); await A.click('#hostForm button[type=submit]'); await sleep(400); await A.click('[data-lgm="long"]'); await sleep(300);
+  const code = (await A.textContent('#lobbyCode')).replace('Code ', '').trim(); console.log('room code', code);
+  await B.click('[data-act=browse]'); await sleep(800); console.log('B room list:', (await B.textContent('#menuPanel')).replace(/\s+/g, ' ').trim().slice(0, 80));
+  await B.click('[data-joinlobby]'); await sleep(1200);
   await B.click('.heroCard[data-h="emberwitch"]'); await B.click('#btnReady'); await sleep(400);
   console.log('A players:', (await A.textContent('#playerList')).replace(/\s+/g, ' ').slice(0, 120));
-  console.log('B sees mode:', await B.evaluate(() => document.querySelector('#modePick .tab.on').textContent));
+  console.log('B sees mode:', await B.evaluate(() => document.querySelector('#modePick .mode.on').textContent));
   console.log('A start enabled:', !(await A.isDisabled('#btnReady')));
   await A.click('#btnReady'); await sleep(2500);
   const st = async p => p.evaluate(() => { const G = window.BOD.G; return { running: G.running, t: G.cur && G.cur.t, me: G.me && G.me.hid, heroes: G.cur && G.cur.h.map(h => h.n + ':' + h.hid), frames: window.__frames }; });
@@ -50,8 +50,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   // disconnect B, rejoin with same storage
   await B.close(); await sleep(1500);
   const B2 = await mkPage(ctxB, 'B2'); await sleep(300);
-  console.log('rejoin visible:', await B2.isVisible('#btnRejoin'), (await B2.textContent('#btnRejoin')).trim());
-  await B2.click('#btnRejoin'); await sleep(2000);
+  console.log('rejoin visible:', await B2.isVisible('[data-act=rejoin]'), (await B2.textContent('[data-act=rejoin]')).trim());
+  await B2.click('[data-act=rejoin]'); await sleep(2000);
   console.log('B2', JSON.stringify(await st(B2)), 'netOv hidden:', await B2.evaluate(() => document.getElementById('netOv').classList.contains('hidden')));
   await B2.screenshot({ path: __dirname + '/hud.png' });
   // fast-forward host sim to night & raid, then win
@@ -65,7 +65,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await B2.screenshot({ path: __dirname + '/end.png' });
   console.log('session cleared:', await B2.evaluate(() => localStorage.getItem('bod_session')));
   // solo
-  const C = await mkPage(await browser.newContext(), 'C'); await C.click('#btnSolo'); await sleep(200); await C.click('.heroCard[data-h="lumen"]'); await C.click('#btnReady'); await sleep(1500);
+  const C = await mkPage(await browser.newContext(), 'C'); await C.fill('#nameIn', 'Soloist'); await C.click('#nameForm button[type=submit]'); await sleep(100); await C.click('[data-act=solo]'); await sleep(200); await C.click('.heroCard[data-h="lumen"]'); await C.click('#btnReady'); await sleep(1500);
   await C.evaluate(() => { const S = window.BOD.G.sim; for (let i = 0; i < 20 * 400; i++) S.step(); }); await sleep(800);
   console.log('solo', JSON.stringify(await st(C)));
   console.log('ERRORS:', errs.length ? errs.join('\n') : 'none');

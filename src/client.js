@@ -8,7 +8,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const store = { get(k, d) { try { const v = localStorage.getItem('bod_' + k); return v === null ? d : v; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem('bod_' + k, v); } catch (e) { } } };
 let myPid = store.get('pid', null); if (!myPid) { myPid = Math.random().toString(36).slice(2, 10); store.set('pid', myPid); }
-let myName = store.get('name', 'Warrior' + Math.floor(100 + Math.random() * 900));
+let myName = (store.get('name', '') || '').slice(0, 16);
 let myHero = store.get('hero', 'ironvow'); if (!DW.HEROES[myHero]) myHero = 'ironvow';
 const fmtT = t => { t = Math.max(0, Math.floor(t)); return Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0'); };
 const fmtN = n => n >= 1e6 ? (n / 1e6).toFixed(1) + 'M' : n >= 10000 ? (n / 1000).toFixed(1) + 'k' : String(Math.round(n));
@@ -19,47 +19,196 @@ function toast(t, c) { const el = document.createElement('div'); el.className = 
 function show(id) { ['menu', 'lobby', 'game', 'end'].forEach(s => $(s).classList.toggle('hidden', s !== id)); }
 
 // ============================ NETWORK / LOBBY ============================
+// Same flow as Connect War: choose a name, then Find match / Host lobby / Find lobby / Play solo.
+// Open lobbies live in the Supabase table "bod_lobbies": the host refreshes its row every 5s while the
+// lobby is open; Find lobby re-reads the list every 5s and only shows rows refreshed in the last 20s.
 let sb = null;
 function getSB() { if (!sb && window.supabase) sb = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); return sb; }
-const L = { gm: 'standard', mode: null, code: null, ch: null, roomsCh: null, players: [], host: false, ready: false, started: false };
+const L = { gm: DW.MODES[store.get('gm', 'standard')] ? store.get('gm', 'standard') : 'standard', mode: null, code: null, ch: null, players: [], host: false, ready: false, started: false, lobbyName: '', max: 4, quick: false };
+let homeScreen = myName ? 'home' : 'name', menuErr = '', updateReady = null;
+const cleanName = t => String(t || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);
+const randomCode = () => Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
+const modeName = k => (DW.MODES[k] || DW.MODES.standard).name;
 
-function initMenu() {
-  $('ver').textContent = 'v' + DW.VERSION + ' · build ' + BUILD;
-  $('nameIn').value = myName;
-  $('nameIn').oninput = e => { myName = e.target.value.replace(/[<>]/g, '').slice(0, 16); store.set('name', myName); };
-  renderRejoin();
-  $('btnSolo').onclick = () => { landscapeLock(); enterLobby('solo'); };
-  $('btnCreate').onclick = () => { landscapeLock(); enterLobby('host'); };
-  $('btnJoin').onclick = () => { landscapeLock(); const c = $('codeIn').value.trim().toUpperCase(); if (c.length < 4) return toast('Enter a room code'); enterLobby('client', c); };
-  watchRooms();
+/* ---------- main menu ---------- */
+function renderMenu() {
+  const m = $('menuPanel'); if (!m) return;
+  $('menuWho').innerHTML = myName ? `Playing as <b>${esc(myName)}</b> <button class="linkbtn" data-act="rename">Change</button>` : '';
+  if (homeScreen === 'name' || !myName) m.innerHTML = nameScreen();
+  else if (homeScreen === 'host') m.innerHTML = hostScreen();
+  else if (homeScreen === 'browse') m.innerHTML = browseScreen();
+  else if (homeScreen === 'search') m.innerHTML = searchScreen();
+  else if (homeScreen === 'joining') m.innerHTML = joiningScreen();
+  else m.innerHTML = homeScreenHtml();
+  $('menuBanner').classList.toggle('hidden', !updateReady); $('menuBanner').textContent = 'A new version is ready — reloading…';
+  bindMenu();
 }
-function watchRooms() {
-  const s = getSB(); if (!s) { $('roomList').innerHTML = '<div class="muted">Online play unavailable (could not load network library).</div>'; return; }
-  L.roomsCh = s.channel('bod-rooms', { config: { presence: { key: myPid } } });
-  L.roomsCh.on('presence', { event: 'sync' }, renderRooms);
-  L.roomsCh.subscribe(st => { if (st === 'SUBSCRIBED' && L.host && L.code && !L.started) trackRoom(); });
+function modeCards() {
+  return `<div class="modes">${Object.keys(DW.MODES).map(k => `<button class="mode ${L.gm === k ? 'on' : ''}" data-gm="${k}" aria-pressed="${L.gm === k}"><span class="mn">${DW.MODES[k].name}</span><span class="md">${DW.MODES[k].desc}</span></button>`).join('')}</div>`;
 }
-function renderRooms() {
-  if (!L.roomsCh) return;
-  const st = L.roomsCh.presenceState(); const rooms = [];
-  for (const k in st) for (const p of st[k]) if (p.code && !p.started) rooms.push(p);
-  $('roomList').innerHTML = rooms.length ? rooms.map(r => `<div class="room"><span><b>${esc(r.code)}</b> · ${esc(r.hostName)}'s war party<small>${esc((DW.MODES[r.gm] || DW.MODES.standard).name)}</small></span><span>${r.n}/4 <button class="btn sm" data-code="${esc(r.code)}">Join</button></span></div>`).join('') : '<div class="muted">No open rooms. Create one!</div>';
-  $('roomList').querySelectorAll('button').forEach(b => b.onclick = () => enterLobby('client', b.dataset.code));
+function homeScreenHtml() {
+  const sess = getSession(), on = !!getSB();
+  return `<div class="eyebrow">New game</div>
+    ${modeCards()}
+    <button class="btn primary big" data-act="quick" ${on ? '' : 'disabled'}><span class="bi">⚔</span>Find Match<small>Join the next war party heading out</small></button>
+    <div class="row2">
+      <button class="btn stone" data-act="hostform" ${on ? '' : 'disabled'}><span class="bi">👑</span>Host Lobby</button>
+      <button class="btn stone" data-act="browse" ${on ? '' : 'disabled'}><span class="bi">🔍</span>Find Lobby</button>
+    </div>
+    <button class="btn stone" data-act="solo"><span class="bi">🛡</span>Play Solo</button>
+    ${sess && !sess.host ? `<button class="btn rejoin" data-act="rejoin">↻ Rejoin match ${esc(sess.code)}</button>` : ''}
+    ${on ? '' : `<p class="err">Online play is unavailable: the game server didn't load. Solo still works.</p>`}
+    <p class="err">${esc(menuErr)}</p>`;
 }
-function trackRoom() { if (L.roomsCh) L.roomsCh.track({ code: L.code, hostName: myName, n: L.players.length || 1, started: L.started, gm: L.gm }); }
-function untrackRoom() { if (L.roomsCh) L.roomsCh.untrack(); }
+function nameScreen() {
+  return `<div class="eyebrow">${myName ? 'Change your name' : 'Welcome, warrior'}</div>
+    <h2>${myName ? 'Change your name' : 'Choose your name'}</h2>
+    <p class="muted">Other players see this in lobbies and during matches.</p>
+    <form id="nameForm" class="stack"><input id="nameIn" class="textin" maxlength="16" placeholder="Your name" autocomplete="nickname" value="${esc(myName)}"><button class="btn primary" type="submit">Save</button></form>
+    ${myName ? `<button class="btn ghost" data-act="home">Back</button>` : ''}
+    <p class="err">${esc(menuErr)}</p>`;
+}
+function hostScreen() {
+  return `<div class="eyebrow">Host a lobby · ${esc(modeName(L.gm))}</div>
+    <h2>Raise your banner</h2>
+    <form id="hostForm" class="stack">
+      <label class="muted small" for="lobbyIn">Lobby name</label>
+      <input id="lobbyIn" class="textin" maxlength="28" placeholder="${esc(myName)}'s Lobby" autocomplete="off" value="${esc(store.get('lobbyName', ''))}">
+      <div class="seg"><span class="seg-l">Players</span>${[2, 3, 4].map(n => `<button type="button" class="${L.max === n ? 'on' : ''}" data-max="${n}">${n}</button>`).join('')}</div>
+      ${modeCards()}
+      <button class="btn primary" type="submit">Open Lobby</button>
+    </form>
+    <button class="btn ghost" data-act="home">Back</button>`;
+}
+function browseScreen() {
+  const d = dir, list = d.list;
+  return `<div class="eyebrow">Find lobby</div>
+    <h2>Open lobbies</h2>
+    ${!d.ready ? `<p class="muted">Loading lobbies…</p>` : list.length ? `<ul class="lobbies">${list.map(l => `
+      <li><button class="lobby" data-joinlobby="${esc(l.code)}">
+        <span class="lb-name">${esc(l.name)}</span>
+        <span class="lb-meta">${esc(modeName(l.mode))} · hosted by ${esc(l.host)}</span>
+        <span class="lb-heroes">${String(l.heroes || '').split(',').filter(h => DW.HEROES[h]).map(h => `<i>${window.BOD_ICONS.hero(h)}</i>`).join('')}</span>
+        <span class="lb-seats">${l.joined}/${l.n}</span></button></li>`).join('')}</ul>`
+      : `<p class="muted">No open lobbies right now. Host one, or try Find Match.</p>`}
+    <div class="refreshrow"><span class="muted small">${d.err ? esc(d.err) : d.ready ? 'Refreshes every 5 seconds' : ''}</span><button class="linkbtn" data-act="refresh">Refresh now</button></div>
+    <button class="btn ghost" data-act="home">Back</button>
+    <p class="err">${esc(menuErr)}</p>`;
+}
+function searchScreen() {
+  return `<div class="eyebrow">${esc(modeName(L.gm))} · Find match</div>
+    <div class="radar" aria-hidden="true"><i></i><i></i><i></i></div>
+    <h2>Finding a war party…</h2>
+    <p class="muted">${esc(qm.status || 'Searching for open lobbies.')}</p>
+    <button class="btn ghost" data-act="mm-cancel">Cancel</button>
+    <p class="err">${esc(menuErr)}</p>`;
+}
+function joiningScreen() {
+  return `<div class="eyebrow">Lobby</div><div class="radar" aria-hidden="true"><i></i><i></i><i></i></div>
+    <h2>Joining…</h2><p class="muted">${esc(menuErr || 'Connecting to the host.')}</p>
+    <button class="btn ghost" data-act="cancel-join">Cancel</button>`;
+}
+function bindMenu() {
+  const root = $('menu');
+  root.querySelectorAll('[data-act]').forEach(b => b.onclick = e => { e.preventDefault(); menuAct(b.dataset.act); });
+  root.querySelectorAll('[data-gm]').forEach(b => b.onclick = e => { e.preventDefault(); L.gm = b.dataset.gm; store.set('gm', L.gm); renderMenu(); });
+  root.querySelectorAll('[data-max]').forEach(b => b.onclick = e => { e.preventDefault(); L.max = +b.dataset.max; const v = $('lobbyIn') && $('lobbyIn').value; renderMenu(); if (v !== undefined && $('lobbyIn')) $('lobbyIn').value = v; });
+  root.querySelectorAll('[data-joinlobby]').forEach(b => b.onclick = () => { landscapeLock(); stopBrowsing(); joinLobby(b.dataset.joinlobby); });
+  const nf = $('nameForm'); if (nf) { nf.onsubmit = e => { e.preventDefault(); const n = cleanName($('nameIn').value); if (!n) { menuErr = 'Enter a name.'; return renderMenu(); } myName = n; store.set('name', n); menuErr = ''; homeScreen = 'home'; renderMenu(); }; setTimeout(() => $('nameIn') && $('nameIn').focus(), 50); }
+  if ($('lobbyIn')) $('lobbyIn').oninput = e => store.set('lobbyName', e.target.value.replace(/[<>]/g, '').slice(0, 28));
+  const hf = $('hostForm'); if (hf) hf.onsubmit = e => { e.preventDefault(); landscapeLock(); const ln = String($('lobbyIn').value || '').replace(/[<>]/g, '').trim().slice(0, 28); store.set('lobbyName', ln); hostLobby({ name: ln }); };
+}
+function menuAct(a) {
+  menuErr = '';
+  if (a === 'rename') { homeScreen = 'name'; return renderMenu(); }
+  if (a === 'home') { stopBrowsing(); homeScreen = 'home'; return renderMenu(); }
+  if (a === 'hostform') { homeScreen = 'host'; return renderMenu(); }
+  if (a === 'browse') { homeScreen = 'browse'; startBrowsing(); return renderMenu(); }
+  if (a === 'refresh') return fetchLobbies();
+  if (a === 'solo') { landscapeLock(); return enterSolo(); }
+  if (a === 'quick') { landscapeLock(); return startQuick(); }
+  if (a === 'mm-cancel') { stopQuick(); homeScreen = 'home'; return renderMenu(); }
+  if (a === 'cancel-join') { leaveLobby(); return; }
+  if (a === 'rejoin') { const s = getSession(); if (s) { landscapeLock(); rejoin(s); } return; }
+}
 
-function enterLobby(mode, code) {
-  if (!myName.trim()) { toast('Enter your name first', 'warn'); $('nameIn').focus(); return; }
-  L.mode = mode; L.host = mode !== 'client'; L.ready = L.host; L.started = false; L.players = []; if (L.host) L.gm = DW.MODES[store.get('gm', 'standard')] ? store.get('gm', 'standard') : 'standard';
-  show('lobby'); renderHeroPick();
-  if (mode === 'solo') { $('lobbyTitle').textContent = 'Solo Expedition'; $('lobbyCode').textContent = 'Offline'; L.players = [{ pid: myPid, name: myName, hero: myHero, ready: true, host: true }]; renderLobby(); return; }
-  if (!getSB()) { toast('Network unavailable'); show('menu'); return; }
-  L.code = code || Array.from({ length: 5 }, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]).join('');
-  $('lobbyTitle').textContent = L.host ? 'Your War Party' : 'War Party'; $('lobbyCode').textContent = L.code;
-  L.joined = Date.now();
+/* ---------- lobby directory ---------- */
+let dir = { list: [], ready: false, err: '' }, browseTimer = null, hostBeat = null, advertised = null;
+async function fetchLobbies() {
+  const s = getSB(); if (!s) return [];
+  const { data, error } = await s.rpc('bod_open_lobbies', { p_version: BUILD });
+  dir.ready = true;
+  if (error) dir.err = "Couldn't load lobbies. Retrying…"; else { dir.err = ''; dir.list = (data || []).filter(l => l.code !== L.code); }
+  if (homeScreen === 'browse' && !$('menu').classList.contains('hidden')) renderMenu();
+  return dir.list;
+}
+function startBrowsing() { stopBrowsing(); dir = { list: [], ready: false, err: '' }; fetchLobbies(); browseTimer = setInterval(fetchLobbies, 5000); }
+function stopBrowsing() { if (browseTimer) clearInterval(browseTimer); browseTimer = null; }
+function lobbyRow() {
+  const ps = L.players.slice(0, L.max);
+  return { code: L.code, name: (L.lobbyName || `${myName}'s Lobby`).slice(0, 40), host: myName.slice(0, 20), mode: L.gm, n: L.max, joined: Math.max(1, ps.length), heroes: ps.map(p => p.hero).join(',').slice(0, 120), version: BUILD };
+}
+function advertise() {
+  const s = getSB(); if (!s || !L.host || L.mode !== 'host' || L.started) return unadvertise();
+  const beat = () => {
+    if (!L.host || L.started || !L.code) return unadvertise();
+    s.from('bod_lobbies').upsert(lobbyRow(), { onConflict: 'code' }).then(({ error }) => { if (error) console.warn('lobby heartbeat failed', error.message); });
+  };
+  advertised = L.code; beat();
+  if (!hostBeat) hostBeat = setInterval(beat, 5000);
+}
+function unadvertise() {
+  if (hostBeat) clearInterval(hostBeat); hostBeat = null;
+  const s = getSB(); if (advertised && s) { const c = advertised; advertised = null; s.from('bod_lobbies').delete().eq('code', c).then(() => { }, () => { }); }
+}
+window.addEventListener('pagehide', () => { if (advertised) unadvertise(); });
+
+/* ---------- find match (quick join) ---------- */
+// Joins the fullest open lobby for the chosen mode. If none exists, opens a "Quick Match" lobby and keeps
+// watching: if an older quick-match lobby appears, it closes its own and joins that one, so players gather.
+const qm = { timer: null, status: '' };
+async function startQuick() {
+  if (!getSB()) return;
+  homeScreen = 'search'; qm.status = 'Searching for open lobbies.'; renderMenu();
+  const list = (await fetchLobbies()).filter(l => l.mode === L.gm && l.joined < l.n).sort((a, b) => b.joined - a.joined || new Date(a.created_at) - new Date(b.created_at));
+  if (homeScreen !== 'search') return;
+  if (list.length) { qm.status = 'Found ' + list[0].name + '. Joining…'; renderMenu(); return joinLobby(list[0].code); }
+  hostLobby({ name: 'Quick Match', quick: true });
+}
+function stopQuick() { if (qm.timer) clearInterval(qm.timer); qm.timer = null; }
+function quickWatch() {
+  stopQuick();
+  qm.timer = setInterval(async () => {
+    if (!L.quick || !L.host || L.started || L.players.length > 1) return;
+    const older = (await fetchLobbies()).filter(l => l.mode === L.gm && l.joined < l.n && l.name === 'Quick Match' && l.code !== L.code && new Date(l.created_at) < new Date(L.createdAt));
+    if (older.length && L.quick && L.players.length <= 1 && !L.started) { stopQuick(); const c = older[0].code; leaveLobby(true); joinLobby(c); }
+  }, 4000);
+}
+
+/* ---------- lobby room ---------- */
+function hostLobby(o) {
+  if (!getSB()) { menuErr = 'Network unavailable'; return renderMenu(); }
+  L.mode = 'host'; L.host = true; L.ready = true; L.started = false; L.players = []; L.code = randomCode(); L.lobbyName = o.name || ''; L.quick = !!o.quick; L.createdAt = new Date().toISOString();
+  if (L.quick) L.max = 4;
+  L.joined = Date.now(); homeScreen = 'home';
+  enterLobbyScreen(); openRoomChannel(); advertise(); if (L.quick) quickWatch();
+}
+function joinLobby(code) {
+  if (!getSB()) { menuErr = 'Network unavailable'; return renderMenu(); }
+  L.mode = 'client'; L.host = false; L.ready = false; L.started = false; L.players = []; L.code = String(code).toUpperCase(); L.joined = Date.now(); L.seenHost = false; L.quick = false;
+  homeScreen = 'joining'; renderMenu();
   openRoomChannel();
-  renderLobby();
+  clearTimeout(L.joinTimer); L.joinTimer = setTimeout(() => { if (!L.seenHost && L.mode === 'client' && !G.running) { leaveLobby(); menuErr = 'That lobby is no longer open.'; renderMenu(); } }, 9000);
+}
+function enterSolo() {
+  L.mode = 'solo'; L.host = true; L.ready = true; L.started = false; L.code = null; L.lobbyName = 'Solo Expedition'; L.quick = false; L.max = 1;
+  L.players = [{ pid: myPid, name: myName, hero: myHero, ready: true, host: true }];
+  enterLobbyScreen();
+}
+function enterLobbyScreen() {
+  show('lobby'); renderHeroPick(); renderLobby();
+  $('btnInvite').classList.toggle('hidden', L.mode === 'solo' || !L.code);
+  $('btnInvite').onclick = () => { const url = location.origin + location.pathname + '#' + L.code; (navigator.share && MOBILE ? navigator.share({ title: 'Break of Day', text: 'Join my war party', url }) : navigator.clipboard.writeText(url)).then(() => toast('Invite link ready', 'info'), () => toast(url, 'info')); };
 }
 function openRoomChannel() {
   const s = getSB(); if (L.ch) { try { s.removeChannel(L.ch); } catch (e) { } }
@@ -71,43 +220,57 @@ function openRoomChannel() {
     for (const k in st) { const p = st[k][st[k].length - 1]; if (p) arr.push(p); }
     arr.sort((a, b) => (b.host ? 1 : 0) - (a.host ? 1 : 0) || a.joined - b.joined);
     L.players = arr;
-    const hostHere = arr.some(p => p.host);
-    if (hostHere) { L.seenHost = true; clearTimeout(L.hostGone); L.hostGone = null; }
-    if (!L.host && L.seenHost && !hostHere && !L.hostGone) {
-      L.hostGone = setTimeout(() => { L.hostGone = null; if (L.players.some(p => p.host)) return; toast('The host has left — the match is over'); clearSession(); if (G.running) quitGame(); else leaveLobby(); }, G.running ? 20000 : 3000);
+    const hostP = arr.find(p => p.host);
+    if (hostP) {
+      if (!L.seenHost && !L.host && !G.running) {
+        if (hostP.v !== BUILD) { menuErr = 'That lobby is on a different version. Reload the page to update, then try again.'; leaveLobby(); return; }
+        if (hostP.started) { menuErr = 'That match has already started.'; leaveLobby(); return; }
+        L.seenHost = true; clearTimeout(L.joinTimer); L.ready = false; enterLobbyScreen(); pushPresence();
+      }
+      L.seenHost = true; clearTimeout(L.hostGone); L.hostGone = null;
+      if (!L.host) { L.gm = hostP.gm || L.gm; L.max = hostP.max || 4; L.lobbyName = hostP.ln || ''; }
+    }
+    if (!L.host && L.seenHost && !hostP && !L.hostGone) {
+      L.hostGone = setTimeout(() => { L.hostGone = null; if (L.players.some(p => p.host)) return; toast('The host has left — the lobby closed'); clearSession(); if (G.running) quitGame(); else { leaveLobby(); menuErr = 'The host closed the lobby.'; renderMenu(); } }, G.running ? 20000 : 3000);
     }
     if (G.running) return;
-    if (!L.host && arr.length > 4 && arr.findIndex(p => p.pid === myPid) >= 4) { toast('Room is full'); leaveLobby(); return; }
-    if (L.host) trackRoom();
-    renderLobby();
+    if (L.host) {
+      // reject wrong versions and overflow
+      arr.filter(p => !p.host && p.v !== BUILD).forEach(p => ch.send({ type: 'broadcast', event: 'kick', payload: { pid: p.pid, reason: 'Different game version. Reload the page to update.' } }));
+      arr.filter(p => !p.host).slice(L.max - 1).forEach(p => ch.send({ type: 'broadcast', event: 'kick', payload: { pid: p.pid, reason: 'That lobby is full.' } }));
+      if (L.mode === 'host') advertise();
+    }
+    if (L.seenHost || L.host) renderLobby();
   });
-  ch.on('broadcast', { event: 'start' }, ({ payload }) => { if (!L.host && !G.running) startGame('client', payload); });
+  ch.on('broadcast', { event: 'start' }, ({ payload }) => { if (!L.host && !G.running && L.seenHost) { L.started = true; startGame('client', payload); } });
   ch.on('broadcast', { event: 's' }, ({ payload }) => { if (G.running && G.mode === 'client') applySnap(payload); });
   ch.on('broadcast', { event: 'in' }, ({ payload }) => { if (G.running && G.mode === 'host' && G.sim) G.sim.input(payload.pid, payload.c); });
-  ch.on('broadcast', { event: 'kick' }, ({ payload }) => { if (payload.pid === myPid) { toast('Removed from room'); leaveLobby(); } });
-  ch.subscribe(st => { if (st === 'SUBSCRIBED') pushPresence(); });
+  ch.on('broadcast', { event: 'kick' }, ({ payload }) => { if (payload.pid === myPid && !L.host) { leaveLobby(); menuErr = payload.reason || 'Removed from the lobby.'; renderMenu(); } });
+  ch.subscribe(st => { if (st === 'SUBSCRIBED') pushPresence(); else if ((st === 'CHANNEL_ERROR' || st === 'TIMED_OUT') && !G.running) { menuErr = "Can't reach the game server. Check your connection."; renderMenu(); } });
+}
+function pushPresence() { if (L.ch) L.ch.track({ pid: myPid, name: myName, hero: myHero, ready: L.ready, host: L.host, joined: L.joined, v: BUILD, gm: L.host ? L.gm : undefined, max: L.host ? L.max : undefined, ln: L.host ? L.lobbyName : undefined, started: L.host ? L.started : undefined }); }
+function leaveLobby(silent) {
+  stopQuick(); unadvertise(); clearTimeout(L.joinTimer);
+  if (L.ch) { try { L.ch.untrack(); getSB().removeChannel(L.ch); } catch (e) { } }
+  L.ch = null; L.code = null; L.seenHost = false; L.quick = false; clearTimeout(L.hostGone); L.hostGone = null; L.mode = null;
+  if (silent) return;
+  homeScreen = 'home'; show('menu'); renderMenu();
 }
 // ---- session / rejoin ----
 function saveSession() { if (L.mode === 'solo') return; store.set('session', JSON.stringify({ code: L.code, host: L.host, t: Date.now() })); }
 function clearSession() { store.set('session', ''); }
 function getSession() { try { const s = JSON.parse(store.get('session', '') || 'null'); if (s && Date.now() - s.t < 45 * 60000) return s; } catch (e) { } return null; }
 function rejoin(sess) {
-  if (sess.host) { toast('Matches end when the host leaves'); clearSession(); renderRejoin(); return; }
-  if (!getSB()) return toast('Network unavailable');
-  L.mode = 'client'; L.host = false; L.ready = true; L.started = true; L.code = sess.code; L.joined = Date.now(); L.seenHost = false;
+  if (sess.host) { menuErr = 'Matches end when the host leaves.'; clearSession(); return renderMenu(); }
+  if (!getSB()) return;
+  L.mode = 'client'; L.host = false; L.ready = true; L.started = true; L.code = sess.code; L.joined = Date.now(); L.seenHost = true;
   openRoomChannel(); startGame('client', { players: [] });
   $('netOv').classList.remove('hidden'); $('netTxt').textContent = 'Rejoining match ' + sess.code + '…';
-  setTimeout(() => { if (G.running && !G.cur) { toast('Match not found — it may have ended'); clearSession(); quitGame(); } }, 15000);
+  setTimeout(() => { if (G.running && !G.cur) { clearSession(); quitGame(); menuErr = 'Match not found — it may have ended.'; renderMenu(); } }, 15000);
 }
-function renderRejoin() {
-  const sess = getSession(); $('btnRejoin').classList.toggle('hidden', !sess || sess.host);
-  if (sess && !sess.host) { $('btnRejoin').textContent = '↻ Rejoin Match ' + sess.code; $('btnRejoin').onclick = () => { landscapeLock(); rejoin(sess); }; }
-}
-function pushPresence() { if (L.ch) L.ch.track({ pid: myPid, name: myName, hero: myHero, ready: L.ready, host: L.host, joined: L.joined, gm: L.host ? L.gm : undefined }); }
-function leaveLobby() {
-  if (L.ch) { try { L.ch.untrack(); getSB().removeChannel(L.ch); } catch (e) { } }
-  L.ch = null; L.code = null; L.seenHost = false; clearTimeout(L.hostGone); L.hostGone = null; if (L.host) untrackRoom(); show('menu'); renderRejoin();
-}
+function renderRejoin() { renderMenu(); }
+function trackRoom() { if (L.mode === 'host') advertise(); }
+/* ---------- lobby screen ---------- */
 function renderHeroPick() {
   $('heroPick').innerHTML = DW.HERO_IDS.map(id => { const h = DW.HEROES[id]; return `<button class="heroCard ${id === myHero ? 'sel' : ''}" data-h="${id}" style="--hc:${h.col}"><div class="hPort">${window.BOD_ICONS.hero(id)}</div><div><b>${h.name}</b><small>${h.role} · ${h.res.type}</small></div></button>`; }).join('');
   $('heroPick').querySelectorAll('.heroCard').forEach(b => b.onclick = () => { myHero = b.dataset.h; store.set('hero', myHero); renderHeroPick(); if (L.mode === 'solo') L.players[0].hero = myHero; pushPresence(); renderLobby(); });
@@ -120,24 +283,52 @@ function renderHeroInfo(id, el) {
   ${h.ab.map((a, i) => `<div class="abInfo withIcon"><div class="tipIcon">${window.BOD_ICONS.ability(id, i)}</div><div><b>${a.n}</b>${a.ult ? ' <i>(Ultimate · lvl 6/11/16)</i>' : ''}<p>${a.d}</p></div></div>`).join('')}`;
 }
 function renderLobby() {
-  const me = L.players.find(p => p.pid === myPid);
-  const hostP = L.players.find(p => p.host); if (!L.host && hostP && hostP.gm) L.gm = hostP.gm;
-  $('modePick').innerHTML = Object.keys(DW.MODES).map(k => `<button class="tab ${L.gm === k ? 'on' : ''}" data-gm="${k}" ${L.host ? '' : 'disabled'}><b>${DW.MODES[k].name}</b><small>${DW.MODES[k].desc}</small></button>`).join('');
-  $('modePick').querySelectorAll('[data-gm]').forEach(b => b.onclick = () => { if (!L.host) return; L.gm = b.dataset.gm; store.set('gm', L.gm); pushPresence(); trackRoom(); renderLobby(); });
-  $('playerList').innerHTML = L.players.slice(0, 4).map(p => { const h = DW.HEROES[p.hero] || DW.HEROES.ironvow; return `<div class="pRow"><div class="hPort sm">${window.BOD_ICONS.hero(p.hero in DW.HEROES ? p.hero : 'ironvow')}</div><span><b>${esc(p.name)}</b>${p.host ? ' 👑' : ''}<small>${h.name}</small></span><span class="${p.ready ? 'ok' : 'muted'}">${p.ready ? 'Ready' : 'Picking…'}</span>${L.host && !p.host && L.mode === 'host' ? `<button class="btn sm ghost" data-kick="${p.pid}">✕</button>` : ''}</div>`; }).join('') + (L.mode === 'solo' ? '' : `<div class="muted">${Math.max(0, 4 - L.players.length)} open slot(s) · share code <b>${L.code}</b></div>`);
-  $('playerList').querySelectorAll('[data-kick]').forEach(b => b.onclick = () => L.ch.send({ type: 'broadcast', event: 'kick', payload: { pid: b.dataset.kick } }));
+  const solo = L.mode === 'solo', n = solo ? 1 : L.max;
+  $('lobbyEyebrow').textContent = solo ? 'Solo' : modeName(L.gm) + ' · Lobby' + (L.quick ? ' · Quick match' : '');
+  $('lobbyTitle').textContent = solo ? 'Solo Expedition' : (L.lobbyName || ((L.players.find(p => p.host) || {}).name || myName) + "'s Lobby");
+  $('lobbyCode').textContent = solo ? '' : 'Code ' + (L.code || '');
+  $('modePick').innerHTML = Object.keys(DW.MODES).map(k => `<button class="mode sm ${L.gm === k ? 'on' : ''}" data-lgm="${k}" ${L.host ? '' : 'disabled'}><span class="mn">${DW.MODES[k].name}</span><span class="md">${DW.MODES[k].desc}</span></button>`).join('');
+  $('modePick').querySelectorAll('[data-lgm]').forEach(b => b.onclick = () => { if (!L.host) return; L.gm = b.dataset.lgm; store.set('gm', L.gm); pushPresence(); advertise(); renderLobby(); });
+  const ps = L.players.slice(0, n);
+  $('playerList').innerHTML = [...Array(n).keys()].map(i => { const p = ps[i]; if (!p) return `<li class="seat empty"><div class="hPort sm ghostp"></div><span class="muted">Waiting for player…</span></li>`;
+    const h = DW.HEROES[p.hero] || DW.HEROES.ironvow;
+    return `<li class="seat ${p.ready ? 'rdy' : ''}"><div class="hPort sm">${window.BOD_ICONS.hero(p.hero in DW.HEROES ? p.hero : 'ironvow')}</div><span class="sn"><b>${esc(p.name)}${p.pid === myPid ? ' (you)' : ''}</b>${p.host ? ' <span class="crown">👑</span>' : ''}<small style="color:${h.col}">${h.name} · ${h.role}</small></span><span class="${p.ready ? 'ok' : 'muted'}">${p.ready ? 'Ready' : 'Picking…'}</span>${L.host && !p.host && L.mode === 'host' ? `<button class="btn sm ghost" data-kick="${p.pid}">✕</button>` : ''}</li>`; }).join('');
+  $('playerList').querySelectorAll('[data-kick]').forEach(b => b.onclick = () => L.ch.send({ type: 'broadcast', event: 'kick', payload: { pid: b.dataset.kick, reason: 'The host removed you from the lobby.' } }));
   const btn = $('btnReady');
-  if (L.host) { const all = L.players.slice(0, 4).every(p => p.ready); btn.textContent = 'Begin the Battle'; btn.disabled = !all; btn.onclick = hostStart; $('lobbyHint').textContent = all ? '' : 'Waiting for everyone to ready up…'; }
+  if (L.host) { const all = ps.every(p => p.ready); btn.textContent = solo ? 'Begin the Battle' : 'Begin the Battle (' + ps.length + '/' + n + ')'; btn.disabled = !all; btn.onclick = hostStart;
+    $('lobbyHint').textContent = solo ? '' : !all ? 'Waiting for everyone to ready up…' : ps.length < n ? 'You can start now, or wait for more players. Your lobby is listed under Find Lobby. Keep this page open: your device runs the match.' : 'Everyone is ready.'; }
   else { btn.disabled = false; btn.textContent = L.ready ? 'Unready' : 'Ready'; btn.onclick = () => { landscapeLock(); L.ready = !L.ready; pushPresence(); renderLobby(); }; $('lobbyHint').textContent = 'The host starts the match when everyone is ready.'; }
-  $('btnLeave').onclick = leaveLobby;
-  if (me && me.hero !== myHero) pushPresence();
+  $('btnLeave').textContent = solo ? 'Back' : L.host ? 'Close lobby' : 'Leave lobby';
+  $('btnLeave').onclick = () => { if (solo) { L.mode = null; show('menu'); renderMenu(); } else leaveLobby(); };
 }
 function hostStart() {
   landscapeLock();
-  const players = L.players.slice(0, 4).map(p => ({ pid: p.pid, name: p.name, hero: p.hero }));
+  const players = L.players.slice(0, L.mode === 'solo' ? 1 : L.max).map(p => ({ pid: p.pid, name: p.name, hero: p.hero }));
   const seed = Math.floor(Math.random() * 2 ** 31);
-  if (L.mode === 'host') { L.started = true; trackRoom(); L.ch.send({ type: 'broadcast', event: 'start', payload: { seed, players, mode: L.gm } }); }
+  if (L.mode === 'host') { L.started = true; stopQuick(); unadvertise(); pushPresence(); L.ch.send({ type: 'broadcast', event: 'start', payload: { seed, players, mode: L.gm } }); }
   startGame(L.mode, { seed, players, mode: L.gm });
+}
+/* ---------- updates (same as Connect War: reload into a new build from the menu) ---------- */
+function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('bod_reload_for'); } catch (e) { } if (tried === v) return false; try { sessionStorage.setItem('bod_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v + location.hash); return true; }
+async function checkVersion() {
+  if (BUILD === 'dev' || location.protocol === 'file:') return;
+  try {
+    const res = await fetch('version.json?t=' + Date.now(), { cache: 'no-store' }); const v = (await res.json()).version;
+    if (!v || v === BUILD) return;
+    const idle = !G.running && !L.mode;
+    if (idle && tryReload(v)) return;
+    if (updateReady !== v) { updateReady = v; if (!G.running && $('menu') && !$('menu').classList.contains('hidden')) renderMenu(); }
+  } catch (e) { }
+}
+setInterval(checkVersion, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
+function initMenu() {
+  $('ver').textContent = 'v' + DW.VERSION + ' · build ' + BUILD;
+  $('menuWho').addEventListener('click', e => { if (e.target.dataset.act === 'rename') { homeScreen = 'name'; renderMenu(); } });
+  $('menuHeroes').innerHTML = DW.HERO_IDS.map(id => `<div class="mh" style="--hc:${DW.HEROES[id].col}" title="${DW.HEROES[id].name}">${window.BOD_ICONS.hero(id)}<span>${DW.HEROES[id].name}</span></div>`).join('');
+  renderMenu(); checkVersion();
+  const hash = location.hash.replace('#', '').trim().toUpperCase();
+  if (hash.length >= 4 && hash.length <= 8 && myName && getSB()) { history.replaceState(null, '', location.pathname); joinLobby(hash); }
 }
 
 // ============================ GAME STATE ============================
@@ -180,7 +371,7 @@ function quitGame() {
   clearSession(); $('netOv').classList.add('hidden');
   G.running = false; clearInterval(G.simTimer); G.sim = null; joyEnd(); cancelAim();
   try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { }
-  if (L.mode !== 'solo') leaveLobby(); else show('menu');
+  if (L.mode !== 'solo') leaveLobby(); else { L.mode = null; show('menu'); renderMenu(); }
 }
 function send(c) {
   if (!G.running) return;
@@ -1082,7 +1273,7 @@ function showEnd(s) {
   $('endTitle').textContent = s.over.win ? 'Victory' : 'Defeat'; $('endTitle').className = s.over.win ? 'win' : 'lose';
   $('endSub').textContent = (s.over.win ? 'The enemy Core lies shattered.' : 'Our Core has fallen.') + ' ' + DW.MODES[s.md[0]].name + ' · Match time ' + fmtT(s.over.t) + ' · Day ' + s.cy;
   $('endStats').innerHTML = statsTable(s);
-  $('btnEndMenu').onclick = () => { if (L.mode !== 'solo') leaveLobby(); else show('menu'); renderRejoin(); };
+  $('btnEndMenu').onclick = () => { if (L.mode !== 'solo') leaveLobby(); else { L.mode = null; show('menu'); renderMenu(); } };
 }
 
 // ============================ FRAME ============================

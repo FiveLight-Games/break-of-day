@@ -24,5 +24,12 @@
     window.addEventListener('beforeunload', () => { if (mine) bc.postMessage({ k: 'leave', from: key }); });
     return ch;
   }
-  window.supabase = { createClient() { return { channel: mkChannel, removeChannel(ch) { ch._close(); } }; } };
+  // shared fake "bod_lobbies" table, synced between pages through the relay
+  const db = window.__db = window.__db || {};
+  const dbSend = (op, row) => { const m = { name: '__db', d: { op, row } }; if (window.__relayOut) window.__relayOut(JSON.stringify(m)); };
+  window.__relayIn = s => { const m = JSON.parse(s); if (m.name === '__db') { const { op, row } = m.d; if (op === 'up') db[row.code] = row; else delete db[row.code]; return; } (window.__bus ? window.__bus.subs : []).forEach(x => { if (x.name === m.name && !x.closed && x.onmessage) x.onmessage({ data: m.d }); }); };
+  const table = { upsert(row) { const r = Object.assign({ created_at: (db[row.code] && db[row.code].created_at) || new Date().toISOString() }, row, { updated_at: Date.now() }); db[row.code] = r; dbSend('up', r); return Promise.resolve({ error: null }); },
+    delete() { return { eq(k, v) { delete db[v]; dbSend('del', { code: v }); return Promise.resolve({ error: null }); } }; } };
+  window.supabase = { createClient() { return { channel: mkChannel, removeChannel(ch) { ch._close(); }, from() { return table; },
+    rpc(fn, args) { const now = Date.now(); return Promise.resolve({ data: Object.values(db).filter(r => r.version === args.p_version && now - r.updated_at < 20000 && r.joined < r.n), error: null }); } }; } };
 })();

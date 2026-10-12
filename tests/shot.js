@@ -11,7 +11,7 @@ const srv = http.createServer((q, r) => { r.setHeader('content-type', 'text/html
   await p.route('**/supabase-js@2', r => r.fulfill({ body: fs.readFileSync(path.join(__dirname, 'supabase-mock.js'), 'utf8'), contentType: 'application/javascript' }));
   await p.route('**/fonts.g*/**', r => r.abort());
   await p.goto('http://localhost:' + (+process.env.PORT || 8766) + '/');
-  await p.click('#btnSolo'); await p.waitForTimeout(200); await p.click('#btnReady'); await p.waitForTimeout(2500);
+  await p.evaluate(() => localStorage.setItem('bod_name', 'Tester')); await p.reload(); await p.click('[data-act=solo]'); await p.waitForTimeout(200); await p.click('#btnReady'); await p.waitForTimeout(2500);
   for (let i = 0; i < 40 && !(await p.evaluate(() => !!(window.BOD && window.BOD.G.cur))); i++) await p.waitForTimeout(500);
   if (errs.length) console.log('early errors:', errs.join(' | '));
   if (setup) await p.evaluate(setup);
