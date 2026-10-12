@@ -286,6 +286,7 @@ table.stats{border-collapse:collapse;width:100%;font-size:12px}
 #xpGain{font:800 10px Inter;color:#e0c0ff;text-shadow:0 1px 2px #000;min-width:44px;opacity:0;transition:opacity .25s}#xpGain.on{opacity:1}
 #lvlFlash{position:absolute;inset:0;pointer-events:none;z-index:3;opacity:0;background:radial-gradient(ellipse at 50% 55%,transparent 45%,rgba(255,196,60,.55) 85%,rgba(255,226,120,.85));box-shadow:inset 0 0 90px 20px rgba(255,200,70,.7)}
 #lvlFlash.go{animation:lvlF 1.3s ease-out}@keyframes lvlF{0%{opacity:0}12%{opacity:1}100%{opacity:0}}
+.siegeTag{display:block;font:800 9px Inter;color:#ff8a7a;letter-spacing:.5px;font-style:normal;animation:siegeP 1.2s ease-in-out infinite;white-space:nowrap}@keyframes siegeP{50%{color:#ffd0c0}}
 </style>
 </head>
 <body>
@@ -437,7 +438,7 @@ table.stats{border-collapse:collapse;width:100%;font-size:12px}
 <div id="toasts"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>window.BOD_BUILD='0f66dc';window.BOD_VER='0.12';</script>
+<script>window.BOD_BUILD='4b5919';window.BOD_VER='0.13';</script>
 <script>/* Break of Day — authoritative simulation (runs on host / solo). No DOM. */
 (function (G) {
 'use strict';
@@ -962,6 +963,13 @@ class Sim {
       const tx = -Math.sin(g.ang), tz = Math.cos(g.ang), rx = Math.cos(g.ang), rz = Math.sin(g.ang);
       for (const sd of [-1, 1]) { const t = this.mk('tower', b.team, g.x + tx * 7.6 * sd - rx * 1.2, g.z + tz * 7.6 * sd - rz * 1.2, { hp: Math.round((b.team ? 3600 : 3000) * SH), ad: 120, armor: 45, mr: 45, as: 0.85, range: 12, r: 2, ms: 0, v: 'tower', invuln: b.team ? 1 : 0, structure: 1, g: 250, xp: 250, pc: b.team ? '#ff5a6a' : '#6ab0ff' }); t.lane = g.lane; }
     }
+    this.sentries = [];
+    for (const b of BASES) if (b.team === 0) for (const g of b.gates) {
+      const ox = Math.cos(g.ang), oz = Math.sin(g.ang), lx = -oz, lz = ox;
+      [[7.5, -2.6, 0], [8.5, 0, 0], [7.5, 2.6, 0], [4, -4.6, 1], [4, 4.6, 1]].forEach(([fo, la, rng]) => { const [x, z] = nearestFree(g.x + ox * fo + lx * la, g.z + oz * fo + lz * la); this.sentries.push({ x, z, rng, lane: g.lane, id: 0, deadAt: 0 }); });
+    }
+    this.sentries.forEach(sl => this.spawnSentry(sl));
+    this.siege = null;
     this.spawnLaneCamps();
     for (const t of MAP.towns) {
       const e = this.mk('town', 2, t.x, t.z, { hp: 2500, ad: 70, armor: 40, mr: 40, as: 0.9, range: 9, r: 3.2, ms: 0, v: 'town', untarget: 1, structure: 1, g: 0, xp: 0, pc: '#9fd0ff' });
@@ -1056,6 +1064,7 @@ class Sim {
     if ((o.auto || o.canCrit) && src.crit > 0 && this.R() < src.crit) { amt *= 1.75; crit = true; }
     if (src.nightFury) amt *= tgt.structure ? 1.3 : 2;
     if (tgt.structure && src.structMult) amt *= src.structMult;
+    if (src && src.team === 0 && (src.kind === 'tower' || src.kind === 'turret') && tgt.kind === 'minion') amt *= 1.3; // our towers shred lane minions
     const res = type === 'phys' ? tgt.armor : type === 'magic' ? tgt.mr : 0;
     let mult = res >= 0 ? 100 / (100 + res) : 2 - 100 / (100 - res);
     mult *= (1 - (tgt.dr || 0)); if (tgt.kind === 'town') mult *= 0.65;
@@ -1382,6 +1391,8 @@ class Sim {
     // waves
     this.waveT -= dt;
     if (this.waveT <= 0) { this.waveT = this.eclipse ? 20 : 30; this.waveN++; this.spawnWave(); }
+    // gate sentries & sieges
+    if (this.tick % 20 === 0) { this.tickSentries(); this.tickSiege(); }
     // raids
     if (this.raidPlan && this.t >= this.raidPlan.at) { this.raidPlan = null; this.spawnRaid(); }
     // camps
@@ -1422,6 +1433,7 @@ class Sim {
       else if (e.kind === 'raider') this.stepRaider(e, dt);
       else if (e.kind === 'merc') this.stepMerc(e, dt);
       else if (e.kind === 'garrison') this.stepGarrison(e, dt);
+      else if (e.kind === 'sentry') this.stepSentry(e, dt);
       else if (e.kind === 'guard') this.stepGuard(e, dt);
       else if (e.kind === 'heal') this.stepHeal(e);
     }
@@ -1679,6 +1691,61 @@ class Sim {
     const g = this.mk('garrison', 0, t.x + Math.cos(a) * 4, t.z - 5 + Math.sin(a) * 2, { hp: Math.round(1000 * m), ad: 40 * m, armor: 30, mr: 25, as: 0.9, range: 2.2, ms: 320, r: 0.9, v: 'garrison', g: 0, xp: 0 });
     g.town = t.id; g.homeX = g.x; g.homeZ = g.z;
   }
+  // Gate sentries: a squad posted just outside each of our gates. They hold their post, regenerate, and return 25s after falling.
+  spawnSentry(sl) {
+    const m = 1 + this.mins() * 0.09;
+    const e = sl.rng ? this.mk('sentry', 0, sl.x, sl.z, { hp: Math.round(620 * m), ad: 30 * m, armor: 12, mr: 20, as: 0.85, range: 8, ms: 310, r: 0.7, v: 'ma_ranged', g: 0, xp: 0, pc: '#9fd0ff' })
+      : this.mk('sentry', 0, sl.x, sl.z, { hp: Math.round(1000 * m), ad: 34 * m, armor: 30, mr: 22, as: 0.9, range: 2.2, ms: 320, r: 0.9, v: 'garrison', g: 0, xp: 0 });
+    e.homeX = sl.x; e.homeZ = sl.z; e.lane = sl.lane; e.face = Math.atan2(-1, 0); sl.id = e.id; sl.deadAt = 0;
+  }
+  stepSentry(e, dt) {
+    e.hp = Math.min(e.maxhp, e.hp + e.maxhp * (e.combatT > 3 ? 0.06 : 0.012) * dt);
+    e.think -= dt; let tg = e.tgt ? this.byId.get(e.tgt) : null;
+    if (e.think <= 0) { e.think = 0.3; if (!tg || tg.dead || !this.canHit(e, tg) || d2(tg.x, tg.z, e.homeX, e.homeZ) > 15 * 15) tg = this.findTarget(e, 12, x => d2(x.x, x.z, e.homeX, e.homeZ) < 14 * 14); e.tgt = tg ? tg.id : 0; }
+    if (tg && !tg.dead) { this.attackStep(e, tg, dt); return; }
+    if (d2(e.x, e.z, e.homeX, e.homeZ) < 0.36) return; // standing at post
+    this.navTo(e, e.homeX, e.homeZ, dt, 0.5);
+  }
+  tickSentries() {
+    for (const sl of this.sentries) {
+      const e = this.byId.get(sl.id); if (e && !e.dead) continue;
+      if (!sl.deadAt) sl.deadAt = this.t; else if (this.t - sl.deadAt >= 25) { this.spawnSentry(sl); this.fx('capture', sl.x, sl.z, 2, '#6ab0ff'); }
+    }
+  }
+  // ----- sieges: every 5th day a siege army marches down one lane (never next to a jungle-raid night) -----
+  siegeInfo() {
+    const S = this.siege; if (!S) return null;
+    if (!S.spawned) return [S.lane, Math.max(0, Math.ceil(S.at - this.t)), 0, 0, 0];
+    let n = 0, x = 0, z = 0; for (const id of S.ids) { const e = this.byId.get(id); if (e && !e.dead) { n++; x += e.x; z += e.z; } }
+    return [S.lane, 0, n, n ? Math.round(x / n) : 0, n ? Math.round(z / n) : 0];
+  }
+  isSiegeDay(c) { return c > 0 && c % 5 === 0; }
+  planSiege() {
+    const lane = ['L', 'M', 'R'][Math.floor(this.R() * 3)];
+    this.siege = { lane, at: this.t + 75, spawned: false, ids: [], day: this.cycle };
+    this.msg('Day ' + this.cycle + ': war horns echo from the ' + LANE_INFO[lane].name + ' — a siege army marches within the minute!', 'r');
+  }
+  spawnSiege() {
+    const S = this.siege, ln = S.lane, P = LANES[ln], start = P[P.length - 1], min = this.mins(), mult = (1 + 0.075 * min) * 1.25;
+    const kinds = ['lieut', 'siege', 'siege', 'siege', 'siege', 'elite', 'elite', 'elite', 'melee', 'melee', 'melee', 'melee', 'melee', 'melee', 'melee', 'melee', 'ranged', 'ranged', 'ranged', 'ranged', 'ranged', 'ranged'];
+    kinds.forEach((k, i) => {
+      const e = this.unitFrom(MINION[k], 'minion', 1, start[0] + (i % 4 - 1.5) * 1.8, start[1] - (Math.floor(i / 4) * 2 + 4), mult, 'me_' + k + '_' + ln);
+      e.lane = ln; e.wp = P.length - 2; e.ox = (i % 4 - 1.5) * 1.1; e.structMult = MINION[k].structMult || 1; e.siegeArmy = 1;
+      if (k === 'lieut') { e.name = 'Siege Commander'; e.g *= 2; }
+      S.ids.push(e.id);
+    });
+    S.spawned = true; S.total = kinds.length;
+    this.msg('SIEGE! The army is marching down the ' + LANE_INFO[ln].name + '. Hold the line!', 'r');
+  }
+  tickSiege() {
+    const S = this.siege; if (!S) return;
+    if (!S.spawned) { if (this.t >= S.at) this.spawnSiege(); return; }
+    S.alive = S.ids.filter(id => { const e = this.byId.get(id); return e && !e.dead; });
+    if (!S.alive.length) {
+      const g = 250 + 50 * S.day; this.heroes.forEach(h => { this.giveGold(h, g); this.giveXp(h, 150 + 20 * S.day); });
+      this.msg('The siege is broken! +' + g + ' gold each.', 'gold'); this.siege = null;
+    }
+  }
   stepGarrison(e, dt) {
     const t = this.byId.get(e.town); if (!t || t.team !== 0) { e.dead = true; return; }
     e.think -= dt; let tg = e.tgt ? this.byId.get(e.tgt) : null;
@@ -1703,7 +1770,8 @@ class Sim {
       this.msg('Paid ' + cost + 'g upkeep for ' + owned.length + ' town' + (owned.length > 1 ? 's' : '') + '.', 'gold');
     }
     // jungle raid
-    if (this.heroes.some(h => h.lvl >= 5) && this.R() < 0.75) this.raidPlan = { at: this.t + 5 + this.R() * 25 };
+    const nearSiege = this.isSiegeDay(this.cycle) || this.isSiegeDay(this.cycle + 1); // never the night before or after a siege day
+    if (!nearSiege && this.heroes.some(h => h.lvl >= 5) && this.R() < 0.75) this.raidPlan = { at: this.t + 5 + this.R() * 25 };
     // nightstalkers patrol lanes
     for (const ln of ['L', 'M', 'R']) {
       const n = 1 + this.cycle;
@@ -1722,6 +1790,7 @@ class Sim {
     this.buildWalls(true);
     this.rotateVault(); if (this.heroes.some(h => h.member)) this.msg('The Members\' Vault has new stock.', 'gold');
     this.spawnEncounters();
+    if (this.isSiegeDay(this.cycle)) this.planSiege();
   }
   spawnGate(b, g) {
     const e = this.mk('gate', b.team, g.x, g.z, { hp: Math.round((b.team ? 6000 : 5000) * this.M.struct * (b.team ? 1 : 1 + 0.4 * (this.upg ? this.upg.walls : 0))), armor: 60, mr: 60, r: 3.4, ms: 0, v: 'gate', invuln: b.team && !this.wardenDown(g.lane) ? 1 : 0, structure: 1, g: 300, xp: 300 });
@@ -1902,7 +1971,7 @@ class Sim {
       if (o.dead || o.team !== 0) continue;
       let r = 0;
       if (o.kind === 'hero') r = 15 * sightM; else if (o.kind === 'ward') r = 22; else if (o.kind === 'core') r = 18; else if (o.structure) r = 13; else if (o.kind === 'merc') r = 10; else if (o.kind === 'minion') r = 9;
-      if (o.kind === 'garrison') r = 11; if (o.kind === 'town') r = 22; if (!r) continue; const L = o.kind === 'hero' || o.kind === 'ward' || o.kind === 'merc' || o.kind === 'garrison'; vsrc.push([o.x, o.z, r * r, L]); if (o.kind !== 'minion') vs.push([r1(o.x), r1(o.z), Math.round(r), L ? 1 : 0]);
+      if (o.kind === 'garrison' || o.kind === 'sentry') r = 11; if (o.kind === 'town') r = 22; if (!r) continue; const L = o.kind === 'hero' || o.kind === 'ward' || o.kind === 'merc' || o.kind === 'garrison'; vsrc.push([o.x, o.z, r * r, L]); if (o.kind !== 'minion') vs.push([r1(o.x), r1(o.z), Math.round(r), L ? 1 : 0]);
     }
     const seen = o => { if (this.reveal) return true; for (const v of vsrc) if (d2(o.x, o.z, v[0], v[1]) < v[2] && (!v[3] || los(v[0], v[1], o.x, o.z))) return true; return false; };
     this.seenFn = seen;
@@ -1925,7 +1994,7 @@ class Sim {
       t: Math.round(this.t * 100) / 100, md: [this.mode, this.M.day, this.cyc, this.M.eclipse], vault: this.vault, ph: this.phase, cy: this.cycle, ec: this.eclipse, so: this.secretOpen, e, h: H, towns, encs,
       p: this.projs.map(p => [p.id, r1(p.x), r1(p.z), p.col, p.size, p.st || 'o']),
       z: this.zones.map(z => [r1(z.x), r1(z.z), z.r, Math.round((this.t - z.s) / (z.e - z.s) * 100) / 100, z.k]),
-      fx: this.fxq, m: this.msgq, over: this.over, vs, upg: this.upg, rails: ['L', 'M', 'R'].map(l => this.railStations(l).map(st => [st.n, r1(st.x), r1(st.z), st.ok ? 1 : 0, st.r]))
+      fx: this.fxq, m: this.msgq, over: this.over, vs, sg: this.siegeInfo(), upg: this.upg, rails: ['L', 'M', 'R'].map(l => this.railStations(l).map(st => [st.n, r1(st.x), r1(st.z), st.ok ? 1 : 0, st.r]))
     };
     this.fxq = []; this.msgq = [];
     return s;
@@ -4020,6 +4089,11 @@ function buildMinimapBg() {
 function drawMinimap() {
   const c = mctx, s = G.cur, mx = G.mx, mz = G.mz; if (mini.width !== G.mW) { mini.width = G.mW; mini.height = G.mH; }
   c.drawImage(miniBg, 0, 0); if (s.ph === 'night') { c.fillStyle = '#0a102a55'; c.fillRect(0, 0, G.mW, G.mH); }
+  if (s.sg) { // siege: pulse where the army is (or the lane mouth it will come from)
+    const P = DW.LANES[s.sg[0]], q = s.sg[2] ? [s.sg[3], s.sg[4]] : P[P.length - 1], pr = 0.5 + 0.5 * Math.sin(performance.now() / 160);
+    c.strokeStyle = `rgba(255,70,50,${0.5 + pr * 0.5})`; c.lineWidth = 2.5; c.beginPath(); c.arc(mx(q[0]), mz(q[1]), 7 + pr * 5, 0, 7); c.stroke();
+    c.fillStyle = '#ff4a3a'; c.font = '900 11px Inter'; c.textAlign = 'center'; c.fillText('⚔', mx(q[0]), mz(q[1]) + 4);
+  }
   for (const e of s.e) {
     const v = e[1], x = mx(e[3]), z = mz(e[4]);
     if (v === 'town') { const tw = s.towns.find(t => t.id === e[0]); c.fillStyle = tw && tw.team === 0 ? '#5ab0ff' : '#d8c090'; c.fillRect(x - 5, z - 5, 10, 10); c.strokeStyle = '#000'; c.lineWidth = 1.5; c.strokeRect(x - 5, z - 5, 10, 10); continue; }
@@ -4077,7 +4151,7 @@ function updateHUD(now) {
   const s = G.cur, me = G.me; if (!me) return; const H = DW.HEROES[me.hid];
   if (G.hudHero !== me.hid) buildHUD();
   const pt = s.t % s.md[2], night = s.ph === 'night';
-  $('clock').innerHTML = `<span class="${night ? 'moon' : 'sunI'}">${night ? '☾' : '☀'}</span><b>${fmtT(s.t)}</b><small>${night ? 'Dawn ' + fmtT(s.md[2] - pt) : 'Night ' + fmtT(s.md[1] - pt)}${s.ec ? ' · ECLIPSE' : ''}</small>`;
+  $('clock').innerHTML = `<span class="${night ? 'moon' : 'sunI'}">${night ? '☾' : '☀'}</span><b>${fmtT(s.t)}</b><small>${night ? 'Dawn ' + fmtT(s.md[2] - pt) : 'Night ' + fmtT(s.md[1] - pt)}${s.ec ? ' · ECLIPSE' : ''}</small>${s.sg ? `<em class="siegeTag">⚔ ${s.sg[2] ? 'SIEGE · ' + DW.LANE_INFO[s.sg[0]].name + ' · ' + s.sg[2] + ' left' : 'Siege in ' + fmtT(s.sg[1]) + ' · ' + DW.LANE_INFO[s.sg[0]].name}</em>` : ''}`;
   $('clock').classList.toggle('night', night);
   $('gold').textContent = me.g;
   $('lvlN').textContent = me.lvl; xpHud(me, now);

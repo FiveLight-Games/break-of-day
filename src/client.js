@@ -2006,6 +2006,11 @@ function buildMinimapBg() {
 function drawMinimap() {
   const c = mctx, s = G.cur, mx = G.mx, mz = G.mz; if (mini.width !== G.mW) { mini.width = G.mW; mini.height = G.mH; }
   c.drawImage(miniBg, 0, 0); if (s.ph === 'night') { c.fillStyle = '#0a102a55'; c.fillRect(0, 0, G.mW, G.mH); }
+  if (s.sg) { // siege: pulse where the army is (or the lane mouth it will come from)
+    const P = DW.LANES[s.sg[0]], q = s.sg[2] ? [s.sg[3], s.sg[4]] : P[P.length - 1], pr = 0.5 + 0.5 * Math.sin(performance.now() / 160);
+    c.strokeStyle = `rgba(255,70,50,${0.5 + pr * 0.5})`; c.lineWidth = 2.5; c.beginPath(); c.arc(mx(q[0]), mz(q[1]), 7 + pr * 5, 0, 7); c.stroke();
+    c.fillStyle = '#ff4a3a'; c.font = '900 11px Inter'; c.textAlign = 'center'; c.fillText('⚔', mx(q[0]), mz(q[1]) + 4);
+  }
   for (const e of s.e) {
     const v = e[1], x = mx(e[3]), z = mz(e[4]);
     if (v === 'town') { const tw = s.towns.find(t => t.id === e[0]); c.fillStyle = tw && tw.team === 0 ? '#5ab0ff' : '#d8c090'; c.fillRect(x - 5, z - 5, 10, 10); c.strokeStyle = '#000'; c.lineWidth = 1.5; c.strokeRect(x - 5, z - 5, 10, 10); continue; }
@@ -2063,7 +2068,7 @@ function updateHUD(now) {
   const s = G.cur, me = G.me; if (!me) return; const H = DW.HEROES[me.hid];
   if (G.hudHero !== me.hid) buildHUD();
   const pt = s.t % s.md[2], night = s.ph === 'night';
-  $('clock').innerHTML = `<span class="${night ? 'moon' : 'sunI'}">${night ? '☾' : '☀'}</span><b>${fmtT(s.t)}</b><small>${night ? 'Dawn ' + fmtT(s.md[2] - pt) : 'Night ' + fmtT(s.md[1] - pt)}${s.ec ? ' · ECLIPSE' : ''}</small>`;
+  $('clock').innerHTML = `<span class="${night ? 'moon' : 'sunI'}">${night ? '☾' : '☀'}</span><b>${fmtT(s.t)}</b><small>${night ? 'Dawn ' + fmtT(s.md[2] - pt) : 'Night ' + fmtT(s.md[1] - pt)}${s.ec ? ' · ECLIPSE' : ''}</small>${s.sg ? `<em class="siegeTag">⚔ ${s.sg[2] ? 'SIEGE · ' + DW.LANE_INFO[s.sg[0]].name + ' · ' + s.sg[2] + ' left' : 'Siege in ' + fmtT(s.sg[1]) + ' · ' + DW.LANE_INFO[s.sg[0]].name}</em>` : ''}`;
   $('clock').classList.toggle('night', night);
   $('gold').textContent = me.g;
   $('lvlN').textContent = me.lvl; xpHud(me, now);

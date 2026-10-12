@@ -10,5 +10,6 @@
   {"v": "0.09", "build": "52d2ed", "commit": "d56bcff", "date": "2026-10-12", "notes": "Opening cinematic"},
   {"v": "0.10", "build": "3757ed", "commit": "3a50ca1", "date": "2026-10-12", "notes": "Control settings: static/dynamic joystick, custom layout"},
   {"v": "0.11", "build": "4cdd13", "commit": "4f237af", "date": "2026-10-12", "notes": "Version numbers: v0.01 per build, build log"},
-  {"v": "0.12", "build": "0f66dc", "commit": "", "date": "2026-10-12", "notes": "XP bar with numbers, XP gain readouts, level-up gold aura"}
+  {"v": "0.12", "build": "0f66dc", "commit": "b219d78", "date": "2026-10-12", "notes": "XP bar with numbers, XP gain readouts, level-up gold aura"},
+  {"v": "0.13", "build": "4b5919", "commit": "", "date": "2026-10-12", "notes": "Gate sentries, towers +30% vs lane minions, siege every 5th day"}
 ]
