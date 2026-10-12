@@ -376,7 +376,7 @@ table.stats{border-collapse:collapse;width:100%;font-size:12px}
 <div id="toasts"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>window.BOD_BUILD='ca4dc6';</script>
+<script>window.BOD_BUILD='5fa64f';</script>
 <script>/* Break of Day — authoritative simulation (runs on host / solo). No DOM. */
 (function (G) {
 'use strict';
@@ -2249,7 +2249,8 @@ function buildTerrain() {
   // base color per region, blended smoothly between regions
   const BASE = ['#33283a', '#3c6424', '#3a6656'], bc = document.createElement('canvas'); bc.width = T.cols; bc.height = T.rows; const bx = bc.getContext('2d');
   for (let r = 0; r < T.rows; r++) for (let q = 0; q < T.cols; q++) { bx.fillStyle = BASE[THEME[r * T.cols + q]]; bx.fillRect(q, r, 1, 1); }
-  c.imageSmoothingEnabled = true; c.filter = 'blur(' + Math.round(S / 160) + 'px)'; c.drawImage(bc, px(T.ox), pz(T.oz), pu(T.cols * T.cs), pv(T.rows * T.cs)); c.filter = 'none';
+  const mc2 = document.createElement('canvas'); mc2.width = T.cols * 3; mc2.height = T.rows * 3; const m2 = mc2.getContext('2d'); m2.imageSmoothingEnabled = true; m2.filter = 'blur(4px)'; m2.drawImage(bc, 0, 0, mc2.width, mc2.height); m2.filter = 'none';
+  c.imageSmoothingEnabled = true; c.drawImage(mc2, px(T.ox), pz(T.oz), pu(T.cols * T.cs), pv(T.rows * T.cs));
   const PAL = [['#2a1e2e', '#3e2e40', '#24182a', '#4a3a48', '#30283a', '#3a3036'], ['#33571e', '#4a7a2c', '#3e6a26', '#527e30', '#2e501c', '#5a6a28'], ['#36624f', '#4a7a66', '#2e5a50', '#5a8a70', '#5e7e62', '#6a8466']];
   const PAL2 = [['#3a2a3e', '#22162a', '#4a3c44', '#2e2832'], ['#4e8434', '#2e541a', '#5a8a36', '#28501a', '#6a7a32'], ['#4a8a70', '#2a5a4e', '#5a9078', '#3e7062']];
   const thAtPx = (X, Y) => themeAt(X / S * 2 * WX - WX, Y / S * 2 * WZ - WZ);
@@ -3155,7 +3156,26 @@ function pressRecall() {
 
 // ============================ MODALS ============================
 let modalRefresh = null;
-function openModal(html, bind, refresh) { const full = '<button class="x" id="mClose">✕</button>' + html; if (!$('modalBg').classList.contains('hidden') && G.modalHtml === full) return; G.modalHtml = full; const sc = $('modal').scrollTop; $('modal').innerHTML = full; $('modal').scrollTop = sc; $('modalBg').classList.remove('hidden'); $('mClose').onclick = closeModal; if (bind) bind(); modalRefresh = refresh || null; }
+function morph(a, b) {
+  // Patch element a to match b in place (same structure → update text/attributes; otherwise replace the child)
+  if (a.nodeType !== b.nodeType || a.nodeName !== b.nodeName) { a.replaceWith(b.cloneNode(true)); return; }
+  if (a.nodeType === 3) { if (a.nodeValue !== b.nodeValue) a.nodeValue = b.nodeValue; return; }
+  if (a.nodeType !== 1) return;
+  for (const at of [...a.attributes]) if (!b.hasAttribute(at.name)) a.removeAttribute(at.name);
+  for (const at of [...b.attributes]) if (a.getAttribute(at.name) !== at.value) a.setAttribute(at.name, at.value);
+  if (a.tagName === 'INPUT') return;
+  const ac = [...a.childNodes], bc = [...b.childNodes];
+  if (ac.length !== bc.length) { a.innerHTML = b.innerHTML; return; }
+  for (let i = 0; i < ac.length; i++) morph(ac[i], bc[i]);
+}
+function openModal(html, bind, refresh) {
+  const full = '<button class="x" id="mClose">✕</button>' + html, open = !$('modalBg').classList.contains('hidden');
+  if (open && G.modalHtml === full) return;
+  if (open && refresh && refresh === modalRefresh) {
+    G.modalHtml = full; const t = document.createElement('div'); t.innerHTML = full;
+    const box = $('modal'); if (box.childNodes.length === t.childNodes.length) { [...box.childNodes].forEach((n, i) => morph(n, t.childNodes[i])); $('mClose').onclick = closeModal; if (bind) bind(); return; }
+  }
+  G.modalHtml = full; const sc = $('modal').scrollTop; $('modal').innerHTML = full; $('modal').scrollTop = sc; $('modalBg').classList.remove('hidden'); $('mClose').onclick = closeModal; if (bind) bind(); modalRefresh = refresh || null; }
 function closeModal() { $('modalBg').classList.add('hidden'); modalRefresh = null; G.modalHtml = null; G.shopTab = G.shopTab; }
 G.shopTab = 'basic';
 function openShop() { renderShop(); }

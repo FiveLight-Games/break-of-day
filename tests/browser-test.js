@@ -4,8 +4,8 @@ const DIST = path.join(__dirname, '..', 'index.html');
 const srv = http.createServer((q, r) => { r.setHeader('content-type', 'text/html'); r.end(fs.readFileSync(DIST)); }).listen(8765);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 (async () => {
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-  const errs = []; const pages = new Set();
+  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: process.env.REAL3 ? ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : [] });
+  const errs = global.__errs = []; const pages = new Set();
   async function mkPage(ctx, tag) {
     const p = await ctx.newPage({ viewport: { width: 900, height: 500 } });
     p.on('pageerror', e => errs.push(tag + ' PAGEERROR ' + e.message + '\n' + (e.stack || '').split('\n').slice(0, 3).join('\n')));
@@ -31,6 +31,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await A.click('#btnReady'); await sleep(2500);
   const st = async p => p.evaluate(() => { const G = window.BOD.G; return { running: G.running, t: G.cur && G.cur.t, me: G.me && G.me.hid, heroes: G.cur && G.cur.h.map(h => h.n + ':' + h.hid), frames: window.__frames }; });
   console.log('A', JSON.stringify(await st(A))); console.log('B', JSON.stringify(await st(B)));
+  for (let i = 0; i < 40 && !(await B.evaluate(() => !!(window.BOD.G.cur && window.BOD.G.me))); i++) await sleep(250);
+  { const fa = await A.evaluate(() => window.__frames), fb = await B.evaluate(() => window.__frames); await sleep(3000); console.log('fps A/B', ((await A.evaluate(() => window.__frames)) - fa) / 3, ((await B.evaluate(() => window.__frames)) - fb) / 3, 'snap bytes', await A.evaluate(() => Math.round(window.__bytes / window.__sent))); }
   // B plays: move, level, cast, shop, council
   await B.keyboard.press('b'); await sleep(300); await B.click('[data-buy="sword"]'); await sleep(400); await B.keyboard.press('Escape');
   await B.evaluate(() => { const s = window.BOD.send; s({ c: 'lvl', k: 0 }); s({ c: 'move', x: -10, z: 80 }); });
@@ -70,4 +72,4 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   console.log('solo', JSON.stringify(await st(C)));
   console.log('ERRORS:', errs.length ? errs.join('\n') : 'none');
   await browser.close(); srv.close();
-})().catch(e => { console.error('TEST FAIL', e); process.exit(1); });
+})().catch(e => { console.error('TEST FAIL', String(e).split('\n')[0]); console.error('PAGE ERRORS:', (global.__errs || []).slice(0, 6).join('\n')); process.exit(1); });

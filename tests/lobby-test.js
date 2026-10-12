@@ -5,7 +5,7 @@ const OUT = process.env.OUT || __dirname;
 const srv = http.createServer((q, r) => { r.setHeader('content-type', q.url.startsWith('/version.json') ? 'application/json' : 'text/html'); r.end(fs.readFileSync(path.join(__dirname, '..', q.url.startsWith('/version.json') ? 'version.json' : 'index.html'))); }).listen(8790);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 (async () => {
-  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+  const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: process.env.REAL3 ? ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : [] });
   const errs = [], pages = new Set();
   async function mk(tag, w = 844, h = 390) {
     const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
