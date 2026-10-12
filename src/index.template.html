@@ -260,6 +260,22 @@ table.stats{border-collapse:collapse;width:100%;font-size:12px}
 #introCap b{font:800 clamp(20px,3.2vw,34px) Cinzel,serif;color:#ffe9b0;letter-spacing:1px}
 #introCap small{font:600 clamp(11px,1.5vw,15px) Inter,sans-serif;color:#d8c8a8;letter-spacing:2px;text-transform:uppercase}
 #introSkip{position:absolute;right:16px;bottom:calc(9vh + 14px);pointer-events:auto;background:#0008;color:#e8dcc0;border:1px solid #ffffff33;border-radius:18px;padding:7px 14px;font:700 13px Inter,sans-serif;z-index:2}
+#hudEdit{position:absolute;inset:0;z-index:36;touch-action:none;background:#0006}
+#editBoxes .eb{position:absolute;border:2px dashed #ffd36bcc;border-radius:12px;background:#ffd36b14;pointer-events:none;display:flex;align-items:flex-start;justify-content:center}
+#editBoxes .eb.below{align-items:flex-end}#editBoxes .eb.below span{transform:translateY(120%)}
+#editBoxes .eb.on{border-style:solid;border-color:#fff3b0;background:#ffd36b2e}
+#editBoxes .eb span{transform:translateY(-120%);font:800 10px Inter,sans-serif;color:#ffe9b0;text-shadow:0 1px 3px #000;white-space:nowrap;letter-spacing:.5px;text-transform:uppercase}
+#editBar{position:absolute;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;background:#120c08ee;border:1px solid #ffd36b55;border-radius:14px;padding:6px 8px 6px 14px;font:700 12px Inter,sans-serif;color:#f0e2c0;white-space:nowrap;box-shadow:0 6px 20px #000a}
+#game.editHud #btnInteract.hidden{display:flex!important}
+#game.editHud #joy{opacity:1}
+#game.editHud #hudTL,#game.editHud #hudTop,#game.editHud #feed,#game.editHud #hint{opacity:.35}
+#game.preview{background:radial-gradient(ellipse at 50% 40%,#2e4a2a,#101a10 70%)}
+#game.preview #view,#game.preview #overlay{visibility:hidden}
+.setRow{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;border-bottom:1px solid #ffffff14}
+.setRow p{margin:2px 0 0}
+.seg{display:flex;gap:6px;flex-shrink:0}
+.segb{border:1px solid #ffd36b55;background:#1a120a;color:#d8c8a8;font:700 12px Inter,sans-serif;padding:8px 12px;border-radius:10px;cursor:pointer}
+.segb.on{background:linear-gradient(#ffd77a,#c08a2a);color:#2a1404;border-color:#fff3b0}
 </style>
 </head>
 <body>
@@ -383,6 +399,10 @@ table.stats{border-collapse:collapse;width:100%;font-size:12px}
   <div id="flash"></div>
   <div id="channel" class="hud hidden"><div id="channelTxt"></div><div class="barO"><div id="channelFill"></div></div></div>
   <div id="deathOv" class="hud hidden"><div id="deathTxt"></div></div>
+  <div id="hudEdit" class="hidden">
+    <div id="editBoxes"></div>
+    <div id="editBar"><span>Drag any control to move it</span><button class="btn sm ghost" id="editReset">Reset</button><button class="btn sm primary" id="editDone">Done</button></div>
+  </div>
   <div id="intro" class="hidden">
     <div class="lb top"></div><div class="lb bot"></div>
     <div id="introCap"><b></b><small></small></div>

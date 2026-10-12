@@ -56,6 +56,7 @@ function homeScreenHtml() {
       <button class="btn stone" data-act="browse" ${on ? '' : 'disabled'}><span class="bi">🔍</span>Find Lobby</button>
     </div>
     <button class="btn stone" data-act="solo"><span class="bi">🛡</span>Play Solo</button>
+    <button class="btn ghost" data-act="settings">⚙ Settings</button>
     ${sess && !sess.host ? `<button class="btn rejoin" data-act="rejoin">↻ Rejoin match ${esc(sess.code)}</button>` : ''}
     ${on ? '' : `<p class="err">Online play is unavailable: the game server didn't load. Solo still works.</p>`}
     <p class="err">${esc(menuErr)}</p>`;
@@ -126,6 +127,7 @@ function menuAct(a) {
   if (a === 'browse') { homeScreen = 'browse'; startBrowsing(); return renderMenu(); }
   if (a === 'refresh') return fetchLobbies();
   if (a === 'solo') { landscapeLock(); return enterSolo(); }
+  if (a === 'settings') return openSettings(true);
   if (a === 'quick') { landscapeLock(); return startQuick(); }
   if (a === 'mm-cancel') { stopQuick(); homeScreen = 'home'; return renderMenu(); }
   if (a === 'cancel-join') { leaveLobby(); return; }
@@ -512,13 +514,14 @@ function init3D() {
   window.addEventListener('resize', resize); window.addEventListener('orientationchange', () => setTimeout(resize, 200)); if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
   bindInput(); requestAnimationFrame(frame);
 }
+function setUiScale() { const w = window.innerWidth, h = window.innerHeight; document.documentElement.style.setProperty('--ui', Math.max(0.72, Math.min(1.15, Math.min(h / 412, w / 900))).toFixed(3)); }
 function resize() {
+  setUiScale(); requestAnimationFrame(applyCtl);
   if (!renderer) return; const w = window.innerWidth, h = window.innerHeight;
   renderer.setSize(w, h); camera.aspect = w / h;
   camera.fov = w / h < 1.3 ? 58 : w / h < 1.7 ? 46 : 40; camera.updateProjectionMatrix();
   const dpr = Math.min(window.devicePixelRatio, 2); overlay.width = w * dpr; overlay.height = h * dpr; overlay.style.width = w + 'px'; overlay.style.height = h + 'px'; octx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const portrait = h > w && MOBILE; $('rotateHint').classList.toggle('hidden', !portrait || !G.running);
-  document.documentElement.style.setProperty('--ui', Math.max(0.72, Math.min(1.15, Math.min(h / 412, w / 900))).toFixed(3));
 }
 function hash2(x, z) { const s = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453; return s - Math.floor(s); }
 function srand(seed) { return () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }; }
@@ -1392,10 +1395,25 @@ function pickUnit(sx, sy) {
   return best;
 }
 // ---- joystick ----
-function joyStart(id, x, y) { J.id = id; J.ox = x; J.oy = y; J.x = x; J.y = y; J.active = true; const b = $('joy'); b.classList.add('on'); b.style.left = x + 'px'; b.style.top = y + 'px'; $('joyKnob').style.transform = 'translate(-50%,-50%)'; }
+// rest centre of the joystick ring (its default spot plus any custom offset)
+function joyRest() { const r = $('joy').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+// should a touch at (x, y) grab the joystick?  dynamic: anywhere on the joystick's half of the screen; static: on/near the ring
+function joyGrabs(x, y) {
+  if (J.active) return false; const c = joyRest();
+  if (CTL.joy === 'static') return Math.hypot(x - c.x, y - c.y) < 100 * uiScale();
+  return (c.x < window.innerWidth / 2) === (x < window.innerWidth / 2);
+}
+function joyStart(id, x, y) {
+  J.id = id; J.x = x; J.y = y; J.active = true; const b = $('joy'); b.classList.add('on'); $('joyKnob').style.transform = 'translate(-50%,-50%)';
+  if (CTL.joy === 'static') { const c = joyRest(); J.ox = c.x; J.oy = c.y; joyMove(x, y); return; }
+  J.ox = x; J.oy = y; b.style.translate = ''; b.style.left = x + 'px'; b.style.top = y + 'px';
+}
 function joyMove(x, y) {
   const R = 52 * uiScale(); let dx = x - J.ox, dy = y - J.oy; const l = Math.hypot(dx, dy);
-  if (l > R) { J.ox += dx / l * (l - R); J.oy += dy / l * (l - R); dx = x - J.ox; dy = y - J.oy; $('joy').style.left = J.ox + 'px'; $('joy').style.top = J.oy + 'px'; }
+  if (l > R) {
+    if (CTL.joy === 'static') { dx = dx / l * R; dy = dy / l * R; }
+    else { J.ox += dx / l * (l - R); J.oy += dy / l * (l - R); dx = x - J.ox; dy = y - J.oy; $('joy').style.left = J.ox + 'px'; $('joy').style.top = J.oy + 'px'; }
+  }
   $('joyKnob').style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
   J.x = x; J.y = y; joySend(dx, dy, Math.hypot(dx, dy));
 }
@@ -1405,7 +1423,79 @@ function joySend(dx, dy, l) {
   const ang = Math.atan2(dy, dx); let da = J.lastAng === null ? 9 : Math.abs(Math.atan2(Math.sin(ang - J.lastAng), Math.cos(ang - J.lastAng)));
   if (da > 0.1 || (da > 0.02 && now - J.lastSent > 120)) { J.lastAng = ang; J.lastSent = now; send({ c: 'dir', x: Math.round(Math.cos(ang) * 100) / 100, z: Math.round(Math.sin(ang) * 100) / 100 }); }
 }
-function joyEnd() { if (!J.active) return; J.active = false; J.id = null; $('joy').classList.remove('on'); $('joyKnob').style.transform = 'translate(-50%,-50%)'; if (J.lastAng !== null) send({ c: 'dir', x: 0, z: 0 }); J.lastAng = null; }
+function joyEnd() { if (!J.active) return; J.active = false; J.id = null; const b = $('joy'); b.classList.remove('on'); b.style.left = b.style.top = ''; applyCtl(); $('joyKnob').style.transform = 'translate(-50%,-50%)'; if (J.lastAng !== null) send({ c: 'dir', x: 0, z: 0 }); J.lastAng = null; }
+// ---------- control settings: joystick mode + custom positions ----------
+const CTL_IDS = [['joy', 'Joystick'], ['btnAtk', 'Attack'], ['abQ', 'Ability 1'], ['abW', 'Ability 2'], ['abE', 'Ability 3'], ['abR', 'Ultimate'], ['btnInteract', 'Interact'], ['hudBC', 'Items'], ['hudTR', 'Map & Menu']];
+const CTL_SCALED = new Set(['btnAtk', 'abQ', 'abW', 'abE', 'abR', 'btnInteract']); // live inside the scaled ability cluster
+const CTL = (() => { let c = {}; try { c = JSON.parse(store.get('ctl', '') || '{}') || {}; } catch (e) { } return { joy: c.joy === 'static' ? 'static' : 'dynamic', pos: c.pos && typeof c.pos === 'object' ? c.pos : {} }; })();
+const saveCtl = () => store.set('ctl', JSON.stringify(CTL));
+// offsets are stored in screen pixels; anything pushed off-screen (e.g. after rotating) is nudged back on
+function applyCtl() {
+  const u = uiScale(), W = window.innerWidth, H = window.innerHeight;
+  for (const [id] of CTL_IDS) {
+    const el = $(id); if (!el || (id === 'joy' && J.active && CTL.joy !== 'static')) continue;
+    const o = CTL.pos[id], k = CTL_SCALED.has(id) ? u : 1;
+    const set = (x, y) => { el.style.translate = x || y ? `${x / k}px ${y / k}px` : ''; if (id === 'joy') $('joyHint').style.translate = el.style.translate; };
+    if (!o) { set(0, 0); continue; }
+    set(o[0], o[1]); const r = el.getBoundingClientRect(); if (!r.width) continue;
+    const fx = r.left < 0 ? -r.left : r.right > W ? W - r.right : 0, fy = r.top < 0 ? -r.top : r.bottom > H ? H - r.bottom : 0;
+    if (fx || fy) set(o[0] + fx, o[1] + fy);
+  }
+}
+function settingsHtml() {
+  const seg = (v, n) => `<button class="segb ${CTL.joy === v ? 'on' : ''}" data-joy="${v}" aria-pressed="${CTL.joy === v}">${n}</button>`;
+  const custom = Object.keys(CTL.pos).length;
+  return `<h2>Settings</h2>
+    <div class="setRow"><div><b>Joystick</b><p class="muted small">${CTL.joy === 'static' ? 'Stays where you place it. Touch the ring to move.' : 'Appears wherever your thumb lands on its side of the screen.'}</p></div><div class="seg">${seg('dynamic', 'Dynamic')}${seg('static', 'Static')}</div></div>
+    <div class="setRow"><div><b>Control layout</b><p class="muted small">${custom ? 'Custom layout' : 'Default layout'} · drag the joystick and buttons wherever you like.</p></div><div class="seg"><button class="btn sm" id="setLayout">Customize</button>${custom ? '<button class="btn sm ghost" id="setReset">Reset</button>' : ''}</div></div>
+    <div class="row"><button class="btn" id="setDone">Done</button></div>`;
+}
+function openSettings(fromMenu) {
+  const bind = () => {
+    document.querySelectorAll('#modal [data-joy]').forEach(b => b.onclick = () => { CTL.joy = b.dataset.joy; saveCtl(); joyEnd(); applyCtl(); openSettings(fromMenu); });
+    $('setLayout').onclick = () => openLayoutEditor(fromMenu);
+    if ($('setReset')) $('setReset').onclick = () => { CTL.pos = {}; saveCtl(); applyCtl(); openSettings(fromMenu); };
+    $('setDone').onclick = closeModal;
+  };
+  openModal(settingsHtml(), bind);
+}
+function editBoxes() {
+  const box = $('editBoxes'); box.innerHTML = '';
+  for (const [id, n] of CTL_IDS) { const r = $(id).getBoundingClientRect(); if (!r.width) continue; const d = document.createElement('div'); d.className = 'eb' + (G.edit && G.edit.drag && G.edit.drag.id === id ? ' on' : '') + (r.top < 18 ? ' below' : ''); Object.assign(d.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px' }); d.innerHTML = `<span>${n}</span>`; box.appendChild(d); }
+}
+function openLayoutEditor(fromMenu) {
+  closeModal(); joyEnd(); cancelAim();
+  if (fromMenu) { show('game'); setUiScale(); $('game').classList.add('preview'); }
+  G.edit = { fromMenu, drag: null }; $('game').classList.add('editHud'); $('hudEdit').classList.remove('hidden');
+  applyCtl(); requestAnimationFrame(editBoxes);
+}
+function closeLayoutEditor() {
+  if (!G.edit) return; const fromMenu = G.edit.fromMenu; G.edit = null; saveCtl();
+  $('hudEdit').classList.add('hidden'); $('game').classList.remove('editHud', 'preview'); applyCtl();
+  if (fromMenu) { show('menu'); renderMenu(); }
+}
+function bindLayoutEditor() {
+  const ov = $('hudEdit');
+  $('editDone').onclick = closeLayoutEditor;
+  $('editReset').onclick = () => { CTL.pos = {}; applyCtl(); editBoxes(); };
+  ov.addEventListener('pointerdown', e => {
+    if (!G.edit || e.target.closest('#editBar')) return; let best = null, ba = 1e9;
+    for (const [id] of CTL_IDS) { const r = $(id).getBoundingClientRect(); if (!r.width) continue; const pad = 10; if (e.clientX < r.left - pad || e.clientX > r.right + pad || e.clientY < r.top - pad || e.clientY > r.bottom + pad) continue; const a = r.width * r.height; if (a < ba) { ba = a; best = id; } }
+    if (!best) return; e.preventDefault(); try { ov.setPointerCapture(e.pointerId); } catch (er) { }
+    const o = CTL.pos[best] || [0, 0], r = $(best).getBoundingClientRect();
+    // start from where it is actually drawn (applyCtl may have nudged it on-screen)
+    const base = [o[0], o[1]]; G.edit.drag = { id: best, pid: e.pointerId, sx: e.clientX, sy: e.clientY, base, r0: r }; editBoxes();
+  });
+  ov.addEventListener('pointermove', e => {
+    const D = G.edit && G.edit.drag; if (!D || e.pointerId !== D.pid) return;
+    const W = window.innerWidth, H = window.innerHeight;
+    let dx = e.clientX - D.sx, dy = e.clientY - D.sy;
+    dx = Math.max(-D.r0.left, Math.min(W - D.r0.right, dx)); dy = Math.max(-D.r0.top, Math.min(H - D.r0.bottom, dy));
+    CTL.pos[D.id] = [Math.round(D.base[0] + dx), Math.round(D.base[1] + dy)]; applyCtl(); editBoxes();
+  });
+  const up = e => { const D = G.edit && G.edit.drag; if (!D || e.pointerId !== D.pid) return; G.edit.drag = null; saveCtl(); editBoxes(); };
+  ov.addEventListener('pointerup', up); ov.addEventListener('pointercancel', up);
+}
 const uiScale = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui')) || 1;
 // ---- ability aim ----
 function abInfo(k) { const H = DW.HEROES[G.me.hid]; return { ab: H.ab[k], aoe: (AOE[G.me.hid] || [])[k] || 0 }; }
@@ -1468,7 +1558,7 @@ function bindInput() {
       const u = pickUnit(e.clientX, e.clientY); if (u) { send({ c: 'atk', id: u[0] }); return; }
       const w = screenToWorld(e.clientX, e.clientY); if (w) send({ c: 'move', x: Math.round(w.x * 10) / 10, z: Math.round(w.z * 10) / 10 }); return;
     }
-    if (e.clientX < window.innerWidth * 0.5 && !J.active) { try { cv.setPointerCapture(e.pointerId); } catch (er) { } joyStart(e.pointerId, e.clientX, e.clientY); return; }
+    if (joyGrabs(e.clientX, e.clientY)) { try { cv.setPointerCapture(e.pointerId); } catch (er) { } joyStart(e.pointerId, e.clientX, e.clientY); return; }
     if (!G.look) { try { cv.setPointerCapture(e.pointerId); } catch (er) { } G.look = { id: e.pointerId, sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY, moved: false }; }
   });
   cv.addEventListener('pointermove', e => {
@@ -1524,7 +1614,7 @@ function bindInput() {
   $('btnShop').onclick = openShop; $('btnTowns').onclick = openTowns; $('btnStats').onclick = openStats; $('hPortrait').onclick = openHero;
   $('inv').onclick = () => { G.shopTab = 'inv'; renderShop(); };
   $('introSkip').onclick = introEnd;
-  $('btnMenu').onclick = () => openModal('<h2>Menu</h2><p class="muted"><b>Touch:</b> left thumb anywhere on the left half = joystick · Attack button auto-targets (hold to keep attacking) · drag an ability to aim, tap it to quick-cast, drag onto ✕ to cancel · hold an ability for its tooltip · hold the minimap to look around.<br><b>Keyboard:</b> WASD move · Space attack · Q E R F abilities at the cursor (Shift+key to level) · B shop · G council · H potion · Backspace recall · Tab stats.</p><div class="row"><button class="btn" id="mResume">Resume</button><button class="btn danger" id="mQuit">Leave Match</button></div>', () => { $('mResume').onclick = closeModal; $('mQuit').onclick = () => { closeModal(); quitGame(); }; });
+  $('btnMenu').onclick = () => openModal('<h2>Menu</h2><p class="muted"><b>Touch:</b> left thumb anywhere on the left half = joystick · Attack button auto-targets (hold to keep attacking) · drag an ability to aim, tap it to quick-cast, drag onto ✕ to cancel · hold an ability for its tooltip · hold the minimap to look around.<br><b>Keyboard:</b> WASD move · Space attack · Q E R F abilities at the cursor (Shift+key to level) · B shop · G council · H potion · Backspace recall · Tab stats.</p><div class="row"><button class="btn" id="mResume">Resume</button><button class="btn" id="mSettings">⚙ Settings</button><button class="btn danger" id="mQuit">Leave Match</button></div>', () => { $('mResume').onclick = closeModal; $('mSettings').onclick = () => openSettings(false); $('mQuit').onclick = () => { closeModal(); quitGame(); }; });
   $('modalBg').addEventListener('pointerdown', e => { if (e.target === $('modalBg')) closeModal(); });
 }
 function buildHUD() {
@@ -1993,7 +2083,7 @@ function netWatchdog(now) {
 }
 
 // ============================ BOOT ============================
-window.addEventListener('load', () => { initMenu(); show('menu'); $('netLeave').onclick = () => { quitGame(); }; });
+window.addEventListener('load', () => { initMenu(); show('menu'); setUiScale(); bindLayoutEditor(); applyCtl(); window.addEventListener('resize', () => { setUiScale(); applyCtl(); if (G.edit) editBoxes(); }); $('netLeave').onclick = () => { quitGame(); }; });
 window.addEventListener('online', () => { if (G.running && G.mode === 'client') { G.reconnectT = 0; G.lastNet = 0; } });
-window.BOD = { G, L, send, FOG, get scene() { return scene; }, get camera() { return camera; } };
+window.BOD = { G, L, send, FOG, CTL, applyCtl, joyRest, get scene() { return scene; }, get camera() { return camera; } };
 })();
