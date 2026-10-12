@@ -16,9 +16,9 @@ const MODES = {
 const LANE_L = [[0, 108], [-30, 100], [-60, 87], [-74, 58], [-75, 0], [-74, -58], [-60, -87], [-30, -100], [0, -108]];
 const LANES = { L: LANE_L, M: [[0, 108], [0, 54], [0, 0], [0, -54], [0, -108]], R: LANE_L.map(p => [-p[0], p[1]]) };
 const LANE_INFO = {
-  L: { name: 'Wildwood', desc: 'Cheapest town upkeep. A Secret Shop hides behind the Ancient Treant.' },
-  M: { name: "King's Road", desc: 'Shortest path to the Core, but enemy waves are one minion heavier.' },
-  R: { name: 'Goldmire', desc: 'Goldmire town has a gold mine (+3 gold/s each while held). Highest upkeep.' },
+  L: { name: 'Blightwood', theme: 'Undead', desc: 'Scourge-blighted forest held by ghouls and acolytes. Cheapest town upkeep. A Secret Shop hides behind the Ancient Treant.' },
+  M: { name: 'Warpath', theme: 'Orc', desc: 'Orc grunts and troll headhunters hold the green road. Shortest path to the Core, but enemy waves are one warrior heavier.' },
+  R: { name: 'Tidemarsh', theme: 'Naga', desc: 'Flooded stone causeway of the naga. Goldmire town has a gold mine (+3 gold/s each while held). Highest upkeep.' },
 };
 const MAP = {
   W: 112, H: 126,
@@ -60,20 +60,41 @@ for (const k in LANES) LANES[k] = LANES[k].map(p => [p[0] * SX, p[1] * SZ]);
   MAP.cores.forEach(pt); MAP.towers.forEach(pt); MAP.towns.forEach(pt); MAP.bosses.forEach(pt); pt(MAP.secretShop); pt(MAP.forge); MAP.camps.forEach(pt);
   MAP.encSpots = MAP.encSpots.map(p => [p[0] * SX, p[1] * SZ]);
 })();
+// ---- winding lanes: densify each lane and bend it; every lane has its own shape ----
+const LANE_BEND = {
+  L: z => 13 * Math.sin(z / 28) + 4 * Math.sin(z / 9 + 1),                                  // Blightwood: long S-curves
+  M: z => { const p = (z / 46 + 0.25) % 1, tri = 4 * Math.abs((p < 0 ? p + 1 : p) - 0.5) - 1; return 11 * tri + 2.5 * Math.sin(z / 6); }, // Warpath: switchbacks
+  R: z => 9 * Math.sin(z / 17 + 2) + 6 * Math.sin(z / 41),                                  // Tidemarsh: meandering causeway
+};
+const bendW = z => Math.max(0, Math.min(1, (165 - Math.abs(z)) / 40));
+const laneShift = (k, z) => LANE_BEND[k](z) * bendW(z);
+for (const k in LANES) {
+  const P = LANES[k], out = [];
+  for (let i = 0; i < P.length - 1; i++) { const a = P[i], b = P[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]), n = Math.max(1, Math.ceil(L / 3)); for (let j = 0; j < n; j++) out.push([a[0] + (b[0] - a[0]) * j / n, a[1] + (b[1] - a[1]) * j / n]); }
+  out.push(P[P.length - 1].slice());
+  LANES[k] = out.map(p => [clamp(p[0] + laneShift(k, p[1]), -MAP.W + 14, MAP.W - 14), p[1]]);
+}
+function laneX(k, z) { const P = LANES[k]; for (let i = 0; i < P.length - 1; i++) { const a = P[i], b = P[i + 1]; if ((a[1] - z) * (b[1] - z) <= 0 && a[1] !== b[1]) return a[0] + (b[0] - a[0]) * (z - a[1]) / (b[1] - a[1]); } return P[0][0]; }
+MAP.towns.forEach(t => { t.x = laneX(t.lane, t.z); });
+MAP.towers.forEach(t => { t.x = laneX(t.lane, t.z); });
+MAP.bosses.forEach(b => { b.x += laneShift(b.lane, b.z); });
+MAP.secretShop.x += laneShift('L', MAP.secretShop.z);
 const RIVER = x => 4 + 6 * Math.sin(x / SX / 19) + 2 * Math.sin(x / SX / 7);
-function laneDist(x, z) {
-  let best = 1e9;
-  for (const k in LANES) {
-    const P = LANES[k];
-    for (let i = 0; i < P.length - 1; i++) {
-      const ax = P[i][0], az = P[i][1], bx = P[i + 1][0], bz = P[i + 1][1];
-      const vx = bx - ax, vz = bz - az, l2 = vx * vx + vz * vz;
-      const t = clamp(((x - ax) * vx + (z - az) * vz) / l2, 0, 1);
-      const dd = d2(x, z, ax + vx * t, az + vz * t);
-      if (dd < best) best = dd;
-    }
+function laneDistK(k, x, z) {
+  const P = LANES[k]; let best = 1e9;
+  for (let i = 0; i < P.length - 1; i++) {
+    const ax = P[i][0], az = P[i][1], bx = P[i + 1][0], bz = P[i + 1][1];
+    if ((ax - x) * (ax - x) + (az - z) * (az - z) > best + 64 && (bx - x) * (bx - x) + (bz - z) * (bz - z) > best + 64) continue;
+    const vx = bx - ax, vz = bz - az, l2 = vx * vx + vz * vz || 1;
+    const t = clamp(((x - ax) * vx + (z - az) * vz) / l2, 0, 1);
+    const dd = d2(x, z, ax + vx * t, az + vz * t); if (dd < best) best = dd;
   }
   return Math.sqrt(best);
+}
+// Region theme of any point = nearest lane (L undead, M orc, R naga)
+function laneOf(x, z) { const a = laneDistK('L', x, z), b = laneDistK('M', x, z), c = laneDistK('R', x, z); return a <= b && a <= c ? 'L' : c <= b ? 'R' : 'M'; }
+function laneDist(x, z) {
+  return Math.min(laneDistK('L', x, z), laneDistK('M', x, z), laneDistK('R', x, z));
 }
 const TOWN_BUFFS = {
   hollowmere: { n: 'Stone Walls', d: 'Armor & Magic Resist', s: [{ armor: 8, mr: 8 }, { armor: 16, mr: 16 }, { armor: 26, mr: 26 }] },
@@ -126,9 +147,9 @@ const VAULT = {
 };
 const CARD_CHANCE = { creep: 0.006, minion: 0.002, stalker: 0.02 };
 const BASE_UPG = {
-  railL: { n: "Wildwood Rail", cat: 'rail', lane: 'L', d: 'Rail segments: Base → 1st town → 2nd town → Forward Camp. Each segment needs its end town held (Forward Camp: Warden slain).', c: [800, 1200, 1600] },
-  railM: { n: "King's Road Rail", cat: 'rail', lane: 'M', d: 'Rail segments: Base → 1st town → 2nd town → Forward Camp. Each segment needs its end town held (Forward Camp: Warden slain).', c: [800, 1200, 1600] },
-  railR: { n: "Goldmire Rail", cat: 'rail', lane: 'R', d: 'Rail segments: Base → 1st town → 2nd town → Forward Camp. Each segment needs its end town held (Forward Camp: Warden slain).', c: [800, 1200, 1600] },
+  railL: { n: "Blightwood Rail", cat: 'rail', lane: 'L', d: 'Rail segments: Base → 1st town → 2nd town → Forward Camp. Each segment needs its end town held (Forward Camp: Warden slain).', c: [800, 1200, 1600] },
+  railM: { n: "Warpath Rail", cat: 'rail', lane: 'M', d: 'Rail segments: Base → 1st town → 2nd town → Forward Camp. Each segment needs its end town held (Forward Camp: Warden slain).', c: [800, 1200, 1600] },
+  railR: { n: "Tidemarsh Rail", cat: 'rail', lane: 'R', d: 'Rail segments: Base → 1st town → 2nd town → Forward Camp. Each segment needs its end town held (Forward Camp: Warden slain).', c: [800, 1200, 1600] },
   sight: { n: 'Watchtowers', cat: 'jungle', d: 'Each level raises 2 watch posts deeper into the jungle and gives heroes +10% sight.', c: [700, 1400, 2100] },
   heal: { n: 'Jungle Healing Packs', cat: 'jungle', d: 'Four healing packs appear in the jungle. Touch one to restore 35% HP and resource (45s recharge).', c: [1000] },
   merc: { n: 'Mercenary Guild', cat: 'jungle', d: 'Hire mercenaries at base (250g, max 2 per hero). They follow you through the jungle but never enter lanes.', c: [1200] },
@@ -291,7 +312,12 @@ function rollMythic(R) { const keys = Object.keys(MYTHICS); return named(MYTHICS
 function projStyle(e) {
   if (e.kind === 'hero') return { thornshot: 'a', emberwitch: 'f', lumen: 'h' }[e.hid] || 'o';
   if (e.structure) return 'b';
-  return { c_archer: 'a', c_trollshaman: 'g', b_hydra: 'v', b_bogwitch: 'p', me_ranged: 'o', ma_ranged: 'o', me_siege: 'r', ma_siege: 'r' }[e.v] || 'o';
+  const v = e.v, th = v.split('_')[2];
+  if (v.startsWith('me_ranged')) return { L: 'g', M: 'S', R: 'w' }[th] || 'o';
+  if (v.startsWith('me_siege')) return { L: 'm', M: 'r', R: 'w' }[th] || 'r';
+  if (v.startsWith('c_archer')) return th === 'R' ? 'S' : 'a';
+  if (v.startsWith('c_trollshaman')) return { L: 'g', M: 'g', R: 'w' }[th] || 'g';
+  return { b_hydra: 'w', b_bogwitch: 'p', ma_ranged: 'o', ma_siege: 'r' }[v] || 'o';
 }
 const DROP_CHANCE = { minion: 0.05, creep: 0.12, stalker: 0.3, raider: 0.15 };
 
@@ -444,7 +470,7 @@ class Sim {
     this.ents.push(e); this.byId.set(e.id, e); return e;
   }
   unitFrom(tpl, kind, team, x, z, mult, v) {
-    const s = Object.assign({}, tpl); s.hp = Math.round(s.hp * mult); s.ad = s.ad * (0.6 + 0.4 * mult); s.v = v; s.g = Math.round(s.g * (1 + (mult - 1) * 0.5));
+    const s = Object.assign({}, tpl); s.hp = Math.round(s.hp * mult); s.ad = s.ad * (0.6 + 0.4 * mult); s.v = v && v.startsWith('c_') && v.split('_').length === 2 ? v + '_' + laneOf(x, z) : v; s.g = Math.round(s.g * (1 + (mult - 1) * 0.5));
     return this.mk(kind, team, x, z, s);
   }
   spawnGuards(town) {
@@ -561,7 +587,7 @@ class Sim {
         this.msg(e.name + ' slain! Every hero receives ' + e.g + ' gold and a Legendary.', 'gold');
         if (mythic) this.msg('Something ancient stirs beneath the night sky…', 'r6');
         if (e.warden) { const tw = this.ents.find(t => t.kind === 'tower' && t.team === 1 && t.lane === e.warden); if (tw) { tw.invuln = 0; this.msg('The ' + LANE_INFO[e.warden].name + ' enemy tower is no longer sealed!', 'gold'); } }
-        if (e.bid === 'treant') { this.secretOpen = true; this.msg('The Secret Shop in the Wildwood is now open!', 'gold'); }
+        if (e.bid === 'treant') { this.secretOpen = true; this.msg('The Secret Shop in the Blightwood is now open!', 'gold'); }
       } else {
         const share = near.length > 1 ? 0.8 : 1;
         near.forEach(h => this.giveXp(h, e.xp * share));
@@ -746,7 +772,7 @@ class Sim {
   moveToward(e, tx, tz, dt, stopDist) {
     if (e.stunU > this.t) return false;
     const dx = tx - e.x, dz = tz - e.z, l = Math.hypot(dx, dz);
-    if (l <= (stopDist || 0.15)) return true;
+    if (l <= (stopDist || 0.15) + 0.02) return true;
     let sp = e.ms * SPD * (e.slowU > this.t ? e.slowM : 1) * (e.nightFury ? 1.15 : 1);
     const step = Math.min(l - (stopDist || 0), sp * dt);
     let nx = clamp(e.x + dx / l * step, -MAP.W, MAP.W), nz = clamp(e.z + dz / l * step, -MAP.H, MAP.H);
@@ -1250,7 +1276,7 @@ class Sim {
         const P = LANES[ln]; let start = team === 0 ? P[0] : P[P.length - 1], wp0 = team === 0 ? 1 : P.length - 2;
         if (team === 0) { if (this.phase === 'night' && !this.eclipse) continue; const ft = this.frontSpawn(ln); if (ft) { start = [ft.x, ft.z - 14]; wp0 = P.findIndex(p => p[1] < ft.z - 14); if (wp0 < 0) wp0 = P.length - 1; } }
         kinds.forEach((k, i) => {
-          const e = this.unitFrom(MINION[k], 'minion', team, start[0] + (i % 3 - 1) * 1.6, start[1] + (team ? -1 : 1) * (Math.floor(i / 3) * 1.8 + 4), mult, (team ? 'me_' : 'ma_') + k);
+          const e = this.unitFrom(MINION[k], 'minion', team, start[0] + (i % 3 - 1) * 1.6, start[1] + (team ? -1 : 1) * (Math.floor(i / 3) * 1.8 + 4), mult, team ? 'me_' + k + '_' + ln : 'ma_' + k);
           e.lane = ln; e.wp = wp0; e.ox = (i % 3 - 1) * 1.2; e.structMult = MINION[k].structMult || 1;
         });
       }
@@ -1294,6 +1320,6 @@ class Sim {
     return s;
   }
 }
-const API = { TER, blocked, los, RIVER, SX, SZ, RAID_PTS, WARD_SPOTS, MODES, BASE_UPG, MERC_COST, HEAL_SPOTS, VAULT, LEGENDARIES, MYTHICS, rollLegendary, rollMythic, makeProc, VERSION, TOWN_BUFFS, TIER_DRAIN, Sim, HEROES, HERO_IDS, ITEMS, MAP, LANES, LANE_INFO, STAT_NAMES, PCT, RARITY, POTION_COST, DAY, NIGHT, CYC, ECLIPSE_T, DT, xpNext, laneDist, rollLoot, mulberry32 };
+const API = { laneOf, laneDistK, laneX, TER, blocked, los, RIVER, SX, SZ, RAID_PTS, WARD_SPOTS, MODES, BASE_UPG, MERC_COST, HEAL_SPOTS, VAULT, LEGENDARIES, MYTHICS, rollLegendary, rollMythic, makeProc, VERSION, TOWN_BUFFS, TIER_DRAIN, Sim, HEROES, HERO_IDS, ITEMS, MAP, LANES, LANE_INFO, STAT_NAMES, PCT, RARITY, POTION_COST, DAY, NIGHT, CYC, ECLIPSE_T, DT, xpNext, laneDist, rollLoot, mulberry32 };
 if (typeof module !== 'undefined') module.exports = API; else G.DW = API;
 })(typeof window !== 'undefined' ? window : globalThis);
