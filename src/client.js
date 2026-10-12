@@ -325,7 +325,7 @@ async function checkVersion() {
 setInterval(checkVersion, 60000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
 function initMenu() {
-  $('ver').textContent = 'v' + DW.VERSION + ' · build ' + BUILD;
+  $('ver').textContent = 'v' + (window.BOD_VER || '?'); $('ver').title = 'build ' + BUILD;
   $('menuWho').addEventListener('click', e => { if (e.target.dataset.act === 'rename') { homeScreen = 'name'; renderMenu(); } });
   $('menuHeroes').innerHTML = DW.HERO_IDS.map(id => `<div class="mh" style="--hc:${DW.HEROES[id].col}" title="${DW.HEROES[id].name}">${window.BOD_ICONS.hero(id)}<span>${DW.HEROES[id].name}</span></div>`).join('');
   renderMenu(); checkVersion();
