@@ -264,7 +264,7 @@ function rejoin(sess) {
   if (sess.host) { menuErr = 'Matches end when the host leaves.'; clearSession(); return renderMenu(); }
   if (!getSB()) return;
   L.mode = 'client'; L.host = false; L.ready = true; L.started = true; L.code = sess.code; L.joined = Date.now(); L.seenHost = true;
-  openRoomChannel(); startGame('client', { players: [] });
+  openRoomChannel(); startGame('client', { players: [], rejoin: 1 });
   $('netOv').classList.remove('hidden'); $('netTxt').textContent = 'Rejoining match ' + sess.code + '…';
   setTimeout(() => { if (G.running && !G.cur) { clearSession(); quitGame(); menuErr = 'Match not found — it may have ended.'; renderMenu(); } }, 15000);
 }
@@ -347,11 +347,19 @@ function startGame(mode, cfg) {
   show('game'); $('feed').innerHTML = '';
   if (!renderer) init3D();
   clearWorld(); buildHUD(); fogReset();
+  introStart(!cfg.rejoin && !window.BOD_NO_INTRO, cfg.mode);
   if (mode !== 'client') {
-    G.sim = new DW.Sim({ seed: cfg.seed, players: cfg.players, mode: cfg.mode }); G.stepN = 0;
-    clearInterval(G.simTimer); let last = performance.now(), acc = 0;
+    G.sim = new DW.Sim({ seed: cfg.seed, players: cfg.players, mode: cfg.mode }); G.stepN = 0; G.sim.reveal = !!G.intro;
+    clearInterval(G.simTimer); let last = performance.now(), acc = 0, introTick = 0;
     G.simTimer = setInterval(() => {
-      const now = performance.now(); acc += Math.min(0.5, (now - last) / 1000); last = now;
+      const now = performance.now();
+      if (G.intro) { // world is frozen during the opening cinematic; keep clients fed with a full, unfogged view
+        last = now; acc = 0;
+        if (introTick++ % 10 === 0) { const snap = G.sim.snapshot(true); if (mode === 'host' && L.ch) L.ch.send({ type: 'broadcast', event: 's', payload: snap }); applySnap(snap); }
+        return;
+      }
+      if (G.sim.reveal) G.sim.reveal = false;
+      acc += Math.min(0.5, (now - last) / 1000); last = now;
       while (acc >= DW.DT && G.running) {
         acc -= DW.DT; G.sim.step(); G.stepN++;
         if (G.stepN % 2 === 0) {
@@ -367,14 +375,70 @@ function startGame(mode, cfg) {
   G.overSent = false;
   resize();
 }
+// ---------- opening cinematic ----------
+const INTRO_TITLE = 2.0, INTRO_BLEND = 1.1;
+const ease = t => t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
+const lerp3 = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+function introShots() {
+  const C1 = DW.MAP.cores.find(c => c.team === 1), shots = [];
+  // the ground rises steeply past the map edge; tight fog keeps that wall sky-coloured in low shots
+  shots.push({ d: 3.0, cap: ['The Enemy Core', 'Shatter it to win'], fog: () => [34, 80],
+    pos: t => { const a = -0.6 + ease(t) * 1.2; return [C1.x + Math.sin(a) * 34, 17 - t * 4, C1.z + Math.cos(a) * 34]; }, look: () => [C1.x, 3.5, C1.z] });
+  [['L', 2], ['M', 1], ['R', 0]].forEach(([k, tier]) => {
+    const cz = DW.LANE_CAMPS[tier].z, cx = DW.laneX(k, cz), side = k === 'L' ? -9 : k === 'R' ? 9 : 6, I = DW.LANE_INFO[k];
+    shots.push({ d: 2.4, cap: [I.name + ' · ' + I.theme, DW.CAMP_NAMES[k][tier]], fog: () => [50, 140],
+      pos: t => { const e = ease(t), z = cz + 44 - e * 20; return [DW.laneX(k, z) + side * (1 - e * 0.35), 21 - e * 8, z]; }, look: t => [cx, 1.5, cz - 1 - t * 2] });
+  });
+  const hs = G.cur && G.cur.h && G.cur.h.length ? G.cur.h : null, C0 = DW.MAP.cores.find(c => c.team === 0);
+  const hx = hs ? hs.reduce((a, h) => a + h.x, 0) / hs.length : 0, hz = hs ? hs.reduce((a, h) => a + h.z, 0) / hs.length : 186;
+  const cxm = hx + (hx <= C0.x ? 2.8 : -2.8), mid = hx * 0.55 + C0.x * 0.45; // offset so the Core stands beside the heroes, not hidden behind them
+  const A = [hx + 13, 17, hz - 30], B = [cxm + 1.2, 0.9, hz - 10], C = [cxm, 0.42, hz - 7.6];
+  shots.push({ d: 4.4, cap: null, hero: 1, fog: t => t < 0.42 ? [34, 90] : [30 - 6 * ease((t - 0.42) / 0.58), 66],
+    pos: t => t < 0.42 ? lerp3(A, B, ease(t / 0.42)) : lerp3(B, C, ease((t - 0.42) / 0.58)),
+    look: t => t < 0.42 ? lerp3([hx, 1.5, hz - 4], [hx, 2.4, hz], ease(t / 0.42)) : lerp3([hx, 2.4, hz], [mid, 4.2, hz + 5], ease((t - 0.42) / 0.58)) });
+  return shots;
+}
+function introStart(on, mode) {
+  const el = $('intro'), game = $('game');
+  if (!on) { G.intro = null; el.classList.add('hidden'); game.classList.remove('intro'); if (FOG.uni) FOG.uni.fogOn.value = 1; return; }
+  G.intro = { el: 0, shots: null, shot: -1 };
+  el.classList.remove('hidden', 'out'); game.classList.add('intro'); if (FOG.uni) FOG.uni.fogOn.value = 0;
+  $('introTitle').style.opacity = 1; $('introFade').style.opacity = 0; $('introCap').style.opacity = 0;
+  const t = $('introTitle').querySelector('.title'); t.style.animation = 'none'; void t.offsetWidth; t.style.animation = '';
+  $('introMode').textContent = (DW.MODES[mode] || DW.MODES.standard).name;
+}
+function introEnd() {
+  if (!G.intro) return; G.intro = null;
+  $('game').classList.remove('intro'); $('intro').classList.add('hidden'); if (FOG.uni) FOG.uni.fogOn.value = 1;
+}
+// camera pose for the cinematic at time `now`, or null when it's over. `game` is the normal gameplay pose to blend into.
+function introPose(dt, game) {
+  const I = G.intro; if (!I) return null;
+  if (!I.shots) { if (!G.cur) return { p: [0, 30, 0], l: [0, 0, -40], fog: [40, 120] }; I.shots = introShots(); }
+  I.el += Math.min(dt, 0.05); const el = I.el, S = I.shots, total = S.reduce((a, s) => a + s.d, 0);
+  $('introTitle').style.opacity = el < INTRO_TITLE ? 1 : Math.max(0, 1 - (el - INTRO_TITLE) / 0.6);
+  let t = Math.max(0, el - INTRO_TITLE), i = 0; while (i < S.length - 1 && t > S[i].d) { t -= S[i].d; i++; }
+  if (el - INTRO_TITLE > total + INTRO_BLEND) { introEnd(); return null; }
+  const sh = S[i], u = Math.min(1, t / sh.d);
+  if (i !== I.shot) { I.shot = i; const c = $('introCap'); if (sh.cap) { c.querySelector('b').textContent = sh.cap[0]; c.querySelector('small').textContent = sh.cap[1]; } if (sh.hero) $('intro').classList.add('out'); }
+  $('introCap').style.opacity = sh.cap ? Math.min(1, u * 5, (1 - u) * 5) : 0;
+  // quick dip to black on each cut
+  let fade = 0; for (let k = 1, acc = S[0].d; k < S.length; acc += S[k].d, k++) fade = Math.max(fade, 1 - Math.abs(el - INTRO_TITLE - acc) / 0.2);
+  $('introFade').style.opacity = Math.max(0, fade);
+  let p = sh.pos(u), l = sh.look(u), fog = sh.fog(u);
+  const over = el - INTRO_TITLE - total;
+  if (over > 0) { const b = ease(over / INTRO_BLEND); p = lerp3(p, game.p, b); l = lerp3(l, game.l, b); fog = [fog[0] + (game.fog[0] - fog[0]) * b, fog[1] + (game.fog[1] - fog[1]) * b]; }
+  return { p, l, fog };
+}
 function quitGame() {
+  introEnd();
   clearSession(); $('netOv').classList.add('hidden');
   G.running = false; clearInterval(G.simTimer); G.sim = null; joyEnd(); cancelAim();
   try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { }
   if (L.mode !== 'solo') leaveLobby(); else { L.mode = null; show('menu'); renderMenu(); }
 }
 function send(c) {
-  if (!G.running) return;
+  if (!G.running || G.intro) return;
   if (G.mode === 'client') { if (L.ch) L.ch.send({ type: 'broadcast', event: 'in', payload: { pid: myPid, c } }); }
   else if (G.sim) G.sim.input(myPid, c);
 }
@@ -520,6 +584,19 @@ function buildTerrain() {
   const GRASS = [['#5a4a4e', '#3a2e36', '#6a5a52', '#4a3a44'], ['#5a9038', '#2a5018', '#6aa040', '#3a6a22'], ['#4a8a6a', '#2a6a5a', '#5a9a7a', '#7aa070']];
   for (let i = 0; i < (MOBILE ? 90000 : 200000); i++) { const x = R() * S, y = R() * S; const wx = x / S * 2 * WX - WX, wz = y / S * 2 * WZ - WZ; if (ldAt(wx, wz) < 6 || Math.abs(wz - DW.RIVER(wx)) < 7) continue; c.strokeStyle = GRASS[themeAt(wx, wz)][i & 3]; c.globalAlpha = 0.4; c.beginPath(); c.moveTo(x, y); c.lineTo(x + (R() - 0.5) * pu(0.35), y - pv(0.4 + R() * 0.4)); c.stroke(); }
   c.globalAlpha = 1;
+  // map edge: the ground rises into cliffs there — paint it as dark layered rock rather than letting plazas/grass run up the slope
+  { const H = M.H, Wm = M.W, RK = ['#3e3832', '#4a423a', '#36302c', '#524840', '#2e2a26'], R2 = srand(91);
+    const band = (horiz, sgn) => {
+      const a0 = (horiz ? H : Wm) - 9, a1 = (horiz ? WZ : WX);
+      const g = horiz ? c.createLinearGradient(0, pz(sgn * a0), 0, pz(sgn * (a0 + 6))) : c.createLinearGradient(px(sgn * a0), 0, px(sgn * (a0 + 6)), 0);
+      g.addColorStop(0, 'rgba(58,52,46,0)'); g.addColorStop(1, 'rgba(58,52,46,1)'); c.fillStyle = g;
+      if (horiz) c.fillRect(0, Math.min(pz(sgn * a0), pz(sgn * a1)), S, Math.abs(pz(sgn * a1) - pz(sgn * a0))); else c.fillRect(Math.min(px(sgn * a0), px(sgn * a1)), 0, Math.abs(px(sgn * a1) - px(sgn * a0)), S);
+      for (let d = a0 + 5; d < a1; d += 0.35 + R2() * 0.5) { // strata
+        c.fillStyle = RK[Math.floor(R2() * RK.length)]; const w = 0.15 + R2() * 0.3;
+        if (horiz) c.fillRect(0, pz(sgn * d) - pv(w) / 2, S, pv(w)); else c.fillRect(px(sgn * d) - pu(w) / 2, 0, pu(w), S);
+      }
+    };
+    band(true, 1); band(true, -1); band(false, 1); band(false, -1); }
   const tex = new THREE.CanvasTexture(cv); tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
   const g = new THREE.PlaneGeometry(2 * WX, 2 * WZ, 200, 260); g.rotateX(-Math.PI / 2);
   const pos = g.attributes.position;
@@ -1384,6 +1461,7 @@ function bindInput() {
   // global: dismiss tooltip on any tap outside it
   document.addEventListener('pointerdown', e => { if (G.tipOpen && performance.now() - G.tipOpen > 120 && !$('abTip').contains(e.target)) hideAbTip(); }, true);
   cv.addEventListener('pointerdown', e => {
+    if (G.intro) return;
     if (!G.running) return;
     if (e.pointerType === 'mouse') {
       if (e.button === 2) { const w = screenToWorld(e.clientX, e.clientY); const u = pickUnit(e.clientX, e.clientY); if (u) send({ c: 'atk', id: u[0] }); else if (w) send({ c: 'move', x: Math.round(w.x * 10) / 10, z: Math.round(w.z * 10) / 10 }); return; }
@@ -1445,6 +1523,7 @@ function bindInput() {
   $('btnRecall').onclick = pressRecall;
   $('btnShop').onclick = openShop; $('btnTowns').onclick = openTowns; $('btnStats').onclick = openStats; $('hPortrait').onclick = openHero;
   $('inv').onclick = () => { G.shopTab = 'inv'; renderShop(); };
+  $('introSkip').onclick = introEnd;
   $('btnMenu').onclick = () => openModal('<h2>Menu</h2><p class="muted"><b>Touch:</b> left thumb anywhere on the left half = joystick · Attack button auto-targets (hold to keep attacking) · drag an ability to aim, tap it to quick-cast, drag onto ✕ to cancel · hold an ability for its tooltip · hold the minimap to look around.<br><b>Keyboard:</b> WASD move · Space attack · Q E R F abilities at the cursor (Shift+key to level) · B shop · G council · H potion · Backspace recall · Tab stats.</p><div class="row"><button class="btn" id="mResume">Resume</button><button class="btn danger" id="mQuit">Leave Match</button></div>', () => { $('mResume').onclick = closeModal; $('mQuit').onclick = () => { closeModal(); quitGame(); }; });
   $('modalBg').addEventListener('pointerdown', e => { if (e.target === $('modalBg')) closeModal(); });
 }
@@ -1732,11 +1811,20 @@ function frame(now) {
   const Z = G.zoom * (MOBILE ? 1 : 1.12), aspect = camera.aspect;
   const dist = (aspect < 1.3 ? 32 : 24) * Z;
   const sk = G.shake || 0; G.shake = Math.max(0, sk - dt * 1.8); const shx = (Math.random() - 0.5) * sk * 1.2, shz = (Math.random() - 0.5) * sk * 1.2;
-  camera.position.set(G.camX + shx, dist * 0.79, G.camZ + dist * 0.62 + shz); camera.lookAt(G.camX + shx, 0, G.camZ - 1 + shz);
-  cullChunks(G.camX, G.camZ, dist * 1.7);
-  sun.position.set(G.camX - 22, 48, G.camZ + 18); sun.target.position.set(G.camX, 0, G.camZ - 4); sun.target.updateMatrixWorld();
+  const ip = G.intro ? introPose(dt, { p: [G.camX, dist * 0.79, G.camZ + dist * 0.62], l: [G.camX, 0, G.camZ - 1], fog: [dist * 1.15, dist * 3.2] }) : null;
+  if (ip) {
+    G.camX = tx; G.camZ = tz; // gameplay pose waits, settled on the hero, for the final blend
+    camera.position.set(ip.p[0], ip.p[1], ip.p[2]); camera.lookAt(ip.l[0], ip.l[1], ip.l[2]);
+    cullChunks(ip.l[0], ip.l[2] + 20, 150);
+    sun.position.set(ip.l[0] - 22, 48, ip.l[2] + 18); sun.target.position.set(ip.l[0], 0, ip.l[2] - 4); sun.target.updateMatrixWorld();
+    scene.fog.near = ip.fog[0]; scene.fog.far = ip.fog[1];
+  } else {
+    camera.position.set(G.camX + shx, dist * 0.79, G.camZ + dist * 0.62 + shz); camera.lookAt(G.camX + shx, 0, G.camZ - 1 + shz);
+    cullChunks(G.camX, G.camZ, dist * 1.7);
+    sun.position.set(G.camX - 22, 48, G.camZ + 18); sun.target.position.set(G.camX, 0, G.camZ - 4); sun.target.updateMatrixWorld();
+    scene.fog.near = dist * 1.15; scene.fog.far = dist * 3.2;
+  }
   heroLight.position.set(hx, 6, hz + 1);
-  scene.fog.near = dist * 1.15; scene.fog.far = dist * 3.2;
   // target ring
   const tg = G.me && G.me.tg ? G.meshes.get(G.me.tg) : null; tgtRing.visible = !!tg;
   if (tg) { tgtRing.position.x = tg.root.position.x; tgtRing.position.z = tg.root.position.z; tgtRing.scale.setScalar((tg.boss ? 4.2 : tg.static ? 3.5 : 1.4) * (1 + 0.06 * Math.sin(now / 120))); }
@@ -1907,5 +1995,5 @@ function netWatchdog(now) {
 // ============================ BOOT ============================
 window.addEventListener('load', () => { initMenu(); show('menu'); $('netLeave').onclick = () => { quitGame(); }; });
 window.addEventListener('online', () => { if (G.running && G.mode === 'client') { G.reconnectT = 0; G.lastNet = 0; } });
-window.BOD = { G, L, send, FOG };
+window.BOD = { G, L, send, FOG, get scene() { return scene; }, get camera() { return camera; } };
 })();

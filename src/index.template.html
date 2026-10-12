@@ -245,6 +245,21 @@ table.stats{border-collapse:collapse;width:100%;font-size:12px}
 #endTitle{font:800 54px Cinzel,serif;margin:0}#endTitle.win{color:#ffd36b;text-shadow:0 0 30px #ffb02a}#endTitle.lose{color:#ff6a5a;text-shadow:0 0 30px #a01a1a}
 #endStats{margin:16px 0;text-align:left}
 @media(max-height:500px){.ab{width:54px;height:54px}.abw:last-child .ab{width:60px;height:60px}#minimap{width:120px;height:136px}#invWrap{left:calc(max(8px,env(safe-area-inset-left)) + 132px)}#me{width:210px}#allies{top:76px}#sideBtns{bottom:calc(max(10px,env(safe-area-inset-bottom)) + 90px)}}
+#game.intro .hud,#game.intro #joy,#game.intro #overlay{visibility:hidden!important}
+#intro{position:absolute;inset:0;z-index:40;pointer-events:none;overflow:hidden}
+#intro .lb{position:absolute;left:0;right:0;height:9vh;background:#000;transition:transform .8s ease}
+#intro .lb.top{top:0}#intro .lb.bot{bottom:0}
+#intro.out .lb.top{transform:translateY(-100%)}#intro.out .lb.bot{transform:translateY(100%)}
+#introFade{position:absolute;inset:0;background:#000;opacity:0}
+#introTitle{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 62%,#3a1a08 0%,#120806 45%,#000 75%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+#introTitle .title{font-size:clamp(44px,9vw,96px);transform:scale(.96);animation:introT 2.2s ease-out forwards}
+@keyframes introT{from{transform:scale(.9);letter-spacing:-2px}to{transform:scale(1);letter-spacing:3px}}
+.introRule{width:min(60vw,420px);height:2px;background:linear-gradient(90deg,transparent,#ffd36b,transparent);box-shadow:0 0 18px #ff9a3a}
+#introMode{font:600 13px Inter,sans-serif;letter-spacing:4px;text-transform:uppercase;color:#d8b878}
+#introCap{position:absolute;left:5vw;bottom:calc(9vh + 18px);display:flex;flex-direction:column;gap:2px;opacity:0;text-shadow:0 2px 6px #000}
+#introCap b{font:800 clamp(20px,3.2vw,34px) Cinzel,serif;color:#ffe9b0;letter-spacing:1px}
+#introCap small{font:600 clamp(11px,1.5vw,15px) Inter,sans-serif;color:#d8c8a8;letter-spacing:2px;text-transform:uppercase}
+#introSkip{position:absolute;right:16px;bottom:calc(9vh + 14px);pointer-events:auto;background:#0008;color:#e8dcc0;border:1px solid #ffffff33;border-radius:18px;padding:7px 14px;font:700 13px Inter,sans-serif;z-index:2}
 </style>
 </head>
 <body>
@@ -368,6 +383,13 @@ table.stats{border-collapse:collapse;width:100%;font-size:12px}
   <div id="flash"></div>
   <div id="channel" class="hud hidden"><div id="channelTxt"></div><div class="barO"><div id="channelFill"></div></div></div>
   <div id="deathOv" class="hud hidden"><div id="deathTxt"></div></div>
+  <div id="intro" class="hidden">
+    <div class="lb top"></div><div class="lb bot"></div>
+    <div id="introCap"><b></b><small></small></div>
+    <div id="introFade"></div>
+    <div id="introTitle"><div class="title">Break of Day</div><div class="introRule"></div><small id="introMode"></small></div>
+    <button id="introSkip">Skip ›</button>
+  </div>
   <div id="loading" class="hidden"><div class="logoSm">Break of Day</div><div class="spin"></div><small>Forging the world…</small></div>
   <div id="rotateHint" class="hidden"><div class="rotIcon">📱</div><b>Rotate your phone</b><small>Break of Day plays in landscape</small></div>
 </div>

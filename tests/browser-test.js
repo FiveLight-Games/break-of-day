@@ -14,6 +14,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     await p.route('**/supabase-js@2', r => r.fulfill({ body: fs.readFileSync(__dirname + '/supabase-mock.js', 'utf8'), contentType: 'application/javascript' }));
     await p.route('**/fonts.googleapis.com/**', r => r.abort()); await p.route('**/fonts.gstatic.com/**', r => r.abort());
     await p.exposeFunction('__relayOut', msg => { for (const o of pages) if (o !== p && !o.isClosed()) o.evaluate(m => window.__relayIn && window.__relayIn(m), msg).catch(() => { }); });
+    if (!process.env.INTRO) await p.addInitScript(() => { window.BOD_NO_INTRO = 1; });
     pages.add(p); p.on('close', () => pages.delete(p));
     await p.goto('http://localhost:8765/'); return p;
   }

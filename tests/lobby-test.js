@@ -9,7 +9,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const errs = [], pages = new Set();
   async function mk(tag, w = 844, h = 390) {
     const ctx = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2, hasTouch: true, isMobile: true });
-    const p = await ctx.newPage();
+    const p = await ctx.newPage(); await p.addInitScript(() => { window.BOD_NO_INTRO = 1; });
     p.on('pageerror', e => errs.push(tag + ' ' + e.message)); p.on('console', m => { if (m.type() === 'error' && !/ERR_FAILED/.test(m.text())) errs.push(tag + ' ' + m.text()); });
     await p.route('**/three.min.js', r => r.fulfill({ body: fs.readFileSync(path.join(__dirname, process.env.REAL3 ? 'three.min.js' : 'three-mock.js'), 'utf8'), contentType: 'application/javascript' }));
     await p.route('**/supabase-js@2', r => r.fulfill({ body: fs.readFileSync(path.join(__dirname, 'supabase-mock.js'), 'utf8'), contentType: 'application/javascript' }));

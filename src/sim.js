@@ -536,7 +536,7 @@ class Sim {
     const starts = [[-3, 108], [3, 108], [-3, 104], [3, 104]].map(sc);
     players.forEach((p, i) => {
       const d = HEROES[p.hero] || HEROES.ironvow;
-      const h = this.mk('hero', 0, starts[i % 4][0], starts[i % 4][1], { hp: d.base.hp, ad: d.base.ad, armor: d.base.armor, mr: d.base.mr, as: d.base.as, range: d.base.range, ms: d.base.ms, r: 0.9, v: 'h_' + (HEROES[p.hero] ? p.hero : 'ironvow'), g: 0, xp: 0, pc: d.col });
+      const h = this.mk('hero', 0, starts[i % 4][0], starts[i % 4][1], { hp: d.base.hp, ad: d.base.ad, armor: d.base.armor, mr: d.base.mr, as: d.base.as, range: d.base.range, ms: d.base.ms, r: 0.9, v: 'h_' + (HEROES[p.hero] ? p.hero : 'ironvow'), g: 0, xp: 0, pc: d.col }); h.face = -Math.PI / 2;
       Object.assign(h, {
         pid: p.pid, pname: p.name || ('Player ' + (i + 1)), hid: HEROES[p.hero] ? p.hero : 'ironvow', lvl: 1, xp: 0, gold: 600, items: [null, null, null, null, null, null],
         ranks: [0, 0, 0, 0], pts: 1, attr: 0, cds: [0, 0, 0, 0], res: d.res.rage ? 0 : d.res.max, resMax: d.res.max, buffs: [], order: null, pending: null,
@@ -1464,7 +1464,7 @@ class Sim {
       if (o.kind === 'hero') r = 15 * sightM; else if (o.kind === 'ward') r = 22; else if (o.kind === 'core') r = 18; else if (o.structure) r = 13; else if (o.kind === 'merc') r = 10; else if (o.kind === 'minion') r = 9;
       if (o.kind === 'garrison') r = 11; if (o.kind === 'town') r = 22; if (!r) continue; const L = o.kind === 'hero' || o.kind === 'ward' || o.kind === 'merc' || o.kind === 'garrison'; vsrc.push([o.x, o.z, r * r, L]); if (o.kind !== 'minion') vs.push([r1(o.x), r1(o.z), Math.round(r), L ? 1 : 0]);
     }
-    const seen = o => { for (const v of vsrc) if (d2(o.x, o.z, v[0], v[1]) < v[2] && (!v[3] || los(v[0], v[1], o.x, o.z))) return true; return false; };
+    const seen = o => { if (this.reveal) return true; for (const v of vsrc) if (d2(o.x, o.z, v[0], v[1]) < v[2] && (!v[3] || los(v[0], v[1], o.x, o.z))) return true; return false; };
     this.seenFn = seen;
     const e = [];
     for (const o of this.ents) {
