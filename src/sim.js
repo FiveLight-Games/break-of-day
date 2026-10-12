@@ -51,6 +51,16 @@ const MAP = {
     { x: -22, z: -80, t: 'ogres' }, { x: 22, z: -80, t: 'ogres' }],
   encSpots: [[-22, 62], [22, 62], [-52, 8], [52, 8], [-28, -30], [28, -30], [-100, 62], [100, 62], [-100, -34], [100, -34], [-20, 22], [20, 22]],
 };
+// ---- world scale (bigger map) ----
+const SX = 1.45, SZ = 1.75;
+for (const k in LANES) LANES[k] = LANES[k].map(p => [p[0] * SX, p[1] * SZ]);
+(() => {
+  const pt = o => { o.x *= SX; o.z *= SZ; };
+  MAP.W = Math.round(MAP.W * SX); MAP.H = Math.round(MAP.H * SZ); pt(MAP.fountain); MAP.fountain.r = 14;
+  MAP.cores.forEach(pt); MAP.towers.forEach(pt); MAP.towns.forEach(pt); MAP.bosses.forEach(pt); pt(MAP.secretShop); pt(MAP.forge); MAP.camps.forEach(pt);
+  MAP.encSpots = MAP.encSpots.map(p => [p[0] * SX, p[1] * SZ]);
+})();
+const RIVER = x => 4 + 6 * Math.sin(x / SX / 19) + 2 * Math.sin(x / SX / 7);
 function laneDist(x, z) {
   let best = 1e9;
   for (const k in LANES) {
@@ -74,7 +84,7 @@ const TOWN_BUFFS = {
   ashport: { n: 'Armory', d: 'Crit Chance & Attack Speed', s: [{ crit: 0.05, as: 0.08 }, { crit: 0.10, as: 0.16 }, { crit: 0.15, as: 0.25 }] },
 };
 const TIER_DRAIN = 1.2; // gold per second, per tier, per player
-const inLane = (x, z) => laneDist(x, z) < 13 && z > -98 && z < 98;
+const inLane = (x, z) => laneDist(x, z) < 13 && z > -98 * SZ && z < 98 * SZ;
 
 // ---------------- ITEMS ----------------
 const ITEMS = {
@@ -126,10 +136,94 @@ const BASE_UPG = {
   drums: { n: 'War Drums', cat: 'base', d: 'Allied lane minions gain +20% HP and damage per level.', c: [1000, 2000] },
   treasury: { n: 'Royal Treasury', cat: 'base', d: '+1 gold per second for every hero, per level.', c: [900, 1800] },
 };
-const WARD_SPOTS = [[[-30, 80], [30, 80]], [[-48, 20], [48, 20]], [[-35, -45], [35, -45]]];
-const HEAL_SPOTS = [[-52, 46], [52, 46], [-25, -5], [25, -5]];
-const WALLS = [[-25, 112, Math.PI / 2], [25, 112, Math.PI / 2], [-17, 95, -0.7], [17, 95, 0.7]];
-const TURRETS = [[-11, 101], [11, 101]];
+const sc = p => [p[0] * SX, p[1] * SZ, p[2]];
+const WARD_SPOTS = [[[-30, 80], [30, 80]], [[-48, 20], [48, 20]], [[-35, -45], [35, -45]]].map(l => l.map(sc));
+const HEAL_SPOTS = [[-52, 46], [52, 46], [-25, -5], [25, -5]].map(sc);
+const WALLS = [[-25, 112, Math.PI / 2], [25, 112, Math.PI / 2], [-17, 95, -0.7], [17, 95, 0.7]].map(sc);
+const TURRETS = [[-11, 101], [11, 101]].map(sc);
+const RAID_PTS = [[-60, 70, 'west'], [60, 70, 'east'], [-45, 30, 'western jungle'], [45, 30, 'eastern jungle'], [-100, 95, 'far west'], [100, 95, 'far east']].map(sc);
+// ---------------- TERRAIN: impassable forest, ruins, rocks (deterministic, shared with client) ----------------
+const TER = (() => {
+  const cs = 2, ox = -MAP.W, oz = -MAP.H, cols = Math.ceil(2 * MAP.W / cs), rows = Math.ceil(2 * MAP.H / cs);
+  const blk = new Uint8Array(cols * rows), clear = new Uint8Array(cols * rows), R = mulberry32(424242);
+  const ci = (x, z) => { const c = Math.floor((x - ox) / cs), r = Math.floor((z - oz) / cs); return (c < 0 || r < 0 || c >= cols || r >= rows) ? -1 : r * cols + c; };
+  const cx = c => ox + (c + 0.5) * cs, cz = r => oz + (r + 0.5) * cs;
+  const hash = (i, j) => { let h = Math.imul(i, 374761393) ^ Math.imul(j, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+  const vn = (x, z) => { const i = Math.floor(x), j = Math.floor(z), fx = x - i, fz = z - j, u = fx * fx * (3 - 2 * fx), w = fz * fz * (3 - 2 * fz); const a = hash(i, j), b = hash(i + 1, j), c = hash(i, j + 1), d = hash(i + 1, j + 1); return a + (b - a) * u + (c - a) * w + (a - b - c + d) * u * w; };
+  const noise = (x, z) => vn(x / 22, z / 22) * 0.6 + vn(x / 8, z / 8) * 0.3 + vn(x / 3, z / 3) * 0.1;
+  const clearDisc = (x, z, r) => { for (let zz = z - r; zz <= z + r + 0.01; zz += cs) for (let xx = x - r; xx <= x + r + 0.01; xx += cs) if ((xx - x) ** 2 + (zz - z) ** 2 <= r * r) { const i = ci(xx, zz); if (i >= 0) clear[i] = 1; } };
+  const clearLine = (x1, z1, x2, z2, w, wig) => { const L = Math.hypot(x2 - x1, z2 - z1) || 1, n = Math.ceil(L / 1.5), nx = -(z2 - z1) / L, nz = (x2 - x1) / L, ph = R() * 6; for (let s = 0; s <= n; s++) { const t = s / n, off = wig ? Math.sin(t * Math.PI * 2 + ph) * wig * Math.sin(t * Math.PI) : 0; clearDisc(x1 + (x2 - x1) * t + nx * off, z1 + (z2 - z1) * t + nz * off, w); } };
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { const x = cx(c), z = cz(r); if (laneDist(x, z) < 10.5 || Math.abs(z - RIVER(x)) < 4.5) clear[r * cols + c] = 1; }
+  const pois = [], add = (x, z, r) => { clearDisc(x, z, r); pois.push([x, z]); };
+  MAP.towns.forEach(t => clearDisc(t.x, t.z, 17)); MAP.bosses.forEach(b => add(b.x, b.z, 15)); MAP.camps.forEach(c => add(c.x, c.z, 10.5));
+  MAP.encSpots.forEach(p => add(p[0], p[1], 7)); HEAL_SPOTS.forEach(p => add(p[0], p[1], 6)); WARD_SPOTS.forEach(l => l.forEach(p => add(p[0], p[1], 6)));
+  add(MAP.forge.x, MAP.forge.z, 10); add(MAP.secretShop.x, MAP.secretShop.z, 11); RAID_PTS.forEach(p => add(p[0], p[1], 9));
+  clearDisc(0, MAP.fountain.z + 6, 50); clearDisc(0, -MAP.fountain.z - 6, 50);
+  const lanePts = []; for (const k in LANES) { const P = LANES[k]; for (let i = 0; i < P.length - 1; i++) for (let t = 0; t < 1; t += 0.08) lanePts.push([P[i][0] + (P[i + 1][0] - P[i][0]) * t, P[i][1] + (P[i + 1][1] - P[i][1]) * t]); }
+  for (const p of pois) {
+    let best = null, bd = 1e9; for (const q of lanePts) { const d = (q[0] - p[0]) ** 2 + (q[1] - p[1]) ** 2; if (d < bd) { bd = d; best = q; } }
+    clearLine(p[0], p[1], best[0], best[1], 3.4, 6);
+    pois.filter(q => q !== p).sort((a, b) => ((a[0] - p[0]) ** 2 + (a[1] - p[1]) ** 2) - ((b[0] - p[0]) ** 2 + (b[1] - p[1]) ** 2)).slice(0, 2).forEach(q => { if (Math.hypot(q[0] - p[0], q[1] - p[1]) < 95) clearLine(p[0], p[1], q[0], q[1], 2.8, 9); });
+  }
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const i = r * cols + c, x = cx(c), z = cz(r);
+    if (Math.abs(x) > MAP.W - 7 || Math.abs(z) > MAP.H - 7) { blk[i] = 1; continue; }
+    if (clear[i]) continue;
+    if (noise(x + 500, z + 500) > 0.415) blk[i] = 1;
+  }
+  const ruins = [], rocks = []; let tries = 0;
+  while (ruins.length < 30 && tries++ < 5000) {
+    const x = (R() * 2 - 1) * (MAP.W - 20), z = (R() * 2 - 1) * (MAP.H - 20); if (laneDist(x, z) < 16) continue;
+    const i0 = ci(x, z); if (i0 < 0 || clear[i0] || blk[i0]) continue;
+    const a = R() * Math.PI, L = 9 + R() * 14, x2 = x + Math.cos(a) * L, z2 = z + Math.sin(a) * L, n = Math.ceil(L / 1.4);
+    let ok = true; for (let s2 = 0; s2 <= n; s2++) { const j = ci(x + (x2 - x) * s2 / n, z + (z2 - z) * s2 / n); if (j < 0 || clear[j]) { ok = false; break; } } if (!ok) continue;
+    const pts = []; for (let s2 = 0; s2 <= n; s2++) { if (s2 > 0 && s2 < n && R() < 0.14) continue; const px = x + (x2 - x) * s2 / n, pz = z + (z2 - z) * s2 / n; blk[ci(px, pz)] = 2; pts.push([px, pz, 0.6 + R() * 0.6]); }
+    ruins.push({ a, pts });
+  }
+  tries = 0; while (rocks.length < 140 && tries++ < 4000) { const x = (R() * 2 - 1) * (MAP.W - 10), z = (R() * 2 - 1) * (MAP.H - 10), i = ci(x, z); if (i < 0 || clear[i] || blk[i]) continue; blk[i] = 3; rocks.push([x, z, 1 + R() * 1.2]); }
+  const trees = [];
+  for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+    const i = r * cols + c; if (blk[i] !== 1) continue;
+    const inner = c > 0 && r > 0 && c < cols - 1 && r < rows - 1 && blk[i - 1] && blk[i + 1] && blk[i - cols] && blk[i + cols];
+    const p = inner ? 0.32 : 0.8; if (R() > p) continue;
+    trees.push([cx(c) + (R() - 0.5) * 1.4, cz(r) + (R() - 0.5) * 1.4, inner ? 1.15 + R() * 0.5 : 0.8 + R() * 0.45, R() < 0.6 ? 0 : 1, R()]);
+  }
+  return { cs, ox, oz, cols, rows, blk, ci, trees, ruins, rocks };
+})();
+const blocked = (x, z) => { const i = TER.ci(x, z); return i < 0 || TER.blk[i] > 0; };
+function los(x1, z1, x2, z2) { const L = Math.hypot(x2 - x1, z2 - z1), n = Math.ceil(L / 1.2); for (let s = 1; s < n; s++) if (blocked(x1 + (x2 - x1) * s / n, z1 + (z2 - z1) * s / n)) return false; return true; }
+function nearestFree(x, z) { if (!blocked(x, z)) return [x, z]; for (let r = 2; r < 24; r += 1.5) for (let a = 0; a < 6.283; a += 0.4) { const nx = x + Math.cos(a) * r, nz = z + Math.sin(a) * r; if (!blocked(nx, nz)) return [nx, nz]; } return [x, z]; }
+const NAV = (() => {
+  const { cols, rows, cs, ox, oz, blk } = TER, N = cols * rows;
+  const g = new Float32Array(N), from = new Int32Array(N), seen = new Uint32Array(N), shut = new Uint32Array(N); let gen = 0;
+  const hi = new Int32Array(N), hf = new Float32Array(N); let hs = 0;
+  const push = (i, f) => { let k = hs++; while (k > 0) { const p = (k - 1) >> 1; if (hf[p] <= f) break; hi[k] = hi[p]; hf[k] = hf[p]; k = p; } hi[k] = i; hf[k] = f; };
+  const pop = () => { const top = hi[0], li = hi[--hs], lf = hf[hs]; let k = 0; for (;;) { let c = 2 * k + 1; if (c >= hs) break; if (c + 1 < hs && hf[c + 1] < hf[c]) c++; if (hf[c] >= lf) break; hi[k] = hi[c]; hf[k] = hf[c]; k = c; } hi[k] = li; hf[k] = lf; return top; };
+  const DX = [1, -1, 0, 0, 1, 1, -1, -1], DZ = [0, 0, 1, -1, 1, -1, 1, -1], DC = [1, 1, 1, 1, 1.414, 1.414, 1.414, 1.414];
+  return function astar(x1, z1, x2, z2) {
+    [x1, z1] = nearestFree(x1, z1); [x2, z2] = nearestFree(x2, z2);
+    const s = TER.ci(x1, z1), t = TER.ci(x2, z2); if (s < 0 || t < 0) return null; if (s === t) return [[x2, z2]];
+    gen++; hs = 0; const tc = t % cols, tr = (t / cols) | 0;
+    const h = i => { const dx = Math.abs(i % cols - tc), dz = Math.abs(((i / cols) | 0) - tr); return (dx + dz - 0.586 * Math.min(dx, dz)); };
+    g[s] = 0; seen[s] = gen; from[s] = -1; push(s, h(s)); let n = 0, found = false;
+    while (hs > 0 && n++ < 30000) {
+      const i = pop(); if (shut[i] === gen) continue; shut[i] = gen; if (i === t) { found = true; break; }
+      const c = i % cols, r = (i / cols) | 0;
+      for (let d = 0; d < 8; d++) {
+        const nc = c + DX[d], nr = r + DZ[d]; if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue; const j = nr * cols + nc; if (blk[j] || shut[j] === gen) continue;
+        if (d >= 4 && (blk[r * cols + nc] || blk[nr * cols + c])) continue;
+        const ng = g[i] + DC[d]; if (seen[j] === gen && ng >= g[j]) continue; seen[j] = gen; g[j] = ng; from[j] = i; push(j, ng + h(j));
+      }
+    }
+    if (!found) return null;
+    const cells = []; for (let i = t; i !== -1; i = from[i]) cells.push(i); cells.reverse();
+    const pts = cells.map(i => [ox + (i % cols + 0.5) * cs, oz + (((i / cols) | 0) + 0.5) * cs]); pts[pts.length - 1] = [x2, z2];
+    const out = []; let cur = [x1, z1], k = 0;
+    while (k < pts.length - 1) { let far = k + 1; for (let m = pts.length - 1; m > k + 1; m--) if (los(cur[0], cur[1], pts[m][0], pts[m][1])) { far = m; break; } out.push(pts[far]); cur = pts[far]; k = far; }
+    if (!out.length) out.push([x2, z2]);
+    return out;
+  };
+})();
 const MERC_COST = 250;
 const POTION_COST = 50, POTION_MAX = 5;
 const STAT_NAMES = { hp: 'HP', ad: 'Attack Damage', ap: 'Ability Power', ms: 'Movespeed', ls: 'Lifesteal', sv: 'Spell Vamp', crit: 'Crit Chance', mr: 'Magic Resist', armor: 'Armor', as: 'Attack Speed', res: 'Max Resource', resr: 'Resource Regen' };
@@ -194,6 +288,11 @@ const MYTHICS = {
 function named(table, key, rar) { const d = table[key]; let v = 0; for (const k in d.s) v += d.s[k] * AFFIX[k][4]; return { n: d.n, s: Object.assign({}, d.s), rar, c: Math.round(v), key, lore: d.lore }; }
 function rollLegendary(R, pool) { const keys = pool && pool.length && R() < 0.7 ? pool : Object.keys(LEGENDARIES); return named(LEGENDARIES, keys[Math.floor(R() * keys.length)], 5); }
 function rollMythic(R) { const keys = Object.keys(MYTHICS); return named(MYTHICS, keys[Math.floor(R() * keys.length)], 6); }
+function projStyle(e) {
+  if (e.kind === 'hero') return { thornshot: 'a', emberwitch: 'f', lumen: 'h' }[e.hid] || 'o';
+  if (e.structure) return 'b';
+  return { c_archer: 'a', c_trollshaman: 'g', b_hydra: 'v', b_bogwitch: 'p', me_ranged: 'o', ma_ranged: 'o', me_siege: 'r', ma_siege: 'r' }[e.v] || 'o';
+}
 const DROP_CHANCE = { minion: 0.05, creep: 0.12, stalker: 0.3, raider: 0.15 };
 
 // ---------------- HEROES ----------------
@@ -221,11 +320,11 @@ const HEROES = {
     grow: { hp: 72, ad: 2, armor: 2, mr: 1.5, as: 0.012, hpr: 0.15, ap: 3 },
     ab: [
       { n: 'Firebolt', t: 'dir', range: 16, cd: 5, cost: [50, 55, 60, 65, 70], d: 'Hurl a firebolt that explodes on the first enemy hit for 80/125/170/215/260 (+75% AP) magic damage in an area.',
-        cast(S, h, r, x, z) { S.skillshot(h, x, z, { range: 16, speed: 32, w: 1.1, col: '#ff7a2e', size: 0.7, onHit(e, p) { S.enemiesNear(h, p.x, p.z, 2.6).forEach(u => S.damage(h, u, [80, 125, 170, 215, 260][r - 1] + 0.75 * h.ap, 'magic', { spell: 1 })); S.fx('burst', p.x, p.z, 2.6, '#ff7a2e'); } }); } },
+        cast(S, h, r, x, z) { S.skillshot(h, x, z, { range: 16, speed: 32, w: 1.1, col: '#ff7a2e', size: 0.7, st: 'F', onHit(e, p) { S.enemiesNear(h, p.x, p.z, 2.6).forEach(u => S.damage(h, u, [80, 125, 170, 215, 260][r - 1] + 0.75 * h.ap, 'magic', { spell: 1 })); S.fx('burst', p.x, p.z, 2.6, '#ff7a2e'); } }); } },
       { n: 'Flame Pillar', t: 'point', range: 13, cd: 12, cost: 80, d: 'After 0.8s, fire erupts at a location dealing 70/115/160/205/250 (+60% AP) magic damage and stunning for 1.2s.',
         cast(S, h, r, x, z) { S.telegraph(x, z, 3.5, 0.8, 0, () => { S.enemiesNear(h, x, z, 3.5).forEach(e => { S.damage(h, e, [70, 115, 160, 205, 250][r - 1] + 0.6 * h.ap, 'magic', { spell: 1 }); S.stun(e, 1.2, h); }); S.fx('pillar', x, z, 3.5, '#ff5a1e'); }); } },
       { n: 'Blink', t: 'point', range: 9, cd: [16, 14.5, 13, 11.5, 10], cost: 60, d: 'Teleport to a nearby location. Your next Firebolt within 3s costs no mana.',
-        cast(S, h, r, x, z) { S.fx('blink', h.x, h.z, 2, '#ff9a5e'); h.x = x; h.z = z; h.order = null; S.fx('blink', x, z, 2, '#ff9a5e'); } },
+        cast(S, h, r, x, z) { S.fx('blink', h.x, h.z, 2, '#ff9a5e'); [x, z] = nearestFree(x, z); h.x = x; h.z = z; h.order = null; S.fx('blink', x, z, 2, '#ff9a5e'); } },
       { n: 'Meteor Storm', t: 'point', ult: 1, range: 16, cd: [90, 80, 70], cost: 150, d: 'Call 7 meteors over 3s in a large area. Each deals 90/140/190 (+35% AP) magic damage.',
         cast(S, h, r, x, z) { S.telegraph(x, z, 7, 3.2, 0, null); for (let i = 0; i < 7; i++) { const a = S.R() * 6.283, d = Math.sqrt(S.R()) * 6, mx = x + Math.cos(a) * d, mz = z + Math.sin(a) * d; S.later(0.4 + i * 0.42, () => { S.telegraph(mx, mz, 2.8, 0.35, 0, () => { S.enemiesNear(h, mx, mz, 2.8).forEach(e => S.damage(h, e, [90, 140, 190][r - 1] + 0.35 * h.ap, 'magic', { spell: 1 })); S.fx('meteor', mx, mz, 2.8, '#ff4a10'); }); }); } } }]
   },
@@ -236,13 +335,13 @@ const HEROES = {
     grow: { hp: 80, ad: 3.5, armor: 2.5, mr: 1.3, as: 0.028, hpr: 0.2 },
     ab: [
       { n: 'Piercing Arrow', t: 'dir', range: 18, cd: [7, 6.5, 6, 5.5, 5], cost: 40, d: 'Fire an arrow that pierces all enemies for 40/70/100/130/160 (+110% AD) physical damage. Can crit.',
-        cast(S, h, r, x, z) { S.skillshot(h, x, z, { range: 18, speed: 42, w: 1, pierce: 1, col: '#c8ff7a', size: 0.45, onHit(e) { S.damage(h, e, [40, 70, 100, 130, 160][r - 1] + 1.1 * h.ad, 'phys', { spell: 1, canCrit: 1 }); } }); } },
+        cast(S, h, r, x, z) { S.skillshot(h, x, z, { range: 18, speed: 42, w: 1, pierce: 1, col: '#c8ff7a', size: 0.45, st: 'A', onHit(e) { S.damage(h, e, [40, 70, 100, 130, 160][r - 1] + 1.1 * h.ad, 'phys', { spell: 1, canCrit: 1 }); } }); } },
       { n: 'Volley', t: 'dir', range: 11, cd: 10, cost: 50, d: 'Fire 7 arrows in a cone, each dealing 30/45/60/75/90 (+50% AD) physical damage.',
-        cast(S, h, r, x, z) { const base = Math.atan2(z - h.z, x - h.x); for (let i = -3; i <= 3; i++) { const a = base + i * 0.13; S.skillshot(h, h.x + Math.cos(a) * 11, h.z + Math.sin(a) * 11, { range: 11, speed: 36, w: 0.8, col: '#c8ff7a', size: 0.35, onHit(e) { S.damage(h, e, [30, 45, 60, 75, 90][r - 1] + 0.5 * h.ad, 'phys', { spell: 1 }); } }); } } },
+        cast(S, h, r, x, z) { const base = Math.atan2(z - h.z, x - h.x); for (let i = -3; i <= 3; i++) { const a = base + i * 0.13; S.skillshot(h, h.x + Math.cos(a) * 11, h.z + Math.sin(a) * 11, { range: 11, speed: 36, w: 0.8, col: '#c8ff7a', size: 0.35, st: 'A', onHit(e) { S.damage(h, e, [30, 45, 60, 75, 90][r - 1] + 0.5 * h.ad, 'phys', { spell: 1 }); } }); } } },
       { n: 'Tumble', t: 'point', range: 5, cd: [8, 7, 6.5, 6, 5], cost: 30, d: 'Roll a short distance. Your next attack within 4s deals 40/60/80/100/120 (+50% AD) bonus damage.',
         cast(S, h, r, x, z) { S.dash(h, x, z, 26, {}); h.empower = { until: S.t + 4, bonus: [40, 60, 80, 100, 120][r - 1] + 0.5 * h.ad }; } },
       { n: "Hunter's Mark", t: 'dir', ult: 1, range: 60, cd: [70, 60, 50], cost: 70, d: 'Loose a huge arrow across the map. Deals 250/400/550 (+150% AD) physical damage to the first enemy, up to double against wounded targets.',
-        cast(S, h, r, x, z) { S.skillshot(h, x, z, { range: 60, speed: 55, w: 1.6, col: '#eaff5a', size: 1.1, onHit(e) { const miss = 1 - e.hp / e.maxhp; S.damage(h, e, ([250, 400, 550][r - 1] + 1.5 * h.ad) * (1 + miss), 'phys', { spell: 1 }); S.fx('burst', e.x, e.z, 3, '#eaff5a'); } }); } }]
+        cast(S, h, r, x, z) { S.skillshot(h, x, z, { range: 60, speed: 55, w: 1.6, col: '#eaff5a', size: 1.1, st: 'M', onHit(e) { const miss = 1 - e.hp / e.maxhp; S.damage(h, e, ([250, 400, 550][r - 1] + 1.5 * h.ad) * (1 + miss), 'phys', { spell: 1 }); S.fx('burst', e.x, e.z, 3, '#eaff5a'); } }); } }]
   },
   bloodreaver: {
     name: 'Bloodreaver', title: 'The Crimson Axe', role: 'Bruiser', col: '#c0283a',
@@ -255,7 +354,7 @@ const HEROES = {
       { n: 'Frenzy', t: 'self', cd: 14, cost: 40, d: 'Gain 30/40/50/60/70% Attack Speed and 10% Lifesteal for 5s.',
         cast(S, h, r) { S.buff(h, 'frenzy', 5, { as: 0.2 + r * 0.1, ls: 0.1 }); S.fx('ring', h.x, h.z, 2.5, '#ff3a4a'); } },
       { n: 'Blood Leap', t: 'point', range: 9, cd: [12, 11, 10, 9, 8], cost: 0, gain: 10, d: 'Leap to a location, dealing 60/95/130/165/200 (+70% AD) physical damage on landing and slowing by 40%. Generates 10 Rage.',
-        cast(S, h, r, x, z) { S.dash(h, x, z, 22, { onEnd() { S.enemiesNear(h, h.x, h.z, 3.6).forEach(e => { S.damage(h, e, [60, 95, 130, 165, 200][r - 1] + 0.7 * h.ad, 'phys', { spell: 1 }); S.slow(e, 0.6, 1.8); }); S.fx('burst', h.x, h.z, 3.6, '#ff3a4a'); } }); } },
+        cast(S, h, r, x, z) { S.dash(h, x, z, 22, { over: 1, onEnd() { S.enemiesNear(h, h.x, h.z, 3.6).forEach(e => { S.damage(h, e, [60, 95, 130, 165, 200][r - 1] + 0.7 * h.ad, 'phys', { spell: 1 }); S.slow(e, 0.6, 1.8); }); S.fx('burst', h.x, h.z, 3.6, '#ff3a4a'); } }); } },
       { n: 'Crimson Pact', t: 'self', ult: 1, cd: [75, 65, 55], cost: 100, d: 'Spend 100 Rage: for 8s gain 40/60/80 Attack Damage, 25% Lifesteal and 20% Movespeed.',
         cast(S, h, r) { S.buff(h, 'pact', 8, { ad: 20 + r * 20, ls: 0.25, msP: 0.2 }); S.fx('pillar', h.x, h.z, 2.5, '#ff1a2a'); } }]
   },
@@ -324,7 +423,7 @@ class Sim {
       Object.assign(e, { bid: b.id, name: b.name, btier: b.tier, skills: b.skills, warden: b.warden, homeX: b.x, homeZ: b.z, leash: 20, scd: {}, aggro: 9 });
     }
     MAP.camps.forEach((c, i) => this.spawnCamp(i));
-    const starts = [[-3, 108], [3, 108], [-3, 104], [3, 104]];
+    const starts = [[-3, 108], [3, 108], [-3, 104], [3, 104]].map(sc);
     players.forEach((p, i) => {
       const d = HEROES[p.hero] || HEROES.ironvow;
       const h = this.mk('hero', 0, starts[i % 4][0], starts[i % 4][1], { hp: d.base.hp, ad: d.base.ad, armor: d.base.armor, mr: d.base.mr, as: d.base.as, range: d.base.range, ms: d.base.ms, r: 0.9, v: 'h_' + (HEROES[p.hero] ? p.hero : 'ironvow'), g: 0, xp: 0, pc: d.col });
@@ -378,10 +477,10 @@ class Sim {
   stun(e, dur, src) { if (e.structure || e.dead) return; if (e.kind === 'boss') dur *= 0.5; if (e.stunU < this.t + dur) e.stunU = this.t + dur; if (src && src.st) src.st.ccTime += dur; }
   slow(e, mult, dur) { if (e.structure) return; e.slowM = Math.min(e.slowU > this.t ? e.slowM : 1, mult); e.slowU = Math.max(e.slowU, this.t + dur); }
   aura(h, dur, r, every, fn, col) { this.ticker(dur, every, () => { if (!h.dead) this.enemiesNear(h, h.x, h.z, r).forEach(fn); }); }
-  dash(h, x, z, speed, o) { h.dash = { x, z, speed, hitR: o.hitR, onPass: o.onPass, onEnd: o.onEnd, hit: new Set() }; h.order = null; h.recall = null; }
+  dash(h, x, z, speed, o) { h.dash = { x, z, speed, hitR: o.hitR, onPass: o.onPass, onEnd: o.onEnd, over: o.over, hit: new Set() }; h.order = null; h.recall = null; }
   skillshot(h, x, z, o) {
     let dx = x - h.x, dz = z - h.z; const l = Math.hypot(dx, dz) || 1; dx /= l; dz /= l;
-    this.projs.push({ id: this.nid++, x: h.x + dx, z: h.z + dz, vx: dx * o.speed, vz: dz * o.speed, life: o.range / o.speed, owner: h, w: o.w, pierce: o.pierce, onHit: o.onHit, hit: new Set(), col: o.col, size: o.size || 0.5 });
+    this.projs.push({ id: this.nid++, x: h.x + dx, z: h.z + dz, vx: dx * o.speed, vz: dz * o.speed, life: o.range / o.speed, owner: h, w: o.w, pierce: o.pierce, onHit: o.onHit, hit: new Set(), col: o.col, size: o.size || 0.5, st: o.st || 'o' });
   }
   heal(src, tgt, amt) {
     if (tgt.dead || amt <= 0) return;
@@ -405,11 +504,11 @@ class Sim {
     if (tgt.invuln) { if (src && src.kind === 'hero' && this.R() < 0.05) this.msg(tgt.kind === 'core' ? 'The Core is shielded — destroy a lane tower first.' : 'This tower is sealed — defeat the lane\'s Warden boss first.', 'r'); return 0; }
     let crit = false;
     if ((o.auto || o.canCrit) && src.crit > 0 && this.R() < src.crit) { amt *= 1.75; crit = true; }
-    if (src.nightFury) amt *= 2;
+    if (src.nightFury) amt *= tgt.structure ? 1.3 : 2;
     if (tgt.structure && src.structMult) amt *= src.structMult;
     const res = type === 'phys' ? tgt.armor : type === 'magic' ? tgt.mr : 0;
     let mult = res >= 0 ? 100 / (100 + res) : 2 - 100 / (100 - res);
-    mult *= (1 - (tgt.dr || 0));
+    mult *= (1 - (tgt.dr || 0)); if (tgt.kind === 'town') mult *= 0.65;
     if (tgt.nightFury) mult *= 0.5;
     if (tgt.kind === 'hero' && tgt.townWard && src.team === 1) mult *= 0.5;
     const dmg = amt * mult;
@@ -439,12 +538,14 @@ class Sim {
     this.damage(src, tgt, amt, 'phys', { auto: 1 });
   }
   kill(e, src) {
+    if (e.kind !== 'town') this.fxq.push(['d', e.v, Math.round(e.x * 10) / 10, Math.round(e.z * 10) / 10, Math.round(e.face * 100) / 100, e.team, e.id]);
     if (e.kind === 'town') {
       e.team = 2; e.untarget = 1; e.hp = e.maxhp; e.cap = 0; e.guards = []; e.inv = 0; e.pc = '#9fd0ff';
+      this.ents.forEach(g => { if (g.kind === 'garrison' && g.town === e.id) g.dead = true; }); this.fx('ruin', e.x, e.z, 8, '#ff6a2a');
       this.msg(e.name + ' has fallen to the enemy!', 'r'); return;
     }
     if (e.kind === 'hero') {
-      e.dead = true; e.hp = 0; e.st.deaths++; e.order = null; e.pending = null; e.dash = null; e.recall = null; e.rail = null; e.buffs = [];
+      e.dead = true; e.hp = 0; e.st.deaths++; e.order = null; e.pending = null; e.dash = null; e.recall = null; e.rail = null; e.dir = null; e.buffs = [];
       e.respawnT = (6 + e.lvl * 1.6) * (this.phase === 'night' ? 0.6 : 1);
       this.msg(e.pname + ' (' + HEROES[e.hid].name + ') has fallen! Respawn in ' + Math.ceil(e.respawnT) + 's', 'r');
       return;
@@ -532,10 +633,21 @@ class Sim {
     const h = this.heroes.find(x => x.pid === pid); if (!h || this.over) return;
     const fail = m => this.msgq.push([m, 'p' + pid]);
     switch (c.c) {
-      case 'move': if (h.dead) return; h.order = { t: 'move', x: c.x, z: c.z }; h.pending = null; h.recall = null; h.rail = null; break;
+      case 'move': if (h.dead) return; h.order = { t: 'move', x: c.x, z: c.z }; h.pending = null; h.dir = null; h.recall = null; h.rail = null; break;
       case 'attack': { if (h.dead) return; const e = this.byId.get(c.id); if (e && this.canHit(h, e)) { h.order = { t: 'attack', id: e.id }; h.pending = null; h.recall = null; } break; }
-      case 'stop': h.order = null; h.pending = null; break;
-      case 'cast': if (!h.dead) this.cast(h, c.k, c.x, c.z, c.id, fail); break;
+      case 'stop': h.order = null; h.pending = null; h.dir = null; break;
+      case 'dir': {
+        if (h.dead) return;
+        if (!c.x && !c.z) { h.dir = null; break; }
+        const l = Math.hypot(c.x, c.z) || 1; h.dir = { x: c.x / l, z: c.z / l }; h.order = null; h.pending = null; h.recall = null; h.rail = null; break;
+      }
+      case 'atk': {
+        if (h.dead) return; const cur = h.order && h.order.t === 'attack' ? this.byId.get(h.order.id) : null;
+        const tg = (c.keep && cur && this.canHit(h, cur)) ? cur : this.pickAttack(h, c.id); if (!tg) break;
+        const same = cur && cur === tg; h.order = { t: 'attack', id: tg.id, hold: !!c.hold, once: !c.hold, t0: same ? h.order.t0 : this.t }; h.dir = null; h.recall = null; h.pending = null; break;
+      }
+      case 'atkEnd': if (h.order && h.order.t === 'attack') { h.order.hold = false; h.order.once = true; } break;
+      case 'cast': if (!h.dead) this.cast(h, c.k, c.x, c.z, c.id, fail, c.auto); break;
       case 'lvl': {
         const k = c.k; if (h.pts <= 0) return;
         if (k === 4) { h.attr++; h.pts--; this.recalc(h); return; }
@@ -564,7 +676,7 @@ class Sim {
         if (n > t.inv && this.heroes.some(x => x.gold < n * TIER_DRAIN * 10)) return fail('Every hero needs ' + Math.ceil(n * TIER_DRAIN * 10) + 'g (10s of drain) to fund tier ' + n);
         t.inv = n; this.msg(h.pname + ' set ' + t.name + ' ' + TOWN_BUFFS[t.tid].n + ' to tier ' + n + (n ? ' (' + (n * TIER_DRAIN).toFixed(1) + 'g/s each)' : ''), 'gold'); break;
       }
-      case 'recall': if (h.dead) return; h.order = null; h.pending = null; h.recall = { dest: 'base', at: this.t + 6, total: 6 }; break;
+      case 'recall': if (h.dead) return; h.dir = null; h.order = null; h.pending = null; h.recall = { dest: 'base', at: this.t + 6, total: 6 }; break;
       case 'way': {
         if (h.dead) return; if (this.phase !== 'night') return fail('Waygates only work at night');
         let dest; if (c.dest === 'base') dest = 'base'; else { const tn = this.ents.find(e => e.kind === 'town' && e.tid === c.dest && e.team === 0); if (!tn) return fail('You do not hold that town'); dest = tn.tid; }
@@ -582,8 +694,23 @@ class Sim {
     const secret = this.secretOpen && d2(h.x, h.z, MAP.secretShop.x, MAP.secretShop.z) < 8 * 8;
     return { normal: atBase || atTown || secret, secret, any: atBase || atTown || secret };
   }
-  cast(h, k, x, z, id, fail) {
+  pickAttack(h, id) {
+    const want = id ? this.byId.get(id) : null; if (want && this.canHit(h, want)) return want;
+    let best = null, bs = 1e9; const R2 = (h.range + 7) ** 2;
+    for (const o of this.ents) {
+      if (!this.canHit(h, o)) continue; const dd = d2(h.x, h.z, o.x, o.z); if (dd > R2 + o.r * o.r * 4) continue;
+      let sc = Math.sqrt(dd); if (o.structure) sc += 8; if (o.team === 2 && o.tgt !== h.id) sc += 4; if (o.invuln) sc += 50;
+      if (sc < bs) { bs = sc; best = o; }
+    }
+    return best;
+  }
+  cast(h, k, x, z, id, fail, auto) {
     const ab = HEROES[h.hid].ab[k], r = h.ranks[k];
+    if (auto && ab && ab.t !== 'self') {
+      const tg = this.pickAttack(h, id); const rng = (ab.range || 8) + (ab.t === 'unit' ? 3 : 1);
+      if (tg && !tg.structure && d2(tg.x, tg.z, h.x, h.z) < rng * rng) { x = tg.x; z = tg.z; id = tg.id; }
+      else { if (ab.t === 'unit') return fail('No target in range'); const dd = ab.t === 'dir' ? ab.range : Math.min(ab.range, 6); x = h.x + Math.cos(h.face) * dd; z = h.z + Math.sin(h.face) * dd; id = undefined; }
+    }
     if (!ab || !r) return fail('Ability not learned');
     if (h.cds[k] > 0) return fail(ab.n + ' is on cooldown');
     if (h.stunU > this.t) return fail('Stunned!');
@@ -599,10 +726,16 @@ class Sim {
       if (d2(tg.x, tg.z, h.x, h.z) > (ab.range + tg.r) ** 2) { h.pending = { k, id: tg.id }; h.order = { t: 'chase', id: tg.id }; return; }
     } else if (ab.t === 'point' || ab.t === 'dir') {
       if (x === undefined || isNaN(x)) { x = h.x + Math.cos(h.face) * 5; z = h.z + Math.sin(h.face) * 5; }
-      if (ab.t === 'point') { const dx = x - h.x, dz = z - h.z, l = Math.hypot(dx, dz); if (l > ab.range) { x = h.x + dx / l * ab.range; z = h.z + dz / l * ab.range; } x = clamp(x, -MAP.W, MAP.W); z = clamp(z, -MAP.H, MAP.H); }
+      if (ab.t === 'point') {
+        x = clamp(x, -MAP.W, MAP.W); z = clamp(z, -MAP.H, MAP.H);
+        const dx = x - h.x, dz = z - h.z, l = Math.hypot(dx, dz);
+        if (l > ab.range + 0.3) { if (!auto && !h.castNow && l < ab.range * 4) { h.pending = { k, x, z }; h.order = { t: 'castmove' }; h.dir = null; return; } x = h.x + dx / l * ab.range; z = h.z + dz / l * ab.range; }
+      }
       if (Math.abs(x - h.x) + Math.abs(z - h.z) > 0.01) h.face = Math.atan2(z - h.z, x - h.x);
     }
+    const fx0 = h.x, fz0 = h.z;
     if (ab.cast(this, h, r, x, z, tg) === false) return;
+    this.fxq.push(['a', h.id, h.hid, k, Math.round(fx0 * 10) / 10, Math.round(fz0 * 10) / 10, Math.round(x * 10) / 10, Math.round(z * 10) / 10, tg ? tg.id : 0]);
     h.res -= cost; if (ab.gain) h.res = Math.min(h.resMax, h.res + ab.gain);
     h.cds[k] = v(ab.cd, r); h.st.casts++; h.recall = null; h.combatT = 0;
     if (h.hid === 'emberwitch' && k === 2) h.blinkFree = this.t + 3;
@@ -616,17 +749,29 @@ class Sim {
     if (l <= (stopDist || 0.15)) return true;
     let sp = e.ms * SPD * (e.slowU > this.t ? e.slowM : 1) * (e.nightFury ? 1.15 : 1);
     const step = Math.min(l - (stopDist || 0), sp * dt);
-    e.x += dx / l * step; e.z += dz / l * step; e.face = Math.atan2(dz, dx); e.walkT = 0.15;
-    e.x = clamp(e.x, -MAP.W, MAP.W); e.z = clamp(e.z, -MAP.H, MAP.H);
+    let nx = clamp(e.x + dx / l * step, -MAP.W, MAP.W), nz = clamp(e.z + dz / l * step, -MAP.H, MAP.H);
+    if (blocked(nx, nz) && !blocked(e.x, e.z)) { if (!blocked(nx, e.z)) nz = e.z; else if (!blocked(e.x, nz)) nx = e.x; else { e.stuck = (e.stuck || 0) + dt; return false; } }
+    e.x = nx; e.z = nz; e.face = Math.atan2(dz, dx); e.walkT = 0.15;
     return false;
+  }
+  navTo(e, tx, tz, dt, stop) {
+    stop = stop || 0.15; if (d2(e.x, e.z, tx, tz) <= stop * stop) { e.nav = null; return true; }
+    let N = e.nav;
+    if (!N || d2(N.tx, N.tz, tx, tz) > 9 || this.t > N.t + 1.5 || (e.stuck || 0) > 0.4) {
+      e.stuck = 0;
+      const pts = los(e.x, e.z, tx, tz) ? [[tx, tz]] : (NAV(e.x, e.z, tx, tz) || [[tx, tz]]);
+      N = e.nav = { tx, tz, t: this.t, pts };
+    }
+    if (N.pts.length > 1) { const p = N.pts[0]; if (this.moveToward(e, p[0], p[1], dt, 0.6)) N.pts.shift(); return false; }
+    const r = this.moveToward(e, tx, tz, dt, stop); if (r) e.nav = null; return r;
   }
   attackStep(e, tg, dt) {
     const rr = e.range + tg.r + e.r * 0.4;
-    if (d2(e.x, e.z, tg.x, tg.z) > rr * rr) { this.moveToward(e, tg.x, tg.z, dt, rr * 0.9); return; }
+    if (d2(e.x, e.z, tg.x, tg.z) > rr * rr) { if (e.kind === 'minion') this.moveToward(e, tg.x, tg.z, dt, rr * 0.9); else this.navTo(e, tg.x, tg.z, dt, rr * 0.9); return; }
     e.face = Math.atan2(tg.z - e.z, tg.x - e.x);
     if (e.atkCd <= 0 && e.stunU <= this.t) {
       e.atkCd = 1 / e.as; e.atkAnim = this.t;
-      if (e.ranged) this.projs.push({ id: this.nid++, x: e.x, z: e.z, tid: tg.id, speed: e.structure ? 26 : 22, owner: e, col: e.pc, size: e.structure ? 0.6 : 0.35, auto: 1 });
+      if (e.ranged) this.projs.push({ id: this.nid++, x: e.x, z: e.z, tid: tg.id, speed: e.structure ? 26 : 22, owner: e, col: e.pc, size: e.structure ? 0.6 : 0.35, auto: 1, st: projStyle(e) });
       else this.autoHit(e, tg);
     }
   }
@@ -689,12 +834,13 @@ class Sim {
       else if (e.kind === 'loot') this.stepLoot(e);
       else if (e.kind === 'raider') this.stepRaider(e, dt);
       else if (e.kind === 'merc') this.stepMerc(e, dt);
+      else if (e.kind === 'garrison') this.stepGarrison(e, dt);
       else if (e.kind === 'heal') this.stepHeal(e);
     }
     // separation for small units
     if (this.tick % 2 === 0) {
       const arr = this.ents.filter(e => !e.dead && !e.structure && e.kind !== 'enc' && e.kind !== 'loot' && e.kind !== 'heal' && e.kind !== 'ward');
-      for (let i = 0; i < arr.length; i++) { const a = arr[i]; for (let j = i + 1; j < arr.length; j++) { const b = arr[j]; const dx = b.x - a.x, dz = b.z - a.z; const min = (a.r + b.r) * 0.85; if (dx > min || dx < -min || dz > min || dz < -min) continue; const l = Math.hypot(dx, dz) || 0.01; if (l < min) { const p = (min - l) * 0.5, px = dx / l * p, pz = dz / l * p; const wa = a.kind === 'boss' ? 0.1 : 1, wb = b.kind === 'boss' ? 0.1 : 1; a.x -= px * wa; a.z -= pz * wa; b.x += px * wb; b.z += pz * wb; } } }
+      for (let i = 0; i < arr.length; i++) { const a = arr[i]; for (let j = i + 1; j < arr.length; j++) { const b = arr[j]; const dx = b.x - a.x, dz = b.z - a.z; const min = (a.r + b.r) * 0.85; if (dx > min || dx < -min || dz > min || dz < -min) continue; const l = Math.hypot(dx, dz) || 0.01; if (l < min) { const p = (min - l) * 0.5, px = dx / l * p, pz = dz / l * p; const wa = a.kind === 'boss' ? 0.1 : 1, wb = b.kind === 'boss' ? 0.1 : 1; if (!blocked(a.x - px * wa, a.z - pz * wa)) { a.x -= px * wa; a.z -= pz * wa; } if (!blocked(b.x + px * wb, b.z + pz * wb)) { b.x += px * wb; b.z += pz * wb; } } } }
     }
     // projectiles
     for (const p of this.projs) {
@@ -723,7 +869,7 @@ class Sim {
         const owned = this.ents.filter(e => e.kind === 'town' && e.team === 0).sort((a, b) => a.z - b.z);
         const sp = owned[0] || MAP.fountain;
         h.dead = false; h.x = sp.x + (this.R() - 0.5) * 3; h.z = sp.z + 4 + this.R() * 2; h.buffs = []; this.recalc(h); h.hp = h.maxhp; if (!d.res.rage) h.res = h.resMax;
-        this.msg(h.pname + ' respawned at ' + (owned[0] ? owned[0].name : 'base'), 'w');
+        this.msg(h.pname + ' respawned at ' + (owned[0] ? owned[0].name : 'base'), 'w'); this.fx('spawn', h.x, h.z, 2, '#fff1a8');
       }
       return;
     }
@@ -763,29 +909,37 @@ class Sim {
     if (h.dash) {
       const D = h.dash; const dx = D.x - h.x, dz = D.z - h.z, l = Math.hypot(dx, dz), st = D.speed * dt;
       if (D.onPass) this.enemiesNear(h, h.x, h.z, D.hitR).forEach(e => { if (!D.hit.has(e.id)) { D.hit.add(e.id); D.onPass(e); } });
-      if (l <= st) { h.x = D.x; h.z = D.z; h.dash = null; if (D.onEnd) D.onEnd(); }
-      else { h.x += dx / l * st; h.z += dz / l * st; h.face = Math.atan2(dz, dx); }
+      const nx = l <= st ? D.x : h.x + dx / l * st, nz = l <= st ? D.z : h.z + dz / l * st;
+      if (blocked(nx, nz) && !D.over) { h.dash = null; if (D.onEnd) D.onEnd(); }
+      else if (l <= st) { h.x = D.x; h.z = D.z; h.dash = null; if (blocked(h.x, h.z)) [h.x, h.z] = nearestFree(h.x, h.z); if (D.onEnd) D.onEnd(); }
+      else { h.x = nx; h.z = nz; h.face = Math.atan2(dz, dx); }
       return;
     }
     if (h.stunU > this.t) return;
-    // taunt n/a for heroes
+    if (h.dir) { this.moveToward(h, h.x + h.dir.x * 4, h.z + h.dir.z * 4, dt, 0); return; }
     const o = h.order;
-    if (o && o.t === 'move') { if (this.moveToward(h, o.x, o.z, dt)) h.order = null; return; }
+    if (o && o.t === 'move') { if (this.navTo(h, o.x, o.z, dt)) h.order = null; return; }
+    if (o && o.t === 'castmove' && h.pending) {
+      const P = h.pending, ab = d.ab[P.k];
+      if (d2(P.x, P.z, h.x, h.z) <= (ab.range + 0.2) ** 2) { h.pending = null; h.order = null; h.castNow = 1; this.cast(h, P.k, P.x, P.z, undefined, m => this.msgq.push([m, 'p' + h.pid])); h.castNow = 0; }
+      else this.navTo(h, P.x, P.z, dt, ab.range * 0.92);
+      return;
+    }
     if (o && (o.t === 'attack' || o.t === 'chase')) {
-      const tg = this.byId.get(o.id);
-      if (!tg || !this.canHit(h, tg)) { h.order = null; h.pending = null; return; }
+      let tg = this.byId.get(o.id);
+      if (!tg || !this.canHit(h, tg)) {
+        if (o.t === 'attack' && o.hold) { const n = this.pickAttack(h); if (n) { o.id = n.id; o.t0 = this.t; return; } }
+        h.order = null; h.pending = null; return;
+      }
       if (h.pending) {
         const ab = d.ab[h.pending.k];
         if (d2(tg.x, tg.z, h.x, h.z) <= (ab.range + tg.r) ** 2) { const pk = h.pending.k; h.pending = null; h.order = { t: 'attack', id: tg.id }; this.cast(h, pk, tg.x, tg.z, tg.id, m => this.msgq.push([m, 'p' + h.pid])); }
-        else this.moveToward(h, tg.x, tg.z, dt);
+        else this.navTo(h, tg.x, tg.z, dt, 1);
         return;
       }
-      this.attackStep(h, tg, dt); return;
-    }
-    // idle: auto-acquire
-    if (this.tick % 4 === h.slot % 4) {
-      const tg = this.findTarget(h, 7, e => e.team === 1 || (e.team === 2 && e.tgt === h.id));
-      if (tg) h.order = { t: 'attack', id: tg.id, auto: 1 };
+      this.attackStep(h, tg, dt);
+      if (o.once && h.atkAnim >= o.t0) h.order = null;
+      return;
     }
   }
   stepMinion(e, dt) {
@@ -801,6 +955,7 @@ class Sim {
       }
       e.tgt = tg ? tg.id : 0;
     }
+    if (e.team === 1) { const bt = this.frontTown(e.lane, e.z); if (bt && e.z > bt.z - 10 && (!tg || tg.dead || d2(tg.x, tg.z, e.x, e.z) > 81)) { this.attackStep(e, bt, dt); return; } }
     if (tg && !tg.dead && this.canHit(e, tg)) { this.attackStep(e, tg, dt); return; }
     // follow lane
     const P = LANES[e.lane]; let wi = e.wp; if (wi < 0 || wi >= P.length) return;
@@ -817,7 +972,7 @@ class Sim {
       if (!tg) { const h = this.heroes.find(h => !h.dead && d2(h.x, h.z, e.x, e.z) < e.aggro * e.aggro); if (h) { tg = h; e.tgt = h.id; } }
     }
     const away = d2(e.x, e.z, e.homeX, e.homeZ);
-    if (!tg) { if (away > 0.5) this.moveToward(e, e.homeX, e.homeZ, dt, 0.3); else e.hp = Math.min(e.maxhp, e.hp + e.maxhp * 0.06 * dt); return; }
+    if (!tg) { if (away > 0.5) this.navTo(e, e.homeX, e.homeZ, dt, 0.3); else e.hp = Math.min(e.maxhp, e.hp + e.maxhp * 0.06 * dt); return; }
     if (away > e.leash * e.leash) { e.tgt = 0; e.hp = Math.min(e.maxhp, e.hp + e.maxhp * 0.2); return; }
     if (e.kind === 'boss') this.bossSkills(e, tg);
     if (e.kind === 'boss' && e.hp < e.maxhp * 0.3 && !e.enraged) { e.enraged = 1; e.as *= 1.5; this.msg(e.name + ' is enraged!', 'r'); }
@@ -864,7 +1019,7 @@ class Sim {
       e.tgt = tg ? tg.id : 0;
     }
     if (tg && !tg.dead && this.canHit(e, tg)) { this.attackStep(e, tg, dt); if (!inLane(e.x, e.z)) { e.tgt = 0; } return; }
-    if (this.moveToward(e, e.px, e.pz, dt, 1)) { const P = LANES[e.lane], i = 1 + Math.floor(this.R() * (P.length - 2)); e.px = P[i][0] + (this.R() - 0.5) * 8; e.pz = P[i][1] + (this.R() - 0.5) * 20; }
+    if (this.navTo(e, e.px, e.pz, dt, 1)) { const P = LANES[e.lane], i = 1 + Math.floor(this.R() * (P.length - 2)); e.px = P[i][0] + (this.R() - 0.5) * 8; e.pz = P[i][1] + (this.R() - 0.5) * 20; }
   }
   stepStructure(e, dt) {
     if (e.atkCd > 0) { /* handled */ }
@@ -879,9 +1034,12 @@ class Sim {
     }
     if (tg && !tg.dead && d2(e.x, e.z, tg.x, tg.z) <= (e.range + tg.r) ** 2 && e.atkCd <= 0) {
       e.atkCd = 1 / e.as;
-      this.projs.push({ id: this.nid++, x: e.x, z: e.z, tid: tg.id, speed: 26, owner: e, col: e.pc, size: 0.6, auto: 1 });
+      this.projs.push({ id: this.nid++, x: e.x, z: e.z, tid: tg.id, speed: 26, owner: e, col: e.pc, size: 0.6, auto: 1, st: 'b' });
     }
-    if (e.kind === 'town') this.stepTown(e, dt);
+    if (e.kind === 'town') {
+      this.stepTown(e, dt);
+      if (e.team === 0 && this.tick % 20 === 0) { const n = this.ents.filter(g => g.kind === 'garrison' && g.town === e.id && !g.dead).length; e.garT += 1; if (n < 2 + (e.inv || 0) && e.garT >= 40) { e.garT = 0; this.spawnGarrison(e); } }
+    }
   }
   stepTown(e, dt) {
     if (e.team !== 2) return;
@@ -891,7 +1049,7 @@ class Sim {
     if (!guardsAlive && near && !foes) {
       e.cap += dt;
       if (e.cap >= 4) {
-        e.team = 0; e.untarget = 0; e.hp = e.maxhp; e.cap = 0; e.pc = '#6ab0ff';
+        e.team = 0; e.untarget = 0; e.cap = 0; e.pc = '#6ab0ff'; this.fortify(e); this.fx('capture', e.x, e.z, 9, '#ffd36b');
         this.heroes.forEach(h => { this.giveGold(h, 100); if (d2(h.x, h.z, e.x, e.z) < 100) h.st.towns++; });
         this.msg(e.name + ' secured! +100 gold each. Upkeep ' + this.upkeepOf(e) + 'g at nightfall. Respawns and Waygates now use it.', 'gold');
       }
@@ -917,6 +1075,25 @@ class Sim {
       this.msg('Ambush! Bandits leap from hiding!', 'r');
     }
   }
+  fortify(t) {
+    const m = (1 + 0.3 * (this.cycle - 1)) * this.M.struct;
+    t.maxhp = Math.round(4200 * m); t.hp = t.maxhp; t.armor = t.mr = 50; t.ad = 95 * (1 + 0.15 * (this.cycle - 1)); t.range = 12; t.as = 1; t.garT = 0;
+    for (let i = 0; i < 2; i++) this.spawnGarrison(t);
+  }
+  spawnGarrison(t) {
+    const m = 1 + this.mins() * 0.08, a = this.R() * 6.283;
+    const g = this.mk('garrison', 0, t.x + Math.cos(a) * 4, t.z - 5 + Math.sin(a) * 2, { hp: Math.round(1000 * m), ad: 40 * m, armor: 30, mr: 25, as: 0.9, range: 2.2, ms: 320, r: 0.9, v: 'garrison', g: 0, xp: 0 });
+    g.town = t.id; g.homeX = g.x; g.homeZ = g.z;
+  }
+  stepGarrison(e, dt) {
+    const t = this.byId.get(e.town); if (!t || t.team !== 0) { e.dead = true; return; }
+    e.think -= dt; let tg = e.tgt ? this.byId.get(e.tgt) : null;
+    if (e.think <= 0) { e.think = 0.3; if (!tg || tg.dead || !this.canHit(e, tg) || d2(tg.x, tg.z, e.homeX, e.homeZ) > 16 * 16) { tg = this.findTarget(e, 12, x => d2(x.x, x.z, e.homeX, e.homeZ) < 16 * 16); } e.tgt = tg ? tg.id : 0; }
+    if (tg && !tg.dead) { this.attackStep(e, tg, dt); return; }
+    if (this.navTo(e, e.homeX, e.homeZ, dt, 0.5)) e.hp = Math.min(e.maxhp, e.hp + e.maxhp * 0.03 * dt);
+  }
+  frontTown(lane, z) { let best = null; for (const t of this.ents) if (t.kind === 'town' && t.team === 0 && t.lane === lane && t.z > z - 2 && (!best || t.z < best.z)) best = t; return best; }
+  frontSpawn(lane) { let best = null; for (const t of this.ents) if (t.kind === 'town' && t.team === 0 && t.lane === lane && (!best || t.z < best.z)) best = t; return best; }
   upkeepOf(t) { return Math.round(t.upkeep * (1 + 0.3 * (this.cycle - 1))); }
   onNight() {
     this.msg('Night falls. Lanes are deadly — enemies in lanes grow far stronger. The jungle is unchanged. Town shops and Waygates are open.', 'p');
@@ -985,12 +1162,12 @@ class Sim {
   railStations(lane) {
     const towns = MAP.towns.filter(t => t.lane === lane).sort((a, b) => b.z - a.z);
     const P = LANES[lane]; let fx = P[0][0];
-    for (let i = 0; i < P.length - 1; i++) { const A = P[i], B = P[i + 1]; if ((A[1] - -66) * (B[1] - -66) <= 0) { fx = A[0] + (B[0] - A[0]) * ((-66 - A[1]) / (B[1] - A[1])); break; } }
+    for (let i = 0; i < P.length - 1; i++) { const A = P[i], B = P[i + 1]; const FZ = -66 * SZ; if ((A[1] - FZ) * (B[1] - FZ) <= 0) { fx = A[0] + (B[0] - A[0]) * ((FZ - A[1]) / (B[1] - A[1])); break; } }
     const warden = MAP.bosses.find(b => b.warden === lane);
     return [
       { n: 'Base', x: MAP.fountain.x, z: MAP.fountain.z, r: 18, ok: true },
       ...towns.map(t => { const e = this.ents.find(o => o.kind === 'town' && o.tid === t.id); return { n: t.name, x: t.x, z: t.z, r: 10, ok: !!e && e.team === 0, tid: t.id }; }),
-      { n: 'Forward Camp', x: fx, z: -66, r: 10, ok: !this.ents.some(o => o.kind === 'boss' && o.bid === warden.id && !o.dead) }];
+      { n: 'Forward Camp', x: fx, z: -66 * SZ, r: 10, ok: !this.ents.some(o => o.kind === 'boss' && o.bid === warden.id && !o.dead) }];
   }
   railSegOk(lane, seg) { const st = this.railStations(lane)[seg]; return st && st.ok; }
   rideRail(h, lane, to, fail) {
@@ -1024,11 +1201,10 @@ class Sim {
       e.tgt = tg ? tg.id : 0;
     }
     if (tg && !tg.dead) { this.attackStep(e, tg, dt); if (inLane(e.x, e.z)) { e.tgt = 0; } return; }
-    if (o && !o.dead && d2(o.x, o.z, e.x, e.z) > 5 * 5) { const nx = e.x + (o.x - e.x) * 0.1, nz = e.z + (o.z - e.z) * 0.1; if (ok({ x: nx, z: nz }) || inLane(e.x, e.z)) this.moveToward(e, o.x, o.z, dt, 3); }
+    if (o && !o.dead && d2(o.x, o.z, e.x, e.z) > 5 * 5) { const nx = e.x + (o.x - e.x) * 0.1, nz = e.z + (o.z - e.z) * 0.1; if (ok({ x: nx, z: nz }) || inLane(e.x, e.z)) this.navTo(e, o.x, o.z, dt, 3); }
   }
   spawnRaid() {
-    const pts = [[-60, 70, 'west'], [60, 70, 'east'], [-45, 30, 'western jungle'], [45, 30, 'eastern jungle'], [-100, 95, 'far west'], [100, 95, 'far east']];
-    const o = pts[Math.floor(this.R() * pts.length)];
+    const o = RAID_PTS[Math.floor(this.R() * RAID_PTS.length)];
     const n = 3 + this.cycle + this.heroes.length, m = 1 + this.cycle * 0.3;
     const pool = this.cycle < 3 ? ['wolf', 'wolf', 'troll', 'trollshaman'] : ['wolf', 'troll', 'trollshaman', 'ogre', 'rockgolem'];
     for (let i = 0; i < n; i++) {
@@ -1043,12 +1219,12 @@ class Sim {
       e.think = 0.35;
       if (!tg || tg.dead || !this.canHit(e, tg) || tg.invuln) {
         tg = this.findTarget(e, 9, x => !x.invuln);
-        if (!tg && d2(e.x, e.z, 0, 112) < 34 * 34) tg = this.findTarget(e, 34, x => x.structure && !x.invuln);
+        if (!tg && d2(e.x, e.z, MAP.fountain.x, MAP.fountain.z) < 48 * 48) tg = this.findTarget(e, 48, x => x.structure && !x.invuln);
       }
       e.tgt = tg ? tg.id : 0;
     }
     if (tg && !tg.dead) { this.attackStep(e, tg, dt); return; }
-    this.moveToward(e, 0, 112, dt, 4);
+    this.navTo(e, MAP.fountain.x, MAP.fountain.z, dt, 6);
   }
   rotateVault() { const k = Object.keys(VAULT); this.vault = []; while (this.vault.length < 4) { const x = k.splice(Math.floor(this.R() * k.length), 1)[0]; this.vault.push(x); } }
   giveCard(h) { if (h.member) { this.giveGold(h, 300); return; } h.member = true; this.msg(h.pname + ' found a Member Card! A hidden menu opens at the shop…', 'gold'); }
@@ -1071,10 +1247,11 @@ class Sim {
         if (team === 1 && ln === 'M') kinds.push('melee');
         if (this.waveN % 3 === 0) kinds.push('siege');
         if (team === 1 && this.eclipse) kinds.push('siege', 'melee');
-        const P = LANES[ln], start = team === 0 ? P[0] : P[P.length - 1];
+        const P = LANES[ln]; let start = team === 0 ? P[0] : P[P.length - 1], wp0 = team === 0 ? 1 : P.length - 2;
+        if (team === 0) { if (this.phase === 'night' && !this.eclipse) continue; const ft = this.frontSpawn(ln); if (ft) { start = [ft.x, ft.z - 14]; wp0 = P.findIndex(p => p[1] < ft.z - 14); if (wp0 < 0) wp0 = P.length - 1; } }
         kinds.forEach((k, i) => {
           const e = this.unitFrom(MINION[k], 'minion', team, start[0] + (i % 3 - 1) * 1.6, start[1] + (team ? -1 : 1) * (Math.floor(i / 3) * 1.8 + 4), mult, (team ? 'me_' : 'ma_') + k);
-          e.lane = ln; e.wp = team === 0 ? 1 : P.length - 2; e.ox = (i % 3 - 1) * 1.2; e.structMult = MINION[k].structMult || 1;
+          e.lane = ln; e.wp = wp0; e.ox = (i % 3 - 1) * 1.2; e.structMult = MINION[k].structMult || 1;
         });
       }
     }
@@ -1088,28 +1265,28 @@ class Sim {
       if (o.dead || o.team !== 0) continue;
       let r = 0;
       if (o.kind === 'hero') r = 15 * sightM; else if (o.kind === 'ward') r = 22; else if (o.kind === 'core') r = 18; else if (o.structure) r = 13; else if (o.kind === 'merc') r = 10; else if (o.kind === 'minion') r = 9;
-      if (!r) continue; vsrc.push([o.x, o.z, r * r]); if (o.kind !== 'minion') vs.push([r1(o.x), r1(o.z), Math.round(r)]);
+      if (o.kind === 'garrison') r = 11; if (!r) continue; const L = o.kind === 'hero' || o.kind === 'ward' || o.kind === 'merc' || o.kind === 'garrison'; vsrc.push([o.x, o.z, r * r, L]); if (o.kind !== 'minion') vs.push([r1(o.x), r1(o.z), Math.round(r), L ? 1 : 0]);
     }
-    const seen = o => { for (const v of vsrc) if (d2(o.x, o.z, v[0], v[1]) < v[2]) return true; return false; };
+    const seen = o => { for (const v of vsrc) if (d2(o.x, o.z, v[0], v[1]) < v[2] && (!v[3] || los(v[0], v[1], o.x, o.z))) return true; return false; };
     this.seenFn = seen;
     const e = [];
     for (const o of this.ents) {
       if (o.dead) continue;
       if (o.team !== 0 && !o.structure && o.kind !== 'boss' && !seen(o)) continue;
-      let f = 0; if (o.stunU > this.t) f |= 1; if (o.nightFury) f |= 2; if (o.invuln) f |= 4; if (o.untarget) f |= 8; if (o.walkT > 0) f |= 16; if (o.atkAnim && this.t - o.atkAnim < 0.25) f |= 32; if (o.slowU > this.t) f |= 64; if (o.enraged) f |= 128; if (o.cdU > this.t) f |= 256;
+      let f = 0; if (o.stunU > this.t) f |= 1; if (o.nightFury) f |= 2; if (o.invuln) f |= 4; if (o.untarget) f |= 8; if (o.walkT > 0) f |= 16; if (o.atkAnim && this.t - o.atkAnim < 0.25) f |= 32; if (o.slowU > this.t) f |= 64; if (o.enraged) f |= 128; if (o.cdU > this.t) f |= 256; if (o.dash) f |= 512; if (o.rail) f |= 1024;
       e.push([o.id, o.v, o.team, r1(o.x), r1(o.z), Math.round(o.hp), Math.round(o.maxhp), Math.round(o.face * 100) / 100, f]);
     }
     const H = this.heroes.map(h => ({
       id: h.id, pid: h.pid, n: h.pname, hid: h.hid, lvl: h.lvl, xp: Math.round(h.xp), xn: xpNext(h.lvl), g: Math.floor(h.gold), hp: Math.round(h.hp), mhp: h.maxhp, res: Math.round(h.res), mres: Math.round(h.resMax),
       cd: h.cds.map(c => Math.round(c * 10) / 10), rk: h.ranks, pts: h.pts, attr: h.attr, it: h.items, dead: h.dead, rt: Math.ceil(h.respawnT), pots: h.pots,
       sv: h.statView, rc: h.recall ? [h.recall.dest, Math.round((h.recall.at - this.t) * 10) / 10, h.recall.total] : null, bf: h.buffs.map(b => [b.id, Math.ceil(b.until - this.t)]), st: (full || this.over) ? h.st : undefined,
-      shop: this.shopAccess(h), mem: h.member, x: r1(h.x), z: r1(h.z), tw: h.townWard
+      shop: this.shopAccess(h), mem: h.member, x: r1(h.x), z: r1(h.z), tw: h.townWard, tg: h.order && h.order.id ? h.order.id : 0, rail: !!h.rail
     }));
     const towns = this.ents.filter(o => o.kind === 'town').map(o => ({ id: o.id, tid: o.tid, n: o.name, team: o.team, cap: Math.round(o.cap * 10) / 10, up: this.upkeepOf(o), inv: o.inv, guards: o.guards.filter(id => { const g = this.byId.get(id); return g && !g.dead; }).length, mine: o.mine, x: o.x, z: o.z }));
     const encs = this.ents.filter(o => o.kind === 'enc' && !o.dead && !o.used && seen(o)).map(o => ({ id: o.id, sub: o.sub, x: o.x, z: o.z, stock: o.stock || null }));
     const s = {
       t: Math.round(this.t * 100) / 100, md: [this.mode, this.M.day, this.cyc, this.M.eclipse], vault: this.vault, ph: this.phase, cy: this.cycle, ec: this.eclipse, so: this.secretOpen, e, h: H, towns, encs,
-      p: this.projs.map(p => [p.id, r1(p.x), r1(p.z), p.col, p.size]),
+      p: this.projs.map(p => [p.id, r1(p.x), r1(p.z), p.col, p.size, p.st || 'o']),
       z: this.zones.map(z => [r1(z.x), r1(z.z), z.r, Math.round((this.t - z.s) / (z.e - z.s) * 100) / 100, z.k]),
       fx: this.fxq, m: this.msgq, over: this.over, vs, upg: this.upg, rails: ['L', 'M', 'R'].map(l => this.railStations(l).map(st => [st.n, r1(st.x), r1(st.z), st.ok ? 1 : 0, st.r]))
     };
@@ -1117,6 +1294,6 @@ class Sim {
     return s;
   }
 }
-const API = { MODES, BASE_UPG, MERC_COST, HEAL_SPOTS, VAULT, LEGENDARIES, MYTHICS, rollLegendary, rollMythic, makeProc, VERSION, TOWN_BUFFS, TIER_DRAIN, Sim, HEROES, HERO_IDS, ITEMS, MAP, LANES, LANE_INFO, STAT_NAMES, PCT, RARITY, POTION_COST, DAY, NIGHT, CYC, ECLIPSE_T, DT, xpNext, laneDist, rollLoot, mulberry32 };
+const API = { TER, blocked, los, RIVER, SX, SZ, RAID_PTS, WARD_SPOTS, MODES, BASE_UPG, MERC_COST, HEAL_SPOTS, VAULT, LEGENDARIES, MYTHICS, rollLegendary, rollMythic, makeProc, VERSION, TOWN_BUFFS, TIER_DRAIN, Sim, HEROES, HERO_IDS, ITEMS, MAP, LANES, LANE_INFO, STAT_NAMES, PCT, RARITY, POTION_COST, DAY, NIGHT, CYC, ECLIPSE_T, DT, xpNext, laneDist, rollLoot, mulberry32 };
 if (typeof module !== 'undefined') module.exports = API; else G.DW = API;
 })(typeof window !== 'undefined' ? window : globalThis);

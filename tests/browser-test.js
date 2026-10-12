@@ -4,13 +4,13 @@ const DIST = path.join(__dirname, '..', 'index.html');
 const srv = http.createServer((q, r) => { r.setHeader('content-type', 'text/html'); r.end(fs.readFileSync(DIST)); }).listen(8765);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 (async () => {
-  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
   const errs = []; const pages = new Set();
   async function mkPage(ctx, tag) {
     const p = await ctx.newPage({ viewport: { width: 900, height: 500 } });
     p.on('pageerror', e => errs.push(tag + ' PAGEERROR ' + e.message + '\n' + (e.stack || '').split('\n').slice(0, 3).join('\n')));
     p.on('console', m => { if (m.type() === 'error') errs.push(tag + ' CONSOLE ' + m.text()); });
-    await p.route('**/three.min.js', r => r.fulfill({ body: fs.readFileSync(__dirname + '/three-mock.js', 'utf8'), contentType: 'application/javascript' }));
+    await p.route('**/three.min.js', r => r.fulfill({ body: fs.readFileSync(__dirname + (process.env.REAL3 ? '/three.min.js' : '/three-mock.js'), 'utf8'), contentType: 'application/javascript' }));
     await p.route('**/supabase-js@2', r => r.fulfill({ body: fs.readFileSync(__dirname + '/supabase-mock.js', 'utf8'), contentType: 'application/javascript' }));
     await p.route('**/fonts.googleapis.com/**', r => r.abort()); await p.route('**/fonts.gstatic.com/**', r => r.abort());
     await p.exposeFunction('__relayOut', msg => { for (const o of pages) if (o !== p && !o.isClosed()) o.evaluate(m => window.__relayIn && window.__relayIn(m), msg).catch(() => { }); });
@@ -42,8 +42,8 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await A.evaluate(() => window.BOD.G.sim.heroes.forEach(h => h.gold += 3000)); await sleep(1300);
   await B.click('[data-upg="sight"]'); await sleep(400); await B.keyboard.press('Escape');
   await B.click('#btnStats'); await sleep(200); await B.keyboard.press('Escape');
-  await B.click('#btnHero'); await sleep(200); await B.keyboard.press('Escape');
-  await B.click('.ab >> nth=0'); await sleep(100); await B.mouse.click(500, 200); await sleep(300);
+  await B.click('#hPortrait'); await sleep(200); await B.keyboard.press('Escape');
+  await B.click('.ab >> nth=0'); await sleep(200); await B.dispatchEvent('#btnAtk', 'pointerdown'); await sleep(900); await B.dispatchEvent('#btnAtk', 'pointerup'); await sleep(300);
   console.log('B after actions', JSON.stringify(await B.evaluate(() => { const m = window.BOD.G.me; return { g: m.g, rk: m.rk, items: m.it.filter(Boolean).map(i => i.n), x: m.x, z: m.z }; })));
   console.log('A upg', JSON.stringify(await A.evaluate(() => window.BOD.G.cur.upg)));
   console.log('net msgs sent by host', await A.evaluate(() => [window.__sent, Math.round(window.__bytes / window.__sent)]));
