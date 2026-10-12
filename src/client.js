@@ -343,7 +343,7 @@ function landscapeLock() {
 }
 function startGame(mode, cfg) {
   if (!renderer) { show('game'); $('loading').classList.remove('hidden'); setTimeout(() => { try { init3D(); } finally { $('loading').classList.add('hidden'); } startGame(mode, cfg); }, 60); return; }
-  G.mode = mode; G.running = true; G.ended = false; G.cur = G.prev = null; G.stats = {}; G.nums = []; G.aim = null; G.myHeroId = null; G.panning = false;
+  G.mode = mode; G.running = true; G.ended = false; G.cur = G.prev = null; G.stats = {}; G.nums = []; G.xpPrev = null; G.xpAcc = 0; G.aim = null; G.myHeroId = null; G.panning = false;
   G.players = cfg.players; G.recvT = 0; G.lastNet = performance.now();
   saveSession();
   show('game'); $('feed').innerHTML = '';
@@ -1340,7 +1340,7 @@ function spawnFx(f) {
   const [, type, x, z, r, col] = f;
   if (type === 'burst') { ringFx(x, z, r, col, 0.5, 1); burstP(x, 1, z, Math.min(40, 10 + r * 6), col, r * 2.4, 0.9, 0.5, 2.5, 4); }
   else if (type === 'ring') { ringFx(x, z, r, col, 0.55, 0); burstP(x, 0.5, z, 20, col, r * 1.5, 0.6, 0.5, 1.5); }
-  else if (type === 'lvl') { ringFx(x, z, 2.5, '#ffe27a', 1, 1); for (let i = 0; i < 40; i++) { const a = i / 40 * 12.56; emit(x + Math.cos(a) * 1.4, 0.2 + i * 0.1, z + Math.sin(a) * 1.4, { vy: 2, c: '#ffe27a', s: 0.6, life: 1 }); } }
+  else if (type === 'lvl') { if (!(G.me && Math.abs(G.me.x - x) < 0.6 && Math.abs(G.me.z - z) < 0.6)) heroAura(x, z, false); ringFx(x, z, 2.5, '#ffe27a', 1, 1); for (let i = 0; i < 40; i++) { const a = i / 40 * 12.56; emit(x + Math.cos(a) * 1.4, 0.2 + i * 0.1, z + Math.sin(a) * 1.4, { vy: 2, c: '#ffe27a', s: 0.6, life: 1 }); } }
   else if (type === 'pillar') { columnFx(x, z, r, 9, col, 0.7); for (let i = 0; i < 30; i++) emit(x + (Math.random() - 0.5) * r * 1.6, 0.3, z + (Math.random() - 0.5) * r * 1.6, { vy: 5 + Math.random() * 5, c: col, s: 0.8, life: 0.8 }); }
   else if (type === 'blink') { columnFx(x, z, r * 0.8, 4, col, 0.35); burstP(x, 1.5, z, 20, col, 3, 0.6, 0.5, 2); }
   else if (type === 'meteor') {
@@ -1968,14 +1968,15 @@ function drawOverlay(now) {
     }
   }
   { const sp = worldToScreen(DW.MAP.shop.x, 8.2, DW.MAP.shop.z); if (sp[2] < 1 && sp[0] > -40 && sp[0] < W + 40 && sp[1] > -20 && sp[1] < H + 20) { octx.font = `800 ${Math.round(12 * u)}px Cinzel, serif`; octx.textAlign = 'center'; octx.strokeStyle = '#000d'; octx.lineWidth = 3; octx.fillStyle = '#ffd36b'; octx.strokeText('SHOP', sp[0], sp[1]); octx.fillText('SHOP', sp[0], sp[1]); } }
-  const NC = ['#ffffff', '#d08aff', '#ff5a5a', '#6aff8a', '#ffb02a', '#ffd700'];
+  const NC = ['#ffffff', '#d08aff', '#ff5a5a', '#6aff8a', '#ffb02a', '#ffd700', '#d8b0ff', '#ffe27a'];
   G.nums = G.nums.filter(n => {
-    const age = (now - n.t) / 1000; if (age > 1) return false;
-    const p = worldToScreen(n.x, 3.5, n.z); if (p[2] > 1) return true;
-    const big = n.c === 4, sc = age < 0.12 ? 1 + (0.12 - age) * 4 : 1; octx.globalAlpha = 1 - age * age;
-    octx.font = `${big ? 900 : 800} ${Math.round((big ? 19 : 13) * u * sc)}px Inter, sans-serif`; octx.textAlign = 'center';
-    const txt = (n.c === 3 || n.c === 5 ? '+' : n.c === 2 ? '-' : '') + n.v + (n.c === 5 ? 'g' : big ? '!' : '');
-    octx.strokeStyle = '#000'; octx.lineWidth = 3.5; octx.strokeText(txt, p[0] + n.ox * age, p[1] - age * 46); octx.fillStyle = NC[n.c] || '#fff'; octx.fillText(txt, p[0] + n.ox * age, p[1] - age * 46);
+    const life = n.c === 7 ? 1.8 : n.c === 6 ? 1.2 : 1, age = (now - n.t) / 1000; if (age > life) return false;
+    const p = worldToScreen(n.x, n.c === 7 ? 4.6 : 3.5, n.z); if (p[2] > 1) return true;
+    const big = n.c === 4 || n.c === 7, sc = age < 0.12 ? 1 + (0.12 - age) * 4 : 1, fa = age / life; octx.globalAlpha = 1 - fa * fa;
+    octx.font = `${big ? 900 : 800} ${Math.round((n.c === 7 ? 22 : big ? 19 : n.c === 6 ? 12 : 13) * u * sc)}px ${n.c === 7 ? 'Cinzel, serif' : 'Inter, sans-serif'}`; octx.textAlign = 'center';
+    const txt = n.c === 7 ? n.v : n.c === 6 ? '+' + n.v + ' XP' : (n.c === 3 || n.c === 5 ? '+' : n.c === 2 ? '-' : '') + n.v + (n.c === 5 ? 'g' : big ? '!' : '');
+    const rise = n.c === 7 ? 20 : 46;
+    octx.strokeStyle = '#000'; octx.lineWidth = 3.5; octx.strokeText(txt, p[0] + n.ox * age, p[1] - age * rise); octx.fillStyle = NC[n.c] || '#fff'; octx.fillText(txt, p[0] + n.ox * age, p[1] - age * rise);
     octx.globalAlpha = 1; return true;
   });
 }
@@ -2027,6 +2028,36 @@ function drawMinimap() {
   if (tl && br) { c.strokeStyle = G.panning ? '#ffd36b' : '#ffffffaa'; c.lineWidth = 1.5; c.strokeRect(mx(Math.max(-DW.MAP.W, tl.x)), mz(Math.max(-DW.MAP.H, tl.z)), mx(br.x) - mx(tl.x), mz(br.z) - mz(tl.z)); }
 }
 let hudT = 0;
+// XP readout: "LV 7 · 420 / 900 XP", a flash on the gained part of the bar, a "+N XP" chip, and the level-up celebration
+function xpHud(me, now) {
+  const max = me.lvl >= 20, pct = max ? 100 : me.xp / me.xn * 100, P = G.xpPrev;
+  $('xpFill').style.width = pct.toFixed(1) + '%'; $('xpRing').style.setProperty('--p', pct.toFixed(1));
+  $('xpTxt').textContent = max ? 'MAX LEVEL' : Math.floor(me.xp) + ' / ' + me.xn + ' XP';
+  if (P && P.hid === me.hid) {
+    let gain = 0;
+    if (me.lvl > P.lvl) { gain = P.xn - P.xp; for (let l = P.lvl + 1; l < me.lvl; l++) gain += DW.xpNext(l); gain += max ? 0 : me.xp; levelUpFx(me); }
+    else if (me.lvl === P.lvl) gain = me.xp - P.xp;
+    if (gain >= 3) {
+      G.xpAcc = (G.xpAcc || 0) + gain; G.xpAccT = now;
+      const g = $('xpGhost'); const from = me.lvl > P.lvl ? 0 : P.xp / P.xn * 100; g.style.left = from + '%'; g.style.width = Math.max(1.5, pct - from) + '%'; g.classList.remove('go'); void g.offsetWidth; g.classList.add('go');
+      if (G.myHeroId && G.meshes.get(G.myHeroId)) { const m = G.meshes.get(G.myHeroId).root.position; G.nums.push({ x: m.x, z: m.z, v: Math.round(gain), c: 6, t: performance.now(), ox: 14 }); }
+    }
+  }
+  const chip = $('xpGain'); if (G.xpAcc && now - G.xpAccT < 1600) { chip.textContent = '+' + Math.round(G.xpAcc) + ' XP'; chip.classList.add('on'); } else { G.xpAcc = 0; chip.classList.remove('on'); }
+  G.xpPrev = { hid: me.hid, lvl: me.lvl, xp: me.xp, xn: me.xn };
+}
+function levelUpFx(me) {
+  const f = $('lvlFlash'); f.classList.remove('go'); void f.offsetWidth; f.classList.add('go');
+  for (const id of ['lvl', 'xpRing']) { const e = $(id); e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop'); }
+  const m = G.meshes.get(G.myHeroId); if (!m) return; const { x, z } = m.root.position;
+  G.nums.push({ x, z, v: 'LEVEL ' + me.lvl, c: 7, t: performance.now(), ox: 0 });
+  heroAura(x, z, true);
+}
+// golden aura on any hero that levels (stronger for your own hero)
+function heroAura(x, z, mine) {
+  beamFx(x, z, '#ffd36b', mine ? 26 : 16, mine ? 1.1 : 0.8); ringFx(x, z, mine ? 6 : 4, '#ffe27a', 0.9, 1); ringFx(x, z, 2.2, '#fff3b0', 1.2, 0.3);
+  for (let i = 0; i < (mine ? 60 : 30); i++) { const a = Math.random() * 6.283, r = 0.6 + Math.random() * 1.2; emit(x + Math.cos(a) * r, 0.2 + Math.random() * 0.5, z + Math.sin(a) * r, { vy: 3 + Math.random() * 3, c: Math.random() < 0.5 ? '#ffd36b' : '#fff3b0', s: 0.5 + Math.random() * 0.4, life: 1.1 }); }
+}
 function updateHUD(now) {
   if (now - hudT < 90) return; hudT = now;
   const s = G.cur, me = G.me; if (!me) return; const H = DW.HEROES[me.hid];
@@ -2035,10 +2066,9 @@ function updateHUD(now) {
   $('clock').innerHTML = `<span class="${night ? 'moon' : 'sunI'}">${night ? '☾' : '☀'}</span><b>${fmtT(s.t)}</b><small>${night ? 'Dawn ' + fmtT(s.md[2] - pt) : 'Night ' + fmtT(s.md[1] - pt)}${s.ec ? ' · ECLIPSE' : ''}</small>`;
   $('clock').classList.toggle('night', night);
   $('gold').textContent = me.g;
-  $('lvl').textContent = me.lvl;
+  $('lvlN').textContent = me.lvl; xpHud(me, now);
   $('hpFill').style.width = (me.hp / me.mhp * 100) + '%'; $('hpTxt').textContent = me.hp + ' / ' + me.mhp;
   $('resFill').style.width = (me.res / Math.max(1, me.mres) * 100) + '%'; $('resTxt').textContent = me.res + ' / ' + me.mres; $('resFill').className = 'fill res-' + H.res.type;
-  $('xpRing').style.setProperty('--p', (me.lvl >= 20 ? 100 : me.xp / me.xn * 100).toFixed(1));
   document.querySelectorAll('.ab').forEach((b, i) => {
     const ab = H.ab[i], r = me.rk[i], cd = me.cd[i];
     const maxCd = Array.isArray(ab.cd) ? ab.cd[Math.max(0, r - 1)] : ab.cd;
