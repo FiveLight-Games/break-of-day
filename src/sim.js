@@ -42,6 +42,7 @@ const MAP = {
     { id: 'golem', name: 'Iron Golem', lane: 'M', x: 18, z: -62, tier: 2, hp: 8200, ad: 130, armor: 65, mr: 25, as: 0.6, range: 3.5, r: 2.8, skills: ['slam', 'charge'], warden: 'M' },
     { id: 'dread', name: 'Dread Knight', lane: 'R', x: 93, z: -64, tier: 2, hp: 7200, ad: 140, armor: 45, mr: 40, as: 0.85, range: 3.2, r: 2.3, skills: ['charge', 'nova', 'slam'], warden: 'R' }],
   secretShop: { x: -101, z: 18 },
+  shop: { x: -11, z: 102 },
   forge: { x: -104, z: -104 },
   camps: [
     { x: -38, z: 72, t: 'wolves' }, { x: 38, z: 72, t: 'wolves' },
@@ -57,7 +58,7 @@ for (const k in LANES) LANES[k] = LANES[k].map(p => [p[0] * SX, p[1] * SZ]);
 (() => {
   const pt = o => { o.x *= SX; o.z *= SZ; };
   MAP.W = Math.round(MAP.W * SX); MAP.H = Math.round(MAP.H * SZ); pt(MAP.fountain); MAP.fountain.r = 14;
-  MAP.cores.forEach(pt); MAP.towers.forEach(pt); MAP.towns.forEach(pt); MAP.bosses.forEach(pt); pt(MAP.secretShop); pt(MAP.forge); MAP.camps.forEach(pt);
+  MAP.cores.forEach(pt); MAP.shop = { x: MAP.fountain.x - 11, z: MAP.fountain.z - 9 }; MAP.towers.forEach(pt); MAP.towns.forEach(pt); MAP.bosses.forEach(pt); pt(MAP.secretShop); pt(MAP.forge); MAP.camps.forEach(pt);
   MAP.encSpots = MAP.encSpots.map(p => [p[0] * SX, p[1] * SZ]);
 })();
 // ---- winding lanes: densify each lane and bend it; every lane has its own shape ----
@@ -212,6 +213,37 @@ const TER = (() => {
   return { cs, ox, oz, cols, rows, blk, ci, trees, ruins, rocks };
 })();
 const blocked = (x, z) => { const i = TER.ci(x, z); return i < 0 || TER.blk[i] > 0; };
+// ---------- bases (Heroes of the Storm style): a ring wall around each base, one gate per lane flanked by two towers ----------
+const GATE_HALF = 3.6;
+const BASES = (() => {
+  const R = 44, out = [];
+  for (const team of [0, 1]) {
+    const cz = (team ? -1 : 1) * (MAP.fountain.z + 6), cx = 0, gates = [];
+    for (const k of ['L', 'M', 'R']) {
+      const P = team ? LANES[k].slice().reverse() : LANES[k]; let g = null;
+      for (let i = 1; i < P.length && !g; i++) { const a = P[i - 1], b = P[i], da = Math.hypot(a[0] - cx, a[1] - cz), db = Math.hypot(b[0] - cx, b[1] - cz); if (da < R && db >= R) { const t = (R - da) / (db - da); g = [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]; } }
+      gates.push({ lane: k, x: g[0], z: g[1], ang: Math.atan2(g[1] - cz, g[0] - cx), cells: [] });
+    }
+    out.push({ team, x: cx, z: cz, R, gates });
+  }
+  return out;
+})();
+// dynamic blocking layer: 1 = wall (blocks everyone), 2 = our gate (blocks all but team 0), 3 = enemy gate (blocks all but team 1)
+const DYN = new Uint8Array(TER.cols * TER.rows);
+(() => {
+  for (let r = 0; r < TER.rows; r++) for (let c = 0; c < TER.cols; c++) {
+    const x = TER.ox + (c + 0.5) * TER.cs, z = TER.oz + (r + 0.5) * TER.cs, i = r * TER.cols + c;
+    for (const b of BASES) {
+      const d = Math.hypot(x - b.x, z - b.z); if (Math.abs(d - b.R) > 1.6) continue;
+      const th = Math.atan2(z - b.z, x - b.x); let gate = null;
+      for (const g of b.gates) { let da = Math.abs(th - g.ang); if (da > Math.PI) da = 2 * Math.PI - da; if (da * b.R < GATE_HALF) gate = g; }
+      if (gate) { DYN[i] = 2 + b.team; gate.cells.push(i); } else DYN[i] = 1;
+    }
+  }
+})();
+const dynBlocked = (team, x, z) => { const i = TER.ci(x, z); if (i < 0) return true; const d = DYN[i]; return d === 1 || (d === 2 && team !== 0) || (d === 3 && team !== 1); };
+const blockedT = (team, x, z) => blocked(x, z) || dynBlocked(team, x, z);
+function losT(team, x1, z1, x2, z2) { const L = Math.hypot(x2 - x1, z2 - z1), n = Math.ceil(L / 1.2); for (let s = 1; s < n; s++) if (blockedT(team, x1 + (x2 - x1) * s / n, z1 + (z2 - z1) * s / n)) return false; return true; }
 function los(x1, z1, x2, z2) { const L = Math.hypot(x2 - x1, z2 - z1), n = Math.ceil(L / 1.2); for (let s = 1; s < n; s++) if (blocked(x1 + (x2 - x1) * s / n, z1 + (z2 - z1) * s / n)) return false; return true; }
 function nearestFree(x, z) { if (!blocked(x, z)) return [x, z]; for (let r = 2; r < 24; r += 1.5) for (let a = 0; a < 6.283; a += 0.4) { const nx = x + Math.cos(a) * r, nz = z + Math.sin(a) * r; if (!blocked(nx, nz)) return [nx, nz]; } return [x, z]; }
 const NAV = (() => {
@@ -221,7 +253,8 @@ const NAV = (() => {
   const push = (i, f) => { let k = hs++; while (k > 0) { const p = (k - 1) >> 1; if (hf[p] <= f) break; hi[k] = hi[p]; hf[k] = hf[p]; k = p; } hi[k] = i; hf[k] = f; };
   const pop = () => { const top = hi[0], li = hi[--hs], lf = hf[hs]; let k = 0; for (;;) { let c = 2 * k + 1; if (c >= hs) break; if (c + 1 < hs && hf[c + 1] < hf[c]) c++; if (hf[c] >= lf) break; hi[k] = hi[c]; hf[k] = hf[c]; k = c; } hi[k] = li; hf[k] = lf; return top; };
   const DX = [1, -1, 0, 0, 1, 1, -1, -1], DZ = [0, 0, 1, -1, 1, -1, 1, -1], DC = [1, 1, 1, 1, 1.414, 1.414, 1.414, 1.414];
-  return function astar(x1, z1, x2, z2) {
+  return function astar(x1, z1, x2, z2, team) {
+    const isB = j => { if (blk[j]) return true; const d = DYN[j]; return d === 1 || (d === 2 && team !== 0) || (d === 3 && team !== 1); };
     [x1, z1] = nearestFree(x1, z1); [x2, z2] = nearestFree(x2, z2);
     const s = TER.ci(x1, z1), t = TER.ci(x2, z2); if (s < 0 || t < 0) return null; if (s === t) return [[x2, z2]];
     gen++; hs = 0; const tc = t % cols, tr = (t / cols) | 0;
@@ -231,8 +264,8 @@ const NAV = (() => {
       const i = pop(); if (shut[i] === gen) continue; shut[i] = gen; if (i === t) { found = true; break; }
       const c = i % cols, r = (i / cols) | 0;
       for (let d = 0; d < 8; d++) {
-        const nc = c + DX[d], nr = r + DZ[d]; if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue; const j = nr * cols + nc; if (blk[j] || shut[j] === gen) continue;
-        if (d >= 4 && (blk[r * cols + nc] || blk[nr * cols + c])) continue;
+        const nc = c + DX[d], nr = r + DZ[d]; if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue; const j = nr * cols + nc; if (isB(j) || shut[j] === gen) continue;
+        if (d >= 4 && (isB(r * cols + nc) || isB(nr * cols + c))) continue;
         const ng = g[i] + DC[d]; if (seen[j] === gen && ng >= g[j]) continue; seen[j] = gen; g[j] = ng; from[j] = i; push(j, ng + h(j));
       }
     }
@@ -240,7 +273,7 @@ const NAV = (() => {
     const cells = []; for (let i = t; i !== -1; i = from[i]) cells.push(i); cells.reverse();
     const pts = cells.map(i => [ox + (i % cols + 0.5) * cs, oz + (((i / cols) | 0) + 0.5) * cs]); pts[pts.length - 1] = [x2, z2];
     const out = []; let cur = [x1, z1], k = 0;
-    while (k < pts.length - 1) { let far = k + 1; for (let m = pts.length - 1; m > k + 1; m--) if (los(cur[0], cur[1], pts[m][0], pts[m][1])) { far = m; break; } out.push(pts[far]); cur = pts[far]; k = far; }
+    while (k < pts.length - 1) { let far = k + 1; for (let m = pts.length - 1; m > k + 1; m--) if (losT(team, cur[0], cur[1], pts[m][0], pts[m][1])) { far = m; break; } out.push(pts[far]); cur = pts[far]; k = far; }
     if (!out.length) out.push([x2, z2]);
     return out;
   };
@@ -319,7 +352,7 @@ function projStyle(e) {
   if (v.startsWith('c_trollshaman')) return { L: 'g', M: 'g', R: 'w' }[th] || 'g';
   return { b_hydra: 'w', b_bogwitch: 'p', ma_ranged: 'o', ma_siege: 'r' }[v] || 'o';
 }
-const DROP_CHANCE = { minion: 0.05, creep: 0.12, stalker: 0.3, raider: 0.15 };
+const DROP_CHANCE = { minion: 0.05, creep: 0.12, stalker: 0.3, raider: 0.15, guard: 0.14 };
 
 // ---------------- HEROES ----------------
 const v = (x, r) => Array.isArray(x) ? x[r - 1] : x;
@@ -408,6 +441,8 @@ const MINION = {
   melee: { hp: 460, ad: 21, armor: 8, mr: 0, as: 0.9, range: 1.8, ms: 300, r: 0.7, g: 20, xp: 40 },
   ranged: { hp: 300, ad: 25, armor: 0, mr: 8, as: 0.8, range: 8, ms: 300, r: 0.65, g: 15, xp: 32 },
   siege: { hp: 950, ad: 55, armor: 20, mr: 20, as: 0.5, range: 11, ms: 270, r: 1.1, g: 45, xp: 70, structMult: 2 },
+  elite: { hp: 2200, ad: 58, armor: 30, mr: 25, as: 0.8, range: 2.4, ms: 290, r: 1.25, g: 95, xp: 150 },
+  lieut: { hp: 5600, ad: 92, armor: 40, mr: 40, as: 0.8, range: 3, ms: 290, r: 1.6, g: 320, xp: 420 },
 };
 const CREEPS = {
   bandit: { hp: 520, ad: 30, armor: 12, mr: 10, as: 0.8, range: 2, ms: 300, r: 0.75, g: 28, xp: 50 },
@@ -420,6 +455,14 @@ const CREEPS = {
   sapling: { hp: 320, ad: 24, armor: 10, mr: 10, as: 0.9, range: 1.8, ms: 320, r: 0.6, g: 10, xp: 15 },
   stalker: { hp: 900, ad: 48, armor: 18, mr: 18, as: 0.9, range: 2, ms: 345, r: 0.9, g: 45, xp: 70 },
 };
+// Preset enemy war camps along each lane: cleared camps stay cleared
+const LANE_CAMPS = [
+  { z: 118, mult: 1.5, troops: ['melee', 'melee', 'melee', 'ranged', 'ranged'] },
+  { z: 8, mult: 2.4, troops: ['melee', 'melee', 'melee', 'ranged', 'ranged', 'elite'] },
+  { z: -118, mult: 3.4, troops: ['melee', 'melee', 'melee', 'melee', 'ranged', 'ranged', 'elite', 'elite', 'lieut'] }];
+const CAMP_NAMES = { L: ['Bone Pickets', 'Ghoul Warren', 'Necropolis Bastion'], M: ['Raider Outpost', 'Warband Camp', "Warchief's Stronghold"], R: ['Tide Pickets', 'Myrmidon Shoal', "Sea Witch's Reef"] };
+const LIEUT_NAMES = { L: 'Lich Lieutenant', M: 'Orc Warchief', R: 'Naga Sea Witch' };
+const LIEUT_SKILLS = { L: ['nova', 'summon'], M: ['slam', 'charge'], R: ['nova', 'slam'] };
 const CAMP_UNITS = { wolves: ['wolf', 'wolf', 'wolf'], trolls: ['troll', 'trollshaman', 'troll'], ogres: ['ogre', 'rockgolem'] };
 
 // ---------------- SIM ----------------
@@ -437,8 +480,12 @@ class Sim {
   setup(players) {
     const SH = this.M.struct;
     for (const c of MAP.cores) this.mk(c.team ? 'core' : 'core', c.team, c.x, c.z, { hp: Math.round((c.team ? 12000 : 9000) * SH), ad: 160, armor: 50, mr: 50, as: 0.8, range: 12, r: 3.5, ms: 0, v: 'core', invuln: 1, structure: 1, g: 0, xp: 0, pc: c.team ? '#ff5a6a' : '#6ab0ff' });
-    for (const tw of MAP.towers) this.mk('tower', tw.team, tw.x, tw.z, { hp: Math.round((tw.team ? 4200 : 3500) * SH), ad: 130, armor: 45, mr: 45, as: 0.85, range: 11, r: 2, ms: 0, v: 'tower', lane: tw.lane, invuln: tw.team ? 1 : 0, structure: 1, g: 300, xp: 300, pc: tw.team ? '#ff5a6a' : '#6ab0ff' }).lane = tw.lane;
-    this.buildWalls();
+    for (const b of BASES) for (const g of b.gates) {
+      this.spawnGate(b, g);
+      const tx = -Math.sin(g.ang), tz = Math.cos(g.ang), rx = Math.cos(g.ang), rz = Math.sin(g.ang);
+      for (const sd of [-1, 1]) { const t = this.mk('tower', b.team, g.x + tx * 7.6 * sd - rx * 1.2, g.z + tz * 7.6 * sd - rz * 1.2, { hp: Math.round((b.team ? 3600 : 3000) * SH), ad: 120, armor: 45, mr: 45, as: 0.85, range: 12, r: 2, ms: 0, v: 'tower', invuln: b.team ? 1 : 0, structure: 1, g: 250, xp: 250, pc: b.team ? '#ff5a6a' : '#6ab0ff' }); t.lane = g.lane; }
+    }
+    this.spawnLaneCamps();
     for (const t of MAP.towns) {
       const e = this.mk('town', 2, t.x, t.z, { hp: 2500, ad: 70, armor: 40, mr: 40, as: 0.9, range: 9, r: 3.2, ms: 0, v: 'town', untarget: 1, structure: 1, g: 0, xp: 0, pc: '#9fd0ff' });
       Object.assign(e, { tid: t.id, name: t.name, lane: t.lane, upkeep: t.upkeep, ttier: t.tier, mine: !!t.mine, guards: [], cap: 0, inv: 0 });
@@ -527,7 +574,7 @@ class Sim {
   damage(src, tgt, amt, type, o) {
     o = o || {};
     if (tgt.dead || tgt.untarget || amt <= 0) return 0;
-    if (tgt.invuln) { if (src && src.kind === 'hero' && this.R() < 0.05) this.msg(tgt.kind === 'core' ? 'The Core is shielded — destroy a lane tower first.' : 'This tower is sealed — defeat the lane\'s Warden boss first.', 'r'); return 0; }
+    if (tgt.invuln) { if (src && src.kind === 'hero' && this.R() < 0.05) this.msg(tgt.kind === 'core' ? 'The Core is shielded — break a gate first.' : 'Sealed — defeat this lane\'s Warden boss first.', 'r'); return 0; }
     let crit = false;
     if ((o.auto || o.canCrit) && src.crit > 0 && this.R() < src.crit) { amt *= 1.75; crit = true; }
     if (src.nightFury) amt *= tgt.structure ? 1.3 : 2;
@@ -554,7 +601,7 @@ class Sim {
       if (tgt.recall) { tgt.recall = null; }
       this.num(tgt.x, tgt.z, dmg, 2);
     }
-    if ((tgt.kind === 'creep' || tgt.kind === 'boss') && src && src.team === 0) { if (!tgt.tgt || !this.byId.get(tgt.tgt) || this.byId.get(tgt.tgt).dead) tgt.tgt = src.id; }
+    if ((tgt.kind === 'creep' || tgt.kind === 'boss' || tgt.kind === 'guard') && src && src.team === 0) { if (!tgt.tgt || !this.byId.get(tgt.tgt) || this.byId.get(tgt.tgt).dead) tgt.tgt = src.id; if (tgt.kind === 'guard') this.campAlert(tgt, src); }
     if (tgt.hp <= 0) this.kill(tgt, src);
     return dmg;
   }
@@ -586,7 +633,7 @@ class Sim {
         this.heroes.forEach(h => { this.giveGold(h, e.g); this.giveXp(h, e.xp); h.st.bossKills++; this.giveItem(h, rollLegendary(this.R, BOSS_LEGEND[e.bid])); if (this.R() < 0.15) this.giveCard(h); if (mythic) this.giveItem(h, rollMythic(this.R)); });
         this.msg(e.name + ' slain! Every hero receives ' + e.g + ' gold and a Legendary.', 'gold');
         if (mythic) this.msg('Something ancient stirs beneath the night sky…', 'r6');
-        if (e.warden) { const tw = this.ents.find(t => t.kind === 'tower' && t.team === 1 && t.lane === e.warden); if (tw) { tw.invuln = 0; this.msg('The ' + LANE_INFO[e.warden].name + ' enemy tower is no longer sealed!', 'gold'); } }
+        if (e.warden) { this.ents.forEach(t => { if ((t.kind === 'tower' || t.kind === 'gate') && t.team === 1 && t.lane === e.warden) t.invuln = 0; }); this.msg('The ' + LANE_INFO[e.warden].name + ' enemy gate and towers are no longer sealed!', 'gold'); }
         if (e.bid === 'treant') { this.secretOpen = true; this.msg('The Secret Shop in the Blightwood is now open!', 'gold'); }
       } else {
         const share = near.length > 1 ? 0.8 : 1;
@@ -599,13 +646,14 @@ class Sim {
         if (lvlSrc && CARD_CHANCE[e.kind] && this.R() < CARD_CHANCE[e.kind] * (e.lootBoost ? 5 : 1)) this.dropLoot(e.x, e.z, { card: 1, n: 'Member Card', rar: 5, s: {}, c: 0 });
         if (lvlSrc && DROP_CHANCE[e.kind] && this.R() < DROP_CHANCE[e.kind] * (e.lootBoost || 1) * (e.v === 'c_ogre' || e.v === 'c_rockgolem' ? 1.6 : 1)) this.dropLoot(e.x, e.z, rollLoot(this.R, lvlSrc.lvl, e.lootBoost > 1 ? 1 : 0));
       }
-      if (e.kind === 'tower' && e.team === 1) { this.msg('Enemy ' + LANE_INFO[e.lane].name + ' tower destroyed! The enemy Core is exposed.', 'gold'); const c = this.ents.find(c => c.kind === 'core' && c.team === 1); if (c) c.invuln = 0; }
+      if (e.kind === 'tower' && e.team === 1) this.msg('Enemy ' + LANE_INFO[e.lane].name + ' tower destroyed!', 'gold');
+      if (e.kind === 'gate' && e.team === 1) { e.gdef.cells.forEach(i => DYN[i] = 0); this.msg('The enemy ' + LANE_INFO[e.lane].name + ' gate is broken! The enemy Core is exposed.', 'gold'); const c = this.ents.find(c => c.kind === 'core' && c.team === 1); if (c) c.invuln = 0; }
+      if (e.kind === 'guard') { const c = this.camps2[e.camp]; if (c && !c.cleared && c.ids.every(id => { const u = this.byId.get(id); return !u || u.dead; })) this.campCleared(c); }
       if (e.kind === 'core' && e.team === 1) this.end(true);
       if (e.camp !== undefined) { const c = MAP.camps[e.camp]; if (c.ids.every(id => { const u = this.byId.get(id); return !u || u.dead; })) this.campTimers[e.camp] = this.t + 60; }
     } else {
-      if (e.kind === 'tower') { this.msg('Our ' + LANE_INFO[e.lane].name + ' tower has been destroyed! The Core is vulnerable.', 'r'); const c = this.ents.find(c => c.kind === 'core' && c.team === 0); if (c) c.invuln = 0; }
-      if (e.kind === 'wall') this.msg('A base wall has been breached!', 'r');
-      if (e.kind === 'turret') this.msg('A base turret has been destroyed!', 'r');
+      if (e.kind === 'tower') this.msg('Our ' + LANE_INFO[e.lane].name + ' tower has been destroyed!', 'r');
+      if (e.kind === 'gate') { e.gdef.cells.forEach(i => DYN[i] = 0); this.msg('Our ' + LANE_INFO[e.lane].name + ' gate has fallen! The Core is vulnerable.', 'r'); const c = this.ents.find(c => c.kind === 'core' && c.team === 0); if (c) c.invuln = 0; }
       if (e.kind === 'core') this.end(false);
     }
   }
@@ -715,7 +763,7 @@ class Sim {
     return h.ranks[k] < 5 && h.ranks[k] < Math.ceil(h.lvl / 2);
   }
   shopAccess(h) {
-    const atBase = d2(h.x, h.z, MAP.fountain.x, MAP.fountain.z) < 16 * 16;
+    const atBase = d2(h.x, h.z, MAP.shop.x, MAP.shop.z) < 8 * 8;
     const atTown = this.phase === 'night' && this.ents.some(e => e.kind === 'town' && e.team === 0 && d2(e.x, e.z, h.x, h.z) < 9 * 9);
     const secret = this.secretOpen && d2(h.x, h.z, MAP.secretShop.x, MAP.secretShop.z) < 8 * 8;
     return { normal: atBase || atTown || secret, secret, any: atBase || atTown || secret };
@@ -776,7 +824,7 @@ class Sim {
     let sp = e.ms * SPD * (e.slowU > this.t ? e.slowM : 1) * (e.nightFury ? 1.15 : 1);
     const step = Math.min(l - (stopDist || 0), sp * dt);
     let nx = clamp(e.x + dx / l * step, -MAP.W, MAP.W), nz = clamp(e.z + dz / l * step, -MAP.H, MAP.H);
-    if (blocked(nx, nz) && !blocked(e.x, e.z)) { if (!blocked(nx, e.z)) nz = e.z; else if (!blocked(e.x, nz)) nx = e.x; else { e.stuck = (e.stuck || 0) + dt; return false; } }
+    const T = e.team; if (blockedT(T, nx, nz) && !blockedT(T, e.x, e.z)) { if (!blockedT(T, nx, e.z)) nz = e.z; else if (!blockedT(T, e.x, nz)) nx = e.x; else { e.stuck = (e.stuck || 0) + dt; return false; } }
     e.x = nx; e.z = nz; e.face = Math.atan2(dz, dx); e.walkT = 0.15;
     return false;
   }
@@ -785,7 +833,7 @@ class Sim {
     let N = e.nav;
     if (!N || d2(N.tx, N.tz, tx, tz) > 9 || this.t > N.t + 1.5 || (e.stuck || 0) > 0.4) {
       e.stuck = 0;
-      const pts = los(e.x, e.z, tx, tz) ? [[tx, tz]] : (NAV(e.x, e.z, tx, tz) || [[tx, tz]]);
+      const pts = losT(e.team, e.x, e.z, tx, tz) ? [[tx, tz]] : (NAV(e.x, e.z, tx, tz, e.team) || [[tx, tz]]);
       N = e.nav = { tx, tz, t: this.t, pts };
     }
     if (N.pts.length > 1) { const p = N.pts[0]; if (this.moveToward(e, p[0], p[1], dt, 0.6)) N.pts.shift(); return false; }
@@ -861,12 +909,13 @@ class Sim {
       else if (e.kind === 'raider') this.stepRaider(e, dt);
       else if (e.kind === 'merc') this.stepMerc(e, dt);
       else if (e.kind === 'garrison') this.stepGarrison(e, dt);
+      else if (e.kind === 'guard') this.stepGuard(e, dt);
       else if (e.kind === 'heal') this.stepHeal(e);
     }
     // separation for small units
     if (this.tick % 2 === 0) {
       const arr = this.ents.filter(e => !e.dead && !e.structure && e.kind !== 'enc' && e.kind !== 'loot' && e.kind !== 'heal' && e.kind !== 'ward');
-      for (let i = 0; i < arr.length; i++) { const a = arr[i]; for (let j = i + 1; j < arr.length; j++) { const b = arr[j]; const dx = b.x - a.x, dz = b.z - a.z; const min = (a.r + b.r) * 0.85; if (dx > min || dx < -min || dz > min || dz < -min) continue; const l = Math.hypot(dx, dz) || 0.01; if (l < min) { const p = (min - l) * 0.5, px = dx / l * p, pz = dz / l * p; const wa = a.kind === 'boss' ? 0.1 : 1, wb = b.kind === 'boss' ? 0.1 : 1; if (!blocked(a.x - px * wa, a.z - pz * wa)) { a.x -= px * wa; a.z -= pz * wa; } if (!blocked(b.x + px * wb, b.z + pz * wb)) { b.x += px * wb; b.z += pz * wb; } } } }
+      for (let i = 0; i < arr.length; i++) { const a = arr[i]; for (let j = i + 1; j < arr.length; j++) { const b = arr[j]; const dx = b.x - a.x, dz = b.z - a.z; const min = (a.r + b.r) * 0.85; if (dx > min || dx < -min || dz > min || dz < -min) continue; const l = Math.hypot(dx, dz) || 0.01; if (l < min) { const p = (min - l) * 0.5, px = dx / l * p, pz = dz / l * p; const wa = a.kind === 'boss' ? 0.1 : 1, wb = b.kind === 'boss' ? 0.1 : 1; if (!blockedT(a.team, a.x - px * wa, a.z - pz * wa)) { a.x -= px * wa; a.z -= pz * wa; } if (!blockedT(b.team, b.x + px * wb, b.z + pz * wb)) { b.x += px * wb; b.z += pz * wb; } } } }
     }
     // projectiles
     for (const p of this.projs) {
@@ -936,7 +985,7 @@ class Sim {
       const D = h.dash; const dx = D.x - h.x, dz = D.z - h.z, l = Math.hypot(dx, dz), st = D.speed * dt;
       if (D.onPass) this.enemiesNear(h, h.x, h.z, D.hitR).forEach(e => { if (!D.hit.has(e.id)) { D.hit.add(e.id); D.onPass(e); } });
       const nx = l <= st ? D.x : h.x + dx / l * st, nz = l <= st ? D.z : h.z + dz / l * st;
-      if (blocked(nx, nz) && !D.over) { h.dash = null; if (D.onEnd) D.onEnd(); }
+      if (D.over ? dynBlocked(h.team, nx, nz) : blockedT(h.team, nx, nz)) { h.dash = null; if (D.onEnd) D.onEnd(); }
       else if (l <= st) { h.x = D.x; h.z = D.z; h.dash = null; if (blocked(h.x, h.z)) [h.x, h.z] = nearestFree(h.x, h.z); if (D.onEnd) D.onEnd(); }
       else { h.x = nx; h.z = nz; h.face = Math.atan2(dz, dx); }
       return;
@@ -1155,7 +1204,50 @@ class Sim {
     this.rotateVault(); if (this.heroes.some(h => h.member)) this.msg('The Members\' Vault has new stock.', 'gold');
     this.spawnEncounters();
   }
+  spawnGate(b, g) {
+    const e = this.mk('gate', b.team, g.x, g.z, { hp: Math.round((b.team ? 6000 : 5000) * this.M.struct * (b.team ? 1 : 1 + 0.4 * (this.upg ? this.upg.walls : 0))), armor: 60, mr: 60, r: 3.4, ms: 0, v: 'gate', invuln: b.team && !this.wardenDown(g.lane) ? 1 : 0, structure: 1, g: 300, xp: 300 });
+    e.lane = g.lane; e.face = g.ang + Math.PI / 2; e.gdef = g; e.base = b.team; g.cells.forEach(i => DYN[i] = 2 + b.team); return e;
+  }
+  wardenDown(lane) { const w = MAP.bosses.find(x => x.warden === lane); return w && !this.ents.some(o => o.kind === 'boss' && o.bid === w.id && !o.dead); }
+  spawnLaneCamps() {
+    this.camps2 = [];
+    for (const ln of ['L', 'M', 'R']) LANE_CAMPS.forEach((cd, ti) => {
+      const z = cd.z, x = laneX(ln, z), camp = { id: this.camps2.length, lane: ln, tier: ti + 1, name: CAMP_NAMES[ln][ti], x, z, ids: [], cleared: false };
+      cd.troops.forEach((k, j) => {
+        const a = j / cd.troops.length * 6.283 + ti, rr = k === 'lieut' ? 0 : k === 'elite' ? 2.2 : 4.2 + (j % 2) * 1.4;
+        const e = this.unitFrom(MINION[k], 'guard', 1, x + Math.cos(a) * rr * 0.8, z + Math.sin(a) * rr * 0.6, cd.mult, 'me_' + k + '_' + ln);
+        e.homeX = e.x; e.homeZ = e.z; e.leash = k === 'lieut' ? 22 : 16; e.aggro = 10; e.camp = camp.id; e.lane = ln; e.face = Math.PI / 2;
+        if (k === 'lieut') { e.name = LIEUT_NAMES[ln]; e.skills = LIEUT_SKILLS[ln]; e.scd = {}; e.lieut = 1; }
+        camp.ids.push(e.id);
+      });
+      this.camps2.push(camp);
+    });
+  }
+  stepGuard(e, dt) {
+    e.think -= dt;
+    let tg = e.tgt ? this.byId.get(e.tgt) : null;
+    if (tg && (tg.dead || !this.canHit(e, tg) || d2(tg.x, tg.z, e.homeX, e.homeZ) > (e.leash + 6) ** 2)) { tg = null; e.tgt = 0; }
+    if (e.tauntU > this.t) { const t2 = this.byId.get(e.tauntId); if (t2 && !t2.dead) tg = t2; }
+    if (e.think <= 0) { e.think = 0.35; if (!tg) { const n = this.findTarget(e, e.aggro, o => !o.structure); if (n) { tg = n; e.tgt = n.id; this.campAlert(e, n); } } }
+    const away = d2(e.x, e.z, e.homeX, e.homeZ);
+    if (!tg) { if (away > 0.5) this.navTo(e, e.homeX, e.homeZ, dt, 0.3); else e.hp = Math.min(e.maxhp, e.hp + e.maxhp * 0.05 * dt); return; }
+    if (away > e.leash * e.leash) { e.tgt = 0; e.hp = Math.min(e.maxhp, e.hp + e.maxhp * 0.1); return; }
+    if (e.lieut) this.bossSkills(e, tg);
+    if (!e.casting || e.casting < this.t) this.attackStep(e, tg, dt);
+  }
+  campAlert(e, src) { const c = this.camps2 && this.camps2[e.camp]; if (!c) return; for (const id of c.ids) { const u = this.byId.get(id); if (u && !u.dead && !u.tgt && d2(u.x, u.z, e.x, e.z) < 400) u.tgt = src.id; } }
+  campCleared(c) {
+    c.cleared = true; const g = 70 * c.tier, xp = 90 * c.tier;
+    this.heroes.forEach(h => { this.giveGold(h, g); this.giveXp(h, xp); });
+    this.msg(c.name + ' destroyed! +' + g + ' gold each.', 'gold'); this.fx('capture', c.x, c.z, 8, '#ffd36b');
+    if (c.tier === 3) this.dropLoot(c.x, c.z, this.R() < 0.35 ? rollLegendary(this.R) : rollLoot(this.R, Math.max(...this.heroes.map(h => h.lvl)), 2));
+  }
   buildWalls(repair) {
+    const lv = this.upg.walls, hpM = 1 + 0.4 * lv;
+    for (const b of BASES) { if (b.team) continue; for (const g of b.gates) { let e = this.ents.find(o => o.kind === 'gate' && o.gdef === g && !o.dead); if (!e && repair) { e = this.spawnGate(b, g); this.msg('Masons rebuilt the ' + LANE_INFO[g.lane].name + ' gate.', 'w'); } if (e) { e.maxhp = Math.round(5000 * this.M.struct * hpM); e.armor = e.mr = 60 + 15 * lv; if (repair) e.hp = e.maxhp; } } }
+    for (const t of this.ents) if (t.kind === 'tower' && t.team === 0 && !t.dead) { t.maxhp = Math.round(3000 * this.M.struct * hpM); t.armor = t.mr = 45 + 15 * lv; t.ad = 120 * (1 + 0.25 * lv); if (repair) t.hp = t.maxhp; }
+  }
+  _oldBuildWalls(repair) {
     const lv = this.upg.walls, hpM = 1 + 0.4 * lv, arm = 40 + 15 * lv;
     WALLS.forEach((w, i) => {
       let e = this.ents.find(o => o.kind === 'wall' && o.slot === i && !o.dead);
@@ -1245,7 +1337,7 @@ class Sim {
       e.think = 0.35;
       if (!tg || tg.dead || !this.canHit(e, tg) || tg.invuln) {
         tg = this.findTarget(e, 9, x => !x.invuln);
-        if (!tg && d2(e.x, e.z, MAP.fountain.x, MAP.fountain.z) < 48 * 48) tg = this.findTarget(e, 48, x => x.structure && !x.invuln);
+        if (!tg && d2(e.x, e.z, BASES[0].x, BASES[0].z) < 80 * 80) { let best = 1e9; for (const o of this.ents) { if (o.dead || o.team !== 0 || !o.structure || o.invuln || o.kind === 'town') continue; const dd = d2(o.x, o.z, e.x, e.z) - (o.kind === 'gate' ? 400 : 0); if (dd < best) { best = dd; tg = o; } } }
       }
       e.tgt = tg ? tg.id : 0;
     }
@@ -1291,7 +1383,7 @@ class Sim {
       if (o.dead || o.team !== 0) continue;
       let r = 0;
       if (o.kind === 'hero') r = 15 * sightM; else if (o.kind === 'ward') r = 22; else if (o.kind === 'core') r = 18; else if (o.structure) r = 13; else if (o.kind === 'merc') r = 10; else if (o.kind === 'minion') r = 9;
-      if (o.kind === 'garrison') r = 11; if (!r) continue; const L = o.kind === 'hero' || o.kind === 'ward' || o.kind === 'merc' || o.kind === 'garrison'; vsrc.push([o.x, o.z, r * r, L]); if (o.kind !== 'minion') vs.push([r1(o.x), r1(o.z), Math.round(r), L ? 1 : 0]);
+      if (o.kind === 'garrison') r = 11; if (o.kind === 'town') r = 22; if (!r) continue; const L = o.kind === 'hero' || o.kind === 'ward' || o.kind === 'merc' || o.kind === 'garrison'; vsrc.push([o.x, o.z, r * r, L]); if (o.kind !== 'minion') vs.push([r1(o.x), r1(o.z), Math.round(r), L ? 1 : 0]);
     }
     const seen = o => { for (const v of vsrc) if (d2(o.x, o.z, v[0], v[1]) < v[2] && (!v[3] || los(v[0], v[1], o.x, o.z))) return true; return false; };
     this.seenFn = seen;
@@ -1306,7 +1398,7 @@ class Sim {
       id: h.id, pid: h.pid, n: h.pname, hid: h.hid, lvl: h.lvl, xp: Math.round(h.xp), xn: xpNext(h.lvl), g: Math.floor(h.gold), hp: Math.round(h.hp), mhp: h.maxhp, res: Math.round(h.res), mres: Math.round(h.resMax),
       cd: h.cds.map(c => Math.round(c * 10) / 10), rk: h.ranks, pts: h.pts, attr: h.attr, it: h.items, dead: h.dead, rt: Math.ceil(h.respawnT), pots: h.pots,
       sv: h.statView, rc: h.recall ? [h.recall.dest, Math.round((h.recall.at - this.t) * 10) / 10, h.recall.total] : null, bf: h.buffs.map(b => [b.id, Math.ceil(b.until - this.t)]), st: (full || this.over) ? h.st : undefined,
-      shop: this.shopAccess(h), mem: h.member, x: r1(h.x), z: r1(h.z), tw: h.townWard, tg: h.order && h.order.id ? h.order.id : 0, rail: !!h.rail
+      shop: this.shopAccess(h), mem: h.member, x: r1(h.x), z: r1(h.z), ac: [Math.max(0, Math.round(h.atkCd * 100) / 100), Math.round(100 / h.as) / 100], tw: h.townWard, tg: h.order && h.order.id ? h.order.id : 0, rail: !!h.rail
     }));
     const towns = this.ents.filter(o => o.kind === 'town').map(o => ({ id: o.id, tid: o.tid, n: o.name, team: o.team, cap: Math.round(o.cap * 10) / 10, up: this.upkeepOf(o), inv: o.inv, guards: o.guards.filter(id => { const g = this.byId.get(id); return g && !g.dead; }).length, mine: o.mine, x: o.x, z: o.z }));
     const encs = this.ents.filter(o => o.kind === 'enc' && !o.dead && !o.used && seen(o)).map(o => ({ id: o.id, sub: o.sub, x: o.x, z: o.z, stock: o.stock || null }));
@@ -1320,6 +1412,6 @@ class Sim {
     return s;
   }
 }
-const API = { laneOf, laneDistK, laneX, TER, blocked, los, RIVER, SX, SZ, RAID_PTS, WARD_SPOTS, MODES, BASE_UPG, MERC_COST, HEAL_SPOTS, VAULT, LEGENDARIES, MYTHICS, rollLegendary, rollMythic, makeProc, VERSION, TOWN_BUFFS, TIER_DRAIN, Sim, HEROES, HERO_IDS, ITEMS, MAP, LANES, LANE_INFO, STAT_NAMES, PCT, RARITY, POTION_COST, DAY, NIGHT, CYC, ECLIPSE_T, DT, xpNext, laneDist, rollLoot, mulberry32 };
+const API = { BASES, DYN, GATE_HALF, blockedT, LANE_CAMPS, CAMP_NAMES, LIEUT_NAMES, laneOf, laneDistK, laneX, TER, blocked, los, RIVER, SX, SZ, RAID_PTS, WARD_SPOTS, MODES, BASE_UPG, MERC_COST, HEAL_SPOTS, VAULT, LEGENDARIES, MYTHICS, rollLegendary, rollMythic, makeProc, VERSION, TOWN_BUFFS, TIER_DRAIN, Sim, HEROES, HERO_IDS, ITEMS, MAP, LANES, LANE_INFO, STAT_NAMES, PCT, RARITY, POTION_COST, DAY, NIGHT, CYC, ECLIPSE_T, DT, xpNext, laneDist, rollLoot, mulberry32 };
 if (typeof module !== 'undefined') module.exports = API; else G.DW = API;
 })(typeof window !== 'undefined' ? window : globalThis);

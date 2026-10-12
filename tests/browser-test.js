@@ -34,7 +34,9 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   for (let i = 0; i < 40 && !(await B.evaluate(() => !!(window.BOD.G.cur && window.BOD.G.me))); i++) await sleep(250);
   { const fa = await A.evaluate(() => window.__frames), fb = await B.evaluate(() => window.__frames); await sleep(3000); console.log('fps A/B', ((await A.evaluate(() => window.__frames)) - fa) / 3, ((await B.evaluate(() => window.__frames)) - fb) / 3, 'snap bytes', await A.evaluate(() => Math.round(window.__bytes / window.__sent))); }
   // B plays: move, level, cast, shop, council
-  await B.keyboard.press('b'); await sleep(300); await B.click('[data-buy="sword"]'); await sleep(400); await B.keyboard.press('Escape');
+  await A.evaluate(() => { const S = window.BOD.G.sim, h = S.heroes[1]; h.x = DW.MAP.shop.x; h.z = DW.MAP.shop.z + 2; }); await sleep(600);
+  console.log('interact button:', await B.evaluate(() => !document.getElementById('btnInteract').classList.contains('hidden') && document.getElementById('btnInteract').textContent));
+  await B.dispatchEvent('#btnInteract', 'pointerdown'); await sleep(300); await B.click('[data-buy="sword"]'); await sleep(400); await B.keyboard.press('Escape');
   await B.evaluate(() => { const s = window.BOD.send; s({ c: 'lvl', k: 0 }); s({ c: 'move', x: -10, z: 80 }); });
   await sleep(1500);
   await B.mouse.click(450, 250); await B.keyboard.press('q'); await B.keyboard.press('b'); await sleep(300);
