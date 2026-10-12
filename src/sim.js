@@ -7,6 +7,10 @@ const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const d2 = (ax, az, bx, bz) => { const dx = ax - bx, dz = az - bz; return dx * dx + dz * dz; };
 const SPD = 1 / 55;               // movespeed stat -> units/sec
 const DAY = 240, NIGHT = 60, CYC = 300, ECLIPSE_T = 1500, DT = 0.05;
+const MODES = {
+  standard: { name: 'Standard', desc: '~25 min · 4:00 days, 1:00 nights', day: 240, night: 60, eclipse: 1500, scale: 1, xp: 1, gold: 1, struct: 1 },
+  long: { name: 'Long War', desc: '~45 min · 6:30 days, 2:30 nights', day: 390, night: 150, eclipse: 2700, scale: 0.56, xp: 0.6, gold: 0.8, struct: 1.4 },
+};
 
 // ---------------- MAP ----------------
 const LANE_L = [[0, 108], [-30, 100], [-60, 87], [-74, 58], [-75, 0], [-74, -58], [-60, -87], [-30, -100], [0, -108]];
@@ -296,6 +300,7 @@ const CAMP_UNITS = { wolves: ['wolf', 'wolf', 'wolf'], trolls: ['troll', 'trolls
 // ---------------- SIM ----------------
 class Sim {
   constructor(opts) {
+    this.mode = MODES[opts.mode] ? opts.mode : 'standard'; this.M = MODES[this.mode]; this.cyc = this.M.day + this.M.night;
     this.seed = opts.seed >>> 0 || 1; this.R = mulberry32(this.seed);
     this.t = 0; this.tick = 0; this.ents = []; this.byId = new Map(); this.nid = 1;
     this.projs = []; this.timers = []; this.zones = []; this.fxq = []; this.msgq = []; this.heroes = [];
@@ -305,8 +310,9 @@ class Sim {
   }
   // ----- setup -----
   setup(players) {
-    for (const c of MAP.cores) this.mk(c.team ? 'core' : 'core', c.team, c.x, c.z, { hp: c.team ? 12000 : 9000, ad: 160, armor: 50, mr: 50, as: 0.8, range: 12, r: 3.5, ms: 0, v: 'core', invuln: 1, structure: 1, g: 0, xp: 0, pc: c.team ? '#ff5a6a' : '#6ab0ff' });
-    for (const tw of MAP.towers) this.mk('tower', tw.team, tw.x, tw.z, { hp: tw.team ? 4200 : 3500, ad: 130, armor: 45, mr: 45, as: 0.85, range: 11, r: 2, ms: 0, v: 'tower', lane: tw.lane, invuln: tw.team ? 1 : 0, structure: 1, g: 300, xp: 300, pc: tw.team ? '#ff5a6a' : '#6ab0ff' }).lane = tw.lane;
+    const SH = this.M.struct;
+    for (const c of MAP.cores) this.mk(c.team ? 'core' : 'core', c.team, c.x, c.z, { hp: Math.round((c.team ? 12000 : 9000) * SH), ad: 160, armor: 50, mr: 50, as: 0.8, range: 12, r: 3.5, ms: 0, v: 'core', invuln: 1, structure: 1, g: 0, xp: 0, pc: c.team ? '#ff5a6a' : '#6ab0ff' });
+    for (const tw of MAP.towers) this.mk('tower', tw.team, tw.x, tw.z, { hp: Math.round((tw.team ? 4200 : 3500) * SH), ad: 130, armor: 45, mr: 45, as: 0.85, range: 11, r: 2, ms: 0, v: 'tower', lane: tw.lane, invuln: tw.team ? 1 : 0, structure: 1, g: 300, xp: 300, pc: tw.team ? '#ff5a6a' : '#6ab0ff' }).lane = tw.lane;
     this.buildWalls();
     for (const t of MAP.towns) {
       const e = this.mk('town', 2, t.x, t.z, { hp: 2500, ad: 70, armor: 40, mr: 40, as: 0.9, range: 9, r: 3.2, ms: 0, v: 'town', untarget: 1, structure: 1, g: 0, xp: 0, pc: '#9fd0ff' });
@@ -351,13 +357,14 @@ class Sim {
     });
   }
   spawnCamp(i) {
-    const c = MAP.camps[i], m = 1 + (this.t / 60) * 0.045;
+    const c = MAP.camps[i], m = 1 + (this.mins()) * 0.045;
     const ids = CAMP_UNITS[c.t].map((k, j, arr) => {
       const a = j / arr.length * 6.283, e = this.unitFrom(CREEPS[k], 'creep', 2, c.x + Math.cos(a) * 2.2, c.z + Math.sin(a) * 2.2, m, 'c_' + k);
       e.homeX = e.x; e.homeZ = e.z; e.leash = 11; e.aggro = 6; e.camp = i; return e.id;
     });
     this.campTimers[i] = -1; MAP.camps[i].ids = ids;
   }
+  mins() { return this.t / 60 * this.M.scale; }
   // ----- helpers exposed to abilities -----
   later(dt, fn) { this.timers.push({ at: this.t + dt, fn }); }
   ticker(dur, every, fn) { for (let t = 0; t < dur - 1e-6; t += every) this.later(t, fn); }
@@ -475,9 +482,9 @@ class Sim {
       if (e.kind === 'core') this.end(false);
     }
   }
-  giveGold(h, g) { g = Math.round(g); h.gold += g; h.st.goldEarned += g; }
+  giveGold(h, g) { g = Math.round(g * this.M.gold); h.gold += g; h.st.goldEarned += g; }
   giveXp(h, x) {
-    if (h.lvl >= 20) return; h.xp += x; h.st.xp += x;
+    if (h.lvl >= 20) return; x *= this.M.xp; h.xp += x; h.st.xp += x;
     while (h.lvl < 20 && h.xp >= xpNext(h.lvl)) { h.xp -= xpNext(h.lvl); h.lvl++; h.pts++; this.recalc(h); h.hp = Math.min(h.maxhp, h.hp + h.maxhp * 0.1); this.fx('lvl', h.x, h.z, 2, '#ffe27a'); }
     if (h.lvl >= 20) h.xp = 0;
   }
@@ -637,9 +644,9 @@ class Sim {
     const dt = DT; this.t += dt; this.tick++;
     const S = this;
     // phase
-    const pt = this.t % CYC, phase = pt < DAY ? 'day' : 'night', cyc = Math.floor(this.t / CYC) + 1;
+    const pt = this.t % this.cyc, phase = pt < this.M.day ? 'day' : 'night', cyc = Math.floor(this.t / this.cyc) + 1;
     if (phase !== this.phase) { this.phase = phase; if (phase === 'night') this.onNight(); else { this.cycle = cyc; this.onDay(); } }
-    if (!this.eclipse && this.t >= ECLIPSE_T) { this.eclipse = true; this.msg('ECLIPSE! The enemy unleashes everything — end it now!', 'r'); }
+    if (!this.eclipse && this.t >= this.M.eclipse) { this.eclipse = true; this.msg('ECLIPSE! The enemy unleashes everything — end it now!', 'r'); }
     // waves
     this.waveT -= dt;
     if (this.waveT <= 0) { this.waveT = this.eclipse ? 20 : 30; this.waveN++; this.spawnWave(); }
@@ -820,7 +827,7 @@ class Sim {
     if (e.stunU > this.t || (e.casting && e.casting > this.t)) return;
     for (const sk of e.skills) {
       if ((e.scd[sk] || 0) > this.t) continue;
-      const ad = e.ad * (1 + (this.t / 60) * 0.03);
+      const ad = e.ad * (1 + (this.mins()) * 0.03);
       if (sk === 'slam' && d2(tg.x, tg.z, e.x, e.z) < 100) {
         const x = tg.x, z = tg.z; e.scd.slam = this.t + 8; e.casting = this.t + 1.2;
         this.telegraph(x, z, 4.5, 1.2, 1, () => { if (e.dead) return; this.heroes.forEach(h => { if (!h.dead && d2(h.x, h.z, x, z) < 4.5 * 4.5 + 1) { this.damage(e, h, ad * 2.2, 'phys'); this.stun(h, 0.8); } }); this.fx('burst', x, z, 4.5, '#ffb35a'); });
@@ -838,7 +845,7 @@ class Sim {
       }
       if (sk === 'summon') {
         e.scd.summon = this.t + 18;
-        for (let i = 0; i < 3; i++) { const a = this.R() * 6.283, s = this.unitFrom(CREEPS.sapling, 'creep', 2, e.x + Math.cos(a) * 3, e.z + Math.sin(a) * 3, 1 + this.t / 600, e.bid === 'bogwitch' ? 'c_toad' : 'c_sapling'); s.homeX = e.homeX; s.homeZ = e.homeZ; s.leash = 20; s.aggro = 12; s.tgt = tg.id; }
+        for (let i = 0; i < 3; i++) { const a = this.R() * 6.283, s = this.unitFrom(CREEPS.sapling, 'creep', 2, e.x + Math.cos(a) * 3, e.z + Math.sin(a) * 3, 1 + this.mins() / 10, e.bid === 'bogwitch' ? 'c_toad' : 'c_sapling'); s.homeX = e.homeX; s.homeZ = e.homeZ; s.leash = 20; s.aggro = 12; s.tgt = tg.id; }
         this.fx('ring', e.x, e.z, 3, '#7aff6a');
         return;
       }
@@ -1005,7 +1012,7 @@ class Sim {
     if (d2(h.x, h.z, MAP.fountain.x, MAP.fountain.z) > 18 * 18) return fail('Hire mercenaries at the base');
     if (this.ents.filter(e => e.kind === 'merc' && !e.dead && e.owner === h.id).length >= 2) return fail('You already lead 2 mercenaries');
     if (h.gold < MERC_COST) return fail('Not enough gold'); h.gold -= MERC_COST; h.st.goldSpent += MERC_COST;
-    const m = 1 + this.t / 60 * 0.07; const e = this.mk('merc', 0, h.x + 2, h.z + 2, { hp: Math.round(850 * m), ad: 42 * m, armor: 25 + this.t / 60, mr: 20, as: 0.9, range: 2.2, ms: 330, r: 0.9, v: 'merc', g: 0, xp: 0 });
+    const m = 1 + this.mins() * 0.07; const e = this.mk('merc', 0, h.x + 2, h.z + 2, { hp: Math.round(850 * m), ad: 42 * m, armor: 25 + this.mins(), mr: 20, as: 0.9, range: 2.2, ms: 330, r: 0.9, v: 'merc', g: 0, xp: 0 });
     e.owner = h.id; this.msg(h.pname + ' hired a mercenary.', 'w');
   }
   stepMerc(e, dt) {
@@ -1056,7 +1063,7 @@ class Sim {
     }
   }
   spawnWave() {
-    const min = this.t / 60;
+    const min = this.mins();
     for (const team of [0, 1]) {
       const mult = team === 1 ? 1 + 0.075 * min + (this.eclipse ? 0.4 : 0) : (1 + 0.05 * min) * (1 + 0.2 * this.upg.drums);
       for (const ln of ['L', 'M', 'R']) {
@@ -1101,7 +1108,7 @@ class Sim {
     const towns = this.ents.filter(o => o.kind === 'town').map(o => ({ id: o.id, tid: o.tid, n: o.name, team: o.team, cap: Math.round(o.cap * 10) / 10, up: this.upkeepOf(o), inv: o.inv, guards: o.guards.filter(id => { const g = this.byId.get(id); return g && !g.dead; }).length, mine: o.mine, x: o.x, z: o.z }));
     const encs = this.ents.filter(o => o.kind === 'enc' && !o.dead && !o.used && seen(o)).map(o => ({ id: o.id, sub: o.sub, x: o.x, z: o.z, stock: o.stock || null }));
     const s = {
-      t: Math.round(this.t * 100) / 100, vault: this.vault, ph: this.phase, cy: this.cycle, ec: this.eclipse, so: this.secretOpen, e, h: H, towns, encs,
+      t: Math.round(this.t * 100) / 100, md: [this.mode, this.M.day, this.cyc, this.M.eclipse], vault: this.vault, ph: this.phase, cy: this.cycle, ec: this.eclipse, so: this.secretOpen, e, h: H, towns, encs,
       p: this.projs.map(p => [p.id, r1(p.x), r1(p.z), p.col, p.size]),
       z: this.zones.map(z => [r1(z.x), r1(z.z), z.r, Math.round((this.t - z.s) / (z.e - z.s) * 100) / 100, z.k]),
       fx: this.fxq, m: this.msgq, over: this.over, vs, upg: this.upg, rails: ['L', 'M', 'R'].map(l => this.railStations(l).map(st => [st.n, r1(st.x), r1(st.z), st.ok ? 1 : 0, st.r]))
@@ -1110,6 +1117,6 @@ class Sim {
     return s;
   }
 }
-const API = { BASE_UPG, MERC_COST, HEAL_SPOTS, VAULT, LEGENDARIES, MYTHICS, rollLegendary, rollMythic, makeProc, VERSION, TOWN_BUFFS, TIER_DRAIN, Sim, HEROES, HERO_IDS, ITEMS, MAP, LANES, LANE_INFO, STAT_NAMES, PCT, RARITY, POTION_COST, DAY, NIGHT, CYC, ECLIPSE_T, DT, xpNext, laneDist, rollLoot, mulberry32 };
+const API = { MODES, BASE_UPG, MERC_COST, HEAL_SPOTS, VAULT, LEGENDARIES, MYTHICS, rollLegendary, rollMythic, makeProc, VERSION, TOWN_BUFFS, TIER_DRAIN, Sim, HEROES, HERO_IDS, ITEMS, MAP, LANES, LANE_INFO, STAT_NAMES, PCT, RARITY, POTION_COST, DAY, NIGHT, CYC, ECLIPSE_T, DT, xpNext, laneDist, rollLoot, mulberry32 };
 if (typeof module !== 'undefined') module.exports = API; else G.DW = API;
 })(typeof window !== 'undefined' ? window : globalThis);

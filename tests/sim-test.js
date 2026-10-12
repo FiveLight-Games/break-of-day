@@ -63,3 +63,9 @@ S3.spawnRaid(); for (let i = 0; i < 20 * 90; i++) S3.step();
 const sn = S3.snapshot(true);
 console.log('mercs', S3.ents.filter(e => e.kind === 'merc' && !e.dead).length, 'raiders alive', S3.ents.filter(e => e.kind === 'raider' && !e.dead).length, 'walls', S3.ents.filter(e => e.kind === 'wall' && !e.dead).map(w => Math.round(w.hp)).join(','), 'visible ents', sn.e.length, 'of', S3.ents.length, 'msgs:', sn.m.map(m => m[0]).slice(-8).join(' | '));
 }
+// long war mode
+{
+const S4 = new DW.Sim({ seed: 5, players: [{ pid: 'a', name: 'A', hero: 'thornshot' }], mode: 'long' });
+let firstNight = null; while (S4.t < 2750) { S4.step(); if (!firstNight && S4.phase === 'night') firstNight = S4.t; }
+console.log('long mode', S4.mode, 'first night at', firstNight.toFixed(0) + 's', 'cycle', S4.cyc, 'eclipse', S4.eclipse, 'day', S4.cycle, 'over', JSON.stringify(S4.over), 'core hp', S4.ents.find(e => e.kind === 'core' && e.team === 1).maxhp);
+}

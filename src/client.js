@@ -21,7 +21,7 @@ function show(id) { ['menu', 'lobby', 'game', 'end'].forEach(s => $(s).classList
 // ============================ NETWORK / LOBBY ============================
 let sb = null;
 function getSB() { if (!sb && window.supabase) sb = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); return sb; }
-const L = { mode: null, code: null, ch: null, roomsCh: null, players: [], host: false, ready: false, started: false };
+const L = { gm: 'standard', mode: null, code: null, ch: null, roomsCh: null, players: [], host: false, ready: false, started: false };
 
 function initMenu() {
   $('ver').textContent = 'v' + DW.VERSION + ' · build ' + BUILD;
@@ -43,15 +43,15 @@ function renderRooms() {
   if (!L.roomsCh) return;
   const st = L.roomsCh.presenceState(); const rooms = [];
   for (const k in st) for (const p of st[k]) if (p.code && !p.started) rooms.push(p);
-  $('roomList').innerHTML = rooms.length ? rooms.map(r => `<div class="room"><span><b>${esc(r.code)}</b> · ${esc(r.hostName)}'s war party</span><span>${r.n}/4 <button class="btn sm" data-code="${esc(r.code)}">Join</button></span></div>`).join('') : '<div class="muted">No open rooms. Create one!</div>';
+  $('roomList').innerHTML = rooms.length ? rooms.map(r => `<div class="room"><span><b>${esc(r.code)}</b> · ${esc(r.hostName)}'s war party<small>${esc((DW.MODES[r.gm] || DW.MODES.standard).name)}</small></span><span>${r.n}/4 <button class="btn sm" data-code="${esc(r.code)}">Join</button></span></div>`).join('') : '<div class="muted">No open rooms. Create one!</div>';
   $('roomList').querySelectorAll('button').forEach(b => b.onclick = () => enterLobby('client', b.dataset.code));
 }
-function trackRoom() { if (L.roomsCh) L.roomsCh.track({ code: L.code, hostName: myName, n: L.players.length || 1, started: L.started }); }
+function trackRoom() { if (L.roomsCh) L.roomsCh.track({ code: L.code, hostName: myName, n: L.players.length || 1, started: L.started, gm: L.gm }); }
 function untrackRoom() { if (L.roomsCh) L.roomsCh.untrack(); }
 
 function enterLobby(mode, code) {
   if (!myName.trim()) { toast('Enter your name first', 'warn'); $('nameIn').focus(); return; }
-  L.mode = mode; L.host = mode !== 'client'; L.ready = L.host; L.started = false; L.players = [];
+  L.mode = mode; L.host = mode !== 'client'; L.ready = L.host; L.started = false; L.players = []; if (L.host) L.gm = DW.MODES[store.get('gm', 'standard')] ? store.get('gm', 'standard') : 'standard';
   show('lobby'); renderHeroPick();
   if (mode === 'solo') { $('lobbyTitle').textContent = 'Solo Expedition'; $('lobbyCode').textContent = 'Offline'; L.players = [{ pid: myPid, name: myName, hero: myHero, ready: true, host: true }]; renderLobby(); return; }
   if (!getSB()) { toast('Network unavailable'); show('menu'); return; }
@@ -103,7 +103,7 @@ function renderRejoin() {
   const sess = getSession(); $('btnRejoin').classList.toggle('hidden', !sess || sess.host);
   if (sess && !sess.host) { $('btnRejoin').textContent = '↻ Rejoin Match ' + sess.code; $('btnRejoin').onclick = () => rejoin(sess); }
 }
-function pushPresence() { if (L.ch) L.ch.track({ pid: myPid, name: myName, hero: myHero, ready: L.ready, host: L.host, joined: L.joined }); }
+function pushPresence() { if (L.ch) L.ch.track({ pid: myPid, name: myName, hero: myHero, ready: L.ready, host: L.host, joined: L.joined, gm: L.host ? L.gm : undefined }); }
 function leaveLobby() {
   if (L.ch) { try { L.ch.untrack(); getSB().removeChannel(L.ch); } catch (e) { } }
   L.ch = null; L.code = null; L.seenHost = false; clearTimeout(L.hostGone); L.hostGone = null; if (L.host) untrackRoom(); show('menu'); renderRejoin();
@@ -121,6 +121,9 @@ function renderHeroInfo(id, el) {
 }
 function renderLobby() {
   const me = L.players.find(p => p.pid === myPid);
+  const hostP = L.players.find(p => p.host); if (!L.host && hostP && hostP.gm) L.gm = hostP.gm;
+  $('modePick').innerHTML = Object.keys(DW.MODES).map(k => `<button class="tab ${L.gm === k ? 'on' : ''}" data-gm="${k}" ${L.host ? '' : 'disabled'}><b>${DW.MODES[k].name}</b><small>${DW.MODES[k].desc}</small></button>`).join('');
+  $('modePick').querySelectorAll('[data-gm]').forEach(b => b.onclick = () => { if (!L.host) return; L.gm = b.dataset.gm; store.set('gm', L.gm); pushPresence(); trackRoom(); renderLobby(); });
   $('playerList').innerHTML = L.players.slice(0, 4).map(p => { const h = DW.HEROES[p.hero] || DW.HEROES.ironvow; return `<div class="pRow"><div class="hPort sm" style="background:${h.col}">${h.name[0]}</div><span><b>${esc(p.name)}</b>${p.host ? ' 👑' : ''}<small>${h.name}</small></span><span class="${p.ready ? 'ok' : 'muted'}">${p.ready ? 'Ready' : 'Picking…'}</span>${L.host && !p.host && L.mode === 'host' ? `<button class="btn sm ghost" data-kick="${p.pid}">✕</button>` : ''}</div>`; }).join('') + (L.mode === 'solo' ? '' : `<div class="muted">${Math.max(0, 4 - L.players.length)} open slot(s) · share code <b>${L.code}</b></div>`);
   $('playerList').querySelectorAll('[data-kick]').forEach(b => b.onclick = () => L.ch.send({ type: 'broadcast', event: 'kick', payload: { pid: b.dataset.kick } }));
   const btn = $('btnReady');
@@ -132,8 +135,8 @@ function renderLobby() {
 function hostStart() {
   const players = L.players.slice(0, 4).map(p => ({ pid: p.pid, name: p.name, hero: p.hero }));
   const seed = Math.floor(Math.random() * 2 ** 31);
-  if (L.mode === 'host') { L.started = true; trackRoom(); L.ch.send({ type: 'broadcast', event: 'start', payload: { seed, players } }); }
-  startGame(L.mode, { seed, players });
+  if (L.mode === 'host') { L.started = true; trackRoom(); L.ch.send({ type: 'broadcast', event: 'start', payload: { seed, players, mode: L.gm } }); }
+  startGame(L.mode, { seed, players, mode: L.gm });
 }
 
 // ============================ GAME STATE ============================
@@ -149,7 +152,7 @@ function startGame(mode, cfg) {
   if (!renderer) init3D();
   clearWorld();
   if (mode !== 'client') {
-    G.sim = new DW.Sim({ seed: cfg.seed, players: cfg.players }); G.stepN = 0;
+    G.sim = new DW.Sim({ seed: cfg.seed, players: cfg.players, mode: cfg.mode }); G.stepN = 0;
     clearInterval(G.simTimer); let last = performance.now(), acc = 0;
     G.simTimer = setInterval(() => {
       const now = performance.now(); acc += Math.min(0.5, (now - last) / 1000); last = now;
@@ -569,7 +572,7 @@ function renderTowns() {
       ${held ? `<span class="tierBtns"><button class="btn sm ghost" data-t="${t.tid}" data-d="-1" ${t.inv ? '' : 'disabled'}>−</button><button class="btn sm" data-t="${t.tid}" data-d="1" ${t.inv < 3 ? '' : 'disabled'}>+</button></span>` : ''}</div></div>`;
   }).join('')).join('');
   if (G.wcTab === 'base') return renderBase();
-  openModal(`<h2>War Council <span class="gold">◉ ${G.me.g}</span></h2>${wcTabs()}<div class="status">Town funding drains <b class="gold">${drain.toFixed(1)}g/s</b> from each hero · nightly upkeep <b class="gold">${upk}g</b> (split) · ${s.ph === 'day' ? 'Night in ' + fmtT(DW.DAY - s.t % DW.CYC) : 'Dawn in ' + fmtT(DW.CYC - s.t % DW.CYC)}</div><div class="list">${rows}</div>`, () => {
+  openModal(`<h2>War Council <span class="gold">◉ ${G.me.g}</span></h2>${wcTabs()}<div class="status">Town funding drains <b class="gold">${drain.toFixed(1)}g/s</b> from each hero · nightly upkeep <b class="gold">${upk}g</b> (split) · ${s.ph === 'day' ? 'Night in ' + fmtT(s.md[1] - s.t % s.md[2]) : 'Dawn in ' + fmtT(s.md[2] - s.t % s.md[2])}</div><div class="list">${rows}</div>`, () => {
     document.querySelectorAll('[data-t]').forEach(b => b.onclick = () => send({ c: 'tier', tid: b.dataset.t, d: +b.dataset.d }));
     bindWcTabs();
   }, renderTowns);
@@ -621,14 +624,14 @@ function showEnd(s) {
   clearSession(); $('netOv').classList.add('hidden');
   closeModal(); show('end'); G.running = false; clearInterval(G.simTimer);
   $('endTitle').textContent = s.over.win ? 'Victory' : 'Defeat'; $('endTitle').className = s.over.win ? 'win' : 'lose';
-  $('endSub').textContent = (s.over.win ? 'The enemy Core lies shattered.' : 'Our Core has fallen.') + ' Match time ' + fmtT(s.over.t) + ' · Day ' + s.cy;
+  $('endSub').textContent = (s.over.win ? 'The enemy Core lies shattered.' : 'Our Core has fallen.') + ' ' + DW.MODES[s.md[0]].name + ' · Match time ' + fmtT(s.over.t) + ' · Day ' + s.cy;
   $('endStats').innerHTML = statsTable(s);
   $('btnEndMenu').onclick = () => { if (L.mode !== 'solo') leaveLobby(); else show('menu'); renderRejoin(); };
 }
 
 // ============================ FRAME ============================
 let lastFrame = performance.now(), townPromptShown = false;
-function dayFactor(t) { const pt = t % DW.CYC; if (t < 8) return 1; if (pt < 8) return pt / 8; if (pt < DW.DAY - 10) return 1; if (pt < DW.DAY) return 1 - (pt - (DW.DAY - 10)) / 10; return 0; }
+function dayFactor(t, D, C) { const pt = t % C; if (t < 8) return 1; if (pt < 8) return pt / 8; if (pt < D - 10) return 1; if (pt < D) return 1 - (pt - (D - 10)) / 10; return 0; }
 const cDaySky = new THREE.Color(0x9cc7e8), cNightSky = new THREE.Color(0x0c1430), cDusk = new THREE.Color(0xd08a6a), tmpC = new THREE.Color();
 function netWatchdog(now) {
   if (!G.running || G.mode !== 'client' || !G.cur) return;
@@ -643,7 +646,7 @@ function frame(now) {
   if (!G.running || !G.cur) { if (renderer && G.running) renderer.render(scene, camera); return; }
   const s = G.cur, a = Math.min(1.2, (now - G.recvT) / G.interval);
   // lighting
-  const df = dayFactor(s.t + a * 0.1);
+  const df = dayFactor(s.t + a * 0.1, s.md[1], s.md[2]);
   tmpC.copy(cNightSky).lerp(cDaySky, df); if (df > 0 && df < 1) tmpC.lerp(cDusk, 0.35 * Math.sin(df * Math.PI));
   scene.background.copy(tmpC); scene.fog.color.copy(tmpC);
   hemi.intensity = 0.3 + 0.45 * df; hemi.color.setHex(df > 0.5 ? 0xdfefff : 0x8aa0ff); sun.intensity = 0.25 + 0.65 * df; sun.color.setHex(df > 0.3 ? 0xfff0d0 : 0x8aa8ff);
@@ -788,8 +791,8 @@ let hudT = 0;
 function updateHUD(now) {
   if (now - hudT < 100) return; hudT = now;
   const s = G.cur, me = G.me; if (!me) return; const H = DW.HEROES[me.hid];
-  const pt = s.t % DW.CYC, night = s.ph === 'night';
-  $('clock').innerHTML = `<span class="${night ? 'moon' : 'sunI'}">${night ? '☾' : '☀'}</span> ${fmtT(s.t)} · Day ${s.cy}<small>${night ? 'Dawn in ' + fmtT(DW.CYC - pt) : 'Night in ' + fmtT(DW.DAY - pt)}${s.ec ? ' · ECLIPSE' : ''}</small>`;
+  const pt = s.t % s.md[2], night = s.ph === 'night';
+  $('clock').innerHTML = `<span class="${night ? 'moon' : 'sunI'}">${night ? '☾' : '☀'}</span> ${fmtT(s.t)} · Day ${s.cy}<small>${night ? 'Dawn in ' + fmtT(s.md[2] - pt) : 'Night in ' + fmtT(s.md[1] - pt)}${s.ec ? ' · ECLIPSE' : ''}</small>`;
   $('clock').classList.toggle('night', night);
   $('gold').textContent = '◉ ' + me.g;
   $('portrait').style.background = H.col; $('portrait').textContent = H.name[0]; $('lvl').textContent = me.lvl;
