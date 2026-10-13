@@ -1,6 +1,18 @@
 // Gate sentries, tower bonus vs lane minions, siege every 5th day, no jungle raid the night before/after a siege day.
 const DW = require('../src/sim.js'); let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') + m); if (!ok) fails++; };
-for (const mode of (process.env.MODE ? [process.env.MODE] : ['standard', 'long'])) {
+// lane camp mobs and gate defenders ignore each other
+{ const S = new DW.Sim({ seed: 5, players: [{ pid: 'a', hero: 'ironvow' }] }); const h = S.heroes[0];
+  const sen = S.ents.find(e => e.kind === 'sentry'), tw = S.ents.find(e => e.kind === 'tower' && e.team === 0 && e.lane === sen.lane);
+  const g = S.ents.find(e => e.kind === 'guard' && e.lane === sen.lane); const hp0 = g.hp;
+  g.homeX = sen.x; g.homeZ = sen.z + 1; g.x = sen.x + 1; g.z = sen.z + 1; g.leash = 30; // camp mob dragged right onto the sentries
+  h.x = sen.x + 2; h.z = sen.z + 2; const sh0 = S.ents.filter(e => e.kind === 'sentry').reduce((a, e) => a + e.hp, 0), th0 = tw.hp; let heroHit = false;
+  for (let i = 0; i < 20 * 8; i++) { S.step(); if (h.hp < h.maxhp) heroHit = true; h.hp = h.maxhp; h.x = sen.x + 2; h.z = sen.z + 2; h.order = null; }
+  const sh1 = S.ents.filter(e => e.kind === 'sentry' && !e.dead).reduce((a, e) => a + e.hp, 0);
+  check(!g.dead && g.hp >= hp0 * 0.999, `camp mob at the gate untouched by sentries/towers (hp ${Math.round(g.hp)}/${Math.round(hp0)})`);
+  check(sh1 >= sh0 * 0.999 && tw.hp === th0, 'sentries and towers untouched by the camp mob');
+  check(heroHit, 'camp mob still fights the hero');
+}
+for (const mode of (process.env.MODE ? process.env.MODE.split(',').filter(m => m !== 'none') : ['standard', 'long'])) {
   const S = new DW.Sim({ seed: 11, mode, players: [{ pid: 'a', hero: 'ironvow' }] }); const h = S.heroes[0];
   const sent = S.ents.filter(e => e.kind === 'sentry'); check(sent.length === 15, `${mode}: 15 gate sentries posted (${sent.length})`);
   // tower bonus

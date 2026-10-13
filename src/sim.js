@@ -605,8 +605,14 @@ class Sim {
     if (src && src.st) { src.st.healing += real; if (src === tgt) src.st.selfHeal += real; }
     if (real >= 5 && (tgt.kind === 'hero')) this.num(tgt.x, tgt.z, real, 3);
   }
+  // lane war camps and our gate defenders ignore each other completely (no pulling camp mobs to the gate for free XP)
+  campVsGate(a, b) {
+    const def = e => e.team === 0 && (e.kind === 'sentry' || e.kind === 'tower' || e.kind === 'turret' || e.kind === 'wall' || e.kind === 'gate' || e.kind === 'core');
+    return (a.kind === 'guard' && def(b)) || (b.kind === 'guard' && def(a));
+  }
   canHit(a, b) {
     if (b.dead || b.untarget || a === b) return false;
+    if (this.campVsGate(a, b)) return false;
     if (a.kind === 'hero') return b.team !== 0;
     if (a.kind === 'merc') return b.team === 1 || b.team === 2;
     if (a.team === 0) return b.team === 1;
@@ -618,6 +624,7 @@ class Sim {
   damage(src, tgt, amt, type, o) {
     o = o || {};
     if (tgt.dead || tgt.untarget || amt <= 0) return 0;
+    if (src && this.campVsGate(src, tgt)) return 0;
     if (tgt.invuln) { if (src && src.kind === 'hero' && this.R() < 0.05) this.msg(tgt.kind === 'core' ? 'The Core is shielded — break a gate first.' : 'Sealed — defeat this lane\'s Warden boss first.', 'r'); return 0; }
     let crit = false;
     if ((o.auto || o.canCrit) && src.crit > 0 && this.R() < src.crit) { amt *= 1.75; crit = true; }

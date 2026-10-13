@@ -438,7 +438,7 @@ table.stats{border-collapse:collapse;width:100%;font-size:12px}
 <div id="toasts"></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>window.BOD_BUILD='4b5919';window.BOD_VER='0.13';</script>
+<script>window.BOD_BUILD='8e9e21';window.BOD_VER='0.14';</script>
 <script>/* Break of Day — authoritative simulation (runs on host / solo). No DOM. */
 (function (G) {
 'use strict';
@@ -1046,8 +1046,14 @@ class Sim {
     if (src && src.st) { src.st.healing += real; if (src === tgt) src.st.selfHeal += real; }
     if (real >= 5 && (tgt.kind === 'hero')) this.num(tgt.x, tgt.z, real, 3);
   }
+  // lane war camps and our gate defenders ignore each other completely (no pulling camp mobs to the gate for free XP)
+  campVsGate(a, b) {
+    const def = e => e.team === 0 && (e.kind === 'sentry' || e.kind === 'tower' || e.kind === 'turret' || e.kind === 'wall' || e.kind === 'gate' || e.kind === 'core');
+    return (a.kind === 'guard' && def(b)) || (b.kind === 'guard' && def(a));
+  }
   canHit(a, b) {
     if (b.dead || b.untarget || a === b) return false;
+    if (this.campVsGate(a, b)) return false;
     if (a.kind === 'hero') return b.team !== 0;
     if (a.kind === 'merc') return b.team === 1 || b.team === 2;
     if (a.team === 0) return b.team === 1;
@@ -1059,6 +1065,7 @@ class Sim {
   damage(src, tgt, amt, type, o) {
     o = o || {};
     if (tgt.dead || tgt.untarget || amt <= 0) return 0;
+    if (src && this.campVsGate(src, tgt)) return 0;
     if (tgt.invuln) { if (src && src.kind === 'hero' && this.R() < 0.05) this.msg(tgt.kind === 'core' ? 'The Core is shielded — break a gate first.' : 'Sealed — defeat this lane\'s Warden boss first.', 'r'); return 0; }
     let crit = false;
     if ((o.auto || o.canCrit) && src.crit > 0 && this.R() < src.crit) { amt *= 1.75; crit = true; }
