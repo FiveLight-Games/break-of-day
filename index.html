@@ -111,6 +111,14 @@ input.textin{width:100%;background:#0f0d0b;border:1px solid var(--line);border-r
 .spell .n{position:absolute;inset:0;font:800 17px Inter,sans-serif;color:#fff;line-height:54px;text-shadow:0 1px 3px #000;pointer-events:none}
 .spell.armed{border-color:#ffd77a;box-shadow:0 0 0 3px #ffd77a88,0 6px 18px #000a}
 .spell small{position:absolute;left:0;right:0;bottom:4px;font:800 8.5px Inter,sans-serif;color:#e8dcc6;line-height:1;pointer-events:none;text-shadow:0 1px 2px #000}
+#dragCancel{left:50%;bottom:max(14px,env(safe-area-inset-bottom));transform:translate(-50%,160%);width:84px;height:72px;border-radius:16px;border:2px dashed #c9a45a;background:#120e0ad8;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#e8dcc6;box-shadow:0 8px 24px #000a;transition:transform .15s ease-out,background .1s,border-color .1s;pointer-events:none}
+#dragCancel b{font-size:26px;line-height:1}
+#dragCancel small{font:700 9.5px Inter,sans-serif;text-align:center;line-height:1.1}
+#dragCancel.hot{background:#6a1a14ee;border-color:#ff8a7a;border-style:solid}
+body.dragging #dragCancel{transform:translate(-50%,0);pointer-events:auto}
+body.dragging #buildTray{transform:translateY(130%);opacity:0;pointer-events:none}
+body.dragging #buildBtn,body.dragging #spellBar{opacity:0;pointer-events:none}
+#buildTray{transition:transform .15s ease-out,opacity .15s}
 .sheetHead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .sheetHead b{font-family:Cinzel,serif;font-size:15px}
 .sheetHead .x{margin-left:auto}
@@ -200,6 +208,7 @@ table.stats td:first-child,table.stats th:first-child{text-align:left}
   <div id="sheet" class="hud hidden"></div>
   <div id="atkPanel" class="hud hidden"></div>
   <div id="buildTray" class="hud hidden"></div>
+  <div id="dragCancel" class="hud"><b>✕</b><small>Drop here to cancel</small></div>
   <div id="spellBar" class="hud hidden"><button class="spell" data-spell="meteor" title="Meteor">☄️<small>Meteor</small><span class="cd"></span><span class="n"></span></button><button class="spell" data-spell="jet" title="Water Jet">💧<small>Water Jet</small><span class="cd"></span><span class="n"></span></button></div>
   <button id="buildBtn" class="hud hidden">🔨 Build</button>
 </div>
@@ -209,7 +218,7 @@ table.stats td:first-child,table.stats th:first-child{text-align:left}
 <div id="netOv" class="hidden"><div class="spin"></div><b id="netTxt">Reconnecting…</b><button class="btn sm" id="netLeave">Leave match</button></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script>window.TD_BUILD='e45b51';window.TD_VER='0.16';</script>
+<script>window.TD_BUILD='c3ac5f';window.TD_VER='0.17';</script>
 <script>// Shared game rules. The host's browser runs Sim; everyone else renders the host's snapshots.
 (function (G) {
 'use strict';
@@ -1583,7 +1592,8 @@ const cam = { x: 600, y: 600, z: 0.7 };
 function resize() { VW = innerWidth; VH = innerHeight; cv.width = VW * DPR; cv.height = VH * DPR; clampCam(); }
 window.addEventListener('resize', resize); window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 const minZ = () => V ? Math.max(0.1, Math.min(VW / V.world.W, VH / (V.world.H + TD.STAGE_H)) * 0.95) : 0.3;
-function clampCam() { if (!V) return; cam.z = Math.max(minZ(), Math.min(2.5, cam.z)); const hw = VW / 2 / cam.z, hh = VH / 2 / cam.z, W = V.world.W, top = -TD.STAGE_H, H = V.world.H; cam.x = hw * 2 > W ? W / 2 : Math.max(hw, Math.min(W - hw, cam.x)); cam.y = hh * 2 > H - top ? (top + H) / 2 : Math.max(top + hh, Math.min(H - hh, cam.y)); }
+function clampCam() { if (!V) return; cam.z = Math.max(minZ(), Math.min(2.5, cam.z)); const hw = VW / 2 / cam.z, hh = VH / 2 / cam.z, W = V.world.W, top = -TD.STAGE_H, H = V.world.H, padB = (build.on ? bottomCover() + 40 : 60) / cam.z, padX = 40 / cam.z; cam.x = hw * 2 > W + padX * 2 ? W / 2 : Math.max(hw - padX, Math.min(W - hw + padX, cam.x)); cam.y = hh * 2 > H - top + padB ? (top + H + padB) / 2 : Math.max(top + hh, Math.min(H - hh + padB, cam.y)); }
+function bottomCover() { const T = $('buildTray'); return T && !T.classList.contains('hidden') ? Math.max(0, innerHeight - T.getBoundingClientRect().top) : 0; }
 function resetCamera() { if (V.myDef) { cam.z = Math.min(1.1, VW > VH ? VW / 1100 : VH / 1250); const p = V.L.lanes[V.myDef.slot].at(500); cam.x = p[0]; cam.y = p[1]; } else { cam.z = minZ(); cam.x = V.world.W / 2; cam.y = (V.world.H - TD.STAGE_H) / 2; } clampCam(); }
 function lookAtLane(slot) { const L2 = V.L.lanes[slot]; if (!L2) return; cam.z = Math.max(cam.z, Math.min(1, Math.max(VW, VH * 0.75) / 1300)); const p = L2.at(400); cam.x = p[0]; cam.y = p[1]; clampCam(); }
 const s2w = (sx, sy) => [cam.x + (sx - VW / 2) / cam.z, cam.y + (sy - VH / 2) / cam.z];
@@ -1630,7 +1640,7 @@ const build = { on: false, drag: null, sel: 'archer' };
 function setBuild(on) {
   build.on = !!on && !!(V && V.myDef) && !(V && V.over); build.drag = null; if (build.on) spell.armed = null;
   $('buildBtn').classList.toggle('on', build.on); $('buildBtn').innerHTML = build.on ? '✕ Done' : '🔨 Build';
-  $('buildTray').classList.toggle('hidden', !build.on); if (build.on) { hideSheet(); renderTray(true); } else $('buildBtn').style.bottom = '';
+  $('buildTray').classList.toggle('hidden', !build.on); if (build.on) { hideSheet(); renderTray(true); } else $('buildBtn').style.bottom = ''; requestAnimationFrame(clampCam);
 }
 // keep Done just above the tray, whatever height the tray ends up
 function placeBuildBtn() { if (!build.on) return; const T = $('buildTray').getBoundingClientRect(); $('buildBtn').style.bottom = (innerHeight - T.top + 8) + 'px'; }
@@ -1647,14 +1657,15 @@ function renderTray(force) {
   T.querySelectorAll('[data-tw]').forEach(b => b.onpointerdown = e => { e.preventDefault(); build.sel = b.dataset.tw; updateStrip(); if (!b.classList.contains('off')) startDrag(b.dataset.tw, e); else toast('Not enough gold'); });
 }
 function startDrag(k, e) {
+  document.body.classList.add('dragging');
   build.drag = { k, sx: e.clientX, sy: e.clientY, touch: e.pointerType !== 'mouse', id: e.pointerId };
   moveDrag(e);
   window.addEventListener('pointermove', moveDrag); window.addEventListener('pointerup', endDrag); window.addEventListener('pointercancel', cancelDrag);
 }
 function dragCell(e) { const off = build.drag.touch ? 70 : 0, [wx, wy] = s2w(e.clientX, e.clientY - off); return [Math.round(wx / CELL - FOOT / 2), Math.round(wy / CELL - FOOT / 2), wx, wy]; }
-function moveDrag(e) { const d = build.drag; if (!d) return; d.x = e.clientX; d.y = e.clientY; const [c, r] = dragCell(e); d.c = c; d.r = r; d.overTray = !!document.elementFromPoint(e.clientX, e.clientY)?.closest('#buildTray'); d.ok = !d.overTray && TD.footFree(V.L, c, r, V.occ) && V.myDef.gold >= TD.TOWERS[d.k].cost; }
-function endDrag(e) { const d = build.drag; stopDragListeners(); if (!d) return; moveDrag(e); build.drag = null; if (d.overTray) return; if (d.ok) { send({ c: 'build', k: d.k, c2: d.c, r: d.r }); for (let j = 0; j < FOOT; j++) for (let i = 0; i < FOOT; i++) V.occ[(d.r + j) * V.L.cols + d.c + i] = 1; } else toast(V.myDef.gold < TD.TOWERS[d.k].cost ? 'Not enough gold' : "Can't build there"); }
-function cancelDrag() { stopDragListeners(); build.drag = null; }
+function moveDrag(e) { const d = build.drag; if (!d) return; d.x = e.clientX; d.y = e.clientY; const [c, r] = dragCell(e); d.c = c; d.r = r; d.overTray = !!document.elementFromPoint(e.clientX, e.clientY)?.closest('#dragCancel'); $('dragCancel').classList.toggle('hot', d.overTray); d.ok = !d.overTray && TD.footFree(V.L, c, r, V.occ) && V.myDef.gold >= TD.TOWERS[d.k].cost; }
+function endDrag(e) { const d = build.drag; if (d) moveDrag(e); stopDragListeners(); document.body.classList.remove('dragging'); $('dragCancel').classList.remove('hot'); if (!d) return; build.drag = null; if (d.overTray) return; if (d.ok) { send({ c: 'build', k: d.k, c2: d.c, r: d.r }); for (let j = 0; j < FOOT; j++) for (let i = 0; i < FOOT; i++) V.occ[(d.r + j) * V.L.cols + d.c + i] = 1; } else toast(V.myDef.gold < TD.TOWERS[d.k].cost ? 'Not enough gold' : "Can't build there"); }
+function cancelDrag() { stopDragListeners(); build.drag = null; document.body.classList.remove('dragging'); $('dragCancel').classList.remove('hot'); }
 function stopDragListeners() { window.removeEventListener('pointermove', moveDrag); window.removeEventListener('pointerup', endDrag); window.removeEventListener('pointercancel', cancelDrag); }
 
 // ---------- HUD ----------

@@ -78,8 +78,16 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   await C.mouse.move(card.x + card.width / 2, card.y + card.height / 2); await C.mouse.down(); await C.mouse.move(195, 422, { steps: 6 }); await sleep(150);
   check(await C.evaluate(() => !window.TDC.build.drag.ok), 'occupied cells are invalid');
   await C.screenshot({ path: OUT + '/build-blocked.png' });
-  await C.mouse.move(card.x + card.width / 2, card.y + 10, { steps: 6 }); await C.mouse.up(); await sleep(400);
-  check(await C.evaluate(() => window.TDC.V.towers.length) === 1, 'dropping back on the tray cancels');
+  check(await C.evaluate(() => document.body.classList.contains('dragging') && getComputedStyle(document.getElementById('buildTray')).opacity === '0'), 'tray steps aside while dragging');
+  await C.screenshot({ path: OUT + '/build-drag-cancel.png' });
+  const cz = await C.locator('#dragCancel').boundingBox();
+  await C.mouse.move(cz.x + cz.width / 2, cz.y + cz.height / 2, { steps: 6 }); await sleep(100);
+  check(await C.evaluate(() => document.getElementById('dragCancel').classList.contains('hot')), 'cancel target lights up under the tower');
+  await C.mouse.up(); await sleep(400);
+  check(await C.evaluate(() => window.TDC.V.towers.length === 1 && !document.body.classList.contains('dragging')), 'dropping on the cancel target cancels and brings the tray back');
+  const camSave = await C.evaluate(() => [window.TDC.cam.x, window.TDC.cam.y, window.TDC.cam.z]);
+  check(await C.evaluate(() => { const c = window.TDC.cam, b = window.TDC.V.L.base; c.y = 99999; window.TDC.cam.x = b.x; window.dispatchEvent(new Event('resize')); const tray = document.getElementById('buildTray').getBoundingClientRect().top, sy = (b.y - c.y) * c.z + innerHeight / 2; return sy < tray - 20; }), 'in build mode the base can be scrolled above the tray');
+  await C.evaluate(s => { const c = window.TDC.cam; c.x = s[0]; c.y = s[1]; c.z = s[2]; }, camSave);
   // a tower on a road cell is refused by the host
   await A.evaluate(() => { const L = window.TDC.V.L, p = L.lanes[0].at(600); window.TDC.send({ c: 'build', k: 'archer', c2: Math.round(p[0] / 24 - 1), r: Math.round(p[1] / 24 - 1) }); });
   // both defenders build more via input

@@ -1006,7 +1006,8 @@ const cam = { x: 600, y: 600, z: 0.7 };
 function resize() { VW = innerWidth; VH = innerHeight; cv.width = VW * DPR; cv.height = VH * DPR; clampCam(); }
 window.addEventListener('resize', resize); window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 const minZ = () => V ? Math.max(0.1, Math.min(VW / V.world.W, VH / (V.world.H + TD.STAGE_H)) * 0.95) : 0.3;
-function clampCam() { if (!V) return; cam.z = Math.max(minZ(), Math.min(2.5, cam.z)); const hw = VW / 2 / cam.z, hh = VH / 2 / cam.z, W = V.world.W, top = -TD.STAGE_H, H = V.world.H; cam.x = hw * 2 > W ? W / 2 : Math.max(hw, Math.min(W - hw, cam.x)); cam.y = hh * 2 > H - top ? (top + H) / 2 : Math.max(top + hh, Math.min(H - hh, cam.y)); }
+function clampCam() { if (!V) return; cam.z = Math.max(minZ(), Math.min(2.5, cam.z)); const hw = VW / 2 / cam.z, hh = VH / 2 / cam.z, W = V.world.W, top = -TD.STAGE_H, H = V.world.H, padB = (build.on ? bottomCover() + 40 : 60) / cam.z, padX = 40 / cam.z; cam.x = hw * 2 > W + padX * 2 ? W / 2 : Math.max(hw - padX, Math.min(W - hw + padX, cam.x)); cam.y = hh * 2 > H - top + padB ? (top + H + padB) / 2 : Math.max(top + hh, Math.min(H - hh + padB, cam.y)); }
+function bottomCover() { const T = $('buildTray'); return T && !T.classList.contains('hidden') ? Math.max(0, innerHeight - T.getBoundingClientRect().top) : 0; }
 function resetCamera() { if (V.myDef) { cam.z = Math.min(1.1, VW > VH ? VW / 1100 : VH / 1250); const p = V.L.lanes[V.myDef.slot].at(500); cam.x = p[0]; cam.y = p[1]; } else { cam.z = minZ(); cam.x = V.world.W / 2; cam.y = (V.world.H - TD.STAGE_H) / 2; } clampCam(); }
 function lookAtLane(slot) { const L2 = V.L.lanes[slot]; if (!L2) return; cam.z = Math.max(cam.z, Math.min(1, Math.max(VW, VH * 0.75) / 1300)); const p = L2.at(400); cam.x = p[0]; cam.y = p[1]; clampCam(); }
 const s2w = (sx, sy) => [cam.x + (sx - VW / 2) / cam.z, cam.y + (sy - VH / 2) / cam.z];
@@ -1053,7 +1054,7 @@ const build = { on: false, drag: null, sel: 'archer' };
 function setBuild(on) {
   build.on = !!on && !!(V && V.myDef) && !(V && V.over); build.drag = null; if (build.on) spell.armed = null;
   $('buildBtn').classList.toggle('on', build.on); $('buildBtn').innerHTML = build.on ? '✕ Done' : '🔨 Build';
-  $('buildTray').classList.toggle('hidden', !build.on); if (build.on) { hideSheet(); renderTray(true); } else $('buildBtn').style.bottom = '';
+  $('buildTray').classList.toggle('hidden', !build.on); if (build.on) { hideSheet(); renderTray(true); } else $('buildBtn').style.bottom = ''; requestAnimationFrame(clampCam);
 }
 // keep Done just above the tray, whatever height the tray ends up
 function placeBuildBtn() { if (!build.on) return; const T = $('buildTray').getBoundingClientRect(); $('buildBtn').style.bottom = (innerHeight - T.top + 8) + 'px'; }
@@ -1070,14 +1071,15 @@ function renderTray(force) {
   T.querySelectorAll('[data-tw]').forEach(b => b.onpointerdown = e => { e.preventDefault(); build.sel = b.dataset.tw; updateStrip(); if (!b.classList.contains('off')) startDrag(b.dataset.tw, e); else toast('Not enough gold'); });
 }
 function startDrag(k, e) {
+  document.body.classList.add('dragging');
   build.drag = { k, sx: e.clientX, sy: e.clientY, touch: e.pointerType !== 'mouse', id: e.pointerId };
   moveDrag(e);
   window.addEventListener('pointermove', moveDrag); window.addEventListener('pointerup', endDrag); window.addEventListener('pointercancel', cancelDrag);
 }
 function dragCell(e) { const off = build.drag.touch ? 70 : 0, [wx, wy] = s2w(e.clientX, e.clientY - off); return [Math.round(wx / CELL - FOOT / 2), Math.round(wy / CELL - FOOT / 2), wx, wy]; }
-function moveDrag(e) { const d = build.drag; if (!d) return; d.x = e.clientX; d.y = e.clientY; const [c, r] = dragCell(e); d.c = c; d.r = r; d.overTray = !!document.elementFromPoint(e.clientX, e.clientY)?.closest('#buildTray'); d.ok = !d.overTray && TD.footFree(V.L, c, r, V.occ) && V.myDef.gold >= TD.TOWERS[d.k].cost; }
-function endDrag(e) { const d = build.drag; stopDragListeners(); if (!d) return; moveDrag(e); build.drag = null; if (d.overTray) return; if (d.ok) { send({ c: 'build', k: d.k, c2: d.c, r: d.r }); for (let j = 0; j < FOOT; j++) for (let i = 0; i < FOOT; i++) V.occ[(d.r + j) * V.L.cols + d.c + i] = 1; } else toast(V.myDef.gold < TD.TOWERS[d.k].cost ? 'Not enough gold' : "Can't build there"); }
-function cancelDrag() { stopDragListeners(); build.drag = null; }
+function moveDrag(e) { const d = build.drag; if (!d) return; d.x = e.clientX; d.y = e.clientY; const [c, r] = dragCell(e); d.c = c; d.r = r; d.overTray = !!document.elementFromPoint(e.clientX, e.clientY)?.closest('#dragCancel'); $('dragCancel').classList.toggle('hot', d.overTray); d.ok = !d.overTray && TD.footFree(V.L, c, r, V.occ) && V.myDef.gold >= TD.TOWERS[d.k].cost; }
+function endDrag(e) { const d = build.drag; if (d) moveDrag(e); stopDragListeners(); document.body.classList.remove('dragging'); $('dragCancel').classList.remove('hot'); if (!d) return; build.drag = null; if (d.overTray) return; if (d.ok) { send({ c: 'build', k: d.k, c2: d.c, r: d.r }); for (let j = 0; j < FOOT; j++) for (let i = 0; i < FOOT; i++) V.occ[(d.r + j) * V.L.cols + d.c + i] = 1; } else toast(V.myDef.gold < TD.TOWERS[d.k].cost ? 'Not enough gold' : "Can't build there"); }
+function cancelDrag() { stopDragListeners(); build.drag = null; document.body.classList.remove('dragging'); $('dragCancel').classList.remove('hot'); }
 function stopDragListeners() { window.removeEventListener('pointermove', moveDrag); window.removeEventListener('pointerup', endDrag); window.removeEventListener('pointercancel', cancelDrag); }
 
 // ---------- HUD ----------
