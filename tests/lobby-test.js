@@ -92,21 +92,35 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(!(await C.isVisible('#buildTray')), 'Done closes build mode');
   await B.evaluate(() => { window.TDC.send({ c: 'send', k: 'grunt', lane: 'all', n: 10 }); window.TDC.send({ c: 'send', k: 'brute', lane: 0, n: 1 }); });
   await sleep(1200);
-  check(await B.evaluate(() => window.TDC.V.atk.queue.length) === 21, 'attacker queue shows the wave');
-  check(await B.evaluate(() => { const c = document.querySelector('[data-unit=tarrasque]'), s = document.querySelector('[data-unit=skel]'); return c.disabled && c.classList.contains('locked') && c.textContent.includes('15:00') && s.classList.contains('locked') && document.querySelectorAll('#atkPanel [data-unit]').length === 19; }), 'attacker sees 19 units; later ones are locked with their unlock time');
-  check(await A.evaluate(() => { const S = window.TDC.GS.sim, n = S.atk.queue.length; S.input(S.atk.pid, { c: 'send', k: 'tarrasque', lane: 'all' }); return S.atk.queue.length === n; }), 'host refuses a locked unit');
+  check(await C.evaluate(() => window.TDC.V.units.size) >= 15, 'sent units march out right away: ' + await C.evaluate(() => window.TDC.V.units.size));
+  check(await B.evaluate(() => !document.getElementById('waveChip')), 'no wave timer');
+  check(await B.evaluate(() => { const c = document.querySelector('[data-unit=tarrasque]'), s = document.querySelector('[data-unit=skel]'); return c.classList.contains('off') && c.classList.contains('locked') && c.textContent.includes('15:00') && s.classList.contains('locked') && document.querySelectorAll('#atkPanel [data-unit]').length === 19; }), 'attacker sees 19 units; later ones are locked with their unlock time');
+  check(await A.evaluate(() => { const S = window.TDC.GS.sim, n = S.spawnAt.length; S.input(S.atk.pid, { c: 'send', k: 'tarrasque', lane: 'all' }); return S.spawnAt.length === n; }), 'host refuses a locked unit');
+  // the unit row keeps its scroll position while gold ticks up
+  await B.evaluate(() => { document.querySelector('#atkPanel .cards').scrollLeft = 260; }); await sleep(1600);
+  check(await B.evaluate(() => document.querySelector('#atkPanel .cards').scrollLeft) >= 200, 'attacker unit row stays scrolled while the panel updates');
+  await B.screenshot({ path: OUT + '/atk-scrolled.png' });
+  { // a real finger swipe on the unit row (phone)
+    await B.evaluate(() => { document.querySelector('#atkPanel .cards').scrollLeft = 0; });
+    const box = await B.locator('#atkPanel .cards').boundingBox(), y = box.y + box.height / 2, cdp = await B.context().newCDPSession(B);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: box.x + box.width - 30, y }] });
+    for (let i = 1; i <= 10; i++) { await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: box.x + box.width - 30 - i * 25, y }] }); await sleep(16); }
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); await sleep(400);
+    check(await B.evaluate(() => document.querySelector('#atkPanel .cards').scrollLeft) > 100, 'swiping the attacker unit row scrolls it: ' + await B.evaluate(() => document.querySelector('#atkPanel .cards').scrollLeft));
+  }
   const goldBefore = await Promise.all([A, C].map(P => P.evaluate(() => window.TDC.V.myDef.gold)));
   check(!(await C.evaluate(() => !!document.getElementById('voteBtn'))), 'no Start Now button');
-  await C.waitForFunction(() => window.TDC.V.wave >= 1 && window.TDC.V.units.size > 0, null, { timeout: 20000 });
+  await C.waitForFunction(() => window.TDC.V.units.size > 0, null, { timeout: 20000 });
   await C.evaluate(() => { window.__maxDead = 0; setInterval(() => { window.__maxDead = Math.max(window.__maxDead, (window.TDC.V.deadBars || []).length); }, 50); });
-  const st = await C.evaluate(() => ({ units: window.TDC.V.units.size, wave: window.TDC.V.wave, gold: window.TDC.V.myDef.gold }));
-  check(st.wave >= 1 && st.units > 0, 'first wave marched on the timer: ' + JSON.stringify(st));
   await sleep(9000);
   check(await C.evaluate(() => window.__maxDead) > 0, 'empty health bars linger after kills: max ' + await C.evaluate(() => window.__maxDead));
   const ks = await A.evaluate(() => window.TDC.GS.sim.defs.map(d => ({ kills: d.kills, shared: d.shared })));
   check(ks.some(k => k.kills > 0) && ks[0].shared === ks[1].shared && ks[0].shared > 0, 'kill gold is shared equally: ' + JSON.stringify(ks));
   // ---- spells ----
   check(await C.isVisible('#spellBar') && !(await B.isVisible('#spellBar')), 'defenders see the spell bar, the attacker does not');
+  check(await C.evaluate(() => document.querySelector('[data-spell=meteor] small').textContent) === '125g', 'spell buttons show their gold cost');
+  await A.evaluate(() => { window.TDC.GS.sim.defs[1].gold += 400; }); await sleep(500);
+  const gm0 = await A.evaluate(() => window.TDC.GS.sim.defs[1].gold);
   // drag Meteor from its button onto the thickest part of the crowd on C's screen
   const tgt = await C.evaluate(() => { const V = window.TDC.V, U = [...V.units.values()]; let best = U[0], bn = -1; for (const a of U) { let n = 0; for (const b of U) if ((a.x - b.x) ** 2 + (a.y - b.y) ** 2 < 8100) n++; if (n > bn) { bn = n; best = a; } } const cam = window.TDC.cam; cam.x = best.x; cam.y = best.y - 60; return { x: best.x, y: best.y, n: bn }; });
   await sleep(200);
@@ -123,6 +137,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(await C.evaluate(() => document.querySelector('[data-spell=meteor] .n').textContent) !== '', 'meteor shows its cooldown');
   const again = await A.evaluate(() => { const S = window.TDC.GS.sim; return S.defs.find(d => d.pid === window.TDC.V.defs[1].pid).scd.meteor - S.t; });
   check(again > 15 && again <= 20, 'meteor on a 20s cooldown: ' + again.toFixed(1));
+  const gm1 = await A.evaluate(() => window.TDC.GS.sim.defs[1].gold); check(gm0 - gm1 > 115 && gm0 - gm1 <= 125, 'meteor cost 125g: ' + Math.round(gm0 - gm1));
   // Water Jet: tap the button, then tap the map (middle of the lane, ahead of the crowd)
   await C.click('[data-spell=jet]'); await sleep(150);
   check(await C.evaluate(() => window.TDC.spell.armed === 'jet'), 'tapping a spell arms it');
@@ -161,8 +176,8 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   { const sp = await spots(D, 5, 400); await D.evaluate(sp => sp.forEach(([c, r]) => window.TDC.send({ c: 'build', k: 'archer', c2: c, r })), sp); }
   check(await D.evaluate(() => window.TDC.V.hpMax) === 250, 'solo base HP = 250');
   await sleep(20000);
-  const sd = await D.evaluate(() => ({ units: window.TDC.V.units.size, towers: window.TDC.V.towers.length, wave: window.TDC.V.wave, hp: window.TDC.V.hp }));
-  check(sd.wave >= 1 && sd.towers >= 3, 'vs AI match runs: ' + JSON.stringify(sd));
+  const sd = await D.evaluate(() => ({ units: window.TDC.V.units.size, towers: window.TDC.V.towers.length, hp: window.TDC.V.hp, t: window.TDC.V.t }));
+  check(sd.t > 15 && sd.towers >= 3, 'vs AI match runs: ' + JSON.stringify(sd));
   await D.screenshot({ path: OUT + '/game-vsai.png' });
   check(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 5).join(' | ') : ''));
   console.log(fails ? 'LOBBY FAIL ' + fails : 'LOBBY OK');

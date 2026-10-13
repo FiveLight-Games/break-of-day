@@ -105,6 +105,8 @@ input.textin{width:100%;background:#0f0d0b;border:1px solid var(--line);border-r
 #spellBar{right:max(8px,env(safe-area-inset-right));bottom:calc(max(8px,env(safe-area-inset-bottom)) + 60px);display:flex;gap:8px}
 .spell{position:relative;width:58px;height:58px;border-radius:50%;padding:0;border:2px solid #6a5a40;background:radial-gradient(circle at 40% 35%,#3a3026,#15110c);font-size:26px;line-height:50px;text-align:center;cursor:pointer;box-shadow:0 6px 18px #000a;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;color:#fff}
 .spell.ready{border-color:#c9a45a}
+.spell.poor{filter:grayscale(.8) brightness(.75)}
+.spell.poor small{color:#ff8a7a}
 .spell .cd{position:absolute;inset:0;border-radius:50%;background:conic-gradient(rgba(0,0,0,.74) var(--p,0%),transparent 0);pointer-events:none}
 .spell .n{position:absolute;inset:0;font:800 17px Inter,sans-serif;color:#fff;line-height:54px;text-shadow:0 1px 3px #000;pointer-events:none}
 .spell.armed{border-color:#ffd77a;box-shadow:0 0 0 3px #ffd77a88,0 6px 18px #000a}
@@ -116,6 +118,10 @@ input.textin{width:100%;background:#0f0d0b;border:1px solid var(--line);border-r
 .card{flex:none;width:86px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:6px;text-align:center;cursor:pointer}
 .card:disabled,.card.off{opacity:.4;cursor:default}
 .card.locked{opacity:.32;filter:grayscale(1)}
+.atkCards{touch-action:pan-x;overscroll-behavior-x:contain;scroll-snap-type:none;-webkit-overflow-scrolling:touch;padding-bottom:4px}
+.atkCards .card{touch-action:pan-x}
+.card.sent{animation:sentPop .35s ease-out}
+@keyframes sentPop{0%{transform:scale(.9);border-color:var(--gold)}100%{transform:scale(1)}}
 #buildTray .card.off.sel{opacity:.65}
 .card canvas{width:70px;height:52px;display:block;margin:0 auto}
 .card b{display:block;font-size:12px;line-height:1.2}
@@ -188,7 +194,7 @@ table.stats td:first-child,table.stats th:first-child{text-align:left}
 <div id="game" class="hidden">
   <canvas id="view"></canvas>
   <div id="defChips" class="hud"></div>
-  <div id="topBar" class="hud"><div class="chip" id="clock"></div><div class="chip" id="hpChip"></div><div class="chip" id="waveChip"></div></div>
+  <div id="topBar" class="hud"><div class="chip" id="clock"></div><div class="chip" id="hpChip"></div></div>
   <button id="menuBtn" class="hud ibtn" aria-label="Menu">☰</button>
   <div id="ecoBar" class="hud"></div>
   <div id="sheet" class="hud hidden"></div>

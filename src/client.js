@@ -1029,11 +1029,12 @@ function onTap(wx, wy) {
 // ---------- spells: drag from the button onto the map, or tap the button then tap the map ----------
 const spell = { drag: null, armed: null, aimAt: null, hover: null, local: {} };
 function spellLeft(k) { const D = V && V.myDef; if (!D) return 0; return Math.max(0, Math.max((D.scdAt && D.scdAt[k]) || 0, spell.local[k] || 0) - V.clock); }
-function castSpell(k, wx, wy) { sfx('cast'); send({ c: 'spell', k, x: Math.round(wx), y: Math.round(wy) }); spell.local[k] = V.clock + TD.SPELLS[k].cd; spell.armed = null; spell.hover = null; }
+function castSpell(k, wx, wy) { if (V.myDef.gold < TD.SPELLS[k].cost) { spell.armed = null; return toast(TD.SPELLS[k].n + ' costs ' + TD.SPELLS[k].cost + 'g'); } sfx('cast'); send({ c: 'spell', k, x: Math.round(wx), y: Math.round(wy) }); spell.local[k] = V.clock + TD.SPELLS[k].cd; spell.armed = null; spell.hover = null; }
 function spellPoint(e, d) { return s2w(e.clientX, e.clientY - (d && d.touch ? 70 : 0)); }
 document.querySelectorAll('#spellBar [data-spell]').forEach(b => b.onpointerdown = e => {
   e.preventDefault(); e.stopPropagation(); if (!V || !V.myDef || V.over) return; const k = b.dataset.spell;
   if (spellLeft(k) > 0) { toast(TD.SPELLS[k].n + ' ready in ' + Math.ceil(spellLeft(k)) + 's'); return; }
+  if (V.myDef.gold < TD.SPELLS[k].cost) { toast(TD.SPELLS[k].n + ' costs ' + TD.SPELLS[k].cost + 'g'); return; }
   spell.drag = { k, sx: e.clientX, sy: e.clientY, touch: e.pointerType !== 'mouse', moved: false };
   window.addEventListener('pointermove', spellMove); window.addEventListener('pointerup', spellUp); window.addEventListener('pointercancel', spellCancel);
 });
@@ -1044,7 +1045,7 @@ function spellStop() { spell.drag = null; window.removeEventListener('pointermov
 cv.addEventListener('pointermove', e => { if (spell.armed && e.pointerType === 'mouse') spell.hover = s2w(e.clientX, e.clientY); });
 function renderSpellBar() {
   const bar = $('spellBar'), show = !!(V && V.myDef && !V.over && !build.on && sheetKind !== 'tower'); bar.classList.toggle('hidden', !show); if (!show) return;
-  bar.querySelectorAll('[data-spell]').forEach(b => { const k = b.dataset.spell, l = spellLeft(k), cd = TD.SPELLS[k].cd; b.querySelector('.cd').style.setProperty('--p', (l / cd * 100) + '%'); b.querySelector('.n').textContent = l > 0 ? Math.ceil(l) : ''; b.classList.toggle('armed', spell.armed === k); b.classList.toggle('ready', l <= 0); });
+  bar.querySelectorAll('[data-spell]').forEach(b => { const k = b.dataset.spell, l = spellLeft(k), cd = TD.SPELLS[k].cd; b.querySelector('.cd').style.setProperty('--p', (l / cd * 100) + '%'); b.querySelector('.n').textContent = l > 0 ? Math.ceil(l) : ''; const poor = V.myDef.gold < TD.SPELLS[k].cost; b.classList.toggle('armed', spell.armed === k); b.classList.toggle('ready', l <= 0 && !poor); b.classList.toggle('poor', poor); b.querySelector('small').textContent = TD.SPELLS[k].cost + 'g'; });
 }
 
 // ---------- build mode: drag a tower from the tray onto the grid ----------
@@ -1100,7 +1101,6 @@ function renderHUD(force) {
   const left = TD.RULES.length - V.t;
   $('clock').innerHTML = V.closed ? `⏱ Final push · ${V.units.size} left` : `⏱ ${fmtT(left)}`;
   $('hpChip').innerHTML = `🏰 <b style="color:${V.hp > V.hpMax * .5 ? '#9ff08a' : V.hp > V.hpMax * .25 ? '#f0c419' : '#ff7a6a'}">${Math.ceil(V.hp)}</b><small>/ ${V.hpMax}</small>`;
-  $('waveChip').innerHTML = V.closed ? 'No more waves' : `Wave ${V.wave + 1} in <b>${fmtT(V.pulse)}</b>`;
   $('defChips').innerHTML = V.defs.map(d => `<div class="dchip ${d.pid === myPid ? 'me' : ''}" data-lane="${d.slot}"><span class="sw" style="background:${colHex(d.color)}"></span>${esc(d.name)}<span class="lv" style="color:var(--muted)">${d.kills} kills</span></div>`).join('') + `<div class="dchip" style="cursor:default"><span class="sw" style="background:${V.atkCol}"></span>${esc(V.atk.name)}<span class="lv" style="color:var(--muted)">attacker</span></div>`;
   $('defChips').querySelectorAll('[data-lane]').forEach(b => b.onclick = () => lookAtLane(+b.dataset.lane));
   const tb = $('topBar').getBoundingClientRect(), narrow = innerWidth <= 640; $('defChips').style.top = narrow ? (tb.bottom + 6) + 'px' : ''; $('ecoBar').style.top = narrow ? (tb.bottom + 6) + 'px' : '';
@@ -1110,26 +1110,37 @@ function renderHUD(force) {
 }
 function renderAtk() {
   const A = V.atk, P = $('atkPanel'); P.classList.remove('hidden');
-  const lanes = atkUI.target === 'all' ? V.defs.length : 1;
-  const q = {}; for (const v of A.queue) { const k = TD.UNIT_IDS[Math.floor(v / 10)]; q[k] = (q[k] || 0) + 1; }
-  const key = JSON.stringify([A.gold, A.income, A.investCost, A.speed, A.speedCost, TD.UNIT_IDS.filter(k => V.t >= TD.UNITS[k].unlock * 60).length, atkUI, V.closed, q]);
-  if (P.dataset.key === key) return; P.dataset.key = key;
-  if (V.closed) { P.innerHTML = '<div class="qrow">Time is up. Your last units are on the field.</div>'; return; }
-  P.innerHTML = `<div class="targets"><span class="small muted">Send to</span><button data-tg="all" class="${atkUI.target === 'all' ? 'on' : ''}">All lanes</button>${V.defs.map(d => `<button data-tg="${d.slot}" class="${atkUI.target === d.slot ? 'on' : ''}"><span class="sw" style="background:${colHex(d.color)}"></span>${esc(d.name)}</button>`).join('')}
-    <span style="margin-left:auto" class="chip">💰 ${A.gold}<small>+${A.income}/s</small></span></div>
-    <div class="cards">${TD.UNIT_IDS.map(k => { const U = TD.UNITS[k], cost = U.cost * lanes * atkUI.qty, lock = V.t < U.unlock * 60; return `<button class="card ${lock ? 'locked' : ''}" data-unit="${k}" ${A.gold < cost || lock ? 'disabled' : ''} title="${esc(U.d)}"><span data-uprev="${k}"></span><b>${U.n}${U.pack ? ' ×' + U.pack : ''}${q[k] ? ' · ' + q[k] : ''}</b><span class="cost">${lock ? '🔒 ' + fmtT(U.unlock * 60) : cost + 'g'}</span></button>`; }).join('')}</div>
-    <div class="row"><div class="prios">${[1, 5, 10].map(n => `<button data-qty="${n}" class="${atkUI.qty === n ? 'on' : ''}">×${n}</button>`).join('')}</div>
-      <button class="btn sm" data-speed ${A.speed >= TD.RULES.speedMax || A.gold < A.speedCost ? 'disabled' : ''} style="margin-left:auto" title="Units you send from now on move ${Math.round(TD.RULES.speedStep * 100)}% faster">${A.speed >= TD.RULES.speedMax ? '👢 Speed maxed' : `👢 Speed ${A.speed + 1}/${TD.RULES.speedMax} · ${A.speedCost}g`}</button>
-      <button class="btn sm" data-invest ${A.gold < A.investCost ? 'disabled' : ''}>Invest ${A.investCost}g<small style="font-weight:600">&nbsp;+${Math.round(TD.RULES.investGain * V.defs.length * 10) / 10}/s</small></button></div>
-    <div class="qrow">Next wave: ${Object.keys(q).length ? Object.entries(q).map(([k, n]) => n + ' ' + TD.UNITS[k].n).join(', ') : 'nothing queued yet'}</div>`;
-  P.querySelectorAll('[data-uprev]').forEach(s => s.replaceWith(previewCanvas(g => { const S = sprite(s.dataset.uprev, 'n', 1, 0, V.atkCol), sz = Math.min(64, 100 * S.size / (TD.UNITS.brute.r * 4.4)); g.drawImage(S.c, 42 - sz / 2, 66 - sz * 0.72, sz, sz); })));
-  P.querySelectorAll('[data-tg]').forEach(b => b.onclick = () => { atkUI.target = b.dataset.tg === 'all' ? 'all' : +b.dataset.tg; if (atkUI.target !== 'all') lookAtLane(atkUI.target); P.dataset.key = ''; renderAtk(); });
-  P.querySelectorAll('[data-qty]').forEach(b => b.onclick = () => { atkUI.qty = +b.dataset.qty; P.dataset.key = ''; renderAtk(); });
-  P.querySelectorAll('[data-unit]').forEach(b => b.onclick = () => send({ c: 'send', k: b.dataset.unit, lane: atkUI.target, n: atkUI.qty }));
-  const spb = P.querySelector('[data-speed]'); if (spb) spb.onclick = () => send({ c: 'speed' });
-  const iv = P.querySelector('[data-invest]'); if (iv) iv.onclick = () => send({ c: 'invest' });
+  const lanes = atkUI.target === 'all' ? V.defs.length : 1, open = TD.UNIT_IDS.filter(k => V.t >= TD.UNITS[k].unlock * 60).length;
+  // rebuild only when the layout changes; numbers update in place so the unit row keeps its scroll position
+  const skey = JSON.stringify([open, atkUI, V.closed, lanes]);
+  if (P.dataset.skey !== skey) {
+    P.dataset.skey = skey; const old = P.querySelector('.cards'), sl = old ? old.scrollLeft : 0;
+    if (V.closed) { P.innerHTML = '<div class="qrow">Time is up. Your last units are on the field.</div>'; return; }
+    P.innerHTML = `<div class="targets"><span class="small muted">Send to</span><button data-tg="all" class="${atkUI.target === 'all' ? 'on' : ''}">All lanes</button>${V.defs.map(d => `<button data-tg="${d.slot}" class="${atkUI.target === d.slot ? 'on' : ''}"><span class="sw" style="background:${colHex(d.color)}"></span>${esc(d.name)}</button>`).join('')}
+      <span style="margin-left:auto" class="chip" data-gold></span></div>
+      <div class="cards atkCards">${TD.UNIT_IDS.map(k => { const U = TD.UNITS[k], lock = V.t < U.unlock * 60; return `<button class="card ${lock ? 'locked' : ''}" data-unit="${k}" title="${esc(U.d)}"><span data-uprev="${k}"></span><b>${U.n}${U.pack ? ' ×' + U.pack : ''}</b><span class="cost">${lock ? '🔒 ' + fmtT(U.unlock * 60) : U.cost * lanes * atkUI.qty + 'g'}</span></button>`; }).join('')}</div>
+      <div class="row"><div class="prios">${[1, 5, 10].map(n => `<button data-qty="${n}" class="${atkUI.qty === n ? 'on' : ''}">×${n}</button>`).join('')}</div>
+        <button class="btn sm" data-speed style="margin-left:auto" title="Units you send from now on move ${Math.round(TD.RULES.speedStep * 100)}% faster"></button>
+        <button class="btn sm" data-invest></button></div>`;
+    P.querySelectorAll('[data-uprev]').forEach(s => s.replaceWith(previewCanvas(g => { const S = sprite(s.dataset.uprev, 'n', 1, 0, V.atkCol), sz = Math.min(64, 100 * S.size / (TD.UNITS.brute.r * 4.4)); g.drawImage(S.c, 42 - sz / 2, 66 - sz * 0.72, sz, sz); })));
+    P.querySelectorAll('[data-tg]').forEach(b => b.onclick = () => { atkUI.target = b.dataset.tg === 'all' ? 'all' : +b.dataset.tg; if (atkUI.target !== 'all') lookAtLane(atkUI.target); renderAtk(); });
+    P.querySelectorAll('[data-qty]').forEach(b => b.onclick = () => { atkUI.qty = +b.dataset.qty; renderAtk(); });
+    P.querySelectorAll('[data-unit]').forEach(b => b.onclick = () => { if (b.classList.contains('off')) return; send({ c: 'send', k: b.dataset.unit, lane: atkUI.target, n: atkUI.qty }); b.classList.remove('sent'); void b.offsetWidth; b.classList.add('sent'); });
+    P.querySelector('[data-speed]').onclick = () => send({ c: 'speed' });
+    P.querySelector('[data-invest]').onclick = () => send({ c: 'invest' });
+    const row = P.querySelector('.cards'); row.scrollLeft = sl;
+    row.addEventListener('wheel', e => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { row.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
+    P.dataset.key = '';
+  }
+  if (V.closed) return;
+  const key = JSON.stringify([A.gold, A.income, A.investCost, A.speed, A.speedCost]); if (P.dataset.key === key) return; P.dataset.key = key;
+  P.querySelector('[data-gold]').innerHTML = `💰 ${A.gold}<small>+${A.income}/s</small>`;
+  P.querySelectorAll('[data-unit]').forEach(b => { const U = TD.UNITS[b.dataset.unit], lock = V.t < U.unlock * 60; b.classList.toggle('off', lock || A.gold < U.cost * lanes * atkUI.qty); });
+  const spb = P.querySelector('[data-speed]'), maxed = A.speed >= TD.RULES.speedMax; spb.disabled = maxed || A.gold < A.speedCost; spb.innerHTML = maxed ? '👢 Speed maxed' : `👢 Speed ${A.speed + 1}/${TD.RULES.speedMax} · ${A.speedCost}g`;
+  const iv = P.querySelector('[data-invest]'); iv.disabled = A.gold < A.investCost; iv.innerHTML = `Invest ${A.investCost}g<small style="font-weight:600">&nbsp;+${Math.round(TD.RULES.investGain * V.defs.length * 10) / 10}/s</small>`;
 }
-$('menuBtn').onclick = () => openModal(`<h2>Menu</h2><p class="muted">One finger drags the map, two fingers pinch to zoom.${V && V.myDef ? ' Tap Build, then drag a tower from the tray onto the grid (white cells = it fits). Tap a tower to set its target or sell it. Drag a spell from its button onto the map to cast it (or tap the button, then tap the map).' : ''}${V && V.isAtk ? ' Pick a lane, tap units to queue them; the queue marches out every ' + TD.RULES.pulse + ' seconds.' : ''}</p><div class="row" style="margin-bottom:10px"><button class="btn" id="mMus">🎵 Music: ${AU.musOn ? 'On' : 'Off'}</button><button class="btn" id="mSfx">🔊 Sound: ${AU.sfxOn ? 'On' : 'Off'}</button></div><div class="row"><button class="btn" id="mResume">Resume</button><button class="btn danger" id="mQuit">Leave match</button></div>`, () => { $('mResume').onclick = closeModal; $('mMus').onclick = () => { setMusic(!AU.musOn); $('mMus').textContent = '🎵 Music: ' + (AU.musOn ? 'On' : 'Off'); }; $('mSfx').onclick = () => { setSfx(!AU.sfxOn); $('mSfx').textContent = '🔊 Sound: ' + (AU.sfxOn ? 'On' : 'Off'); }; $('mQuit').onclick = () => { closeModal(); quitGame(); }; });
+
+$('menuBtn').onclick = () => openModal(`<h2>Menu</h2><p class="muted">One finger drags the map, two fingers pinch to zoom.${V && V.myDef ? ' Tap Build, then drag a tower from the tray onto the grid (white cells = it fits). Tap a tower to set its target or sell it. Drag a spell from its button onto the map to cast it (or tap the button, then tap the map).' : ''}${V && V.isAtk ? ' Pick a lane and tap a unit: it marches out right away.' : ''}</p><div class="row" style="margin-bottom:10px"><button class="btn" id="mMus">🎵 Music: ${AU.musOn ? 'On' : 'Off'}</button><button class="btn" id="mSfx">🔊 Sound: ${AU.sfxOn ? 'On' : 'Off'}</button></div><div class="row"><button class="btn" id="mResume">Resume</button><button class="btn danger" id="mQuit">Leave match</button></div>`, () => { $('mResume').onclick = closeModal; $('mMus').onclick = () => { setMusic(!AU.musOn); $('mMus').textContent = '🎵 Music: ' + (AU.musOn ? 'On' : 'Off'); }; $('mSfx').onclick = () => { setSfx(!AU.sfxOn); $('mSfx').textContent = '🔊 Sound: ' + (AU.sfxOn ? 'On' : 'Off'); }; $('mQuit').onclick = () => { closeModal(); quitGame(); }; });
 function quitGame() { endGame(); V = null; $('atkPanel').classList.add('hidden'); if (L.mode === 'solo') { L.mode = null; show('menu'); renderMenu(); } else leaveLobby(); }
 function showEnd() {
   if (!V || !V.over) return; const atkWin = V.over.winner === 'atk', won = V.isAtk ? atkWin : (V.me && !atkWin), st = V.stats;
