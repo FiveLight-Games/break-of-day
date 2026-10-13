@@ -1175,6 +1175,7 @@ function frame(ms) {
   const d = build.drag;
   if (d && !d.overTray && d.c !== undefined) { for (let j = 0; j < FOOT; j++) for (let i = 0; i < FOOT; i++) { const cc = d.c + i, r = d.r + j, bad = cc < 0 || r < 0 || cc >= V.L.cols || r >= V.L.rows || V.L.blocked[r * V.L.cols + cc] || V.occ[r * V.L.cols + cc]; x.fillStyle = bad ? 'rgba(235,50,40,.78)' : d.ok ? 'rgba(255,255,255,.85)' : 'rgba(255,255,255,.4)'; x.fillRect(cc * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2); } x.strokeStyle = 'rgba(255,224,138,.5)'; x.lineWidth = 1.5; x.beginPath(); x.arc((d.c + 1) * CELL, (d.r + 1) * CELL, TD.TOWERS[d.k].r, 0, 7); x.stroke(); }
   x.fillStyle = 'rgba(0,0,0,.28)'; x.beginPath(); for (const u of V.units.values()) if (inView(u.x, u.y, 20)) { const qd = u.k === 'warg' || u.k === 'tarrasque' ? 1.7 : 1.1; x.moveTo(u.x + 3 + u.r * qd, u.y + u.r * 0.9); x.ellipse(u.x + 3, u.y + u.r * 0.9, u.r * qd, u.r * 0.45, 0, 0, 7); } x.fill();
+  if (z > 0.45) { const sr = TD.UNITS.sapper.sapper.r; x.setLineDash([5, 6]); x.lineWidth = 1.5; for (const u of V.units.values()) if (u.k === 'sapper' && !(u.frAt !== undefined && V.clock - u.frAt < 0.45) && inView(u.x, u.y, sr)) { x.strokeStyle = 'rgba(255,200,80,.28)'; x.beginPath(); x.arc(u.x, u.y, sr, 0, 7); x.stroke(); } x.setLineDash([]); }
   const list = [];
   for (const tr of V.L.trees) if (!V.treeGone.has(tr.id) && inView(tr.x, tr.y, 40)) list.push([tr.y, 4, tr]);
   list.push([V.L.base.y + 40, 5, null]);

@@ -276,11 +276,13 @@ class Sim {
   // knights notice towers and charge; sappers pick a tower and break off from the lane
   scan(u, U) {
     const R2 = (U.charge ? U.charge.r : U.sapper.r) ** 2; let best = null, bd = R2;
-    for (const t of this.towers) { if (t.ready > this.t || (U.sapper && (t.off > this.t || t.sapped))) continue; const d2 = (t.x - u.x) ** 2 + (t.y - u.y) ** 2; if (d2 < bd) { bd = d2; best = t; } }
+    for (const t of this.towers) { if (U.charge && t.ready > this.t) continue; if (U.sapper && (t.off > this.t || this.claimed(t))) continue; const d2 = (t.x - u.x) ** 2 + (t.y - u.y) ** 2; if (d2 < bd) { bd = d2; best = t; } }
     if (!best) return;
     if (U.charge) { u.charged = 1; u.chargeUntil = this.t + U.charge.t; this.ev(['ch', u.id]); }
     else { u.run = best.id; best.sapped = u.id; u.mvT = this.t; }
   }
+  // a tower is claimed while a living sapper is sprinting at it
+  claimed(t) { if (!t.sapped) return false; const s2 = this.units.find(o => o.id === t.sapped); if (s2 && s2.hp > 0 && s2.run === t.id) return true; t.sapped = 0; return false; }
   stepSapper(u, dt) {
     const U = UNITS[u.k], t = this.towers.find(o => o.id === u.run);
     if (!t) { u.run = 0; return; }   // tower sold: walk back onto the lane
@@ -309,6 +311,7 @@ class Sim {
       const share = UNITS[u.k].bounty / this.N; for (const d of this.defs) { d.gold += share; d.shared += share; }
       this.ev(['d', u.id, type, Math.round(sx !== undefined ? sx : t.x), Math.round(sy !== undefined ? sy : t.y)]);
       if (u.pk) this.packDead[u.pk] = (this.packDead[u.pk] || 0) + 1;
+      if (u.run) { const tt = this.towers.find(o => o.id === u.run); if (tt && tt.sapped === u.id) tt.sapped = 0; }
       if (!u.run) this.graves.push({ l: u.l, d: u.d, off: u.off, x: u.x, y: u.y, t: this.t });
       if (Ua.spill) for (let i = 0; i < Ua.spill.n; i++) this.spawn(Ua.spill.k, u.l, { d: u.d + rr(this.R, -12, 12), off: Math.max(-LANE + 10, Math.min(LANE - 10, u.off + rr(this.R, -20, 20))) });
     }
