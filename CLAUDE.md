@@ -1,7 +1,7 @@
 # Project notes
 
-The previous game (Break of Day) was scrapped on 2026-10-13. Its full code is kept in git history under the tag
-`archive/break-of-day-v0.15`. This repo is a clean slate for the next game.
+The previous game (Break of Day) was scrapped on 2026-10-13. Its full code (v0.15) is kept on the
+`archive/break-of-day` branch. This repo is a clean slate for the next game.
 
 ## Versioning (standard for every game here)
 - Player-facing version is `v0.NN`, +0.01 per shipped build; `v0.00` means nothing shipped yet. Show it in the game's main menu

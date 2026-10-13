@@ -1,3 +1,3 @@
 # New game (in planning)
 
-Clean slate. The previous game, Break of Day, is archived in git history at tag `archive/break-of-day-v0.15`.
+Clean slate. The previous game, Break of Day, is archived on the `archive/break-of-day` branch (v0.15).
