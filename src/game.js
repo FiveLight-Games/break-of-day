@@ -95,13 +95,12 @@ class Sim {
     this.atk = { pid: atk.pid, name: atk.name, color: atk.color, race: atk.race, bot: !!atk.bot, gold: RULES.atkGoldPer * this.N, income: RULES.atkIncomePer * this.N, invest: 0, speed: 0, queue: [], sent: 0, leaked: 0, spent: 0, dmg: 0 };
     this.players[atk.pid] = this.atk;
     this.defs = defs.map((p, i) => { const d = { pid: p.pid, name: p.name, color: p.color, race: p.race, bot: !!p.bot, slot: i, gold: RULES.defGold, income: RULES.defIncome, kills: 0, built: 0, dmg: 0, shared: 0 }; this.players[p.pid] = d; return d; });
-    this.units = []; this.towers = []; this.pulseT = RULES.pulse; this.wave = 0; this.votes = new Set(); this.spawnAt = []; this.pending = [];
+    this.units = []; this.towers = []; this.pulseT = RULES.pulse; this.wave = 0; this.spawnAt = []; this.pending = [];
     this.occ = new Uint8Array(this.L.cols * this.L.rows); this.grid = new Map();
   }
   // ---- inputs ----
   input(pid, c) {
     const P = this.players[pid]; if (!P || this.over) return;
-    if (c.c === 'vote') { if (P.bot || this.closed) return; if (this.votes.has(pid)) this.votes.delete(pid); else this.votes.add(pid); return; }
     if (P === this.atk) {
       if (this.closed) return;
       if (c.c === 'send') { const U = UNITS[c.k]; if (!U) return; const lanes = c.lane === 'all' ? this.defs.map(d => d.slot) : [this.defs[c.lane]].filter(Boolean).map(d => d.slot); const n = Math.max(1, Math.min(10, c.n | 0 || 1)), cost = U.cost * lanes.length * n; if (!lanes.length || P.gold < cost) return; P.gold -= cost; P.spent += cost; for (const l of lanes) for (let i = 0; i < n; i++) P.queue.push([c.k, l]); }
@@ -119,7 +118,6 @@ class Sim {
     else if (c.c === 'prio') { const t = this.towers.find(t => t.id === c.id && t.owner === pid); if (t && PRIORITIES.includes(c.p)) { t.prio = c.p; this.towerVer++; } }
   }
   mark(t, v) { for (let j = 0; j < FOOT; j++) for (let i = 0; i < FOOT; i++) this.occ[(t.r + j) * this.L.cols + t.c + i] = v; }
-  voters() { return [this.atk, ...this.defs].filter(p => !p.bot); }
   speedCost() { return Math.round(RULES.speedCost * this.N * Math.pow(1.6, this.atk.speed)); }
   investCost() { return Math.round(RULES.investCost * this.N * Math.pow(1.3, this.atk.invest)); }
   ev(e) { this.events.push(e); }
@@ -130,16 +128,11 @@ class Sim {
     // steady income every second
     const per = dt; this.atk.gold += this.atk.income * per; if (!this.closed) this.atk.income += RULES.atkGrowth * this.N * per / RULES.pulse; for (const d of this.defs) d.gold += d.income * per;
     // after the time limit the attacker can't send any more; the match ends when the field is clear
-    if (!this.closed && this.t >= RULES.length) { this.closed = true; this.atk.queue = []; this.votes.clear(); this.ev(['closed']); }
+    if (!this.closed && this.t >= RULES.length) { this.closed = true; this.atk.queue = []; this.ev(['closed']); }
     if (!this.closed) {
-      const voters = this.voters();
-      if (voters.length && voters.every(p => this.votes.has(p.pid)) && this.pulseT > 0.5) {
-        for (const p of voters) { const b = Math.round(p.income * this.pulseT * 0.5); p.gold += b; }
-        this.ev(['early', Math.round(this.pulseT)]); this.pulseT = 0;
-      }
       this.pulseT -= dt;
       if (this.pulseT <= 0) {
-        this.pulseT = Math.max(this.pulseT + RULES.pulse, 0.05); this.wave++; this.votes.clear();
+        this.pulseT = Math.max(this.pulseT + RULES.pulse, 0.05); this.wave++;
         const q = this.atk.queue; this.atk.queue = []; this.atk.sent += q.length;
         const perLane = {}; q.forEach(([k, l]) => { perLane[l] = (perLane[l] || 0) + 1; this.spawnAt.push({ at: this.t + Math.min(10, perLane[l] * 0.1), k, l }); });
         this.ev(['w', this.wave, q.length]);
@@ -226,7 +219,7 @@ class Sim {
     const s = { t: Math.round(this.t * 100) / 100, pu: Math.round(this.pulseT * 10) / 10, wv: this.wave, hp: this.hp, cl: this.closed ? 1 : 0,
       a: [Math.floor(this.atk.gold), Math.round(this.atk.income * 10) / 10, this.atk.invest, this.investCost(), this.atk.queue.map(q => UNIT_IDS.indexOf(q[0]) * 10 + q[1]), this.atk.speed, this.speedCost()],
       df: this.defs.map(d => [Math.floor(d.gold), Math.round(d.income * 10) / 10, d.kills]),
-      u: [], bm: this.beams || [], ev: this.events, over: this.over, vt: [this.voters().filter(p => this.votes.has(p.pid)).length, this.voters().length, [...this.votes]] };
+      u: [], bm: this.beams || [], ev: this.events, over: this.over };
     for (const u of this.units) s.u.push(u.id, Math.round(u.d * 10) / 10, Math.round(u.hp / u.max * 100), (u.slowU > this.t ? 1 : 0) | (u.burn > 0 ? 2 : 0));
     if (full || this.sentTowerVer !== this.towerVer || this.towers.some(t => t.ready > this.t)) { s.tw = this.towers.map(t => [t.id, t.slot, TOWER_IDS.indexOf(t.k), t.c, t.r, PRIORITIES.indexOf(t.prio), t.kills, t.spent, Math.max(0, Math.round((t.ready - this.t) * 100))]); s.tv = this.towerVer; this.sentTowerVer = this.towerVer; }
     if (full) { s.full = 1; s.units = this.units.map(u => [u.id, UNIT_IDS.indexOf(u.k), u.l, u.off, u.sp, Math.round(u.d)]); }

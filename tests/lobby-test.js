@@ -89,11 +89,13 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   await sleep(1200);
   check(await B.evaluate(() => window.TDC.V.atk.queue.length) === 21, 'attacker queue shows the wave');
   const goldBefore = await Promise.all([A, C].map(P => P.evaluate(() => window.TDC.V.myDef.gold)));
-  for (const P of [A, B, C]) await P.evaluate(() => window.TDC.send({ c: 'vote' }));
-  await sleep(1500);
+  check(!(await C.evaluate(() => !!document.getElementById('voteBtn'))), 'no Start Now button');
+  await C.waitForFunction(() => window.TDC.V.wave >= 1 && window.TDC.V.units.size > 0, null, { timeout: 20000 });
+  await C.evaluate(() => { window.__maxDead = 0; setInterval(() => { window.__maxDead = Math.max(window.__maxDead, (window.TDC.V.deadBars || []).length); }, 50); });
   const st = await C.evaluate(() => ({ units: window.TDC.V.units.size, wave: window.TDC.V.wave, gold: window.TDC.V.myDef.gold }));
-  check(st.wave >= 1 && st.units > 0, 'early vote launched the wave: ' + JSON.stringify(st));
+  check(st.wave >= 1 && st.units > 0, 'first wave marched on the timer: ' + JSON.stringify(st));
   await sleep(9000);
+  check(await C.evaluate(() => window.__maxDead) > 0, 'empty health bars linger after kills: max ' + await C.evaluate(() => window.__maxDead));
   const ks = await A.evaluate(() => window.TDC.GS.sim.defs.map(d => ({ kills: d.kills, shared: d.shared })));
   check(ks.some(k => k.kills > 0) && ks[0].shared === ks[1].shared && ks[0].shared > 0, 'kill gold is shared equally: ' + JSON.stringify(ks));
   await C.evaluate(() => window.TDC.lookAtLane(window.TDC.V.myDef.slot)); await sleep(300);

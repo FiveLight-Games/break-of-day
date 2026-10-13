@@ -262,7 +262,7 @@ function startGame(cfg, mode) {
   const defs = cfg.players.filter(p => p.role === 'def'), atk = cfg.players.find(p => p.role === 'atk'), Lo = TD.layout(cfg.map, defs.length);
   V = { cfg, L: Lo, defs: defs.map((p, i) => Object.assign({ slot: i, gold: 0, income: 0, kills: 0 }, p)), atk: Object.assign({ gold: 0, income: 0, invest: 0, investCost: 0, queue: [] }, atk),
     world: { W: Lo.W, H: Lo.H }, units: new Map(), towers: [], towerMap: new Map(), beams: [], t: 0, pulse: TD.RULES.pulse, wave: 0, hp: TD.RULES.hpPer * defs.length, hpMax: TD.RULES.hpPer * defs.length, closed: false, over: null,
-    shots: [], fx: [], corpses: [], parts: [], tiles: new Map(), sel: null, baseFlash: -9, vote: [0, 0, []], treeGone: new Set(), occ: new Uint8Array(Lo.cols * Lo.rows) };
+    shots: [], fx: [], corpses: [], parts: [], tiles: new Map(), sel: null, baseFlash: -9, treeGone: new Set(), occ: new Uint8Array(Lo.cols * Lo.rows) };
   V.me = cfg.players.find(p => p.pid === myPid) || null; V.myDef = V.defs.find(d => d.pid === myPid) || null; V.isAtk = V.atk.pid === myPid;
   V.atkCol = colHex(V.atk.color);
   atkUI.target = 'all'; atkUI.qty = 1; build.on = false; build.drag = null;
@@ -295,7 +295,7 @@ function unitXY(u) { const p = V.L.lanes[u.l].at(u.dr); u.x = p[0] + Math.cos(p[
 function addUnit(id, ki, l, off, sp, d) { if (V.units.has(id) || !V.L.lanes[l]) return; const u = { id, k: TD.UNIT_IDS[ki], l, off, sp, dr: d, err: 0, hp: 100, f: 0, ph: Math.random() * 6 }; u.r = TD.UNITS[u.k].r; unitXY(u); V.units.set(id, u); }
 function clearTrees(t) { const x0 = t.c * CELL - 8, y0 = t.r * CELL - 8, x1 = (t.c + FOOT) * CELL + 8, y1 = (t.r + FOOT) * CELL + 8; for (const tr of V.L.trees) if (!V.treeGone.has(tr.id) && tr.x > x0 && tr.x < x1 && tr.y > y0 && tr.y < y1 + 10) { V.treeGone.add(tr.id); if (onScreen(tr.x, tr.y, 60)) for (let i = 0; i < 8; i++) particle('dirt', tr.x, tr.y, rr(4, 20), rr(-60, 60), rr(-40, 40), rr(60, 160), rr(0.4, 0.8), tr.rock ? '#8a877e' : '#3a6a2e', rr(2, 4)); } }
 function applySnap(s) {
-  V.t = s.t; V.pulse = s.pu; V.wave = s.wv; V.vote = s.vt || V.vote; V.closed = !!s.cl;
+  V.t = s.t; V.pulse = s.pu; V.wave = s.wv; V.closed = !!s.cl;
   if (s.hp < V.hp) V.baseFlash = V.clock || 0; V.hp = s.hp;
   V.atk.gold = s.a[0]; V.atk.income = s.a[1]; V.atk.invest = s.a[2]; V.atk.investCost = s.a[3]; V.atk.queue = s.a[4]; V.atk.speed = s.a[5] || 0; V.atk.speedCost = s.a[6] || 0;
   s.df.forEach((d, i) => { const D = V.defs[i]; if (!D) return; D.gold = d[0]; D.income = d[1]; D.kills = d[2]; });
@@ -329,7 +329,6 @@ function handleEvent(e) {
   else if (k === 'sl') V.fx.push({ k: 'boom', x: e[1], y: e[2], t0: V.clock, small: 1 });
   else if (k === 'lk') { V.units.delete(e[1]); V.fx.push({ k: 'leak', x: V.L.base.x + rr(-40, 40), y: V.L.base.y - 110, n: e[2], t0: V.clock }); }
   else if (k === 'closed') toast('Time! No more units can be sent. Clear the field.');
-  else if (k === 'early') toast('Wave started early: ' + e[1] + 's skipped, bonus gold paid');
   else if (k === 'w') { if (V.isAtk && e[2]) toast('Wave ' + e[1] + ' marches: ' + e[2] + ' units'); }
 }
 
@@ -648,9 +647,7 @@ function renderHUD(force) {
   const left = TD.RULES.length - V.t;
   $('clock').innerHTML = V.closed ? `⏱ Final push · ${V.units.size} left` : `⏱ ${fmtT(left)}`;
   $('hpChip').innerHTML = `🏰 <b style="color:${V.hp > V.hpMax * .5 ? '#9ff08a' : V.hp > V.hpMax * .25 ? '#f0c419' : '#ff7a6a'}">${Math.ceil(V.hp)}</b><small>/ ${V.hpMax}</small>`;
-  const me = V.me && !V.me.bot && !V.closed, voted = V.vote && V.vote[2].includes(myPid), inc = V.isAtk ? V.atk.income : V.myDef ? V.myDef.income : 0, bonus = Math.round(inc * Math.max(0, V.pulse) * 0.5);
-  $('waveChip').innerHTML = V.closed ? 'No more waves' : `Wave ${V.wave + 1} in <b>${fmtT(V.pulse)}</b>${me ? `<button class="btn sm ${voted ? 'primary' : ''}" id="voteBtn" style="min-height:28px;padding:3px 9px;margin-left:4px">${voted ? '✓ Voted' : 'Start now +' + bonus + 'g'}${V.vote[1] > 1 ? ' · ' + V.vote[0] + '/' + V.vote[1] : ''}</button>` : ''}`;
-  const vb = $('voteBtn'); if (vb) vb.onclick = () => { send({ c: 'vote' }); V.vote[2] = voted ? V.vote[2].filter(p => p !== myPid) : V.vote[2].concat(myPid); renderHUD(true); };
+  $('waveChip').innerHTML = V.closed ? 'No more waves' : `Wave ${V.wave + 1} in <b>${fmtT(V.pulse)}</b>`;
   $('defChips').innerHTML = V.defs.map(d => `<div class="dchip ${d.pid === myPid ? 'me' : ''}" data-lane="${d.slot}"><span class="sw" style="background:${colHex(d.color)}"></span>${esc(d.name)}<span class="lv" style="color:var(--muted)">${d.kills} kills</span></div>`).join('') + `<div class="dchip" style="cursor:default"><span class="sw" style="background:${V.atkCol}"></span>${esc(V.atk.name)}<span class="lv" style="color:var(--muted)">attacker</span></div>`;
   $('defChips').querySelectorAll('[data-lane]').forEach(b => b.onclick = () => lookAtLane(+b.dataset.lane));
   const tb = $('topBar').getBoundingClientRect(), narrow = innerWidth <= 640; $('defChips').style.top = narrow ? (tb.bottom + 6) + 'px' : ''; $('ecoBar').style.top = narrow ? (tb.bottom + 6) + 'px' : '';
@@ -696,7 +693,7 @@ function frame(ms) {
   const dt = Math.min(0.05, (ms - lastF) / 1000); lastF = ms;
   if (!GS.running || !V) return;
   V.clock = (V.clock || 0) + dt;
-  if (V.deadBars && V.deadBars.length) V.deadBars = V.deadBars.filter(b => V.clock - b.t < 0.2);
+  if (V.deadBars && V.deadBars.length) V.deadBars = V.deadBars.filter(b => V.clock - b.t < 0.4);
   if (!V.over) stepFx(dt);
   if (GS.mode === 'client' && performance.now() - GS.lastNet > 6000) { $('netOv').classList.remove('hidden'); $('netTxt').textContent = 'Waiting for the host…'; } else $('netOv').classList.add('hidden');
   const z = cam.z, vx0 = cam.x - VW / 2 / z, vy0 = cam.y - VH / 2 / z, vx1 = cam.x + VW / 2 / z, vy1 = cam.y + VH / 2 / z, inView = (px, py, m) => px > vx0 - m && px < vx1 + m && py > vy0 - m && py < vy1 + m;
@@ -727,7 +724,7 @@ function frame(ms) {
   }
   if (d && !d.overTray && d.c !== undefined) { x.globalAlpha = 0.75; x.save(); x.translate((d.c + 1) * CELL, (d.r + 1) * CELL); towerBody(x, d.k, colHex(V.myDef.color), -Math.PI / 2, V.clock, 0, 1); x.restore(); x.globalAlpha = 1; }
   if (z > 0.5) { x.fillStyle = '#000a'; for (const u of V.units.values()) if (u.hp < 100 && inView(u.x, u.y, 20)) x.fillRect(u.x - u.r * 1.3 - 0.5, u.y - u.r * 2.3 - 0.5, u.r * 2.6 + 1, 3); for (const u of V.units.values()) if (u.hp < 100 && inView(u.x, u.y, 20)) { x.fillStyle = u.hp > 40 ? '#6ae06a' : '#e0503a'; x.fillRect(u.x - u.r * 1.3, u.y - u.r * 2.3, u.r * 2.6 * u.hp / 100, 2); }
-    if (V.deadBars && V.deadBars.length) { x.fillStyle = '#000a'; for (const b of V.deadBars) if (inView(b.x, b.y, 20)) x.fillRect(b.x - b.r * 1.3 - 0.5, b.y - b.r * 2.3 - 0.5, b.r * 2.6 + 1, 3); } }
+    if (V.deadBars && V.deadBars.length) { for (const b of V.deadBars) if (inView(b.x, b.y, 20)) { x.fillStyle = '#000'; x.fillRect(b.x - b.r * 1.3 - 0.5, b.y - b.r * 2.3 - 0.5, b.r * 2.6 + 1, 3); x.fillStyle = '#5a1a14'; x.fillRect(b.x - b.r * 1.3, b.y - b.r * 2.3, b.r * 2.6, 2); } } }
   for (let i = 0; i < V.beams.length; i += 2) { const t = V.towerMap.get(V.beams[i]), b = V.units.get(V.beams[i + 1]); if (!t || !b || !inView(t.x, t.y, 200)) continue; const fl = 0.7 + 0.3 * Math.sin(V.clock * 40); x.strokeStyle = `rgba(255,90,40,${0.45 * fl})`; x.lineWidth = 6; x.lineCap = 'round'; x.beginPath(); x.moveTo(t.x, t.y - 20); x.lineTo(b.x, b.y - b.r); x.stroke(); x.strokeStyle = '#fff0c0'; x.lineWidth = 2; x.stroke(); }
   for (const s of V.shots) { if (!inView(s.x, s.y, 20)) continue; if (s.k === 'cannon') { x.fillStyle = '#1e1e22'; x.beginPath(); x.arc(s.x, s.y - s.h + 6, 4.5, 0, 7); x.fill(); continue; } x.save(); x.translate(s.x, s.y - s.h + 16); x.rotate(s.a || 0); if (s.k === 'archer') { x.strokeStyle = '#3a2a1a'; x.lineWidth = 1.6; x.beginPath(); x.moveTo(-8, 0); x.lineTo(6, 0); x.stroke(); x.fillStyle = '#ccc'; x.fillRect(5, -1.5, 3, 3); } else { x.fillStyle = '#c8f0ff'; x.beginPath(); x.moveTo(7, 0); x.lineTo(0, -3.5); x.lineTo(-5, 0); x.lineTo(0, 3.5); x.fill(); } x.restore(); }
   for (const p of V.parts) { if (!p.p || !inView(p.x, p.y, 20)) continue; const q = p.life / p.max; x.globalAlpha = 1 - q * q;
