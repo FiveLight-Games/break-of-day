@@ -1,17 +1,1 @@
-[
-  {"v": "0.01", "build": "42cd55", "commit": "54beef2", "date": "2026-10-12", "notes": "Initial playable build"},
-  {"v": "0.02", "build": "67c400", "commit": "8230982", "date": "2026-10-12", "notes": "Long War mode (~45 min)"},
-  {"v": "0.03", "build": "14e271", "commit": "135a50b", "date": "2026-10-12", "notes": "Polish pass: mobile controls, bigger world, terrain, fog of war, VFX, outposts"},
-  {"v": "0.04", "build": "86317f", "commit": "1570129", "date": "2026-10-12", "notes": "Connect War-style lobby system and new main menu"},
-  {"v": "0.05", "build": "ca4dc6", "commit": "38b9457", "date": "2026-10-12", "notes": "Themed winding lanes, minimap blackout, camera look-ahead"},
-  {"v": "0.06", "build": "5fa64f", "commit": "7151812", "date": "2026-10-12", "notes": "Faster world build, steadier menus"},
-  {"v": "0.07", "build": "716900", "commit": "5c32c8f", "date": "2026-10-12", "notes": "Gated bases, lane war camps, new hero models, combat feel"},
-  {"v": "0.08", "build": "e9fa5c", "commit": "289e501", "date": "2026-10-12", "notes": "Solid buildings, town palisades, allied minions removed"},
-  {"v": "0.09", "build": "52d2ed", "commit": "d56bcff", "date": "2026-10-12", "notes": "Opening cinematic"},
-  {"v": "0.10", "build": "3757ed", "commit": "3a50ca1", "date": "2026-10-12", "notes": "Control settings: static/dynamic joystick, custom layout"},
-  {"v": "0.11", "build": "4cdd13", "commit": "4f237af", "date": "2026-10-12", "notes": "Version numbers: v0.01 per build, build log"},
-  {"v": "0.12", "build": "0f66dc", "commit": "b219d78", "date": "2026-10-12", "notes": "XP bar with numbers, XP gain readouts, level-up gold aura"},
-  {"v": "0.13", "build": "4b5919", "commit": "fac9171", "date": "2026-10-12", "notes": "Gate sentries, towers +30% vs lane minions, siege every 5th day"},
-  {"v": "0.14", "build": "8e9e21", "commit": "cea8b3f", "date": "2026-10-12", "notes": "Lane camp mobs and gate defenders ignore each other"},
-  {"v": "0.15", "build": "5a850b", "commit": "", "date": "2026-10-12", "notes": "26 small jungle camps of every type"}
-]
+[]
