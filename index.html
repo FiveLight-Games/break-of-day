@@ -202,7 +202,7 @@ table.stats td:first-child,table.stats th:first-child{text-align:left}
 <div id="netOv" class="hidden"><div class="spin"></div><b id="netTxt">Reconnecting…</b><button class="btn sm" id="netLeave">Leave match</button></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script>window.TD_BUILD='0c28b6';window.TD_VER='0.10';</script>
+<script>window.TD_BUILD='f45b92';window.TD_VER='0.11';</script>
 <script>// Shared game rules. The host's browser runs Sim; everyone else renders the host's snapshots.
 (function (G) {
 'use strict';
@@ -281,7 +281,7 @@ const TOWERS = {
 const TOWER_IDS = Object.keys(TOWERS);
 // ---------------- defender spells (free for now) ----------------
 const SPELLS = {
-  meteor: { n: 'Meteor', cd: 20, fall: 0.75, core: 90, edge: 165, fireDur: 6, fireDps: 110, tip: 'Crushes everything at the center, blasts the edge back and leaves the ground burning.' },
+  meteor: { n: 'Meteor', cd: 20, fall: 0.75, core: 45, edge: 165, fireR: 90, fireDur: 6, fireDps: 110, tip: 'Crushes everything at the center, blasts the edge back and leaves the ground burning.' },
   jet: { n: 'Water Jet', cd: 20, drop: 0.55, unfold: 1.45, life: 8, r: 200, cone: 0.34, dps: 18, tip: 'Drops a pump that unfolds and blasts oncoming enemies back with high-pressure water.' },
 };
 const SPELL_IDS = Object.keys(SPELLS);
@@ -425,7 +425,7 @@ class Sim {
         const f = 1 - (d - M.core) / (M.edge - M.core); this.hurt(u, 120 + 380 * f, 'meteor', m.src, m.x, m.y);
         if (u.hp > 0) { this.shove(u, (u.x - m.x) / d, (u.y - m.y) / d, 420 * f, 160 * f); u.air = 0.35 + 0.3 * f; u.burn = 1.2; }
       });
-      this.fields.push({ x: m.x, y: m.y, r: M.core, until: this.t + M.fireDur, tick: 0, src: m.src });
+      this.fields.push({ x: m.x, y: m.y, r: M.fireR, until: this.t + M.fireDur, tick: 0, src: m.src });
     }
     this.meteors = this.meteors.filter(m => !m.done);
     for (const f of this.fields) { f.tick -= dt; if (f.tick > 0) continue; f.tick = 0.2; this.near(f.x, f.y, f.r, u => { u.burn = 0.6; this.hurt(u, M.fireDps * 0.2, 'fire', f.src, f.x, f.y); }); }
@@ -1097,8 +1097,8 @@ const M_SP = () => TD.SPELLS.meteor, J_SP = () => TD.SPELLS.jet;
 function meteorImpact(mx, my) {
   let bi = -1, bd = 1e9; V.meteors.forEach((m, i) => { const d = Math.hypot(m.x - mx, m.y - my); if (d < bd) { bd = d; bi = i; } }); if (bi >= 0) V.meteors.splice(bi, 1);
   const M = M_SP(), vis = onScreen(mx, my, 300);
-  V.fields.push({ x: mx, y: my, r: M.core, t0: V.clock, dur: M.fireDur, flames: Array.from({ length: 34 }, () => { const a = rr(0, 6.28), r = Math.sqrt(Math.random()) * M.core * 0.95; return [mx + Math.cos(a) * r, my + Math.sin(a) * r, rr(0.6, 1.25), rr(0, 6)]; }).sort((a, b) => a[1] - b[1]) });
-  stain(mx, my, M.core * 1.15, '#1c1612', 0.75); stain(mx, my, M.core * 0.6, '#0e0b09', 0.8);
+  V.fields.push({ x: mx, y: my, r: M.fireR, t0: V.clock, dur: M.fireDur, flames: Array.from({ length: 34 }, () => { const a = rr(0, 6.28), r = Math.sqrt(Math.random()) * M.fireR * 0.95; return [mx + Math.cos(a) * r, my + Math.sin(a) * r, rr(0.6, 1.25), rr(0, 6)]; }).sort((a, b) => a[1] - b[1]) });
+  stain(mx, my, M.fireR * 1.15, '#1c1612', 0.75); stain(mx, my, M.fireR * 0.6, '#0e0b09', 0.8);
   onGround(mx - 60, my - 40, mx + 60, my + 40, g => { g.globalAlpha = 0.9; g.fillStyle = '#2a211a'; g.beginPath(); g.ellipse(mx, my, 34, 22, 0, 0, 7); g.fill(); g.fillStyle = '#4a3a2a'; g.beginPath(); g.ellipse(mx - 3, my - 3, 26, 15, 0, 0, 7); g.fill(); g.fillStyle = '#3a2a1e'; g.beginPath(); g.ellipse(mx + 2, my + 2, 18, 10, 0, 0, 7); g.fill(); g.globalAlpha = 1; });
   sfx('meteor', mx, my);
   if (!vis) return;

@@ -76,7 +76,7 @@ const TOWERS = {
 const TOWER_IDS = Object.keys(TOWERS);
 // ---------------- defender spells (free for now) ----------------
 const SPELLS = {
-  meteor: { n: 'Meteor', cd: 20, fall: 0.75, core: 90, edge: 165, fireDur: 6, fireDps: 110, tip: 'Crushes everything at the center, blasts the edge back and leaves the ground burning.' },
+  meteor: { n: 'Meteor', cd: 20, fall: 0.75, core: 45, edge: 165, fireR: 90, fireDur: 6, fireDps: 110, tip: 'Crushes everything at the center, blasts the edge back and leaves the ground burning.' },
   jet: { n: 'Water Jet', cd: 20, drop: 0.55, unfold: 1.45, life: 8, r: 200, cone: 0.34, dps: 18, tip: 'Drops a pump that unfolds and blasts oncoming enemies back with high-pressure water.' },
 };
 const SPELL_IDS = Object.keys(SPELLS);
@@ -220,7 +220,7 @@ class Sim {
         const f = 1 - (d - M.core) / (M.edge - M.core); this.hurt(u, 120 + 380 * f, 'meteor', m.src, m.x, m.y);
         if (u.hp > 0) { this.shove(u, (u.x - m.x) / d, (u.y - m.y) / d, 420 * f, 160 * f); u.air = 0.35 + 0.3 * f; u.burn = 1.2; }
       });
-      this.fields.push({ x: m.x, y: m.y, r: M.core, until: this.t + M.fireDur, tick: 0, src: m.src });
+      this.fields.push({ x: m.x, y: m.y, r: M.fireR, until: this.t + M.fireDur, tick: 0, src: m.src });
     }
     this.meteors = this.meteors.filter(m => !m.done);
     for (const f of this.fields) { f.tick -= dt; if (f.tick > 0) continue; f.tick = 0.2; this.near(f.x, f.y, f.r, u => { u.burn = 0.6; this.hurt(u, M.fireDps * 0.2, 'fire', f.src, f.x, f.y); }); }

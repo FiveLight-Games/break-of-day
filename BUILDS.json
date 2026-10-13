@@ -8,5 +8,6 @@
   {"v": "0.07", "build": "787b23", "commit": "017af70", "date": "2026-10-13", "notes": "Empty health bar lingers 0.25s"},
   {"v": "0.08", "build": "4be5b3", "commit": "0ba3d34", "date": "2026-10-13", "notes": "Archer Post fires two arrows (one per archer, 13 dmg each), second 0.15-0.35s after the first"},
   {"v": "0.09", "build": "11d1d7", "commit": "661e385", "date": "2026-10-13", "notes": "Build tray info strip (tap a tower for its stats); Done button sits above the tray"},
-  {"v": "0.10", "build": "0c28b6", "commit": "", "date": "2026-10-13", "notes": "Defender spells: Meteor and Water Jet (drag or tap to cast, 20s cooldowns); sound effects and music"}
+  {"v": "0.10", "build": "0c28b6", "commit": "13cefb4", "date": "2026-10-13", "notes": "Defender spells: Meteor and Water Jet (drag or tap to cast, 20s cooldowns); sound effects and music"},
+  {"v": "0.11", "build": "f45b92", "commit": "", "date": "2026-10-13", "notes": "Meteor direct-hit radius halved (90 -> 45)"}
 ]

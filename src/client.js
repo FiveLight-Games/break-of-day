@@ -582,8 +582,8 @@ const M_SP = () => TD.SPELLS.meteor, J_SP = () => TD.SPELLS.jet;
 function meteorImpact(mx, my) {
   let bi = -1, bd = 1e9; V.meteors.forEach((m, i) => { const d = Math.hypot(m.x - mx, m.y - my); if (d < bd) { bd = d; bi = i; } }); if (bi >= 0) V.meteors.splice(bi, 1);
   const M = M_SP(), vis = onScreen(mx, my, 300);
-  V.fields.push({ x: mx, y: my, r: M.core, t0: V.clock, dur: M.fireDur, flames: Array.from({ length: 34 }, () => { const a = rr(0, 6.28), r = Math.sqrt(Math.random()) * M.core * 0.95; return [mx + Math.cos(a) * r, my + Math.sin(a) * r, rr(0.6, 1.25), rr(0, 6)]; }).sort((a, b) => a[1] - b[1]) });
-  stain(mx, my, M.core * 1.15, '#1c1612', 0.75); stain(mx, my, M.core * 0.6, '#0e0b09', 0.8);
+  V.fields.push({ x: mx, y: my, r: M.fireR, t0: V.clock, dur: M.fireDur, flames: Array.from({ length: 34 }, () => { const a = rr(0, 6.28), r = Math.sqrt(Math.random()) * M.fireR * 0.95; return [mx + Math.cos(a) * r, my + Math.sin(a) * r, rr(0.6, 1.25), rr(0, 6)]; }).sort((a, b) => a[1] - b[1]) });
+  stain(mx, my, M.fireR * 1.15, '#1c1612', 0.75); stain(mx, my, M.fireR * 0.6, '#0e0b09', 0.8);
   onGround(mx - 60, my - 40, mx + 60, my + 40, g => { g.globalAlpha = 0.9; g.fillStyle = '#2a211a'; g.beginPath(); g.ellipse(mx, my, 34, 22, 0, 0, 7); g.fill(); g.fillStyle = '#4a3a2a'; g.beginPath(); g.ellipse(mx - 3, my - 3, 26, 15, 0, 0, 7); g.fill(); g.fillStyle = '#3a2a1e'; g.beginPath(); g.ellipse(mx + 2, my + 2, 18, 10, 0, 0, 7); g.fill(); g.globalAlpha = 1; });
   sfx('meteor', mx, my);
   if (!vis) return;
