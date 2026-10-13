@@ -45,29 +45,71 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(!(await A.evaluate(() => document.getElementById('btnReady').disabled)), 'host can start once ready');
   await A.click('#btnReady'); await sleep(1500);
   for (const [p, t] of [[A, 'A'], [B, 'B'], [C, 'C']]) check(await p.evaluate(() => !!(window.TDC.V && window.TDC.GS.running)), t + ' is in the match');
-  // defenders build on the first pads; attacker sends
-  for (const P of [A, C]) await P.evaluate(() => { const V = window.TDC.V, D = V.myDef; for (const i of [3, 6, 9]) { window.TDC.send({ c: 'build', k: ['archer', 'cannon', 'frost'][i % 3], pad: i }); } });
+  // free 2x2 spots near my lane, scored by distance to the lane point at path distance d
+  const spots = (P, n, d) => P.evaluate(([n, d]) => { const V = window.TDC.V, L = V.L, lane = L.lanes[V.myDef.slot], pt = lane.at(d), out = [], occ = V.occ.slice();
+    const cand = []; for (let r = 0; r < L.rows - 1; r++) for (let c = 0; c < L.cols - 1; c++) { const x = (c + 1) * 24, y = (r + 1) * 24, dd = Math.hypot(x - pt[0], y - pt[1]); if (dd < 260) cand.push([dd, c, r]); }
+    cand.sort((a, b) => a[0] - b[0]); for (const [, c, r] of cand) { if (out.length >= n) break; if (TD.footFree(L, c, r, occ)) { out.push([c, r]); for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) occ[(r + j) * L.cols + c + i] = 1; } } return out; }, [n, d]);
+  check(await A.evaluate(() => window.TDC.V.hp === 500 && window.TDC.V.hpMax === 500), 'shared base HP = 250 x 2 defenders');
+  check(await A.evaluate(() => document.getElementById('hpChip').textContent.includes('500')), 'HP chip shows 500');
+  check(await B.evaluate(() => document.getElementById('buildBtn').classList.contains('hidden')), 'attacker has no Build button');
+  // C: real drag from the tray onto the field (mouse pointer, so no finger offset)
+  await C.click('#buildBtn'); await sleep(300);
+  check(await C.isVisible('#buildTray'), 'build mode opens the tray');
+  const g0 = await C.evaluate(() => window.TDC.V.myDef.gold);
+  const [[tc, tr]] = await spots(C, 1, 450);
+  await C.evaluate(([c, r]) => { const cam = window.TDC.cam; cam.x = (c + 1) * 24; cam.y = (r + 1) * 24; }, [tc, tr]); await sleep(200);
+  const card = await C.locator('#buildTray [data-tw=archer]').boundingBox();
+  await C.mouse.move(card.x + card.width / 2, card.y + card.height / 2); await C.mouse.down();
+  await C.mouse.move(195, 600, { steps: 5 }); await C.mouse.move(195, 422, { steps: 5 }); await sleep(250);
+  const dr = await C.evaluate(() => { const d = window.TDC.build.drag; return d && { ok: d.ok, c: d.c, r: d.r }; });
+  check(dr && dr.ok, 'drag over a free spot is valid: ' + JSON.stringify(dr));
+  await C.screenshot({ path: OUT + '/build-drag.png' });
+  check(await C.evaluate(() => window.TDC.V.myDef.gold) === g0, 'no gold spent while dragging');
+  await C.mouse.up(); await sleep(600);
+  check(await C.evaluate(() => window.TDC.V.towers.length) === 1, 'tower placed on release');
+  await C.screenshot({ path: OUT + '/build-construct.png' });
+  check(await C.evaluate(g0 => window.TDC.V.myDef.gold <= g0 - 60 + 2, g0), 'gold spent on build');
+  // drag onto the occupied spot shows red / invalid, then drop back on the tray cancels
+  await C.mouse.move(card.x + card.width / 2, card.y + card.height / 2); await C.mouse.down(); await C.mouse.move(195, 422, { steps: 6 }); await sleep(150);
+  check(await C.evaluate(() => !window.TDC.build.drag.ok), 'occupied cells are invalid');
+  await C.screenshot({ path: OUT + '/build-blocked.png' });
+  await C.mouse.move(card.x + card.width / 2, card.y + 10, { steps: 6 }); await C.mouse.up(); await sleep(400);
+  check(await C.evaluate(() => window.TDC.V.towers.length) === 1, 'dropping back on the tray cancels');
+  // a tower on a road cell is refused by the host
+  await A.evaluate(() => { const L = window.TDC.V.L, p = L.lanes[0].at(600); window.TDC.send({ c: 'build', k: 'archer', c2: Math.round(p[0] / 24 - 1), r: Math.round(p[1] / 24 - 1) }); });
+  // both defenders build more via input
+  for (const P of [A, C]) { const sp = await spots(P, 2, 300); await P.evaluate(sp => sp.forEach(([c, r], i) => window.TDC.send({ c: 'build', k: ['cannon', 'archer'][i], c2: c, r })), sp); }
+  await sleep(800);
+  const nt = await C.evaluate(() => window.TDC.V.towers.length);
+  check(nt === 5, 'towers from both defenders show on every screen, road build refused: ' + nt);
+  check(await C.evaluate(() => window.TDC.V.towers.some(t => t.readyAt > window.TDC.V.clock)), 'new towers are under construction');
+  await C.click('#buildBtn'); await sleep(200);
+  check(!(await C.isVisible('#buildTray')), 'Done closes build mode');
   await B.evaluate(() => { window.TDC.send({ c: 'send', k: 'grunt', lane: 'all', n: 10 }); window.TDC.send({ c: 'send', k: 'brute', lane: 0, n: 1 }); });
   await sleep(1200);
-  check(await C.evaluate(() => window.TDC.V.towers.length) === 6, 'towers from both defenders show on every screen');
   check(await B.evaluate(() => window.TDC.V.atk.queue.length) === 21, 'attacker queue shows the wave');
-  // everyone votes to start early
+  const goldBefore = await Promise.all([A, C].map(P => P.evaluate(() => window.TDC.V.myDef.gold)));
   for (const P of [A, B, C]) await P.evaluate(() => window.TDC.send({ c: 'vote' }));
   await sleep(1500);
   const st = await C.evaluate(() => ({ units: window.TDC.V.units.size, wave: window.TDC.V.wave, gold: window.TDC.V.myDef.gold }));
   check(st.wave >= 1 && st.units > 0, 'early vote launched the wave: ' + JSON.stringify(st));
-  await sleep(6000);
-  await sleep(600);
-  await C.screenshot({ path: OUT + '/game-defender.png' }); await B.screenshot({ path: OUT + '/game-attacker.png' });
-  check(await C.evaluate(() => window.TDC.V.defs.every(d => d.alive)), 'match running');
+  await sleep(9000);
+  const ks = await A.evaluate(() => window.TDC.GS.sim.defs.map(d => ({ kills: d.kills, shared: d.shared })));
+  check(ks.some(k => k.kills > 0) && ks[0].shared === ks[1].shared && ks[0].shared > 0, 'kill gold is shared equally: ' + JSON.stringify(ks));
+  await C.evaluate(() => window.TDC.lookAtLane(window.TDC.V.myDef.slot)); await sleep(300);
+  await C.screenshot({ path: OUT + '/game-defender.png' }); await B.screenshot({ path: OUT + '/game-attacker.png' }); await A.screenshot({ path: OUT + '/game-host.png' });
+  await A.evaluate(() => { const c = window.TDC.cam, b = window.TDC.V.L.base; c.x = b.x; c.y = b.y - 120; c.z = 1.3; }); await sleep(300); await A.screenshot({ path: OUT + '/game-base.png' });
+  await A.evaluate(() => { const t = window.TDC.V.towers.filter(t => t.slot === 0), c = window.TDC.cam; c.x = t.reduce((s, o) => s + o.x, 0) / t.length; c.y = t.reduce((s, o) => s + o.y, 0) / t.length; c.z = 2.2; }); await sleep(300); await A.screenshot({ path: OUT + '/game-towers.png' });
+  check(await C.evaluate(() => !window.TDC.V.over), 'match running');
   // vs AI
   const D = await mk('D', 'Solo', { width: 390, height: 844 });
   await D.click('[data-act=vsai]'); await sleep(300);
   check(await D.evaluate(() => window.TDC.LS.seats[0] === 'ai'), 'vs AI: AI takes the attacker seat');
   await D.click('#btnReady'); await sleep(500);
-  await D.evaluate(() => { for (const i of [2, 4, 7, 10, 12]) window.TDC.send({ c: 'build', k: 'archer', pad: i }); });
+  { const sp = await spots(D, 5, 400); await D.evaluate(sp => sp.forEach(([c, r]) => window.TDC.send({ c: 'build', k: 'archer', c2: c, r })), sp); }
+  check(await D.evaluate(() => window.TDC.V.hpMax) === 250, 'solo base HP = 250');
   await sleep(20000);
-  const sd = await D.evaluate(() => ({ units: window.TDC.V.units.size, towers: window.TDC.V.towers.length, wave: window.TDC.V.wave, lives: window.TDC.V.myDef.lives }));
+  const sd = await D.evaluate(() => ({ units: window.TDC.V.units.size, towers: window.TDC.V.towers.length, wave: window.TDC.V.wave, hp: window.TDC.V.hp }));
   check(sd.wave >= 1 && sd.towers >= 3, 'vs AI match runs: ' + JSON.stringify(sd));
   await D.screenshot({ path: OUT + '/game-vsai.png' });
   check(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 5).join(' | ') : ''));
