@@ -8,8 +8,8 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
 (async () => {
   const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
   const errs = [], pages = new Set();
-  async function mk(tag, name) {
-    const ctx = await b.newContext({ viewport: { width: 1000, height: 560 } }); const p = await ctx.newPage();
+  async function mk(tag, name, vp) {
+    const ctx = await b.newContext({ viewport: vp || { width: 1000, height: 560 }, hasTouch: !!vp, isMobile: !!vp }); const p = await ctx.newPage(); p.setDefaultTimeout(8000);
     p.on('pageerror', e => errs.push(tag + ': ' + e.message + ' @ ' + (e.stack || '').split('\n').slice(1, 3).join(' '))); p.on('console', m => { if (m.type() === 'error' && !/ERR_FAILED|fonts/.test(m.text())) errs.push(tag + ' console: ' + m.text()); });
     await p.route('**/supabase-js@*/**', r => r.fulfill({ body: fs.readFileSync(__dirname + '/supabase-mock.js', 'utf8'), contentType: 'application/javascript' }));
     await p.route('**/fonts.g*/**', r => r.abort());
@@ -17,7 +17,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
     pages.add(p); await p.goto('http://localhost:8780/');
     await p.fill('#nameIn', name); await p.click('#nameForm button[type=submit]'); await sleep(100); return p;
   }
-  const A = await mk('A', 'Elijah'), B = await mk('B', 'Raider'), C = await mk('C', 'Warden');
+  const A = await mk('A', 'Elijah'), B = await mk('B', 'Raider', { width: 390, height: 844 }), C = await mk('C', 'Warden', { width: 390, height: 844 });
   // A hosts
   await A.click('[data-act=hostForm]'); await A.fill('#lobbyIn', 'Test Lobby'); await A.click('#hostForm button[type=submit]'); await sleep(800);
   check(await A.isVisible('#lobby'), 'host lands in the lobby');
@@ -57,11 +57,11 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   const st = await C.evaluate(() => ({ units: window.TDC.V.units.size, wave: window.TDC.V.wave, gold: window.TDC.V.myDef.gold }));
   check(st.wave >= 1 && st.units > 0, 'early vote launched the wave: ' + JSON.stringify(st));
   await sleep(6000);
-  await C.evaluate(() => { const c = window.TDC.cam; c.z = 1.1; c.y = 350; }); await sleep(600);
+  await sleep(600);
   await C.screenshot({ path: OUT + '/game-defender.png' }); await B.screenshot({ path: OUT + '/game-attacker.png' });
   check(await C.evaluate(() => window.TDC.V.defs.every(d => d.alive)), 'match running');
   // vs AI
-  const D = await mk('D', 'Solo');
+  const D = await mk('D', 'Solo', { width: 390, height: 844 });
   await D.click('[data-act=vsai]'); await sleep(300);
   check(await D.evaluate(() => window.TDC.LS.seats[0] === 'ai'), 'vs AI: AI takes the attacker seat');
   await D.click('#btnReady'); await sleep(500);

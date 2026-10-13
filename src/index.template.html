@@ -122,7 +122,16 @@ table.stats{width:100%;border-collapse:collapse;font-size:13px}
 table.stats td,table.stats th{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right}
 table.stats td:first-child,table.stats th:first-child{text-align:left}
 #netOv{position:fixed;inset:0;background:#000b;z-index:55;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px}
-#rotateHint{position:fixed;inset:0;background:#14120f;z-index:70;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;text-align:center;padding:20px}
+/* portrait / narrow screens */
+@media (max-width:640px){
+  #topBar{left:max(8px,env(safe-area-inset-left));transform:none;right:58px;flex-wrap:wrap}
+  #defChips{top:calc(max(8px,env(safe-area-inset-top)) + 46px)}
+  .dchip{min-width:0}
+  #topBar .chip{font-size:12px;padding:4px 8px}
+  #atkPanel,#sheet{left:6px;right:6px;transform:none;max-width:none}
+  .card{width:74px}.card canvas{width:60px;height:44px}
+  #ecoBar{bottom:auto;top:calc(max(8px,env(safe-area-inset-top)) + 46px);left:auto;right:max(8px,env(safe-area-inset-right));flex-direction:column;align-items:flex-end}
+}
 </style>
 </head>
 <body>
@@ -171,7 +180,6 @@ table.stats td:first-child,table.stats th:first-child{text-align:left}
 <div id="toasts"></div>
 <div id="modalBg" class="hidden"><div id="modal" class="panel"></div></div>
 <div id="netOv" class="hidden"><div class="spin"></div><b id="netTxt">Reconnecting…</b><button class="btn sm" id="netLeave">Leave match</button></div>
-<div id="rotateHint" class="hidden"><div style="font-size:42px">📱</div><b>Rotate your phone</b><small class="muted">Hold the Line plays in landscape</small></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>window.TD_BUILD='__BUILD__';window.TD_VER='__VER__';</script>

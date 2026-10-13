@@ -1,3 +1,4 @@
 [
-  {"v": "0.01", "build": "5622c0", "commit": "", "date": "2026-10-13", "notes": "Hold the Line first playable: lobby (host/find/browse), map/race/color picks, 1vX match, vs AI, early-wave vote"}
+  {"v": "0.01", "build": "5622c0", "commit": "4925694", "date": "2026-10-13", "notes": "Hold the Line first playable: lobby (host/find/browse), map/race/color picks, 1vX match, vs AI, early-wave vote"},
+  {"v": "0.02", "build": "b23314", "commit": "", "date": "2026-10-13", "notes": "Play in portrait or landscape"}
 ]

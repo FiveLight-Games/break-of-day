@@ -18,7 +18,7 @@ function toast(t) { const el = document.createElement('div'); el.className = 'to
 function show(id) { ['menu', 'lobby', 'game'].forEach(s => $(s).classList.toggle('hidden', s !== id)); }
 function openModal(html, bind) { $('modal').innerHTML = html; $('modalBg').classList.remove('hidden'); if (bind) bind(); }
 function closeModal() { $('modalBg').classList.add('hidden'); }
-function landscapeLock() { try { if (MOBILE && document.documentElement.requestFullscreen && !document.fullscreenElement) document.documentElement.requestFullscreen().then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => { })).catch(() => { }); } catch (e) { } }
+function goFull() { try { if (MOBILE && document.documentElement.requestFullscreen && !document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => { }); } catch (e) { } } // fullscreen only; any orientation works
 
 let sb = null;
 function getSB() { if (!sb && window.supabase) { try { sb = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sb; }
@@ -48,9 +48,9 @@ const mapName = id => (TD.MAPS.find(m => m.id === id) || { n: id }).n;
 function bindMenu() {
   const root = $('menu');
   root.querySelectorAll('[data-act]').forEach(b => b.onclick = e => { e.preventDefault(); menuAct(b.dataset.act); });
-  root.querySelectorAll('[data-join]').forEach(b => b.onclick = () => { landscapeLock(); stopBrowsing(); joinLobby(b.dataset.join); });
+  root.querySelectorAll('[data-join]').forEach(b => b.onclick = () => { goFull(); stopBrowsing(); joinLobby(b.dataset.join); });
   const nf = $('nameForm'); if (nf) nf.onsubmit = e => { e.preventDefault(); const n = cleanName($('nameIn').value); if (!n) { menuErr = 'Enter a name.'; return renderMenu(); } myName = n; store.set('name', n); menuErr = ''; homeScreen = 'home'; renderMenu(); };
-  const hf = $('hostForm'); if (hf) { $('lobbyIn').oninput = e => store.set('lobbyName', e.target.value.slice(0, 28)); hf.onsubmit = e => { e.preventDefault(); landscapeLock(); hostLobby({ name: cleanName($('lobbyIn').value).slice(0, 28) }); }; }
+  const hf = $('hostForm'); if (hf) { $('lobbyIn').oninput = e => store.set('lobbyName', e.target.value.slice(0, 28)); hf.onsubmit = e => { e.preventDefault(); goFull(); hostLobby({ name: cleanName($('lobbyIn').value).slice(0, 28) }); }; }
 }
 function menuAct(a) {
   menuErr = '';
@@ -58,10 +58,10 @@ function menuAct(a) {
   if (a === 'home') { stopBrowsing(); homeScreen = 'home'; return renderMenu(); }
   if (a === 'hostForm') { homeScreen = 'host'; return renderMenu(); }
   if (a === 'browse') { homeScreen = 'browse'; startBrowsing(); return renderMenu(); }
-  if (a === 'find') { landscapeLock(); return startQuick(); }
+  if (a === 'find') { goFull(); return startQuick(); }
   if (a === 'cancelSearch') { stopQuick(); homeScreen = 'home'; return renderMenu(); }
   if (a === 'cancelJoin') { leaveLobby(); return; }
-  if (a === 'vsai') { landscapeLock(); return enterSolo(); }
+  if (a === 'vsai') { goFull(); return enterSolo(); }
 }
 
 // ============================ LOBBY DIRECTORY ============================
@@ -238,7 +238,7 @@ function renderLobby() {
   lob.querySelectorAll('[data-col]').forEach(b => b.onclick = () => { if (!isHost()) { myColor = b.dataset.col; store.set('color', myColor); } req({ a: 'color', c: b.dataset.col }); });
 }
 function hostStart() {
-  if (startable()) return; landscapeLock();
+  if (startable()) return; goFull();
   const players = [];
   const a = LS.seats[0]; players.push(a === 'ai' ? { pid: 'ai', name: 'AI Attacker', role: 'atk', color: 'red', race: 'human', bot: 1 } : { pid: a, name: LS.pl[a].name, role: 'atk', color: LS.pl[a].color, race: LS.pl[a].race });
   LS.seats.slice(1).forEach(s => { if (s && LS.pl[s]) players.push({ pid: s, name: LS.pl[s].name, role: 'def', color: LS.pl[s].color, race: LS.pl[s].race }); });
@@ -488,12 +488,12 @@ function drawGib(p, c = X0) {
 
 // ---------- camera & input ----------
 const cam = { x: 650, y: 900, z: 0.7 };
-function resize() { VW = innerWidth; VH = innerHeight; cv.width = VW * DPR; cv.height = VH * DPR; clampCam(); $('rotateHint').classList.toggle('hidden', !(GS.running && MOBILE && VH > VW)); }
-window.addEventListener('resize', resize);
+function resize() { VW = innerWidth; VH = innerHeight; cv.width = VW * DPR; cv.height = VH * DPR; clampCam(); }
+window.addEventListener('resize', resize); window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 const minZ = () => V ? Math.max(0.12, Math.min(VW / V.world.W, VH / (V.world.H + TD.STAGE_H)) * 0.95) : 0.3;
 function clampCam() { if (!V) return; cam.z = Math.max(minZ(), Math.min(2.5, cam.z)); const hw = VW / 2 / cam.z, hh = VH / 2 / cam.z, W = V.world.W, top = -TD.STAGE_H, H = V.world.H; cam.x = hw * 2 > W ? W / 2 : Math.max(hw, Math.min(W - hw, cam.x)); cam.y = hh * 2 > H - top ? (top + H) / 2 : Math.max(top + hh, Math.min(H - hh, cam.y)); }
-function resetCamera() { if (V.myDef) { cam.z = Math.min(1.1, VW / 1150); cam.x = V.myDef.ox + V.world.rw / 2; cam.y = 450; } else { cam.z = minZ(); cam.x = V.world.W / 2; cam.y = (V.world.H - TD.STAGE_H) / 2; } clampCam(); }
-function lookAtLane(slot) { const D = V.defs[slot]; if (!D) return; cam.z = Math.max(cam.z, Math.min(1, VW / 1300)); cam.x = D.ox + V.world.rw / 2; clampCam(); }
+function resetCamera() { if (V.myDef) { cam.z = Math.min(1.1, VW > VH ? VW / 1150 : VH / 1300); cam.x = V.myDef.ox + V.world.rw / 2; cam.y = 450; } else { cam.z = minZ(); cam.x = V.world.W / 2; cam.y = (V.world.H - TD.STAGE_H) / 2; } clampCam(); }
+function lookAtLane(slot) { const D = V.defs[slot]; if (!D) return; cam.z = Math.max(cam.z, Math.min(1, Math.max(VW, VH * 0.75) / 1300)); cam.x = D.ox + V.world.rw / 2; clampCam(); }
 const s2w = (sx, sy) => [cam.x + (sx - VW / 2) / cam.z, cam.y + (sy - VH / 2) / cam.z];
 const onScreen = (px, py, m) => { const hw = VW / 2 / cam.z + m, hh = VH / 2 / cam.z + m; return Math.abs(px - cam.x) < hw && Math.abs(py - cam.y) < hh; };
 const ptrs = new Map(); let pinch0 = null, tap = null;
@@ -542,6 +542,7 @@ function renderHUD(force) {
   const vb = $('voteBtn'); if (vb) vb.onclick = () => { send({ c: 'vote' }); V.vote[2] = voted ? V.vote[2].filter(p => p !== myPid) : V.vote[2].concat(myPid); renderHUD(true); };
   $('defChips').innerHTML = V.defs.map(d => `<div class="dchip ${d.alive ? '' : 'out'} ${d.pid === myPid ? 'me' : ''}" data-lane="${d.slot}"><span class="sw" style="background:${colHex(d.color)}"></span>${esc(d.name)}<span class="lv">♥${d.lives}</span></div>`).join('') + `<div class="dchip" style="cursor:default"><span class="sw" style="background:${V.atkCol}"></span>${esc(V.atk.name)}<span class="lv" style="color:var(--muted)">attacker</span></div>`;
   $('defChips').querySelectorAll('[data-lane]').forEach(b => b.onclick = () => lookAtLane(+b.dataset.lane));
+  const tb = $('topBar').getBoundingClientRect(), narrow = innerWidth <= 640; $('defChips').style.top = narrow ? (tb.bottom + 6) + 'px' : ''; $('ecoBar').style.top = narrow ? (tb.bottom + 6) + 'px' : '';
   if (V.myDef) { const D = V.myDef; $('ecoBar').innerHTML = `<div class="chip">💰 ${D.gold}<small>+${D.income}/wave</small></div><div class="chip">♥ ${D.lives}</div>`; if (sheetKind === 'build') $('sheet').querySelectorAll('[data-build]').forEach(b => b.disabled = D.gold < TD.TOWERS[b.dataset.build].cost); }
   else if (V.isAtk) { $('ecoBar').innerHTML = ''; renderAtk(); }
   else $('ecoBar').innerHTML = '<div class="chip">Spectating</div>';
@@ -556,8 +557,9 @@ function renderAtk() {
   P.innerHTML = `<div class="targets"><span class="small muted">Send to</span><button data-tg="all" class="${atkUI.target === 'all' ? 'on' : ''}">All lanes</button>${V.defs.map(d => `<button data-tg="${d.slot}" class="${atkUI.target === d.slot ? 'on' : ''}" ${d.alive ? '' : 'disabled'}><span class="sw" style="background:${colHex(d.color)}"></span>${esc(d.name)}</button>`).join('')}
     <span style="margin-left:auto" class="chip">💰 ${A.gold}<small>+${A.income}/wave</small></span></div>
     <div class="cards">${TD.UNIT_IDS.map(k => { const cost = TD.UNITS[k].cost * Math.max(1, lanes) * atkUI.qty; return `<button class="card" data-unit="${k}" ${A.gold < cost || !lanes ? 'disabled' : ''} title="${esc(TD.UNITS[k].d)}"><span data-uprev="${k}"></span><b>${TD.UNITS[k].n}${q[k] ? ' · ' + q[k] : ''}</b><span class="cost">${cost}g</span></button>`; }).join('')}
-      <div style="display:flex;flex-direction:column;gap:6px;justify-content:center"><div class="prios">${[1, 5, 10].map(n => `<button data-qty="${n}" class="${atkUI.qty === n ? 'on' : ''}">×${n}</button>`).join('')}</div>
-      <button class="btn sm" data-invest ${A.gold < A.investCost ? 'disabled' : ''}>Invest ${A.investCost}g<small style="font-weight:600">&nbsp;+${TD.RULES.investGain * V.defs.length}/wave</small></button></div></div>
+</div>
+    <div class="row"><div class="prios">${[1, 5, 10].map(n => `<button data-qty="${n}" class="${atkUI.qty === n ? 'on' : ''}">×${n}</button>`).join('')}</div>
+      <button class="btn sm" data-invest ${A.gold < A.investCost ? 'disabled' : ''} style="margin-left:auto">Invest ${A.investCost}g<small style="font-weight:600">&nbsp;+${TD.RULES.investGain * V.defs.length}/wave</small></button></div>
     <div class="qrow">Next wave: ${Object.keys(q).length ? Object.entries(q).map(([k, n]) => n + ' ' + TD.UNITS[k].n).join(', ') : 'nothing queued yet'}</div>`;
   P.querySelectorAll('[data-uprev]').forEach(s => s.replaceWith(previewCanvas(g => { const S = sprite(s.dataset.uprev, 'n', 1, 0, V.atkCol), sz = 100 * S.size / (TD.UNITS.brute.r * 4.4); g.drawImage(S.c, 42 - sz / 2, 66 - sz * 0.72, sz, sz); })));
   P.querySelectorAll('[data-tg]').forEach(b => b.onclick = () => { atkUI.target = b.dataset.tg === 'all' ? 'all' : +b.dataset.tg; if (atkUI.target !== 'all') lookAtLane(atkUI.target); P.dataset.key = ''; renderAtk(); });
