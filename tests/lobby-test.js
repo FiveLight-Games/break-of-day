@@ -103,6 +103,31 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(await C.evaluate(() => window.__maxDead) > 0, 'empty health bars linger after kills: max ' + await C.evaluate(() => window.__maxDead));
   const ks = await A.evaluate(() => window.TDC.GS.sim.defs.map(d => ({ kills: d.kills, shared: d.shared })));
   check(ks.some(k => k.kills > 0) && ks[0].shared === ks[1].shared && ks[0].shared > 0, 'kill gold is shared equally: ' + JSON.stringify(ks));
+  // ---- spells ----
+  check(await C.isVisible('#spellBar') && !(await B.isVisible('#spellBar')), 'defenders see the spell bar, the attacker does not');
+  // drag Meteor from its button onto the thickest part of the crowd on C's screen
+  const tgt = await C.evaluate(() => { const V = window.TDC.V, U = [...V.units.values()]; let best = U[0], bn = -1; for (const a of U) { let n = 0; for (const b of U) if ((a.x - b.x) ** 2 + (a.y - b.y) ** 2 < 8100) n++; if (n > bn) { bn = n; best = a; } } const cam = window.TDC.cam; cam.x = best.x; cam.y = best.y - 60; return { x: best.x, y: best.y, n: bn }; });
+  await sleep(200);
+  const mb = await C.locator('[data-spell=meteor]').boundingBox(), sp = await C.evaluate(([wx, wy]) => { const c = window.TDC.cam; return [(wx - c.x) * c.z + innerWidth / 2, (wy - c.y) * c.z + innerHeight / 2]; }, [tgt.x, tgt.y]);
+  const k0 = await A.evaluate(() => window.TDC.GS.sim.defs.reduce((s, d) => s + d.kills, 0));
+  await C.mouse.move(mb.x + mb.width / 2, mb.y + mb.height / 2); await C.mouse.down(); await C.mouse.move(sp[0], sp[1] + 40, { steps: 6 }); await C.mouse.move(sp[0], sp[1], { steps: 3 }); await sleep(120);
+  check(await C.evaluate(() => !!window.TDC.spell.aimAt), 'dragging a spell shows its target ring');
+  await C.screenshot({ path: OUT + '/spell-aim.png' });
+  await C.mouse.up(); await sleep(820); await C.screenshot({ path: OUT + '/spell-meteor.png' }); await sleep(700);
+  const k1 = await A.evaluate(() => window.TDC.GS.sim.defs.reduce((s, d) => s + d.kills, 0));
+  check(k1 > k0, 'meteor killed units: ' + (k1 - k0) + ' (crowd ' + tgt.n + ')');
+  check(await A.evaluate(() => window.TDC.V.fields.length) >= 1 && await C.evaluate(() => window.TDC.V.fields.length) >= 1, 'burning ground shows on every screen');
+  await sleep(500); await C.screenshot({ path: OUT + '/spell-meteor-fire.png' });
+  check(await C.evaluate(() => document.querySelector('[data-spell=meteor] .n').textContent) !== '', 'meteor shows its cooldown');
+  const again = await A.evaluate(() => { const S = window.TDC.GS.sim; return S.defs.find(d => d.pid === window.TDC.V.defs[1].pid).scd.meteor - S.t; });
+  check(again > 15 && again <= 20, 'meteor on a 20s cooldown: ' + again.toFixed(1));
+  // Water Jet: tap the button, then tap the map (middle of the lane, ahead of the crowd)
+  await C.click('[data-spell=jet]'); await sleep(150);
+  check(await C.evaluate(() => window.TDC.spell.armed === 'jet'), 'tapping a spell arms it');
+  await C.evaluate(() => { const V = window.TDC.V, U = [...V.units.values()].filter(u => u.l === V.myDef.slot).sort((a, b) => b.dr - a.dr), lane = V.L.lanes[V.myDef.slot], q = lane.at((U[0] ? U[0].dr : 400) + 120); const cam = window.TDC.cam; cam.x = q[0]; cam.y = q[1]; window.TDC.onTap(q[0], q[1]); });
+  await sleep(700); check(await A.evaluate(() => window.TDC.GS.sim.jets.length) === 1 && await C.evaluate(() => window.TDC.V.jets.size) === 1, 'water jet dropped and synced');
+  await sleep(2600); await C.screenshot({ path: OUT + '/spell-jet.png' });
+  check(await A.evaluate(() => window.TDC.GS.sim.jets[0] && window.TDC.GS.sim.jets[0].landed), 'water jet landed and unfolded');
   await C.evaluate(() => window.TDC.lookAtLane(window.TDC.V.myDef.slot)); await sleep(300);
   await C.screenshot({ path: OUT + '/game-defender.png' }); await B.screenshot({ path: OUT + '/game-attacker.png' }); await A.screenshot({ path: OUT + '/game-host.png' });
   await A.evaluate(() => { const c = window.TDC.cam, b = window.TDC.V.L.base; c.x = b.x; c.y = b.y - 120; c.z = 1.3; }); await sleep(300); await A.screenshot({ path: OUT + '/game-base.png' });

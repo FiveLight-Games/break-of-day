@@ -7,5 +7,6 @@
   {"v": "0.06", "build": "fca2fd", "commit": "cfcee09", "date": "2026-10-13", "notes": "Removed Start Now vote; empty health bar lingers 0.4s and is easier to see"},
   {"v": "0.07", "build": "787b23", "commit": "017af70", "date": "2026-10-13", "notes": "Empty health bar lingers 0.25s"},
   {"v": "0.08", "build": "4be5b3", "commit": "0ba3d34", "date": "2026-10-13", "notes": "Archer Post fires two arrows (one per archer, 13 dmg each), second 0.15-0.35s after the first"},
-  {"v": "0.09", "build": "11d1d7", "commit": "", "date": "2026-10-13", "notes": "Build tray info strip (tap a tower for its stats); Done button sits above the tray"}
+  {"v": "0.09", "build": "11d1d7", "commit": "661e385", "date": "2026-10-13", "notes": "Build tray info strip (tap a tower for its stats); Done button sits above the tray"},
+  {"v": "0.10", "build": "0c28b6", "commit": "", "date": "2026-10-13", "notes": "Defender spells: Meteor and Water Jet (drag or tap to cast, 20s cooldowns); sound effects and music"}
 ]

@@ -74,6 +74,12 @@ const TOWERS = {
   storm: { n: 'Tesla Coil', cost: 140, r: 175, cd: 1.3, dmg: 40, chain: 5, dt: 'shock', d: 'Lightning that arcs to up to 5 enemies.', tip: 'Lightning arcs to up to 5 enemies.' },
 };
 const TOWER_IDS = Object.keys(TOWERS);
+// ---------------- defender spells (free for now) ----------------
+const SPELLS = {
+  meteor: { n: 'Meteor', cd: 20, fall: 0.75, core: 90, edge: 165, fireDur: 6, fireDps: 110, tip: 'Crushes everything at the center, blasts the edge back and leaves the ground burning.' },
+  jet: { n: 'Water Jet', cd: 20, drop: 0.55, unfold: 1.45, life: 8, r: 200, cone: 0.34, dps: 18, tip: 'Drops a pump that unfolds and blasts oncoming enemies back with high-pressure water.' },
+};
+const SPELL_IDS = Object.keys(SPELLS);
 const UNITS = {
   grunt: { n: 'Footman', hp: 150, sp: 46, r: 5.5, cost: 3, bounty: 1, dmg: 3, d: 'Cheap and sturdy. 3 damage to the base.' },
   runner: { n: 'Scout', hp: 85, sp: 70, r: 4.5, cost: 3, bounty: 1, dmg: 1, d: 'Fast and fragile. 1 damage to the base.' },
@@ -94,7 +100,8 @@ class Sim {
     this.players = {};
     this.atk = { pid: atk.pid, name: atk.name, color: atk.color, race: atk.race, bot: !!atk.bot, gold: RULES.atkGoldPer * this.N, income: RULES.atkIncomePer * this.N, invest: 0, speed: 0, queue: [], sent: 0, leaked: 0, spent: 0, dmg: 0 };
     this.players[atk.pid] = this.atk;
-    this.defs = defs.map((p, i) => { const d = { pid: p.pid, name: p.name, color: p.color, race: p.race, bot: !!p.bot, slot: i, gold: RULES.defGold, income: RULES.defIncome, kills: 0, built: 0, dmg: 0, shared: 0 }; this.players[p.pid] = d; return d; });
+    this.defs = defs.map((p, i) => { const d = { pid: p.pid, name: p.name, color: p.color, race: p.race, bot: !!p.bot, slot: i, gold: RULES.defGold, income: RULES.defIncome, kills: 0, built: 0, dmg: 0, shared: 0, scd: { meteor: 0, jet: 0 } }; this.players[p.pid] = d; return d; });
+    this.meteors = []; this.fields = []; this.jets = [];
     this.units = []; this.towers = []; this.pulseT = RULES.pulse; this.wave = 0; this.spawnAt = []; this.pending = [];
     this.occ = new Uint8Array(this.L.cols * this.L.rows); this.grid = new Map();
   }
@@ -115,6 +122,19 @@ class Sim {
       this.towers.push(t); this.mark(t, 1); this.towerVer++;
     }
     else if (c.c === 'sell') { const i = this.towers.findIndex(t => t.id === c.id && t.owner === pid); if (i < 0) return; const t = this.towers[i]; P.gold += Math.floor(t.spent * RULES.sell); this.towers.splice(i, 1); this.mark(t, 0); this.towerVer++; this.ev(['sl', t.x, t.y]); }
+    else if (c.c === 'spell') {
+      const S = SPELLS[c.k], x = +c.x, y = +c.y; if (!S || !(P.scd[c.k] <= this.t) || !(x >= 0 && x <= this.L.W && y >= -40 && y <= this.L.H)) return;
+      P.scd[c.k] = this.t + S.cd; const src = { owner: pid, kills: 0, x, y };
+      if (c.k === 'meteor') { this.meteors.push({ x, y, at: this.t + S.fall, src }); this.ev(['sp', 0, Math.round(x), Math.round(y), P.slot]); }
+      else {
+        // which lane it sits on, how far along, and how far off-center
+        let best = 1e18, l = 0, jd = 0;
+        this.L.lanes.forEach((ln, li) => { for (let d = 0; d < ln.total; d += 8) { const q = ln.at(d), dd = (q[0] - x) ** 2 + (q[1] - y) ** 2; if (dd < best) { best = dd; l = li; jd = d; } } });
+        const ln = this.L.lanes[l], c0 = ln.at(jd), up = ln.at(Math.max(0, jd - 60)), off = (x - c0[0]) * -Math.sin(c0[2]) + (y - c0[1]) * Math.cos(c0[2]);
+        const j = { id: this.nid++, x, y, t0: this.t, l, jd, off, aim: Math.atan2(up[1] - y, up[0] - x), fire: 0, src };
+        this.jets.push(j); this.ev(['sp', 1, Math.round(x), Math.round(y), P.slot, j.id, Math.round(j.aim * 100)]);
+      }
+    }
     else if (c.c === 'prio') { const t = this.towers.find(t => t.id === c.id && t.owner === pid); if (t && PRIORITIES.includes(c.p)) { t.prio = c.p; this.towerVer++; } }
   }
   mark(t, v) { for (let j = 0; j < FOOT; j++) for (let i = 0; i < FOOT; i++) this.occ[(t.r + j) * this.L.cols + t.c + i] = v; }
@@ -141,11 +161,15 @@ class Sim {
     if (this.spawnAt.length) { const due = this.spawnAt.filter(s => s.at <= this.t); if (due.length) { this.spawnAt = this.spawnAt.filter(s => s.at > this.t); due.forEach(s => this.spawn(s.k, s.l)); } }
     // units walk their lane into the shared base
     for (const u of this.units) {
-      const lane = this.L.lanes[u.l]; u.d += u.sp * (u.slowU > this.t ? 0.5 : 1) * dt; u.burn = Math.max(0, u.burn - dt);
+      const lane = this.L.lanes[u.l], air = u.air > 0;
+      u.v = u.sp * (u.slowU > this.t ? 0.5 : 1) * (air ? 0 : 1) + (u.kb || 0); u.d = Math.max(-30, u.d + u.v * dt); u.burn = Math.max(0, u.burn - dt);
+      if (u.kb || u.lv) { u.kb *= Math.exp(-3.2 * dt); u.off = Math.max(-LANE + 6, Math.min(LANE - 6, u.off + (u.lv || 0) * dt)); u.lv *= Math.exp(-4 * dt); if (Math.abs(u.kb) < 1) u.kb = 0; if (Math.abs(u.lv) < 1) u.lv = 0; u.mvT = this.t; }
+      if (air) u.air -= dt;
       if (u.d >= lane.total) { u.dead = 1; const dmg = UNITS[u.k].dmg; this.hp = Math.max(0, this.hp - dmg); this.atk.leaked++; this.atk.dmg += dmg; this.ev(['lk', u.id, dmg]); continue; }
       const p = lane.at(u.d); u.x = p[0] + Math.cos(p[2] + Math.PI / 2) * u.off; u.y = p[1] + Math.sin(p[2] + Math.PI / 2) * u.off;
     }
     this.units = this.units.filter(u => !u.dead);
+    if (this.meteors.length || this.fields.length || this.jets.length) this.stepSpells(dt);
     const GR = 120, grid = this.grid; grid.clear();
     for (const u of this.units) { const key = (u.x / GR | 0) * 4096 + Math.max(0, u.y / GR | 0); let b = grid.get(key); if (!b) grid.set(key, b = []); b.push(u); }
     const near = (px, py, r, fn) => { const x0 = Math.max(0, (px - r) / GR | 0), x1 = (px + r) / GR | 0, y0 = Math.max(0, (py - r) / GR | 0), y1 = (py + r) / GR | 0; for (let gx = x0; gx <= x1; gx++) for (let gy = y0; gy <= y1; gy++) { const b = grid.get(gx * 4096 + gy); if (b) for (const u of b) if (u.hp > 0 && (u.x - px) ** 2 + (u.y - py) ** 2 < r * r) fn(u); } };
@@ -184,6 +208,46 @@ class Sim {
     const T = TOWERS[t.k], fly = Math.hypot(u.x - t.x, u.y - t.y) / 560;
     this.ev(['s', t.id, u.id, Math.round(fly * 100), who]); u.inc = (u.inc || 0) + T.dmg;
     this.pending.push({ at: this.t + fly, t, u, x: u.x, y: u.y, dmg: T.dmg });
+  }
+  near(px, py, r, fn) { for (const u of this.units) if (u.hp > 0 && (u.x - px) ** 2 + (u.y - py) ** 2 < r * r) fn(u, Math.hypot(u.x - px, u.y - py)); }
+  shove(u, dx, dy, along, side) { const a = this.L.lanes[u.l].at(u.d)[2], tx = Math.cos(a), ty = Math.sin(a); u.kb = (u.kb || 0) + (dx * tx + dy * ty) * along; u.lv = (u.lv || 0) + (dx * -ty + dy * tx) * side; u.mvT = this.t; }
+  stepSpells(dt) {
+    const M = SPELLS.meteor, J = SPELLS.jet;
+    for (const m of this.meteors) if (m.at <= this.t) {
+      m.done = 1; this.ev(['mi', Math.round(m.x), Math.round(m.y)]);
+      this.near(m.x, m.y, M.edge, (u, d) => {
+        if (d < M.core) return this.hurt(u, 1e6, 'meteor', m.src, m.x, m.y);
+        const f = 1 - (d - M.core) / (M.edge - M.core); this.hurt(u, 120 + 380 * f, 'meteor', m.src, m.x, m.y);
+        if (u.hp > 0) { this.shove(u, (u.x - m.x) / d, (u.y - m.y) / d, 420 * f, 160 * f); u.air = 0.35 + 0.3 * f; u.burn = 1.2; }
+      });
+      this.fields.push({ x: m.x, y: m.y, r: M.core, until: this.t + M.fireDur, tick: 0, src: m.src });
+    }
+    this.meteors = this.meteors.filter(m => !m.done);
+    for (const f of this.fields) { f.tick -= dt; if (f.tick > 0) continue; f.tick = 0.2; this.near(f.x, f.y, f.r, u => { u.burn = 0.6; this.hurt(u, M.fireDps * 0.2, 'fire', f.src, f.x, f.y); }); }
+    this.fields = this.fields.filter(f => f.until > this.t);
+    for (const j of this.jets) {
+      const age = this.t - j.t0;
+      if (age >= J.drop && !j.landed) { // the payload crushes what it lands on
+        j.landed = 1; this.near(j.x, j.y, 60, (u, d) => { if (d < 20) return this.hurt(u, 1e6, 'blast', j.src, j.x, j.y); const f = 1 - d / 60; this.shove(u, (u.x - j.x) / (d || 1), (u.y - j.y) / (d || 1), 200 * f, 160 * f); u.air = 0.2 + 0.2 * f; });
+      }
+      if (j.landed && age < J.unfold + J.life + 0.4) for (const u of this.units) { // a solid obstacle: walk around it
+        if (u.l !== j.l || u.hp <= 0) continue; const dd = u.d - j.jd; if (dd < -45 || dd > 18) continue;
+        const gap = Math.abs(u.off - j.off), clear = 20 + UNITS[u.k].r; if (gap >= clear) continue;
+        u.lv = (u.lv || 0) + (u.off - j.off >= 0 ? 1 : -1) * (clear - gap) * 260 * dt; if (dd > -14) u.kb = Math.min(u.kb || 0, -u.sp * 0.6); u.mvT = this.t;
+      }
+      j.fire = 0; if (age < J.unfold || age > J.unfold + J.life) continue;
+      let best = null, bs = 1e18; this.near(j.x, j.y, J.r, (u, d) => { const s2 = (u.l === j.l && u.d <= j.jd + 15 ? 0 : 1e6) + d * d; if (s2 < bs) { bs = s2; best = u; } });
+      if (!best) continue; j.fire = 1;
+      let da = Math.atan2(best.y - j.y, best.x - j.x) - j.aim; da = Math.atan2(Math.sin(da), Math.cos(da)); j.aim += da * Math.min(1, dt * 6);
+      const ca = Math.cos(j.aim), sa = Math.sin(j.aim);
+      this.near(j.x, j.y, J.r, (u, d) => {
+        let off = Math.atan2(u.y - j.y, u.x - j.x) - j.aim; off = Math.atan2(Math.sin(off), Math.cos(off)); if (Math.abs(off) > J.cone) return;
+        const f = (1 - d / J.r * 0.6) * (1 - Math.abs(off) / J.cone * 0.5), a = this.L.lanes[u.l].at(u.d)[2], tx = Math.cos(a), ty = Math.sin(a), wt = u.k === 'brute' ? 0.35 : u.k === 'runner' ? 1.25 : 1;
+        u.kb = Math.max(-260, (u.kb || 0) - (0.55 + 0.45 * Math.abs(ca * tx + sa * ty)) * 1500 * f * wt * dt); u.lv = (u.lv || 0) + (ca * -ty + sa * tx) * 500 * f * wt * dt; u.wet = this.t + 0.35; u.mvT = this.t;
+        this.hurt(u, J.dps * dt, 'water', j.src, j.x, j.y);
+      });
+    }
+    this.jets = this.jets.filter(j => this.t - j.t0 < J.unfold + J.life + 0.8);
   }
   spawn(k, l) {
     const U = UNITS[k]; if (!this.L.lanes[l]) return;
@@ -226,9 +290,11 @@ class Sim {
   snapshot(full) {
     const s = { t: Math.round(this.t * 100) / 100, pu: Math.round(this.pulseT * 10) / 10, wv: this.wave, hp: this.hp, cl: this.closed ? 1 : 0,
       a: [Math.floor(this.atk.gold), Math.round(this.atk.income * 10) / 10, this.atk.invest, this.investCost(), this.atk.queue.map(q => UNIT_IDS.indexOf(q[0]) * 10 + q[1]), this.atk.speed, this.speedCost()],
-      df: this.defs.map(d => [Math.floor(d.gold), Math.round(d.income * 10) / 10, d.kills]),
+      df: this.defs.map(d => [Math.floor(d.gold), Math.round(d.income * 10) / 10, d.kills, SPELL_IDS.map(k => Math.max(0, Math.round((d.scd[k] - this.t) * 10)))]),
       u: [], bm: this.beams || [], ev: this.events, over: this.over };
-    for (const u of this.units) s.u.push(u.id, Math.round(u.d * 10) / 10, Math.round(u.hp / u.max * 100), (u.slowU > this.t ? 1 : 0) | (u.burn > 0 ? 2 : 0));
+    for (const u of this.units) s.u.push(u.id, Math.round(u.d * 10) / 10, Math.round(u.hp / u.max * 100), (u.slowU > this.t ? 1 : 0) | (u.burn > 0 ? 2 : 0) | (u.wet > this.t ? 4 : 0) | (u.air > 0 ? 8 : 0));
+    for (const u of this.units) if (u.mvT !== undefined && this.t - u.mvT < 0.4) (s.mv || (s.mv = [])).push(u.id, Math.round(u.off * 10) / 10, Math.round(u.v || 0));
+    if (this.jets.length) s.jt = this.jets.map(j => [j.id, Math.round(j.aim * 100), j.fire]);
     if (full || this.sentTowerVer !== this.towerVer || this.towers.some(t => t.ready > this.t)) { s.tw = this.towers.map(t => [t.id, t.slot, TOWER_IDS.indexOf(t.k), t.c, t.r, PRIORITIES.indexOf(t.prio), t.kills, t.spent, Math.max(0, Math.round((t.ready - this.t) * 100))]); s.tv = this.towerVer; this.sentTowerVer = this.towerVer; }
     if (full) { s.full = 1; s.units = this.units.map(u => [u.id, UNIT_IDS.indexOf(u.k), u.l, u.off, u.sp, Math.round(u.d)]); }
     if (full || this.over) s.stats = this.stats();
@@ -238,6 +304,6 @@ class Sim {
   stats() { return { hp: this.hp, atk: { sent: this.atk.sent, leaked: this.atk.leaked, dmg: this.atk.dmg, spent: this.atk.spent, invest: this.atk.invest, speed: this.atk.speed }, defs: this.defs.map(d => ({ kills: d.kills, built: d.built, dmg: Math.round(d.dmg), shared: Math.round(d.shared) })) }; }
 }
 
-const API = { COLORS, RACES, MAPS, LANE, CELL, FOOT, STAGE_H, MAX_DEF, TOWERS, TOWER_IDS, UNITS, UNIT_IDS, RULES, PRIORITIES, Sim, layout, footFree, mulberry32 };
+const API = { COLORS, RACES, MAPS, LANE, CELL, FOOT, STAGE_H, MAX_DEF, TOWERS, TOWER_IDS, UNITS, UNIT_IDS, SPELLS, SPELL_IDS, RULES, PRIORITIES, Sim, layout, footFree, mulberry32 };
 if (typeof module !== 'undefined') module.exports = API; else G.TD = API;
 })(typeof window !== 'undefined' ? window : globalThis);

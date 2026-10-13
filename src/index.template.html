@@ -102,6 +102,13 @@ input.textin{width:100%;background:#0f0d0b;border:1px solid var(--line);border-r
 #buildTray .strip{margin-top:8px;padding:7px 9px;border-radius:10px;background:#0006;border:1px solid #5a4a34;font:600 11.5px/1.35 Inter,sans-serif;color:#e8dcc6}
 #buildTray .strip b{font-family:Cinzel,serif;color:#fff}
 #buildTray .strip .st{display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;font:800 11px Inter,sans-serif;color:var(--gold)}
+#spellBar{right:max(8px,env(safe-area-inset-right));bottom:calc(max(8px,env(safe-area-inset-bottom)) + 60px);display:flex;gap:8px}
+.spell{position:relative;width:58px;height:58px;border-radius:50%;padding:0;border:2px solid #6a5a40;background:radial-gradient(circle at 40% 35%,#3a3026,#15110c);font-size:26px;line-height:50px;text-align:center;cursor:pointer;box-shadow:0 6px 18px #000a;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;color:#fff}
+.spell.ready{border-color:#c9a45a}
+.spell .cd{position:absolute;inset:0;border-radius:50%;background:conic-gradient(rgba(0,0,0,.74) var(--p,0%),transparent 0);pointer-events:none}
+.spell .n{position:absolute;inset:0;font:800 17px Inter,sans-serif;color:#fff;line-height:54px;text-shadow:0 1px 3px #000;pointer-events:none}
+.spell.armed{border-color:#ffd77a;box-shadow:0 0 0 3px #ffd77a88,0 6px 18px #000a}
+.spell small{position:absolute;left:0;right:0;bottom:4px;font:800 8.5px Inter,sans-serif;color:#e8dcc6;line-height:1;pointer-events:none;text-shadow:0 1px 2px #000}
 .sheetHead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .sheetHead b{font-family:Cinzel,serif;font-size:15px}
 .sheetHead .x{margin-left:auto}
@@ -186,6 +193,7 @@ table.stats td:first-child,table.stats th:first-child{text-align:left}
   <div id="sheet" class="hud hidden"></div>
   <div id="atkPanel" class="hud hidden"></div>
   <div id="buildTray" class="hud hidden"></div>
+  <div id="spellBar" class="hud hidden"><button class="spell" data-spell="meteor" title="Meteor">☄️<small>Meteor</small><span class="cd"></span><span class="n"></span></button><button class="spell" data-spell="jet" title="Water Jet">💧<small>Water Jet</small><span class="cd"></span><span class="n"></span></button></div>
   <button id="buildBtn" class="hud hidden">🔨 Build</button>
 </div>
 
