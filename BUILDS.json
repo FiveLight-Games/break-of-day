@@ -5,5 +5,6 @@
   {"v": "0.04", "build": "86eb24", "commit": "6593701", "date": "2026-10-13", "notes": "Slower Footman/Scout, attacker unit-speed upgrade, Build button hides while a tower is selected"},
   {"v": "0.05", "build": "0b7703", "commit": "d2d8611", "date": "2026-10-13", "notes": "Empty health bar flashes for 0.2s when a unit dies"},
   {"v": "0.06", "build": "fca2fd", "commit": "cfcee09", "date": "2026-10-13", "notes": "Removed Start Now vote; empty health bar lingers 0.4s and is easier to see"},
-  {"v": "0.07", "build": "787b23", "commit": "", "date": "2026-10-13", "notes": "Empty health bar lingers 0.25s"}
+  {"v": "0.07", "build": "787b23", "commit": "017af70", "date": "2026-10-13", "notes": "Empty health bar lingers 0.25s"},
+  {"v": "0.08", "build": "4be5b3", "commit": "", "date": "2026-10-13", "notes": "Archer Post fires two arrows (one per archer, 13 dmg each), second 0.15-0.35s after the first"}
 ]

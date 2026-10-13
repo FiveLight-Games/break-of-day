@@ -324,7 +324,7 @@ function handleEvent(e) {
   const k = e[0];
   if (k === 'u') addUnit(e[1], e[2], e[3], e[4], e[5], e[6]);
   else if (k === 'd') { const u = V.units.get(e[1]); if (u) { V.units.delete(e[1]); if (onScreen(u.x, u.y, 200)) die(u, e[2], e[3], e[4]); else if (e[2] !== 'fire' && e[2] !== 'ice') stain(u.x, u.y, u.r * 1.6, BLOOD[0], 0.5); } }
-  else if (k === 's') { const t = V.towerMap.get(e[1]), u = V.units.get(e[2]); if (t && u) { t.aim = Math.atan2(u.y - t.y, u.x - t.x); t.kick = 1; if (onScreen(t.x, t.y, 300)) V.shots.push({ k: t.k, x: t.x, y: t.y - 16, sx: t.x, sy: t.y - 16, u, tx: u.x, ty: u.y, T: e[3] / 100, age: 0 }); } }
+  else if (k === 's') { const t = V.towerMap.get(e[1]), u = V.units.get(e[2]); if (t && u) { const w = e[4], ox = w === 0 ? -6 : w === 1 ? 6 : 0, a = Math.atan2(u.y - t.y, u.x - t.x); t.aim = a; t.kick = 1; if (w !== undefined) { t['aim' + w] = a; t['kick' + w] = 1; } if (onScreen(t.x, t.y, 300)) V.shots.push({ k: t.k, x: t.x + ox, y: t.y - 16, sx: t.x + ox, sy: t.y - 16, u, tx: u.x, ty: u.y, T: e[3] / 100, age: 0 }); } }
   else if (k === 'z') { const t = V.towerMap.get(e[1]); if (t) { t.kick = 1; const pts = [[t.x, t.y - 22]]; for (const id of e[2]) { const u = V.units.get(id); if (u) pts.push([u.x, u.y - u.r]); } if (pts.length > 1 && onScreen(t.x, t.y, 300)) V.fx.push({ k: 'bolt', pts, t0: V.clock }); } }
   else if (k === 'sl') V.fx.push({ k: 'boom', x: e[1], y: e[2], t0: V.clock, small: 1 });
   else if (k === 'lk') { V.units.delete(e[1]); V.fx.push({ k: 'leak', x: V.L.base.x + rr(-40, 40), y: V.L.base.y - 110, n: e[2], t0: V.clock }); }
@@ -417,11 +417,12 @@ function towerBody(c, k, col, aim, now, kick, seed) {
     c.strokeStyle = '#5a3d22'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-12, 13); c.lineTo(9, -4); c.moveTo(12, 13); c.lineTo(-9, -4); c.moveTo(-12, 4); c.lineTo(12, 4); c.stroke();
     c.fillStyle = '#8a6238'; c.fillRect(-14, -9, 28, 5); c.fillStyle = '#6a4a28'; c.fillRect(-14, -4, 28, 2);
     c.fillStyle = '#9a7244'; for (let i = -13; i <= 11; i += 4) c.fillRect(i, -15, 2.4, 6); c.fillRect(-14, -15, 28, 1.6);
-    for (const sx of [-6, 6]) { // archers
+    for (const sx of [-6, 6]) { // archers, each with their own aim and draw
+      const ai = sx < 0 ? 0 : 1, aimA = Array.isArray(aim) ? aim[ai] : aim, kickA = Array.isArray(kick) ? kick[ai] : kick;
       c.save(); c.translate(sx, -13);
       c.fillStyle = col; c.beginPath(); c.ellipse(0, 0, 3.4, 3, 0, 0, 7); c.fill();
       c.fillStyle = '#e8c39a'; c.beginPath(); c.arc(0, -4.2, 2.2, 0, 7); c.fill(); c.fillStyle = dark; c.beginPath(); c.arc(0, -4.8, 2.3, Math.PI, 0); c.fill();
-      c.rotate(aim + (sx < 0 ? 0.05 : -0.05)); c.strokeStyle = '#3a2a1a'; c.lineWidth = 1.2; c.beginPath(); c.arc(3.5 - kick * 1.5, 0, 3.6, -1.3, 1.3); c.stroke();
+      c.rotate(aimA + (sx < 0 ? 0.05 : -0.05)); c.strokeStyle = '#3a2a1a'; c.lineWidth = 1.2; c.beginPath(); c.arc(3.5 - kickA * 1.5, 0, 3.6, -1.3, 1.3); c.stroke();
       c.restore();
     }
     c.fillStyle = '#3a2a1a'; c.fillRect(-14, -24, 1.4, 10); c.fillStyle = col; c.beginPath(); c.moveTo(-12.6, -24); c.lineTo(-5, -21.5); c.lineTo(-12.6, -19); c.fill();
@@ -468,6 +469,7 @@ function drawTower(t, now, c = X0) {
   const building = t.readyAt && t.readyAt > now;
   c.save(); c.translate(t.x, t.y);
   if (building) drawConstruction(c, t, 1 - (t.readyAt - now) / TD.RULES.buildTime, now);
+  else if (t.k === 'archer') towerBody(c, t.k, t.col, [t.aim0 ?? t.aim ?? 0.6, t.aim1 ?? t.aim ?? 0.6], now, [t.kick0 || 0, t.kick1 || 0], t.id || 0);
   else towerBody(c, t.k, t.col, t.aim, now, t.kick || 0, t.id || 0);
   c.restore();
 }
@@ -525,7 +527,7 @@ function die(u, type, sx, sy) {
 }
 function stepFx(dt) {
   for (const u of V.units.values()) { const k = Math.min(1, dt * 5); u.dr += u.sp * ((u.f & 1) ? 0.5 : 1) * dt + u.err * k; u.err -= u.err * k; unitXY(u); if ((u.f & 2) && Math.random() < 0.25 && onScreen(u.x, u.y, 40)) particle('flame', u.x + rr(-u.r, u.r) * 0.6, u.y, rr(3, u.r * 1.6), rr(-8, 8), rr(-5, 5), rr(25, 50), rr(0.3, 0.5), '#ff9a2a', 0); }
-  for (const t of V.towers) { t.kick = Math.max(0, (t.kick || 0) - dt * 4); if (t.readyAt && t.readyAt <= V.clock && !t.doneFx) { t.doneFx = 1; if (V.clock - t.readyAt < 1 && onScreen(t.x, t.y, 60)) V.fx.push({ k: 'build', x: t.x, y: t.y + 10, t0: V.clock, col: t.col }); } }
+  for (const t of V.towers) { t.kick = Math.max(0, (t.kick || 0) - dt * 4); if (t.kick0) t.kick0 = Math.max(0, t.kick0 - dt * 4); if (t.kick1) t.kick1 = Math.max(0, t.kick1 - dt * 4); if (t.readyAt && t.readyAt <= V.clock && !t.doneFx) { t.doneFx = 1; if (V.clock - t.readyAt < 1 && onScreen(t.x, t.y, 60)) V.fx.push({ k: 'build', x: t.x, y: t.y + 10, t0: V.clock, col: t.col }); } }
   for (let i = 0; i < V.beams.length; i += 2) { const t = V.towerMap.get(V.beams[i]), u = V.units.get(V.beams[i + 1]); if (t && u) t.aim = Math.atan2(u.y - t.y, u.x - t.x); }
   for (const s of V.shots) {
     s.age += dt; if (s.u && V.units.has(s.u.id)) { s.tx = s.u.x; s.ty = s.u.y; }

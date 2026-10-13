@@ -67,7 +67,7 @@ const footFree = (L, c, r, occ) => { for (let j = 0; j < FOOT; j++) for (let i =
 
 // ---------------- Human race ----------------
 const TOWERS = {
-  archer: { n: 'Archer Post', cost: 60, r: 190, cd: 0.5, dmg: 26, dt: 'phys', d: 'Two archers in a wooden watchtower. Fast single-target arrows.' },
+  archer: { n: 'Archer Post', cost: 60, r: 190, cd: 0.5, dmg: 13, volley: 2, dt: 'phys', d: 'Two archers in a wooden watchtower, each loosing their own arrow.' },
   cannon: { n: 'Bombard', cost: 100, r: 175, cd: 1.6, dmg: 52, splash: 46, dt: 'blast', d: 'A heavy gun on a stone column. Shells hit everything nearby.' },
   frost: { n: 'Frost Obelisk', cost: 90, r: 160, cd: 1.0, dmg: 30, slow: 1.6, dt: 'ice', d: 'An ice shard that chills its target, slowing it by half.' },
   flame: { n: 'Fire Brazier', cost: 120, r: 165, dps: 62, dt: 'fire', d: 'A burning beam from a raised fire bowl. Melts one target.' },
@@ -153,12 +153,15 @@ class Sim {
     for (const t of this.towers) {
       if (t.ready > this.t) continue;
       const T = TOWERS[t.k]; t.cd -= dt;
-      let best = null, score = -Infinity;
-      near(t.x, t.y, T.r, u => { const s = t.prio === 'first' ? u.d / this.L.lanes[u.l].total : t.prio === 'last' ? -u.d : t.prio === 'strong' ? u.hp : -((u.x - t.x) ** 2 + (u.y - t.y) ** 2); if (s > score) { score = s; best = u; } });
+      let best = null, score = -Infinity, alive = null, aScore = -Infinity;
+      near(t.x, t.y, T.r, u => { const s = t.prio === 'first' ? u.d / this.L.lanes[u.l].total : t.prio === 'last' ? -u.d : t.prio === 'strong' ? u.hp : -((u.x - t.x) ** 2 + (u.y - t.y) ** 2); if (s > score) { score = s; best = u; } if (T.volley && (u.inc || 0) < u.hp && s > aScore) { aScore = s; alive = u; } });
+      if (T.volley && alive) best = alive;
       if (!best) continue;
       t.aim = Math.atan2(best.y - t.y, best.x - t.x);
       if (T.dps) { this.beams.push(t.id, best.id); best.burn = 0.3; this.hurt(best, T.dps * dt, 'fire', t); continue; }
+      if (T.volley && t.second && this.t >= t.second) { t.second = 0; this.loose(t, best, 1 - t.first); }
       if (t.cd > 0) continue; t.cd = T.cd;
+      if (T.volley) { t.first = t.first ? 0 : 1; this.loose(t, best, t.first); t.second = this.t + rr(this.R, 0.15, 0.35); continue; }
       if (T.chain) {
         const hit = [best]; let cur = best;
         for (let i = 1; i < T.chain; i++) { let nb = null, nd = 1e9; near(cur.x, cur.y, 70, u => { if (hit.includes(u)) return; const d = (u.x - cur.x) ** 2 + (u.y - cur.y) ** 2; if (d < nd) { nd = d; nb = u; } }); if (!nb) break; hit.push(nb); cur = nb; }
@@ -170,12 +173,17 @@ class Sim {
     }
     if (this.pending.length) {
       const due = this.pending.filter(p => p.at <= this.t); this.pending = this.pending.filter(p => p.at > this.t);
-      for (const p of due) { const T = TOWERS[p.t.k], x = p.u.hp > 0 ? p.u.x : p.x, y = p.u.hp > 0 ? p.u.y : p.y; if (T.splash) near(x, y, T.splash, u => this.hurt(u, T.dmg, 'blast', p.t, x, y)); else if (p.u.hp > 0) { if (T.slow) p.u.slowU = this.t + T.slow; this.hurt(p.u, T.dmg, T.dt, p.t); } }
+      for (const p of due) { if (p.dmg) p.u.inc = Math.max(0, (p.u.inc || 0) - p.dmg); const T = TOWERS[p.t.k], x = p.u.hp > 0 ? p.u.x : p.x, y = p.u.hp > 0 ? p.u.y : p.y; if (T.splash) near(x, y, T.splash, u => this.hurt(u, T.dmg, 'blast', p.t, x, y)); else if (p.u.hp > 0) { if (T.slow) p.u.slowU = this.t + T.slow; this.hurt(p.u, T.dmg, T.dt, p.t); } }
     }
     this.units = this.units.filter(u => u.hp > 0);
     if (this.hp <= 0) this.finish('atk');
     else if (this.closed && !this.units.length && !this.spawnAt.length) this.finish('def');
     if (this.atk.bot) this.botAttack(); for (const d of this.defs) if (d.bot) this.botDefend(d);
+  }
+  loose(t, u, who) { // one archer's arrow
+    const T = TOWERS[t.k], fly = Math.hypot(u.x - t.x, u.y - t.y) / 560;
+    this.ev(['s', t.id, u.id, Math.round(fly * 100), who]); u.inc = (u.inc || 0) + T.dmg;
+    this.pending.push({ at: this.t + fly, t, u, x: u.x, y: u.y, dmg: T.dmg });
   }
   spawn(k, l) {
     const U = UNITS[k]; if (!this.L.lanes[l]) return;
