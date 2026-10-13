@@ -93,7 +93,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   await B.evaluate(() => { window.TDC.send({ c: 'send', k: 'grunt', lane: 'all', n: 10 }); window.TDC.send({ c: 'send', k: 'brute', lane: 0, n: 1 }); });
   await sleep(1200);
   check(await B.evaluate(() => window.TDC.V.atk.queue.length) === 21, 'attacker queue shows the wave');
-  check(await B.evaluate(() => { const c = document.querySelector('[data-unit=tarrasque]'), s = document.querySelector('[data-unit=skel]'); return c.disabled && c.classList.contains('locked') && c.textContent.includes('15:00') && s.classList.contains('locked') && document.querySelectorAll('#atkPanel [data-unit]').length === 8; }), 'attacker sees 8 units; later ones are locked with their unlock time');
+  check(await B.evaluate(() => { const c = document.querySelector('[data-unit=tarrasque]'), s = document.querySelector('[data-unit=skel]'); return c.disabled && c.classList.contains('locked') && c.textContent.includes('15:00') && s.classList.contains('locked') && document.querySelectorAll('#atkPanel [data-unit]').length === 19; }), 'attacker sees 19 units; later ones are locked with their unlock time');
   check(await A.evaluate(() => { const S = window.TDC.GS.sim, n = S.atk.queue.length; S.input(S.atk.pid, { c: 'send', k: 'tarrasque', lane: 'all' }); return S.atk.queue.length === n; }), 'host refuses a locked unit');
   const goldBefore = await Promise.all([A, C].map(P => P.evaluate(() => window.TDC.V.myDef.gold)));
   check(!(await C.evaluate(() => !!document.getElementById('voteBtn'))), 'no Start Now button');
@@ -141,6 +141,11 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(await B.evaluate(() => window.TDC.V.atk.speed) === 1 && await A.evaluate(() => window.TDC.GS.sim.atk.speed) === 1, 'attacker bought speed level 1');
   check(await B.evaluate(() => document.querySelector('[data-speed]').textContent.includes('2/5')), 'speed button advances to 2/5');
   await B.screenshot({ path: OUT + '/game-attacker-speed.png' });
+  // a Goblin Sapper breaks off, sprints at a tower and knocks it out on every screen
+  const tid = await A.evaluate(() => { const S = window.TDC.GS.sim, t = S.towers.find(o => o.ready <= S.t) || S.towers[0]; t.ready = 0; let best = null, bd = 1e9; const L = S.L.lanes[t.slot]; for (let d = 0; d < L.total; d += 10) { const q = L.at(d), dd = Math.hypot(q[0] - t.x, q[1] - t.y); if (dd < bd) { bd = dd; best = d; } } const u = S.spawn('sapper', t.slot, { d: best - 50, off: 0 }); u.hp = u.max = 1e6; return t.id; });
+  await sleep(3000);
+  check(await A.evaluate(id => { const S = window.TDC.GS.sim, t = S.towers.find(o => o.id === id); return t && t.off > S.t; }, tid), 'sapper knocked out a tower on the host');
+  check(await C.evaluate(id => { const t = window.TDC.V.towerMap.get(id); return t && t.offAt > window.TDC.V.clock; }, tid), 'knocked-out tower shows on other screens');
   // portrait: tapping a tower hides the Build button, closing the sheet brings it back
   await C.evaluate(() => { const t = window.TDC.V.towers.find(t => t.owner === window.TDC.V.myDef.pid) || window.TDC.V.towers[0]; window.TDC.cam.x = t.x; window.TDC.cam.y = t.y; window.TDC.onTap(t.x, t.y); }); await sleep(300);
   check(await C.isVisible('#sheet') && !(await C.isVisible('#buildBtn')), 'tower sheet open, Build button hidden');
