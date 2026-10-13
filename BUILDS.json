@@ -15,5 +15,6 @@
   {"v": "0.14", "build": "380e13", "commit": "bce9376", "date": "2026-10-13", "notes": "11 new units: Zombie Horde, Gnoll Pack, Goblin Sapper, Shieldwall, Mounted Knight, Troll Berserker, Necromancer, Ent, Iron Golem, Siege Ram, War Mammoth"},
   {"v": "0.15", "build": "e61690", "commit": "537d38a", "date": "2026-10-13", "notes": "No wave timer: attacker units march out the moment they're sent; Meteor 125g, Water Jet 100g; attacker unit row scrolls"},
   {"v": "0.16", "build": "e45b51", "commit": "c7a8f0e", "date": "2026-10-13", "notes": "Fix: Goblin Sappers target the closest tower in range that isn't knocked out or claimed; dead sappers release their tower; range ring shown"},
-  {"v": "0.17", "build": "c3ac5f", "commit": "", "date": "2026-10-13", "notes": "Build drag: tray steps aside, drop on the bottom-middle cancel box to cancel; camera can pan past the bottom edge in build mode so the base area is reachable"}
+  {"v": "0.17", "build": "c3ac5f", "commit": "c43e298", "date": "2026-10-13", "notes": "Build drag: tray steps aside, drop on the bottom-middle cancel box to cancel; camera can pan past the bottom edge in build mode so the base area is reachable"},
+  {"v": "0.18", "build": "14f35e", "commit": "", "date": "2026-10-13", "notes": "10-second setup period at match start; full refund on towers sold within 10s of placing if they haven't dealt damage"}
 ]

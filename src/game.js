@@ -104,7 +104,7 @@ const UNITS = {
 };
 const UNIT_IDS = Object.keys(UNITS);
 // gold is per second; kill gold is shared: every defender gets bounty / number of defenders
-const RULES = { pulse: 15, length: 20 * 60, hpPer: 250, buildTime: 3, defGold: 230, defIncome: 1, atkGoldPer: 60, atkIncomePer: 2, atkGrowth: 0.2, investCost: 80, investGain: 0.8, speedCost: 90, speedStep: 0.1, speedMax: 5, sell: 0.7, hpPerMin: 0.05 };
+const RULES = { setup: 10, refundWindow: 10, pulse: 15, length: 20 * 60, hpPer: 250, buildTime: 3, defGold: 230, defIncome: 1, atkGoldPer: 60, atkIncomePer: 2, atkGrowth: 0.2, investCost: 80, investGain: 0.8, speedCost: 90, speedStep: 0.1, speedMax: 5, sell: 0.7, hpPerMin: 0.05 };
 const PRIORITIES = ['first', 'last', 'strong', 'close'];
 
 // ---------------- simulation ----------------
@@ -127,7 +127,7 @@ class Sim {
     const P = this.players[pid]; if (!P || this.over) return;
     if (P === this.atk) {
       if (this.closed) return;
-      if (c.c === 'send') { const U = UNITS[c.k]; if (!U || this.mins() < U.unlock) return; const lanes = c.lane === 'all' ? this.defs.map(d => d.slot) : [this.defs[c.lane]].filter(Boolean).map(d => d.slot); const n = Math.max(1, Math.min(10, c.n | 0 || 1)), cost = U.cost * lanes.length * n; if (!lanes.length || P.gold < cost) return; P.gold -= cost; P.spent += cost; for (const l of lanes) for (let i = 0; i < n; i++) { const pk = U.pack || 1, pid = pk > 1 ? ++this.packN : 0; for (let j = 0; j < pk; j++) { const at = Math.max(this.t, this.laneNext[l] || 0) + (j ? 0.07 : 0.1); this.laneNext[l] = at; this.spawnAt.push({ at, k: c.k, l, pk: pid }); } } P.sent += lanes.length * n; }
+      if (c.c === 'send') { const U = UNITS[c.k]; if (!U || this.t < RULES.setup || this.mins() < U.unlock) return; const lanes = c.lane === 'all' ? this.defs.map(d => d.slot) : [this.defs[c.lane]].filter(Boolean).map(d => d.slot); const n = Math.max(1, Math.min(10, c.n | 0 || 1)), cost = U.cost * lanes.length * n; if (!lanes.length || P.gold < cost) return; P.gold -= cost; P.spent += cost; for (const l of lanes) for (let i = 0; i < n; i++) { const pk = U.pack || 1, pid = pk > 1 ? ++this.packN : 0; for (let j = 0; j < pk; j++) { const at = Math.max(this.t, this.laneNext[l] || 0) + (j ? 0.07 : 0.1); this.laneNext[l] = at; this.spawnAt.push({ at, k: c.k, l, pk: pid }); } } P.sent += lanes.length * n; }
       else if (c.c === 'speed') { if (P !== this.atk || this.closed || P.speed >= RULES.speedMax) return; const cost = this.speedCost(); if (P.gold < cost) return; P.gold -= cost; P.spent += cost; P.speed++; }
       else if (c.c === 'invest') { const cost = this.investCost(); if (P.gold < cost) return; P.gold -= cost; P.spent += cost; P.invest++; P.income += RULES.investGain * this.N; }
       return;
@@ -135,10 +135,10 @@ class Sim {
     if (c.c === 'build') {
       const T = TOWERS[c.k], cc = c.c2 | 0, r = c.r | 0; if (!T || P.gold < T.cost || !footFree(this.L, cc, r, this.occ)) return;
       P.gold -= T.cost; P.built++;
-      const t = { id: this.nid++, owner: pid, slot: P.slot, k: c.k, c: cc, r, x: (cc + FOOT / 2) * CELL, y: (r + FOOT / 2) * CELL, cd: 0, aim: Math.PI / 2, prio: 'first', spent: T.cost, kills: 0, ready: this.t + RULES.buildTime };
+      const t = { id: this.nid++, owner: pid, slot: P.slot, k: c.k, c: cc, r, x: (cc + FOOT / 2) * CELL, y: (r + FOOT / 2) * CELL, cd: 0, aim: Math.PI / 2, prio: 'first', spent: T.cost, kills: 0, ready: this.t + RULES.buildTime, placed: this.t, dealt: 0 };
       this.towers.push(t); this.mark(t, 1); this.towerVer++;
     }
-    else if (c.c === 'sell') { const i = this.towers.findIndex(t => t.id === c.id && t.owner === pid); if (i < 0) return; const t = this.towers[i]; P.gold += Math.floor(t.spent * RULES.sell); this.towers.splice(i, 1); this.mark(t, 0); this.towerVer++; this.ev(['sl', t.x, t.y]); }
+    else if (c.c === 'sell') { const i = this.towers.findIndex(t => t.id === c.id && t.owner === pid); if (i < 0) return; const t = this.towers[i]; P.gold += this.sellValue(t); this.towers.splice(i, 1); this.mark(t, 0); this.towerVer++; this.ev(['sl', t.x, t.y]); }
     else if (c.c === 'spell') {
       const S = SPELLS[c.k], x = +c.x, y = +c.y; if (!S || !(P.scd[c.k] <= this.t) || P.gold < S.cost || !(x >= 0 && x <= this.L.W && y >= -40 && y <= this.L.H)) return;
       P.scd[c.k] = this.t + S.cd; P.gold -= S.cost; P.spellGold = (P.spellGold || 0) + S.cost; const src = { owner: pid, kills: 0, x, y };
@@ -154,18 +154,20 @@ class Sim {
     }
     else if (c.c === 'prio') { const t = this.towers.find(t => t.id === c.id && t.owner === pid); if (t && PRIORITIES.includes(c.p)) { t.prio = c.p; this.towerVer++; } }
   }
+  refundable(t) { return !t.dealt && this.t - t.placed < RULES.refundWindow; }
+  sellValue(t) { return this.refundable(t) ? t.spent : Math.floor(t.spent * RULES.sell); }
   mark(t, v) { for (let j = 0; j < FOOT; j++) for (let i = 0; i < FOOT; i++) this.occ[(t.r + j) * this.L.cols + t.c + i] = v; }
   speedCost() { return Math.round(RULES.speedCost * this.N * Math.pow(1.6, this.atk.speed)); }
   investCost() { return Math.round(RULES.investCost * this.N * Math.pow(1.3, this.atk.invest)); }
   ev(e) { this.events.push(e); }
-  mins() { return this.t / 60; }
+  mins() { return Math.max(0, this.t - RULES.setup) / 60; }
   // ---- step ----
   step(dt) {
     if (this.over) return; this.t += dt; this.tick++;
     // steady income every second
     const per = dt; this.atk.gold += this.atk.income * per; if (!this.closed) this.atk.income += RULES.atkGrowth * this.N * per / RULES.pulse; for (const d of this.defs) d.gold += d.income * per;
     // after the time limit the attacker can't send any more; the match ends when the field is clear
-    if (!this.closed && this.t >= RULES.length) { this.closed = true; this.atk.queue = []; this.ev(['closed']); }
+    if (!this.closed && this.t >= RULES.setup + RULES.length) { this.closed = true; this.atk.queue = []; this.ev(['closed']); }
     if (this.spawnAt.length) { const due = this.spawnAt.filter(s => s.at <= this.t); if (due.length) { this.spawnAt = this.spawnAt.filter(s => s.at > this.t); due.forEach(s => this.spawn(s.k, s.l, s.pk ? { pk: s.pk } : null)); } }
     // units walk their lane into the shared base
     for (const u of this.units) {
@@ -305,7 +307,7 @@ class Sim {
     if (type === 'fire' || type === 'meteor') u.burnLock = this.t + 3;
     if (Ua.frontGuard && type === 'phys' && t.x !== undefined) { const a = this.L.lanes[u.l].at(u.d)[2]; if ((t.x - u.x) * Math.cos(a) + (t.y - u.y) * Math.sin(a) > 0) amt *= 1 - Ua.frontGuard; }
     if (amt <= 0) return;
-    u.hp -= amt; const D = this.players[t.owner]; if (D) D.dmg += amt;
+    u.hp -= amt; const D = this.players[t.owner]; if (D) D.dmg += amt; if (t.k && !t.dealt) { t.dealt = 1; this.towerVer++; }
     if (u.hp <= 0) {
       u.hp = 0; t.kills++; if (D) D.kills++;
       const share = UNITS[u.k].bounty / this.N; for (const d of this.defs) { d.gold += share; d.shared += share; }
@@ -350,7 +352,7 @@ class Sim {
     for (const u of this.units) if (u.mvT !== undefined && this.t - u.mvT < 0.4) (s.mv || (s.mv = [])).push(u.id, Math.round(u.off * 10) / 10, Math.round(u.v || 0));
     for (const u of this.units) if (u.run) (s.fr || (s.fr = [])).push(u.id, Math.round(u.x), Math.round(u.y));
     if (this.jets.length) s.jt = this.jets.map(j => [j.id, Math.round(j.aim * 100), j.fire]);
-    if (full || this.sentTowerVer !== this.towerVer || this.towers.some(t => t.ready > this.t || t.off > this.t)) { s.tw = this.towers.map(t => [t.id, t.slot, TOWER_IDS.indexOf(t.k), t.c, t.r, PRIORITIES.indexOf(t.prio), t.kills, t.spent, Math.max(0, Math.round((t.ready - this.t) * 100)), Math.max(0, Math.round(((t.off || 0) - this.t) * 100))]); s.tv = this.towerVer; this.sentTowerVer = this.towerVer; }
+    if (full || this.sentTowerVer !== this.towerVer || this.towers.some(t => t.ready > this.t || t.off > this.t || this.refundable(t))) { s.tw = this.towers.map(t => [t.id, t.slot, TOWER_IDS.indexOf(t.k), t.c, t.r, PRIORITIES.indexOf(t.prio), t.kills, t.spent, Math.max(0, Math.round((t.ready - this.t) * 100)), Math.max(0, Math.round(((t.off || 0) - this.t) * 100)), this.refundable(t) ? Math.round((RULES.refundWindow - (this.t - t.placed)) * 100) : 0]); s.tv = this.towerVer; this.sentTowerVer = this.towerVer; }
     if (full) { s.full = 1; s.units = this.units.map(u => [u.id, UNIT_IDS.indexOf(u.k), u.l, u.off, u.sp, Math.round(u.d)]); }
     if (full || this.over) s.stats = this.stats();
     this.events = [];

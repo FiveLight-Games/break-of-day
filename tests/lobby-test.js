@@ -45,6 +45,11 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(!(await A.evaluate(() => document.getElementById('btnReady').disabled)), 'host can start once ready');
   await A.click('#btnReady'); await sleep(1500);
   for (const [p, t] of [[A, 'A'], [B, 'B'], [C, 'C']]) check(await p.evaluate(() => !!(window.TDC.V && window.TDC.GS.running)), t + ' is in the match');
+  check(await B.evaluate(() => document.getElementById('clock').textContent.includes('Setup')), 'match opens with a setup countdown');
+  check(await A.evaluate(() => { const S = window.TDC.GS.sim, n = S.spawnAt.length; S.atk.gold += 100; S.input(S.atk.pid, { c: 'send', k: 'grunt', lane: 'all', n: 1 }); return S.spawnAt.length === n && S.t < 10; }), 'host refuses sends during setup');
+  check(await A.evaluate(() => { const S = window.TDC.GS.sim, D = S.defs[0], L = S.L, q = L.lanes[0].at(300); let c0 = -1, r0 = -1; for (let r = 0; r < L.rows - 1 && c0 < 0; r++) for (let c = 0; c < L.cols - 1; c++) if (Math.hypot((c + 1) * 24 - q[0], (r + 1) * 24 - q[1]) < 200 && window.TD.footFree(L, c, r, S.occ)) { c0 = c; r0 = r; break; }
+    const g0 = D.gold; S.input(D.pid, { c: 'build', k: 'cannon', c2: c0, r: r0 }); const t = S.towers[S.towers.length - 1]; S.input(D.pid, { c: 'sell', id: t.id }); const full = Math.abs(D.gold - g0) < 1e-6;
+    S.input(D.pid, { c: 'build', k: 'cannon', c2: c0, r: r0 }); const t2 = S.towers[S.towers.length - 1]; t2.placed -= 11; const g1 = D.gold; S.input(D.pid, { c: 'sell', id: t2.id }); return full && Math.round(D.gold - g1) === 70; }), 'tower sold within 10s of placing gets a full refund; later it is 70%');
   // free 2x2 spots near my lane, scored by distance to the lane point at path distance d
   const spots = (P, n, d) => P.evaluate(([n, d]) => { const V = window.TDC.V, L = V.L, lane = L.lanes[V.myDef.slot], pt = lane.at(d), out = [], occ = V.occ.slice();
     const cand = []; for (let r = 0; r < L.rows - 1; r++) for (let c = 0; c < L.cols - 1; c++) { const x = (c + 1) * 24, y = (r + 1) * 24, dd = Math.hypot(x - pt[0], y - pt[1]); if (dd < 260) cand.push([dd, c, r]); }
@@ -98,6 +103,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(await C.evaluate(() => window.TDC.V.towers.some(t => t.readyAt > window.TDC.V.clock)), 'new towers are under construction');
   await C.click('#buildBtn'); await sleep(200);
   check(!(await C.isVisible('#buildTray')), 'Done closes build mode');
+  await B.waitForFunction(() => window.TDC.V.t >= 10.5, null, { timeout: 15000 });
   await B.evaluate(() => { window.TDC.send({ c: 'send', k: 'grunt', lane: 'all', n: 10 }); window.TDC.send({ c: 'send', k: 'brute', lane: 0, n: 1 }); });
   await sleep(1200);
   check(await C.evaluate(() => window.TDC.V.units.size) >= 15, 'sent units march out right away: ' + await C.evaluate(() => window.TDC.V.units.size));
@@ -125,6 +131,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   const ks = await A.evaluate(() => window.TDC.GS.sim.defs.map(d => ({ kills: d.kills, shared: d.shared })));
   check(ks.some(k => k.kills > 0) && ks[0].shared === ks[1].shared && ks[0].shared > 0, 'kill gold is shared equally: ' + JSON.stringify(ks));
   // ---- spells ----
+  await A.evaluate(() => { const S = window.TDC.GS.sim; S.atk.gold += 500; S.input(S.atk.pid, { c: 'send', k: 'grunt', lane: 1, n: 10 }); S.input(S.atk.pid, { c: 'send', k: 'brute', lane: 1, n: 3 }); }); await sleep(4000);
   check(await C.isVisible('#spellBar') && !(await B.isVisible('#spellBar')), 'defenders see the spell bar, the attacker does not');
   check(await C.evaluate(() => document.querySelector('[data-spell=meteor] small').textContent) === '125g', 'spell buttons show their gold cost');
   await A.evaluate(() => { window.TDC.GS.sim.defs[1].gold += 400; }); await sleep(500);
@@ -145,7 +152,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(await C.evaluate(() => document.querySelector('[data-spell=meteor] .n').textContent) !== '', 'meteor shows its cooldown');
   const again = await A.evaluate(() => { const S = window.TDC.GS.sim; return S.defs.find(d => d.pid === window.TDC.V.defs[1].pid).scd.meteor - S.t; });
   check(again > 15 && again <= 20, 'meteor on a 20s cooldown: ' + again.toFixed(1));
-  const gm1 = await A.evaluate(() => window.TDC.GS.sim.defs[1].gold); check(gm0 - gm1 > 115 && gm0 - gm1 <= 125, 'meteor cost 125g: ' + Math.round(gm0 - gm1));
+  const sg = await A.evaluate(() => window.TDC.GS.sim.defs[1].spellGold); check(sg === 125, 'meteor cost 125g: ' + sg);
   // Water Jet: tap the button, then tap the map (middle of the lane, ahead of the crowd)
   await C.click('[data-spell=jet]'); await sleep(150);
   check(await C.evaluate(() => window.TDC.spell.armed === 'jet'), 'tapping a spell arms it');
