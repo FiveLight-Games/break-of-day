@@ -16,7 +16,9 @@ if shipping and not known:
     i = sys.argv.index('--ship'); notes = sys.argv[i + 1] if len(sys.argv) > i + 1 else ''
     log.append({'v': ver, 'build': build, 'commit': '', 'date': datetime.date.today().isoformat(), 'notes': notes})
     log_p.write_text('[\n' + ',\n'.join('  ' + json.dumps(e, ensure_ascii=False) for e in log) + '\n]\n' if log else '[]\n')
-out = (d / 'index.template.html').read_text().replace('__BUILD__', build).replace('__VER__', ver)
+tpl = (d / 'index.template.html').read_text()
+safe = lambda f: (d / f).read_text().replace('</script', '<\\/script')
+out = tpl.replace('__BUILD__', build).replace('__VER__', ver).replace('/*__GAME__*/', safe('game.js')).replace('/*__CLIENT__*/', safe('client.js'))
 (root / 'index.html').write_text(out)
 (root / 'version.json').write_text(json.dumps({'version': build, 'v': ver}) + '\n')
 print('v' + ver, 'build', build, len(out), 'bytes', '(shipped)' if shipping or known else '(unshipped)')
