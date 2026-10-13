@@ -10,5 +10,6 @@
   {"v": "0.09", "build": "11d1d7", "commit": "661e385", "date": "2026-10-13", "notes": "Build tray info strip (tap a tower for its stats); Done button sits above the tray"},
   {"v": "0.10", "build": "0c28b6", "commit": "13cefb4", "date": "2026-10-13", "notes": "Defender spells: Meteor and Water Jet (drag or tap to cast, 20s cooldowns); sound effects and music"},
   {"v": "0.11", "build": "f45b92", "commit": "13ff3c4", "date": "2026-10-13", "notes": "Meteor direct-hit radius halved (90 -> 45)"},
-  {"v": "0.12", "build": "cd6f0c", "commit": "", "date": "2026-10-13", "notes": "New units (Skeleton Horde, Naga, Warg Rider, Ogre Warchief, Tarrasque) unlocking over the match; ragdoll deaths with sprawls and limb loss for every unit"}
+  {"v": "0.12", "build": "cd6f0c", "commit": "63d4eb7", "date": "2026-10-13", "notes": "New units (Skeleton Horde, Naga, Warg Rider, Ogre Warchief, Tarrasque) unlocking over the match; ragdoll deaths with sprawls and limb loss for every unit"},
+  {"v": "0.13", "build": "d2180a", "commit": "", "date": "2026-10-13", "notes": "Fix: hosted lobbies now appear in Browse/Find (lobby directory rejected 5-seat lobbies)"}
 ]

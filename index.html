@@ -203,7 +203,7 @@ table.stats td:first-child,table.stats th:first-child{text-align:left}
 <div id="netOv" class="hidden"><div class="spin"></div><b id="netTxt">Reconnecting…</b><button class="btn sm" id="netLeave">Leave match</button></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script>window.TD_BUILD='cd6f0c';window.TD_VER='0.12';</script>
+<script>window.TD_BUILD='d2180a';window.TD_VER='0.13';</script>
 <script>// Shared game rules. The host's browser runs Sim; everyone else renders the host's snapshots.
 (function (G) {
 'use strict';
@@ -559,7 +559,7 @@ function renderMenu() {
   else if (homeScreen === 'host') m.innerHTML = `<div class="eyebrow">Host a lobby</div><h2>Name your lobby</h2>
     <form id="hostForm" class="menuPanel"><input id="lobbyIn" class="textin" maxlength="28" placeholder="${esc(myName)}'s Lobby" value="${esc(store.get('lobbyName', ''))}" autocomplete="off"><button class="btn primary" type="submit">Open lobby</button><button class="btn ghost" type="button" data-act="home">Back</button></form>`;
   else if (homeScreen === 'browse') m.innerHTML = `<div class="eyebrow">Lobby browser</div><h2>Open lobbies</h2>
-    <div class="lobbyList">${!dir.ready ? '<div class="spin"></div>' : dir.list.length ? dir.list.map(l => `<button class="lobbyItem" data-join="${esc(l.code)}"><div class="grow"><b>${esc(l.name)}</b><small class="muted">${esc(mapName(l.mode))} · ${esc(l.heroes || '')} · host ${esc(l.host)}</small></div><span class="chip">${l.joined}/${l.n}</span></button>`).join('') : '<div class="empty">No open lobbies right now. Host one, or play vs AI.</div>'}</div>
+    <div class="lobbyList">${!dir.ready ? '<div class="spin"></div>' : dir.list.length ? dir.list.map(l => `<button class="lobbyItem" data-join="${esc(l.code)}"><div class="grow"><b>${esc(l.name)}</b><small class="muted">${esc(mapName(l.mode))} · ${esc(String(l.heroes || '').split('|')[0])} · host ${esc(l.host)}</small></div><span class="chip">${esc(String(l.heroes || '').split('|')[1] || l.joined + '/' + l.n)}</span></button>`).join('') : '<div class="empty">No open lobbies right now. Host one, or play vs AI.</div>'}</div>
     <div class="row" style="justify-content:space-between"><small class="muted">${esc(dir.err || 'Refreshes every 5 seconds')}</small><button class="btn ghost sm" data-act="home">Back</button></div>`;
   else if (homeScreen === 'search') m.innerHTML = `<div class="eyebrow">Find match</div><h2>Searching…</h2><div class="spin"></div><p class="muted" style="text-align:center">${esc(qm.status)}</p><button class="btn ghost" data-act="cancelSearch">Cancel</button>`;
   else if (homeScreen === 'joining') m.innerHTML = `<div class="eyebrow">Joining</div><h2>Joining lobby…</h2><div class="spin"></div><button class="btn ghost" data-act="cancelJoin">Cancel</button>`;
@@ -580,6 +580,7 @@ function bindMenu() {
 }
 function menuAct(a) {
   menuErr = '';
+  if (a === 'find' || a === 'browse' || a === 'hostForm') checkVersion(); // an out-of-date page can't see (or be seen by) players on the new version
   if (a === 'rename') { homeScreen = 'name'; return renderMenu(); }
   if (a === 'home') { stopBrowsing(); homeScreen = 'home'; return renderMenu(); }
   if (a === 'hostForm') { homeScreen = 'host'; return renderMenu(); }
@@ -606,7 +607,10 @@ const humanCap = () => LS.seats[0] === 'ai' ? TD.MAX_DEF : TD.MAX_DEF + 1;
 const humansIn = () => L.players.length;
 function lobbyRow() {
   const nd = LS.seats.slice(1).filter(Boolean).length;
-  return { code: L.code, name: (L.lobbyName || `${myName}'s Lobby`).slice(0, 40), host: myName.slice(0, 20), mode: LS.map, n: humanCap(), joined: Math.max(1, humansIn()), heroes: (LS.seats[0] === 'ai' ? 'vs AI attacker' : '1v' + Math.max(1, nd)).slice(0, 120), version: BUILD };
+  // the shared directory table only allows 1-4 seats, but a lobby here can hold 5 people (attacker + 4 defenders).
+  // Store a value that keeps the open/full test right (joined < n means open), and put the real count in the text.
+  const cap = humanCap(), j = Math.max(1, humansIn()), n = Math.min(4, cap), open = j < cap;
+  return { code: L.code, name: (L.lobbyName || `${myName}'s Lobby`).slice(0, 40), host: myName.slice(0, 20), mode: LS.map, n, joined: open ? Math.min(j, n - 1) : n, heroes: ((LS.seats[0] === 'ai' ? 'vs AI attacker' : '1v' + Math.max(1, nd)) + '|' + j + '/' + cap).slice(0, 120), version: BUILD };
 }
 function advertise() {
   const s = getSB(); if (!s || L.mode !== 'host' || L.started) return unadvertise();
