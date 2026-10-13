@@ -81,9 +81,15 @@ const SPELLS = {
 };
 const SPELL_IDS = Object.keys(SPELLS);
 const UNITS = {
-  grunt: { n: 'Footman', hp: 150, sp: 46, r: 5.5, cost: 3, bounty: 1, dmg: 3, d: 'Cheap and sturdy. 3 damage to the base.' },
-  runner: { n: 'Scout', hp: 85, sp: 70, r: 4.5, cost: 3, bounty: 1, dmg: 1, d: 'Fast and fragile. 1 damage to the base.' },
-  brute: { n: 'Ogre', hp: 650, sp: 40, r: 8.5, cost: 12, bounty: 4, dmg: 12, d: 'Huge and slow. 12 damage to the base.' },
+  // unlock: minute of the match the attacker can first send it. pack: units per send. armor: less damage from arrows and shells.
+  grunt: { n: 'Footman', hp: 150, sp: 46, r: 5.5, cost: 3, bounty: 1, dmg: 3, body: 'human', unlock: 0, d: 'Cheap and sturdy. 3 damage to the base.' },
+  runner: { n: 'Scout', hp: 85, sp: 70, r: 4.5, cost: 3, bounty: 1, dmg: 1, body: 'human', unlock: 0, d: 'Fast and fragile. 1 damage to the base.' },
+  skel: { n: 'Skeleton Horde', hp: 32, sp: 50, r: 4.2, cost: 5, pack: 6, bounty: 0.25, dmg: 1, body: 'skel', unlock: 2, d: 'Six brittle skeletons per send. They swamp single-target towers. 1 damage each.' },
+  brute: { n: 'Ogre', hp: 650, sp: 40, r: 8.5, cost: 12, bounty: 4, dmg: 12, body: 'ogre', unlock: 0, d: 'Huge and slow. 12 damage to the base.' },
+  naga: { n: 'Naga Myrmidon', hp: 420, sp: 50, r: 6.5, cost: 10, bounty: 3, dmg: 5, body: 'naga', unlock: 4, slowRes: 0.5, pushRes: 0.7, d: 'Serpent warrior. Shrugs off half of any slow and most of the Water Jet. 5 damage.' },
+  warg: { n: 'Warg Rider', hp: 340, sp: 92, r: 7, cost: 11, bounty: 3, dmg: 6, body: 'warg', unlock: 6, d: 'An orc on a giant wolf. Very fast. 6 damage.' },
+  chief: { n: 'Ogre Warchief', hp: 1700, sp: 36, r: 10.5, cost: 32, bounty: 10, dmg: 25, body: 'ogre', armor: 0.35, unlock: 9, d: 'Plated ogre lord. Arrows and shells do 35% less. 25 damage.' },
+  tarrasque: { n: 'Tarrasque', hp: 9000, sp: 17, r: 26, cost: 420, bounty: 120, dmg: 100, noScale: 1, body: 'beast', armor: 0.25, unstoppable: 1, unlock: 15, d: 'A walking catastrophe. Can\'t be slowed, pushed or one-shot. 100 damage.' },
 };
 const UNIT_IDS = Object.keys(UNITS);
 // gold is per second; kill gold is shared: every defender gets bounty / number of defenders
@@ -110,7 +116,7 @@ class Sim {
     const P = this.players[pid]; if (!P || this.over) return;
     if (P === this.atk) {
       if (this.closed) return;
-      if (c.c === 'send') { const U = UNITS[c.k]; if (!U) return; const lanes = c.lane === 'all' ? this.defs.map(d => d.slot) : [this.defs[c.lane]].filter(Boolean).map(d => d.slot); const n = Math.max(1, Math.min(10, c.n | 0 || 1)), cost = U.cost * lanes.length * n; if (!lanes.length || P.gold < cost) return; P.gold -= cost; P.spent += cost; for (const l of lanes) for (let i = 0; i < n; i++) P.queue.push([c.k, l]); }
+      if (c.c === 'send') { const U = UNITS[c.k]; if (!U || this.mins() < U.unlock) return; const lanes = c.lane === 'all' ? this.defs.map(d => d.slot) : [this.defs[c.lane]].filter(Boolean).map(d => d.slot); const n = Math.max(1, Math.min(10, c.n | 0 || 1)), cost = U.cost * lanes.length * n; if (!lanes.length || P.gold < cost) return; P.gold -= cost; P.spent += cost; for (const l of lanes) for (let i = 0; i < n; i++) P.queue.push([c.k, l]); }
       else if (c.c === 'speed') { if (P !== this.atk || this.closed || P.speed >= RULES.speedMax) return; const cost = this.speedCost(); if (P.gold < cost) return; P.gold -= cost; P.spent += cost; P.speed++; }
       else if (c.c === 'invest') { const cost = this.investCost(); if (P.gold < cost) return; P.gold -= cost; P.spent += cost; P.invest++; P.income += RULES.investGain * this.N; }
       return;
@@ -154,7 +160,7 @@ class Sim {
       if (this.pulseT <= 0) {
         this.pulseT = Math.max(this.pulseT + RULES.pulse, 0.05); this.wave++;
         const q = this.atk.queue; this.atk.queue = []; this.atk.sent += q.length;
-        const perLane = {}; q.forEach(([k, l]) => { perLane[l] = (perLane[l] || 0) + 1; this.spawnAt.push({ at: this.t + Math.min(10, perLane[l] * 0.1), k, l }); });
+        const perLane = {}; q.forEach(([k, l]) => { perLane[l] = (perLane[l] || 0) + 1; const pk = UNITS[k].pack || 1; for (let i = 0; i < pk; i++) this.spawnAt.push({ at: this.t + Math.min(10, perLane[l] * 0.1) + i * 0.07, k, l }); });
         this.ev(['w', this.wave, q.length]);
       }
     }
@@ -162,7 +168,8 @@ class Sim {
     // units walk their lane into the shared base
     for (const u of this.units) {
       const lane = this.L.lanes[u.l], air = u.air > 0;
-      u.v = u.sp * (u.slowU > this.t ? 0.5 : 1) * (air ? 0 : 1) + (u.kb || 0); u.d = Math.max(-30, u.d + u.v * dt); u.burn = Math.max(0, u.burn - dt);
+      const U = UNITS[u.k], slow = u.slowU > this.t && !U.unstoppable ? 1 - 0.5 * (1 - (U.slowRes || 0)) : 1;
+      u.v = u.sp * slow * (air ? 0 : 1) + (u.kb || 0); u.d = Math.max(-30, u.d + u.v * dt); u.burn = Math.max(0, u.burn - dt);
       if (u.kb || u.lv) { u.kb *= Math.exp(-3.2 * dt); u.off = Math.max(-LANE + 6, Math.min(LANE - 6, u.off + (u.lv || 0) * dt)); u.lv *= Math.exp(-4 * dt); if (Math.abs(u.kb) < 1) u.kb = 0; if (Math.abs(u.lv) < 1) u.lv = 0; u.mvT = this.t; }
       if (air) u.air -= dt;
       if (u.d >= lane.total) { u.dead = 1; const dmg = UNITS[u.k].dmg; this.hp = Math.max(0, this.hp - dmg); this.atk.leaked++; this.atk.dmg += dmg; this.ev(['lk', u.id, dmg]); continue; }
@@ -210,15 +217,15 @@ class Sim {
     this.pending.push({ at: this.t + fly, t, u, x: u.x, y: u.y, dmg: T.dmg });
   }
   near(px, py, r, fn) { for (const u of this.units) if (u.hp > 0 && (u.x - px) ** 2 + (u.y - py) ** 2 < r * r) fn(u, Math.hypot(u.x - px, u.y - py)); }
-  shove(u, dx, dy, along, side) { const a = this.L.lanes[u.l].at(u.d)[2], tx = Math.cos(a), ty = Math.sin(a); u.kb = (u.kb || 0) + (dx * tx + dy * ty) * along; u.lv = (u.lv || 0) + (dx * -ty + dy * tx) * side; u.mvT = this.t; }
+  shove(u, dx, dy, along, side) { const U = UNITS[u.k]; if (U.unstoppable) return; const res = 1 - (U.pushRes || 0) * 0.5; along *= res; side *= res; const a = this.L.lanes[u.l].at(u.d)[2], tx = Math.cos(a), ty = Math.sin(a); u.kb = (u.kb || 0) + (dx * tx + dy * ty) * along; u.lv = (u.lv || 0) + (dx * -ty + dy * tx) * side; u.mvT = this.t; }
   stepSpells(dt) {
     const M = SPELLS.meteor, J = SPELLS.jet;
     for (const m of this.meteors) if (m.at <= this.t) {
       m.done = 1; this.ev(['mi', Math.round(m.x), Math.round(m.y)]);
       this.near(m.x, m.y, M.edge, (u, d) => {
-        if (d < M.core) return this.hurt(u, 1e6, 'meteor', m.src, m.x, m.y);
+        if (d < M.core) return this.hurt(u, UNITS[u.k].unstoppable ? 1500 : 1e6, 'meteor', m.src, m.x, m.y);
         const f = 1 - (d - M.core) / (M.edge - M.core); this.hurt(u, 120 + 380 * f, 'meteor', m.src, m.x, m.y);
-        if (u.hp > 0) { this.shove(u, (u.x - m.x) / d, (u.y - m.y) / d, 420 * f, 160 * f); u.air = 0.35 + 0.3 * f; u.burn = 1.2; }
+        if (u.hp > 0) { this.shove(u, (u.x - m.x) / d, (u.y - m.y) / d, 420 * f, 160 * f); if (!UNITS[u.k].unstoppable) u.air = 0.35 + 0.3 * f; u.burn = 1.2; }
       });
       this.fields.push({ x: m.x, y: m.y, r: M.fireR, until: this.t + M.fireDur, tick: 0, src: m.src });
     }
@@ -228,10 +235,10 @@ class Sim {
     for (const j of this.jets) {
       const age = this.t - j.t0;
       if (age >= J.drop && !j.landed) { // the payload crushes what it lands on
-        j.landed = 1; this.near(j.x, j.y, 60, (u, d) => { if (d < 20) return this.hurt(u, 1e6, 'blast', j.src, j.x, j.y); const f = 1 - d / 60; this.shove(u, (u.x - j.x) / (d || 1), (u.y - j.y) / (d || 1), 200 * f, 160 * f); u.air = 0.2 + 0.2 * f; });
+        j.landed = 1; this.near(j.x, j.y, 60, (u, d) => { if (d < 20) return this.hurt(u, UNITS[u.k].unstoppable ? 600 : 1e6, 'blast', j.src, j.x, j.y); const f = 1 - d / 60; this.shove(u, (u.x - j.x) / (d || 1), (u.y - j.y) / (d || 1), 200 * f, 160 * f); if (!UNITS[u.k].unstoppable) u.air = 0.2 + 0.2 * f; });
       }
       if (j.landed && age < J.unfold + J.life + 0.4) for (const u of this.units) { // a solid obstacle: walk around it
-        if (u.l !== j.l || u.hp <= 0) continue; const dd = u.d - j.jd; if (dd < -45 || dd > 18) continue;
+        if (u.l !== j.l || u.hp <= 0 || UNITS[u.k].unstoppable) continue; const dd = u.d - j.jd; if (dd < -45 || dd > 18) continue;
         const gap = Math.abs(u.off - j.off), clear = 20 + UNITS[u.k].r; if (gap >= clear) continue;
         u.lv = (u.lv || 0) + (u.off - j.off >= 0 ? 1 : -1) * (clear - gap) * 260 * dt; if (dd > -14) u.kb = Math.min(u.kb || 0, -u.sp * 0.6); u.mvT = this.t;
       }
@@ -242,7 +249,7 @@ class Sim {
       const ca = Math.cos(j.aim), sa = Math.sin(j.aim);
       this.near(j.x, j.y, J.r, (u, d) => {
         let off = Math.atan2(u.y - j.y, u.x - j.x) - j.aim; off = Math.atan2(Math.sin(off), Math.cos(off)); if (Math.abs(off) > J.cone) return;
-        const f = (1 - d / J.r * 0.6) * (1 - Math.abs(off) / J.cone * 0.5), a = this.L.lanes[u.l].at(u.d)[2], tx = Math.cos(a), ty = Math.sin(a), wt = u.k === 'brute' ? 0.35 : u.k === 'runner' ? 1.25 : 1;
+        const f = (1 - d / J.r * 0.6) * (1 - Math.abs(off) / J.cone * 0.5), a = this.L.lanes[u.l].at(u.d)[2], tx = Math.cos(a), ty = Math.sin(a), U = UNITS[u.k], wt = U.unstoppable ? 0 : (1 - (U.pushRes || 0)) * (U.r >= 8 ? 0.35 : u.k === 'runner' ? 1.25 : 1);
         u.kb = Math.max(-260, (u.kb || 0) - (0.55 + 0.45 * Math.abs(ca * tx + sa * ty)) * 1500 * f * wt * dt); u.lv = (u.lv || 0) + (ca * -ty + sa * tx) * 500 * f * wt * dt; u.wet = this.t + 0.35; u.mvT = this.t;
         this.hurt(u, J.dps * dt, 'water', j.src, j.x, j.y);
       });
@@ -251,12 +258,13 @@ class Sim {
   }
   spawn(k, l) {
     const U = UNITS[k]; if (!this.L.lanes[l]) return;
-    const hp = Math.round(U.hp * (1 + RULES.hpPerMin * this.mins()));
-    const u = { id: this.nid++, k, l, d: -10 - this.R() * 20, off: Math.round(rr(this.R, -LANE + 10, LANE - 10)), sp: Math.round(U.sp * (1 + RULES.speedStep * this.atk.speed) * rr(this.R, 0.92, 1.08)), hp, max: hp, slowU: 0, burn: 0, x: 0, y: 0 };
+    const hp = Math.round(U.hp * (U.noScale ? 1 : 1 + RULES.hpPerMin * this.mins()));
+    const m = Math.max(10, U.r + 4), u = { id: this.nid++, k, l, d: -10 - this.R() * 20, off: Math.round(rr(this.R, -LANE + m, LANE - m)), sp: Math.round(U.sp * (1 + RULES.speedStep * this.atk.speed) * rr(this.R, 0.92, 1.08)), hp, max: hp, slowU: 0, burn: 0, x: 0, y: 0 };
     this.units.push(u); this.ev(['u', u.id, UNIT_IDS.indexOf(k), l, u.off, u.sp, Math.round(u.d)]);
   }
   hurt(u, amt, type, t, sx, sy) {
     if (u.hp <= 0) return;
+    const Ua = UNITS[u.k]; if (Ua.armor && (type === 'phys' || type === 'blast')) amt *= 1 - Ua.armor;
     u.hp -= amt; const D = this.players[t.owner]; if (D) D.dmg += amt;
     if (u.hp <= 0) {
       u.hp = 0; t.kills++; if (D) D.kills++;
@@ -275,7 +283,9 @@ class Sim {
     const need = wantSpd ? this.speedCost() : wantInv ? this.investCost() : 0;
     if (need && A.gold < need && A.gold + A.income * 25 >= need) return;
     const lanes = this.defs.length;
-    let guard = 40; while (guard-- > 0) { const k = this.R() < 0.55 ? 'grunt' : this.R() < 0.75 ? 'runner' : 'brute'; const cost = UNITS[k].cost * lanes; if (A.gold < cost + A.income * 3) break; this.input(A.pid, { c: 'send', k, lane: 'all' }); }
+    const W = { grunt: 30, runner: 14, skel: 16, brute: 12, naga: 11, warg: 10, chief: 6 }, open = Object.keys(W).filter(k => this.mins() >= UNITS[k].unlock), tot = open.reduce((s2, k) => s2 + W[k], 0);
+    if (this.mins() >= UNITS.tarrasque.unlock && !this.units.some(u => u.k === 'tarrasque')) { const c2 = UNITS.tarrasque.cost * lanes; if (A.gold >= c2) this.input(A.pid, { c: 'send', k: 'tarrasque', lane: 'all' }); else if (A.gold + A.income * 40 >= c2) return; }
+    let guard = 40; while (guard-- > 0) { let roll = this.R() * tot, k = open[0]; for (const o of open) { roll -= W[o]; if (roll <= 0) { k = o; break; } } const cost = UNITS[k].cost * lanes; if (A.gold < cost + A.income * 3) break; this.input(A.pid, { c: 'send', k, lane: 'all' }); }
   }
   botDefend(D) {
     if ((this.tick + D.slot * 5) % 20) return;

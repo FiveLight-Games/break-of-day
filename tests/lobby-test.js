@@ -93,6 +93,8 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   await B.evaluate(() => { window.TDC.send({ c: 'send', k: 'grunt', lane: 'all', n: 10 }); window.TDC.send({ c: 'send', k: 'brute', lane: 0, n: 1 }); });
   await sleep(1200);
   check(await B.evaluate(() => window.TDC.V.atk.queue.length) === 21, 'attacker queue shows the wave');
+  check(await B.evaluate(() => { const c = document.querySelector('[data-unit=tarrasque]'), s = document.querySelector('[data-unit=skel]'); return c.disabled && c.classList.contains('locked') && c.textContent.includes('15:00') && s.classList.contains('locked') && document.querySelectorAll('#atkPanel [data-unit]').length === 8; }), 'attacker sees 8 units; later ones are locked with their unlock time');
+  check(await A.evaluate(() => { const S = window.TDC.GS.sim, n = S.atk.queue.length; S.input(S.atk.pid, { c: 'send', k: 'tarrasque', lane: 'all' }); return S.atk.queue.length === n; }), 'host refuses a locked unit');
   const goldBefore = await Promise.all([A, C].map(P => P.evaluate(() => window.TDC.V.myDef.gold)));
   check(!(await C.evaluate(() => !!document.getElementById('voteBtn'))), 'no Start Now button');
   await C.waitForFunction(() => window.TDC.V.wave >= 1 && window.TDC.V.units.size > 0, null, { timeout: 20000 });
