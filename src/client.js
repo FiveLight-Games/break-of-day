@@ -693,7 +693,7 @@ function frame(ms) {
   const dt = Math.min(0.05, (ms - lastF) / 1000); lastF = ms;
   if (!GS.running || !V) return;
   V.clock = (V.clock || 0) + dt;
-  if (V.deadBars && V.deadBars.length) V.deadBars = V.deadBars.filter(b => V.clock - b.t < 0.4);
+  if (V.deadBars && V.deadBars.length) V.deadBars = V.deadBars.filter(b => V.clock - b.t < 0.25);
   if (!V.over) stepFx(dt);
   if (GS.mode === 'client' && performance.now() - GS.lastNet > 6000) { $('netOv').classList.remove('hidden'); $('netTxt').textContent = 'Waiting for the host…'; } else $('netOv').classList.add('hidden');
   const z = cam.z, vx0 = cam.x - VW / 2 / z, vy0 = cam.y - VH / 2 / z, vx1 = cam.x + VW / 2 / z, vy1 = cam.y + VH / 2 / z, inView = (px, py, m) => px > vx0 - m && px < vx1 + m && py > vy0 - m && py < vy1 + m;
