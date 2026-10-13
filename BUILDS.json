@@ -1,5 +1,23 @@
 [
-  {"v": "0.01", "build": "5622c0", "commit": "4925694", "date": "2026-10-13", "notes": "Hold the Line first playable: lobby (host/find/browse), map/race/color picks, 1vX match, vs AI, early-wave vote"},
-  {"v": "0.02", "build": "b23314", "commit": "", "date": "2026-10-13", "notes": "Play in portrait or landscape"},
-  {"v": "0.03", "build": "207470", "commit": "", "date": "2026-10-13", "notes": "Shared base (250 HP/defender), lane per defender, grid + drag-to-build with 3s construction, redesigned towers"}
+  {
+    "v": "0.01",
+    "build": "5622c0",
+    "commit": "4925694",
+    "date": "2026-10-13",
+    "notes": "Hold the Line first playable: lobby (host/find/browse), map/race/color picks, 1vX match, vs AI, early-wave vote"
+  },
+  {
+    "v": "0.02",
+    "build": "b23314",
+    "commit": "25e7613",
+    "date": "2026-10-13",
+    "notes": "Play in portrait or landscape"
+  },
+  {
+    "v": "0.03",
+    "build": "207470",
+    "commit": "",
+    "date": "2026-10-13",
+    "notes": "Shared base (250 HP/defender), lane per defender, grid + drag-to-build with 3s construction, redesigned towers"
+  }
 ]
