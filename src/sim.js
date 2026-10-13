@@ -163,6 +163,20 @@ const HEAL_SPOTS = [[-52, 46], [52, 46], [-25, -5], [25, -5]].map(sc);
 const WALLS = [[-25, 112, Math.PI / 2], [25, 112, Math.PI / 2], [-17, 95, -0.7], [17, 95, 0.7]].map(sc);
 const TURRETS = [[-11, 101], [11, 101]].map(sc);
 const RAID_PTS = [[-60, 70, 'west'], [60, 70, 'east'], [-45, 30, 'western jungle'], [45, 30, 'eastern jungle'], [-100, 95, 'far west'], [100, 95, 'far east']].map(sc);
+// ---------------- small jungle camps: weaker 1-2 unit camps of every type scattered through the jungle (deterministic) ----------------
+(() => {
+  const R = mulberry32(77031), F = MAP.fountain, types = ['wolves', 'trolls', 'ogres'], bases = [[0, F.z + 6], [0, -F.z - 6]];
+  const far = (x, z, pts, d) => pts.every(p => (p[0] - x) ** 2 + (p[1] - z) ** 2 >= d * d);
+  const xy = a => a.map(o => [o.x, o.z]);
+  let n = 0;
+  for (let tries = 0; tries < 6000 && n < 26; tries++) {
+    const x = (R() * 2 - 1) * (MAP.W - 14), z = (R() * 2 - 1) * (MAP.H - 22);
+    if (laneDist(x, z) < 18 || Math.abs(z - RIVER(x)) < 7) continue;
+    if (!far(x, z, bases, 64) || !far(x, z, xy(MAP.towns), 26) || !far(x, z, xy(MAP.bosses), 26) || !far(x, z, xy(MAP.camps), 23)) continue;
+    if (!far(x, z, MAP.encSpots, 14) || !far(x, z, [[MAP.secretShop.x, MAP.secretShop.z], [MAP.forge.x, MAP.forge.z]], 20) || !far(x, z, HEAL_SPOTS, 12) || !far(x, z, RAID_PTS, 14) || !far(x, z, WARD_SPOTS.flat(), 12)) continue;
+    MAP.camps.push({ x: Math.round(x * 10) / 10, z: Math.round(z * 10) / 10, t: types[n % 3], s: 1 }); n++;
+  }
+})();
 // ---------------- TERRAIN: impassable forest, ruins, rocks (deterministic, shared with client) ----------------
 const TER = (() => {
   const cs = 2, ox = -MAP.W, oz = -MAP.H, cols = Math.ceil(2 * MAP.W / cs), rows = Math.ceil(2 * MAP.H / cs);
@@ -176,7 +190,7 @@ const TER = (() => {
   const clearLine = (x1, z1, x2, z2, w, wig) => { const L = Math.hypot(x2 - x1, z2 - z1) || 1, n = Math.ceil(L / 1.5), nx = -(z2 - z1) / L, nz = (x2 - x1) / L, ph = R() * 6; for (let s = 0; s <= n; s++) { const t = s / n, off = wig ? Math.sin(t * Math.PI * 2 + ph) * wig * Math.sin(t * Math.PI) : 0; clearDisc(x1 + (x2 - x1) * t + nx * off, z1 + (z2 - z1) * t + nz * off, w); } };
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { const x = cx(c), z = cz(r); if (laneDist(x, z) < 10.5 || Math.abs(z - RIVER(x)) < 4.5) clear[r * cols + c] = 1; }
   const pois = [], add = (x, z, r) => { clearDisc(x, z, r); pois.push([x, z]); };
-  MAP.towns.forEach(t => clearDisc(t.x, t.z, 17)); MAP.bosses.forEach(b => add(b.x, b.z, 15)); MAP.camps.forEach(c => add(c.x, c.z, 10.5));
+  MAP.towns.forEach(t => clearDisc(t.x, t.z, 17)); MAP.bosses.forEach(b => add(b.x, b.z, 15)); MAP.camps.forEach(c => add(c.x, c.z, c.s ? 8 : 10.5));
   MAP.encSpots.forEach(p => add(p[0], p[1], 7)); HEAL_SPOTS.forEach(p => add(p[0], p[1], 6)); WARD_SPOTS.forEach(l => l.forEach(p => add(p[0], p[1], 6)));
   add(MAP.forge.x, MAP.forge.z, 10); add(MAP.secretShop.x, MAP.secretShop.z, 11); RAID_PTS.forEach(p => add(p[0], p[1], 9));
   clearDisc(0, MAP.fountain.z + 6, 50); clearDisc(0, -MAP.fountain.z - 6, 50);
@@ -261,7 +275,7 @@ const staticObs = () => STATIC_OBS_C || (STATIC_OBS_C = (() => {
     for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283 + 0.5, hx = t.x + Math.cos(a) * 5.2, hz = t.z + Math.sin(a) * 5.2; if (laneDist(hx, hz) < 5.5) continue; o.push(cap(hx, hz, hx, hz, 1.4)); }
   }
   // jungle camp tents
-  for (const cp of MAP.camps) { const ang = Math.atan2(-cp.z, -cp.x); for (const [off, s] of [[0.9, 1], [-0.9, 0.85]]) { const x = cp.x + Math.cos(ang + Math.PI + off) * 5, z = cp.z + Math.sin(ang + Math.PI + off) * 5; o.push(cap(x, z, x, z, 1.3 * s)); } }
+  for (const cp of MAP.camps) { const ang = Math.atan2(-cp.z, -cp.x); const k = cp.s ? 0.7 : 1; for (const [off, s] of [[0.9, 1], [-0.9, 0.85]]) { const x = cp.x + Math.cos(ang + Math.PI + off) * 5 * k, z = cp.z + Math.sin(ang + Math.PI + off) * 5 * k; o.push(cap(x, z, x, z, 1.3 * s * k)); } }
   // lane war camp tents
   LANE_CAMPS.forEach((cd, ti) => ['L', 'M', 'R'].forEach(ln => { const z0 = cd.z, x0 = laneX(ln, z0); for (const sd of [-1, 1]) { const tx = sd * (8.5 + ti); if (blocked(x0 + tx, z0)) continue; const x = x0 + tx, z = z0 + (ti - 1) * 2; o.push(cap(x, z, x, z, 1.4)); } }));
   return o;
@@ -501,6 +515,7 @@ const CAMP_NAMES = { L: ['Bone Pickets', 'Ghoul Warren', 'Necropolis Bastion'], 
 const LIEUT_NAMES = { L: 'Lich Lieutenant', M: 'Orc Warchief', R: 'Naga Sea Witch' };
 const LIEUT_SKILLS = { L: ['nova', 'summon'], M: ['slam', 'charge'], R: ['nova', 'slam'] };
 const CAMP_UNITS = { wolves: ['wolf', 'wolf', 'wolf'], trolls: ['troll', 'trollshaman', 'troll'], ogres: ['ogre', 'rockgolem'] };
+const SMALL_CAMP_UNITS = { wolves: ['wolf', 'wolf'], trolls: ['troll', 'trollshaman'], ogres: ['ogre'] };
 
 // ---------------- SIM ----------------
 class Sim {
@@ -573,10 +588,10 @@ class Sim {
     });
   }
   spawnCamp(i) {
-    const c = MAP.camps[i], m = 1 + (this.mins()) * 0.045;
-    const ids = CAMP_UNITS[c.t].map((k, j, arr) => {
-      const a = j / arr.length * 6.283, e = this.unitFrom(CREEPS[k], 'creep', 2, c.x + Math.cos(a) * 2.2, c.z + Math.sin(a) * 2.2, m, 'c_' + k);
-      e.homeX = e.x; e.homeZ = e.z; e.leash = 11; e.aggro = 6; e.camp = i; return e.id;
+    const c = MAP.camps[i], m = (1 + (this.mins()) * 0.045) * (c.s ? 0.7 : 1);
+    const ids = (c.s ? SMALL_CAMP_UNITS : CAMP_UNITS)[c.t].map((k, j, arr) => {
+      const a = j / arr.length * 6.283, rr = arr.length > 1 ? 2.2 : 0, e = this.unitFrom(CREEPS[k], 'creep', 2, c.x + Math.cos(a) * rr, c.z + Math.sin(a) * rr, m, 'c_' + k);
+      e.homeX = e.x; e.homeZ = e.z; e.leash = c.s ? 9 : 11; e.aggro = c.s ? 5 : 6; e.camp = i; return e.id;
     });
     this.campTimers[i] = -1; MAP.camps[i].ids = ids;
   }
@@ -702,7 +717,7 @@ class Sim {
       if (e.kind === 'gate' && e.team === 1) { e.gdef.cells.forEach(i => DYN[i] = 0); this.msg('The enemy ' + LANE_INFO[e.lane].name + ' gate is broken! The enemy Core is exposed.', 'gold'); const c = this.ents.find(c => c.kind === 'core' && c.team === 1); if (c) c.invuln = 0; }
       if (e.kind === 'guard') { const c = this.camps2[e.camp]; if (c && !c.cleared && c.ids.every(id => { const u = this.byId.get(id); return !u || u.dead; })) this.campCleared(c); }
       if (e.kind === 'core' && e.team === 1) this.end(true);
-      if (e.camp !== undefined) { const c = MAP.camps[e.camp]; if (c.ids.every(id => { const u = this.byId.get(id); return !u || u.dead; })) this.campTimers[e.camp] = this.t + 60; }
+      if (e.camp !== undefined) { const c = MAP.camps[e.camp]; if (c.ids.every(id => { const u = this.byId.get(id); return !u || u.dead; })) this.campTimers[e.camp] = this.t + (c.s ? 45 : 60); }
     } else {
       if (e.kind === 'tower') this.msg('Our ' + LANE_INFO[e.lane].name + ' tower has been destroyed!', 'r');
       if (e.kind === 'gate') { e.gdef.cells.forEach(i => DYN[i] = 0); this.msg('Our ' + LANE_INFO[e.lane].name + ' gate has fallen! The Core is vulnerable.', 'r'); const c = this.ents.find(c => c.kind === 'core' && c.team === 0); if (c) c.invuln = 0; }
@@ -1566,6 +1581,6 @@ class Sim {
     return s;
   }
 }
-const API = { staticObs, FORT_CELLS, BASES, DYN, GATE_HALF, blockedT, LANE_CAMPS, CAMP_NAMES, LIEUT_NAMES, laneOf, laneDistK, laneX, TER, blocked, los, RIVER, SX, SZ, RAID_PTS, WARD_SPOTS, MODES, BASE_UPG, MERC_COST, HEAL_SPOTS, VAULT, LEGENDARIES, MYTHICS, rollLegendary, rollMythic, makeProc, VERSION, TOWN_BUFFS, TIER_DRAIN, Sim, HEROES, HERO_IDS, ITEMS, MAP, LANES, LANE_INFO, STAT_NAMES, PCT, RARITY, POTION_COST, DAY, NIGHT, CYC, ECLIPSE_T, DT, xpNext, laneDist, rollLoot, mulberry32 };
+const API = { NAV, staticObs, FORT_CELLS, BASES, DYN, GATE_HALF, blockedT, LANE_CAMPS, CAMP_NAMES, LIEUT_NAMES, laneOf, laneDistK, laneX, TER, blocked, los, RIVER, SX, SZ, RAID_PTS, WARD_SPOTS, MODES, BASE_UPG, MERC_COST, HEAL_SPOTS, VAULT, LEGENDARIES, MYTHICS, rollLegendary, rollMythic, makeProc, VERSION, TOWN_BUFFS, TIER_DRAIN, Sim, HEROES, HERO_IDS, ITEMS, MAP, LANES, LANE_INFO, STAT_NAMES, PCT, RARITY, POTION_COST, DAY, NIGHT, CYC, ECLIPSE_T, DT, xpNext, laneDist, rollLoot, mulberry32 };
 if (typeof module !== 'undefined') module.exports = API; else G.DW = API;
 })(typeof window !== 'undefined' ? window : globalThis);

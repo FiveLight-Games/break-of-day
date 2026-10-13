@@ -580,7 +580,7 @@ function buildTerrain() {
     if (trim) { c.strokeStyle = trim; c.lineWidth = pu(0.8); c.beginPath(); c.ellipse(px(x), pz(z), pu(r - 1.4), pv(r - 1.4), 0, 0, 7); c.stroke(); } };
   plaza(0, M.fountain.z + 4, 34, '#8c877c', '#3a6ab0'); plaza(0, -M.fountain.z - 4, 34, '#7a7470', '#a03040');
   M.towns.forEach(t => plaza(t.x, t.z, 12, ['#5e5458', '#8a8274', '#7a8a88'][themeAt(t.x, t.z)]));
-  M.camps.forEach(cp => { c.fillStyle = 'rgba(96,74,44,.75)'; c.beginPath(); c.ellipse(px(cp.x), pz(cp.z), pu(8), pv(8), 0, 0, 7); c.fill(); c.strokeStyle = 'rgba(40,30,20,.6)'; c.lineWidth = pu(0.5); c.stroke(); });
+  M.camps.forEach(cp => { c.fillStyle = 'rgba(96,74,44,.75)'; c.beginPath(); c.ellipse(px(cp.x), pz(cp.z), pu(cp.s ? 5.8 : 8), pv(cp.s ? 5.8 : 8), 0, 0, 7); c.fill(); c.strokeStyle = 'rgba(40,30,20,.6)'; c.lineWidth = pu(0.5); c.stroke(); });
   M.bosses.forEach(b => { c.fillStyle = 'rgba(70,60,50,.7)'; c.beginPath(); c.ellipse(px(b.x), pz(b.z), pu(12), pv(12), 0, 0, 7); c.fill(); c.strokeStyle = 'rgba(120,30,20,.4)'; c.lineWidth = pu(0.4); for (let a = 0; a < 6.28; a += 1.05) { c.beginPath(); c.moveTo(px(b.x), pz(b.z)); c.lineTo(px(b.x + Math.cos(a) * 11), pz(b.z + Math.sin(a) * 11)); c.stroke(); } });
   T.ruins.forEach(r => r.pts.forEach(p => { c.fillStyle = 'rgba(110,104,96,.5)'; c.beginPath(); c.ellipse(px(p[0]), pz(p[1]), pu(2.2), pv(2.2), 0, 0, 7); c.fill(); }));
   c.lineWidth = Math.max(1, pu(0.08)); c.lineCap = 'round';
@@ -759,7 +759,7 @@ function buildDecor() {
   const CAMPCOL = { wolves: 0x4a9a4a, trolls: 0x3a6ac0, ogres: 0xc03a2a };
   G.campFires = [];
   M.camps.forEach((cp, i) => {
-    const g = new THREE.Group(); g.position.set(cp.x, 0, cp.z);
+    const g = new THREE.Group(); g.position.set(cp.x, 0, cp.z); if (cp.s) g.scale.setScalar(0.7);
     for (let a = 0; a < 6.28; a += 0.5) g.add(part('ico', 0x7a7470, 0.9, 0.6, 0.9, Math.cos(a) * 7.6, 0.2, Math.sin(a) * 7.6));
     for (let a = 0; a < 6.28; a += 1.26) { const l = part('cyl6', 0x5a3a20, 0.22, 1.4, 0.22, Math.cos(a) * 0.5, 0.15, Math.sin(a) * 0.5); l.rotation.z = Math.PI / 2; l.rotation.y = a; g.add(l); }
     const cth = themeAt(cp.x, cp.z), FC = [[0x6aff8a, 0x20c040, '#6aff8a'], [0xff8a2a, 0xff5a00, '#ff8a2a'], [0x7ad8ff, 0x2a90ff, '#7ad8ff']][cth];
@@ -1999,7 +1999,7 @@ function buildMinimapBg() {
   c.fillStyle = '#2a4a8a'; c.beginPath(); c.arc(mx(0), mz(111), 15, 0, 7); c.fill(); c.fillStyle = '#7a1a2a'; c.beginPath(); c.arc(mx(0), mz(-111), 15, 0, 7); c.fill();
   c.fillStyle = '#7a3aaa'; c.fillRect(mx(DW.MAP.secretShop.x) - 3, mz(DW.MAP.secretShop.z) - 3, 6, 6);
   const T = DW.TER; c.fillStyle = 'rgba(10,30,8,.65)'; for (let r = 0; r < T.rows; r += 1) for (let q = 0; q < T.cols; q += 1) if (T.blk[r * T.cols + q]) c.fillRect(mx(T.ox + q * T.cs), mz(T.oz + r * T.cs), Wd / T.cols + 0.6, Hd / T.rows + 0.6);
-  DW.MAP.camps.forEach(cp => { const col = { wolves: '#5ac85a', trolls: '#4a8aff', ogres: '#ff5a3a' }[cp.t]; c.fillStyle = '#000a'; c.beginPath(); c.arc(mx(cp.x), mz(cp.z), 5.5, 0, 7); c.fill(); c.strokeStyle = col; c.lineWidth = 2; c.stroke(); c.fillStyle = col; c.font = 'bold 7px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText({ wolves: 'W', trolls: 'T', ogres: 'O' }[cp.t], mx(cp.x), mz(cp.z) + 0.5); });
+  DW.MAP.camps.forEach(cp => { const col = { wolves: '#5ac85a', trolls: '#4a8aff', ogres: '#ff5a3a' }[cp.t]; c.fillStyle = '#000a'; c.beginPath(); c.arc(mx(cp.x), mz(cp.z), cp.s ? 4 : 5.5, 0, 7); c.fill(); c.strokeStyle = col; c.lineWidth = 2; c.stroke(); c.fillStyle = col; c.font = 'bold 7px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText({ wolves: 'W', trolls: 'T', ogres: 'O' }[cp.t], mx(cp.x), mz(cp.z) + 0.5); });
   c.lineWidth = 2.5; for (const b of DW.BASES) { c.strokeStyle = b.team ? '#a05a5a' : '#8aa8d8'; c.beginPath(); c.ellipse(mx(b.x), mz(b.z), b.R / DW.MAP.W * Wd / 2, b.R / DW.MAP.H * Hd / 2, 0, 0, 7); c.stroke(); }
   G.mx = mx; G.mz = mz; G.mW = Wd; G.mH = Hd;
 }

@@ -12,5 +12,6 @@
   {"v": "0.11", "build": "4cdd13", "commit": "4f237af", "date": "2026-10-12", "notes": "Version numbers: v0.01 per build, build log"},
   {"v": "0.12", "build": "0f66dc", "commit": "b219d78", "date": "2026-10-12", "notes": "XP bar with numbers, XP gain readouts, level-up gold aura"},
   {"v": "0.13", "build": "4b5919", "commit": "fac9171", "date": "2026-10-12", "notes": "Gate sentries, towers +30% vs lane minions, siege every 5th day"},
-  {"v": "0.14", "build": "8e9e21", "commit": "", "date": "2026-10-12", "notes": "Lane camp mobs and gate defenders ignore each other"}
+  {"v": "0.14", "build": "8e9e21", "commit": "cea8b3f", "date": "2026-10-12", "notes": "Lane camp mobs and gate defenders ignore each other"},
+  {"v": "0.15", "build": "5a850b", "commit": "", "date": "2026-10-12", "notes": "26 small jungle camps of every type"}
 ]
