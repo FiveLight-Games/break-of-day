@@ -297,7 +297,7 @@ function clearTrees(t) { const x0 = t.c * CELL - 8, y0 = t.r * CELL - 8, x1 = (t
 function applySnap(s) {
   V.t = s.t; V.pulse = s.pu; V.wave = s.wv; V.vote = s.vt || V.vote; V.closed = !!s.cl;
   if (s.hp < V.hp) V.baseFlash = V.clock || 0; V.hp = s.hp;
-  V.atk.gold = s.a[0]; V.atk.income = s.a[1]; V.atk.invest = s.a[2]; V.atk.investCost = s.a[3]; V.atk.queue = s.a[4];
+  V.atk.gold = s.a[0]; V.atk.income = s.a[1]; V.atk.invest = s.a[2]; V.atk.investCost = s.a[3]; V.atk.queue = s.a[4]; V.atk.speed = s.a[5] || 0; V.atk.speedCost = s.a[6] || 0;
   s.df.forEach((d, i) => { const D = V.defs[i]; if (!D) return; D.gold = d[0]; D.income = d[1]; D.kills = d[2]; });
   if (s.tw) {
     const old = new Map(V.towers.map(t => [t.id, t])); V.occ.fill(0);
@@ -629,11 +629,11 @@ function stopDragListeners() { window.removeEventListener('pointermove', moveDra
 // ---------- HUD ----------
 const atkUI = { target: 'all', qty: 1 };
 let sheetKind = null;
-function hideSheet() { $('sheet').classList.add('hidden'); sheetKind = null; if (V) V.sel = null; }
+function hideSheet() { $('sheet').classList.add('hidden'); sheetKind = null; if (V) V.sel = null; if (V && V.myDef && !V.over) $('buildBtn').classList.remove('hidden'); }
 function previewCanvas(draw) { const c = document.createElement('canvas'); c.width = 168; c.height = 124; const g = c.getContext('2d'); g.scale(2, 2); draw(g); return c; }
 function showTowerSheet(t) {
   sheetKind = 'tower'; const sh = $('sheet'), mine = t.owner === myPid, T = TD.TOWERS[t.k], owner = V.defs[t.slot] || V.defs[0];
-  sh.classList.remove('hidden');
+  sh.classList.remove('hidden'); $('buildBtn').classList.add('hidden');
   sh.innerHTML = `<div class="sheetHead"><b>${T.n}</b><span class="muted small">${esc(owner.name)} · ${t.kills} kills</span><button class="btn ghost sm x" data-close>✕</button></div>
     <p class="muted small" style="margin:0 0 8px">${esc(T.d)} Range ${T.r}.</p>
     ${mine ? `<div class="row"><span class="small muted">Target</span><div class="prios">${TD.PRIORITIES.map(p => `<button data-prio="${p}" class="${t.prio === p ? 'on' : ''}">${p[0].toUpperCase() + p.slice(1)}</button>`).join('')}</div><button class="btn sm danger" data-sell style="margin-left:auto">Sell +${Math.floor(t.spent * TD.RULES.sell)}g</button></div>` : ''}`;
@@ -661,19 +661,21 @@ function renderAtk() {
   const A = V.atk, P = $('atkPanel'); P.classList.remove('hidden');
   const lanes = atkUI.target === 'all' ? V.defs.length : 1;
   const q = {}; for (const v of A.queue) { const k = TD.UNIT_IDS[Math.floor(v / 10)]; q[k] = (q[k] || 0) + 1; }
-  const key = JSON.stringify([A.gold, A.income, A.investCost, atkUI, V.closed, q]);
+  const key = JSON.stringify([A.gold, A.income, A.investCost, A.speed, A.speedCost, atkUI, V.closed, q]);
   if (P.dataset.key === key) return; P.dataset.key = key;
   if (V.closed) { P.innerHTML = '<div class="qrow">Time is up. Your last units are on the field.</div>'; return; }
   P.innerHTML = `<div class="targets"><span class="small muted">Send to</span><button data-tg="all" class="${atkUI.target === 'all' ? 'on' : ''}">All lanes</button>${V.defs.map(d => `<button data-tg="${d.slot}" class="${atkUI.target === d.slot ? 'on' : ''}"><span class="sw" style="background:${colHex(d.color)}"></span>${esc(d.name)}</button>`).join('')}
     <span style="margin-left:auto" class="chip">💰 ${A.gold}<small>+${A.income}/s</small></span></div>
     <div class="cards">${TD.UNIT_IDS.map(k => { const cost = TD.UNITS[k].cost * lanes * atkUI.qty; return `<button class="card" data-unit="${k}" ${A.gold < cost ? 'disabled' : ''} title="${esc(TD.UNITS[k].d)}"><span data-uprev="${k}"></span><b>${TD.UNITS[k].n}${q[k] ? ' · ' + q[k] : ''}</b><span class="cost">${cost}g</span></button>`; }).join('')}</div>
     <div class="row"><div class="prios">${[1, 5, 10].map(n => `<button data-qty="${n}" class="${atkUI.qty === n ? 'on' : ''}">×${n}</button>`).join('')}</div>
-      <button class="btn sm" data-invest ${A.gold < A.investCost ? 'disabled' : ''} style="margin-left:auto">Invest ${A.investCost}g<small style="font-weight:600">&nbsp;+${Math.round(TD.RULES.investGain * V.defs.length * 10) / 10}/s</small></button></div>
+      <button class="btn sm" data-speed ${A.speed >= TD.RULES.speedMax || A.gold < A.speedCost ? 'disabled' : ''} style="margin-left:auto" title="Units you send from now on move ${Math.round(TD.RULES.speedStep * 100)}% faster">${A.speed >= TD.RULES.speedMax ? '👢 Speed maxed' : `👢 Speed ${A.speed + 1}/${TD.RULES.speedMax} · ${A.speedCost}g`}</button>
+      <button class="btn sm" data-invest ${A.gold < A.investCost ? 'disabled' : ''}>Invest ${A.investCost}g<small style="font-weight:600">&nbsp;+${Math.round(TD.RULES.investGain * V.defs.length * 10) / 10}/s</small></button></div>
     <div class="qrow">Next wave: ${Object.keys(q).length ? Object.entries(q).map(([k, n]) => n + ' ' + TD.UNITS[k].n).join(', ') : 'nothing queued yet'}</div>`;
   P.querySelectorAll('[data-uprev]').forEach(s => s.replaceWith(previewCanvas(g => { const S = sprite(s.dataset.uprev, 'n', 1, 0, V.atkCol), sz = 100 * S.size / (TD.UNITS.brute.r * 4.4); g.drawImage(S.c, 42 - sz / 2, 66 - sz * 0.72, sz, sz); })));
   P.querySelectorAll('[data-tg]').forEach(b => b.onclick = () => { atkUI.target = b.dataset.tg === 'all' ? 'all' : +b.dataset.tg; if (atkUI.target !== 'all') lookAtLane(atkUI.target); P.dataset.key = ''; renderAtk(); });
   P.querySelectorAll('[data-qty]').forEach(b => b.onclick = () => { atkUI.qty = +b.dataset.qty; P.dataset.key = ''; renderAtk(); });
   P.querySelectorAll('[data-unit]').forEach(b => b.onclick = () => send({ c: 'send', k: b.dataset.unit, lane: atkUI.target, n: atkUI.qty }));
+  const spb = P.querySelector('[data-speed]'); if (spb) spb.onclick = () => send({ c: 'speed' });
   const iv = P.querySelector('[data-invest]'); if (iv) iv.onclick = () => send({ c: 'invest' });
 }
 $('menuBtn').onclick = () => openModal(`<h2>Menu</h2><p class="muted">One finger drags the map, two fingers pinch to zoom.${V && V.myDef ? ' Tap Build, then drag a tower from the tray onto the grid (white cells = it fits). Tap a tower to set its target or sell it.' : ''}${V && V.isAtk ? ' Pick a lane, tap units to queue them; the queue marches out every ' + TD.RULES.pulse + ' seconds.' : ''}</p><div class="row"><button class="btn" id="mResume">Resume</button><button class="btn danger" id="mQuit">Leave match</button></div>`, () => { $('mResume').onclick = closeModal; $('mQuit').onclick = () => { closeModal(); quitGame(); }; });

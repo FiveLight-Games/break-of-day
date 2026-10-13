@@ -100,6 +100,19 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   await C.screenshot({ path: OUT + '/game-defender.png' }); await B.screenshot({ path: OUT + '/game-attacker.png' }); await A.screenshot({ path: OUT + '/game-host.png' });
   await A.evaluate(() => { const c = window.TDC.cam, b = window.TDC.V.L.base; c.x = b.x; c.y = b.y - 120; c.z = 1.3; }); await sleep(300); await A.screenshot({ path: OUT + '/game-base.png' });
   await A.evaluate(() => { const t = window.TDC.V.towers.filter(t => t.slot === 0), c = window.TDC.cam; c.x = t.reduce((s, o) => s + o.x, 0) / t.length; c.y = t.reduce((s, o) => s + o.y, 0) / t.length; c.z = 2.2; }); await sleep(300); await A.screenshot({ path: OUT + '/game-towers.png' });
+  // attacker speed upgrade: affects units sent afterwards
+  await A.evaluate(() => { window.TDC.GS.sim.atk.gold += 600; }); await sleep(600);
+  const spBefore = await A.evaluate(() => Math.max(...window.TDC.GS.sim.units.filter(u => u.k === 'runner').map(u => u.sp), 0));
+  await B.click('[data-speed]'); await sleep(600);
+  check(await B.evaluate(() => window.TDC.V.atk.speed) === 1 && await A.evaluate(() => window.TDC.GS.sim.atk.speed) === 1, 'attacker bought speed level 1');
+  check(await B.evaluate(() => document.querySelector('[data-speed]').textContent.includes('2/5')), 'speed button advances to 2/5');
+  await B.screenshot({ path: OUT + '/game-attacker-speed.png' });
+  // portrait: tapping a tower hides the Build button, closing the sheet brings it back
+  await C.evaluate(() => { const t = window.TDC.V.towers.find(t => t.owner === window.TDC.V.myDef.pid) || window.TDC.V.towers[0]; window.TDC.cam.x = t.x; window.TDC.cam.y = t.y; window.TDC.onTap(t.x, t.y); }); await sleep(300);
+  check(await C.isVisible('#sheet') && !(await C.isVisible('#buildBtn')), 'tower sheet open, Build button hidden');
+  await C.screenshot({ path: OUT + '/tower-sheet-portrait.png' });
+  await C.click('#sheet [data-close]'); await sleep(200);
+  check(await C.isVisible('#buildBtn'), 'Build button back after closing the sheet');
   check(await C.evaluate(() => !window.TDC.V.over), 'match running');
   // vs AI
   const D = await mk('D', 'Solo', { width: 390, height: 844 });
