@@ -98,13 +98,17 @@ input.textin{width:100%;background:#0f0d0b;border:1px solid var(--line);border-r
 #buildTray .card{touch-action:none}
 #buildBtn{right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));font:800 15px Inter,sans-serif;color:#fff;background:linear-gradient(#3d7a2e,#2a5a20);border:1px solid #7ec36a;border-radius:14px;padding:12px 16px;box-shadow:0 6px 18px #000a;cursor:pointer}
 #buildBtn.on{background:linear-gradient(#5a4a34,#3a2e20);border-color:var(--gold);color:var(--gold)}
-#buildTray:not(.hidden) ~ #buildBtn{bottom:calc(max(8px,env(safe-area-inset-bottom)) + 150px)}
+#buildTray .card.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+#buildTray .strip{margin-top:8px;padding:7px 9px;border-radius:10px;background:#0006;border:1px solid #5a4a34;font:600 11.5px/1.35 Inter,sans-serif;color:#e8dcc6}
+#buildTray .strip b{font-family:Cinzel,serif;color:#fff}
+#buildTray .strip .st{display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;font:800 11px Inter,sans-serif;color:var(--gold)}
 .sheetHead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .sheetHead b{font-family:Cinzel,serif;font-size:15px}
 .sheetHead .x{margin-left:auto}
 .cards{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
 .card{flex:none;width:86px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:6px;text-align:center;cursor:pointer}
-.card:disabled{opacity:.4;cursor:default}
+.card:disabled,.card.off{opacity:.4;cursor:default}
+#buildTray .card.off.sel{opacity:.65}
 .card canvas{width:70px;height:52px;display:block;margin:0 auto}
 .card b{display:block;font-size:12px;line-height:1.2}
 .card .cost{font:800 12px Inter;color:var(--gold)}

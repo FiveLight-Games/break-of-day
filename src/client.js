@@ -603,19 +603,25 @@ function onTap(wx, wy) {
 }
 
 // ---------- build mode: drag a tower from the tray onto the grid ----------
-const build = { on: false, drag: null };
+const build = { on: false, drag: null, sel: 'archer' };
 function setBuild(on) {
   build.on = !!on && !!(V && V.myDef) && !(V && V.over); build.drag = null;
   $('buildBtn').classList.toggle('on', build.on); $('buildBtn').innerHTML = build.on ? '✕ Done' : '🔨 Build';
-  $('buildTray').classList.toggle('hidden', !build.on); if (build.on) { hideSheet(); renderTray(true); }
+  $('buildTray').classList.toggle('hidden', !build.on); if (build.on) { hideSheet(); renderTray(true); } else $('buildBtn').style.bottom = '';
 }
+// keep Done just above the tray, whatever height the tray ends up
+function placeBuildBtn() { if (!build.on) return; const T = $('buildTray').getBoundingClientRect(); $('buildBtn').style.bottom = (innerHeight - T.top + 8) + 'px'; }
+addEventListener('resize', () => requestAnimationFrame(placeBuildBtn));
+function towerStats(k) { const T = TD.TOWERS[k]; return [T.dps ? T.dps + '/s dmg' : T.volley ? T.dmg + '×' + T.volley + ' dmg' : T.dmg + ' dmg', T.dps ? 'constant beam' : 'every ' + T.cd + 's', 'range ' + T.r]; }
+function updateStrip() { const T = $('buildTray'), k = build.sel, S = T.querySelector('.strip'); T.querySelectorAll('[data-tw]').forEach(b => b.classList.toggle('sel', b.dataset.tw === k)); if (!S) return; const st = towerStats(k); S.innerHTML = `<b>${TD.TOWERS[k].n}</b> — ${esc(TD.TOWERS[k].tip)}<div class="st"><span>⚔ ${st[0]}</span><span>⏱ ${st[1]}</span><span>◎ ${st[2]}</span></div>`; }
 $('buildBtn').onclick = () => setBuild(!build.on);
 function renderTray(force) {
   if (!build.on || !V || !V.myDef) return; const T = $('buildTray'), D = V.myDef, key = TD.TOWER_IDS.map(k => D.gold >= TD.TOWERS[k].cost ? 1 : 0).join('');
   if (!force && T.dataset.key === key) return; T.dataset.key = key;
-  T.innerHTML = `<div class="sheetHead"><b>Drag a tower onto the field</b><span class="muted small">Drop it back here to cancel</span></div><div class="cards">${TD.TOWER_IDS.map(k => `<button class="card" data-tw="${k}" ${D.gold < TD.TOWERS[k].cost ? 'disabled' : ''} title="${esc(TD.TOWERS[k].d)}"><span data-prev="${k}"></span><b>${TD.TOWERS[k].n}</b><span class="cost">${TD.TOWERS[k].cost}g</span></button>`).join('')}</div>`;
+  T.innerHTML = `<div class="sheetHead"><b>Drag a tower onto the field</b><span class="muted small">Drop it back here to cancel</span></div><div class="cards">${TD.TOWER_IDS.map(k => `<button class="card ${D.gold < TD.TOWERS[k].cost ? 'off' : ''}" data-tw="${k}" title="${esc(TD.TOWERS[k].d)}"><span data-prev="${k}"></span><b>${TD.TOWERS[k].n}</b><span class="cost">${TD.TOWERS[k].cost}g</span></button>`).join('')}</div><div class="strip"></div>`;
+  updateStrip(); requestAnimationFrame(placeBuildBtn);
   T.querySelectorAll('[data-prev]').forEach(s => s.replaceWith(previewCanvas(g => { g.translate(42, 33); g.scale(1.15, 1.15); towerBody(g, s.dataset.prev, colHex(D.color), 0.6, V.clock || 0, 0, 1); })));
-  T.querySelectorAll('[data-tw]').forEach(b => b.onpointerdown = e => { if (b.disabled) return; e.preventDefault(); startDrag(b.dataset.tw, e); });
+  T.querySelectorAll('[data-tw]').forEach(b => b.onpointerdown = e => { e.preventDefault(); build.sel = b.dataset.tw; updateStrip(); if (!b.classList.contains('off')) startDrag(b.dataset.tw, e); else toast('Not enough gold'); });
 }
 function startDrag(k, e) {
   build.drag = { k, sx: e.clientX, sy: e.clientY, touch: e.pointerType !== 'mouse', id: e.pointerId };

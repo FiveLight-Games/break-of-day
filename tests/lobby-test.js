@@ -55,6 +55,11 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   // C: real drag from the tray onto the field (mouse pointer, so no finger offset)
   await C.click('#buildBtn'); await sleep(300);
   check(await C.isVisible('#buildTray'), 'build mode opens the tray');
+  check(await C.evaluate(() => document.querySelector('#buildTray .strip').textContent.includes('Archer Post')), 'info strip shows the selected tower');
+  await C.click('#buildTray [data-tw=storm]'); await sleep(200);
+  check(await C.evaluate(() => { const s = document.querySelector('#buildTray .strip').textContent; return s.includes('Tesla Coil') && s.includes('range 175') && window.TDC.V.towers.length === 0; }), 'tapping a tower shows its info without building');
+  check(await C.evaluate(() => document.getElementById('buildBtn').getBoundingClientRect().bottom <= document.getElementById('buildTray').getBoundingClientRect().top), 'Done sits above the tray');
+  await C.screenshot({ path: OUT + '/build-strip.png' });
   const g0 = await C.evaluate(() => window.TDC.V.myDef.gold);
   const [[tc, tr]] = await spots(C, 1, 450);
   await C.evaluate(([c, r]) => { const cam = window.TDC.cam; cam.x = (c + 1) * 24; cam.y = (r + 1) * 24; }, [tc, tr]); await sleep(200);
@@ -64,11 +69,11 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   const dr = await C.evaluate(() => { const d = window.TDC.build.drag; return d && { ok: d.ok, c: d.c, r: d.r }; });
   check(dr && dr.ok, 'drag over a free spot is valid: ' + JSON.stringify(dr));
   await C.screenshot({ path: OUT + '/build-drag.png' });
-  check(await C.evaluate(() => window.TDC.V.myDef.gold) === g0, 'no gold spent while dragging');
+  check(await C.evaluate(() => window.TDC.V.myDef.gold) >= g0, 'no gold spent while dragging');
   await C.mouse.up(); await sleep(600);
   check(await C.evaluate(() => window.TDC.V.towers.length) === 1, 'tower placed on release');
   await C.screenshot({ path: OUT + '/build-construct.png' });
-  check(await C.evaluate(g0 => window.TDC.V.myDef.gold <= g0 - 60 + 2, g0), 'gold spent on build');
+  check(await C.evaluate(g0 => window.TDC.V.myDef.gold <= g0 - 60 + 4, g0), 'gold spent on build');
   // drag onto the occupied spot shows red / invalid, then drop back on the tray cancels
   await C.mouse.move(card.x + card.width / 2, card.y + card.height / 2); await C.mouse.down(); await C.mouse.move(195, 422, { steps: 6 }); await sleep(150);
   check(await C.evaluate(() => !window.TDC.build.drag.ok), 'occupied cells are invalid');

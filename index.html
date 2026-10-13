@@ -98,13 +98,17 @@ input.textin{width:100%;background:#0f0d0b;border:1px solid var(--line);border-r
 #buildTray .card{touch-action:none}
 #buildBtn{right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));font:800 15px Inter,sans-serif;color:#fff;background:linear-gradient(#3d7a2e,#2a5a20);border:1px solid #7ec36a;border-radius:14px;padding:12px 16px;box-shadow:0 6px 18px #000a;cursor:pointer}
 #buildBtn.on{background:linear-gradient(#5a4a34,#3a2e20);border-color:var(--gold);color:var(--gold)}
-#buildTray:not(.hidden) ~ #buildBtn{bottom:calc(max(8px,env(safe-area-inset-bottom)) + 150px)}
+#buildTray .card.sel{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold) inset}
+#buildTray .strip{margin-top:8px;padding:7px 9px;border-radius:10px;background:#0006;border:1px solid #5a4a34;font:600 11.5px/1.35 Inter,sans-serif;color:#e8dcc6}
+#buildTray .strip b{font-family:Cinzel,serif;color:#fff}
+#buildTray .strip .st{display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;font:800 11px Inter,sans-serif;color:var(--gold)}
 .sheetHead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .sheetHead b{font-family:Cinzel,serif;font-size:15px}
 .sheetHead .x{margin-left:auto}
 .cards{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
 .card{flex:none;width:86px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:6px;text-align:center;cursor:pointer}
-.card:disabled{opacity:.4;cursor:default}
+.card:disabled,.card.off{opacity:.4;cursor:default}
+#buildTray .card.off.sel{opacity:.65}
 .card canvas{width:70px;height:52px;display:block;margin:0 auto}
 .card b{display:block;font-size:12px;line-height:1.2}
 .card .cost{font:800 12px Inter;color:var(--gold)}
@@ -190,7 +194,7 @@ table.stats td:first-child,table.stats th:first-child{text-align:left}
 <div id="netOv" class="hidden"><div class="spin"></div><b id="netTxt">Reconnecting…</b><button class="btn sm" id="netLeave">Leave match</button></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script>window.TD_BUILD='4be5b3';window.TD_VER='0.08';</script>
+<script>window.TD_BUILD='11d1d7';window.TD_VER='0.09';</script>
 <script>// Shared game rules. The host's browser runs Sim; everyone else renders the host's snapshots.
 (function (G) {
 'use strict';
@@ -260,11 +264,11 @@ const footFree = (L, c, r, occ) => { for (let j = 0; j < FOOT; j++) for (let i =
 
 // ---------------- Human race ----------------
 const TOWERS = {
-  archer: { n: 'Archer Post', cost: 60, r: 190, cd: 0.5, dmg: 13, volley: 2, dt: 'phys', d: 'Two archers in a wooden watchtower, each loosing their own arrow.' },
-  cannon: { n: 'Bombard', cost: 100, r: 175, cd: 1.6, dmg: 52, splash: 46, dt: 'blast', d: 'A heavy gun on a stone column. Shells hit everything nearby.' },
-  frost: { n: 'Frost Obelisk', cost: 90, r: 160, cd: 1.0, dmg: 30, slow: 1.6, dt: 'ice', d: 'An ice shard that chills its target, slowing it by half.' },
-  flame: { n: 'Fire Brazier', cost: 120, r: 165, dps: 62, dt: 'fire', d: 'A burning beam from a raised fire bowl. Melts one target.' },
-  storm: { n: 'Tesla Coil', cost: 140, r: 175, cd: 1.3, dmg: 40, chain: 5, dt: 'shock', d: 'Lightning that arcs to up to 5 enemies.' },
+  archer: { n: 'Archer Post', cost: 60, r: 190, cd: 0.5, dmg: 13, volley: 2, dt: 'phys', d: 'Two archers in a wooden watchtower, each loosing their own arrow.', tip: 'Two arrows per volley. Great all-rounder.' },
+  cannon: { n: 'Bombard', cost: 100, r: 175, cd: 1.6, dmg: 52, splash: 46, dt: 'blast', d: 'A heavy gun on a stone column. Shells hit everything nearby.', tip: 'Shells hit everything nearby. Best vs crowds.' },
+  frost: { n: 'Frost Obelisk', cost: 90, r: 160, cd: 1.0, dmg: 30, slow: 1.6, dt: 'ice', d: 'An ice shard that chills its target, slowing it by half.', tip: 'Chills its target to half speed for 1.6s.' },
+  flame: { n: 'Fire Brazier', cost: 120, r: 165, dps: 62, dt: 'fire', d: 'A burning beam from a raised fire bowl. Melts one target.', tip: 'Constant beam on one target. Melts Ogres.' },
+  storm: { n: 'Tesla Coil', cost: 140, r: 175, cd: 1.3, dmg: 40, chain: 5, dt: 'shock', d: 'Lightning that arcs to up to 5 enemies.', tip: 'Lightning arcs to up to 5 enemies.' },
 };
 const TOWER_IDS = Object.keys(TOWERS);
 const UNITS = {
@@ -1040,19 +1044,25 @@ function onTap(wx, wy) {
 }
 
 // ---------- build mode: drag a tower from the tray onto the grid ----------
-const build = { on: false, drag: null };
+const build = { on: false, drag: null, sel: 'archer' };
 function setBuild(on) {
   build.on = !!on && !!(V && V.myDef) && !(V && V.over); build.drag = null;
   $('buildBtn').classList.toggle('on', build.on); $('buildBtn').innerHTML = build.on ? '✕ Done' : '🔨 Build';
-  $('buildTray').classList.toggle('hidden', !build.on); if (build.on) { hideSheet(); renderTray(true); }
+  $('buildTray').classList.toggle('hidden', !build.on); if (build.on) { hideSheet(); renderTray(true); } else $('buildBtn').style.bottom = '';
 }
+// keep Done just above the tray, whatever height the tray ends up
+function placeBuildBtn() { if (!build.on) return; const T = $('buildTray').getBoundingClientRect(); $('buildBtn').style.bottom = (innerHeight - T.top + 8) + 'px'; }
+addEventListener('resize', () => requestAnimationFrame(placeBuildBtn));
+function towerStats(k) { const T = TD.TOWERS[k]; return [T.dps ? T.dps + '/s dmg' : T.volley ? T.dmg + '×' + T.volley + ' dmg' : T.dmg + ' dmg', T.dps ? 'constant beam' : 'every ' + T.cd + 's', 'range ' + T.r]; }
+function updateStrip() { const T = $('buildTray'), k = build.sel, S = T.querySelector('.strip'); T.querySelectorAll('[data-tw]').forEach(b => b.classList.toggle('sel', b.dataset.tw === k)); if (!S) return; const st = towerStats(k); S.innerHTML = `<b>${TD.TOWERS[k].n}</b> — ${esc(TD.TOWERS[k].tip)}<div class="st"><span>⚔ ${st[0]}</span><span>⏱ ${st[1]}</span><span>◎ ${st[2]}</span></div>`; }
 $('buildBtn').onclick = () => setBuild(!build.on);
 function renderTray(force) {
   if (!build.on || !V || !V.myDef) return; const T = $('buildTray'), D = V.myDef, key = TD.TOWER_IDS.map(k => D.gold >= TD.TOWERS[k].cost ? 1 : 0).join('');
   if (!force && T.dataset.key === key) return; T.dataset.key = key;
-  T.innerHTML = `<div class="sheetHead"><b>Drag a tower onto the field</b><span class="muted small">Drop it back here to cancel</span></div><div class="cards">${TD.TOWER_IDS.map(k => `<button class="card" data-tw="${k}" ${D.gold < TD.TOWERS[k].cost ? 'disabled' : ''} title="${esc(TD.TOWERS[k].d)}"><span data-prev="${k}"></span><b>${TD.TOWERS[k].n}</b><span class="cost">${TD.TOWERS[k].cost}g</span></button>`).join('')}</div>`;
+  T.innerHTML = `<div class="sheetHead"><b>Drag a tower onto the field</b><span class="muted small">Drop it back here to cancel</span></div><div class="cards">${TD.TOWER_IDS.map(k => `<button class="card ${D.gold < TD.TOWERS[k].cost ? 'off' : ''}" data-tw="${k}" title="${esc(TD.TOWERS[k].d)}"><span data-prev="${k}"></span><b>${TD.TOWERS[k].n}</b><span class="cost">${TD.TOWERS[k].cost}g</span></button>`).join('')}</div><div class="strip"></div>`;
+  updateStrip(); requestAnimationFrame(placeBuildBtn);
   T.querySelectorAll('[data-prev]').forEach(s => s.replaceWith(previewCanvas(g => { g.translate(42, 33); g.scale(1.15, 1.15); towerBody(g, s.dataset.prev, colHex(D.color), 0.6, V.clock || 0, 0, 1); })));
-  T.querySelectorAll('[data-tw]').forEach(b => b.onpointerdown = e => { if (b.disabled) return; e.preventDefault(); startDrag(b.dataset.tw, e); });
+  T.querySelectorAll('[data-tw]').forEach(b => b.onpointerdown = e => { e.preventDefault(); build.sel = b.dataset.tw; updateStrip(); if (!b.classList.contains('off')) startDrag(b.dataset.tw, e); else toast('Not enough gold'); });
 }
 function startDrag(k, e) {
   build.drag = { k, sx: e.clientX, sy: e.clientY, touch: e.pointerType !== 'mouse', id: e.pointerId };
