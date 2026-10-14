@@ -148,7 +148,7 @@ class Sim {
     this.atk = { pid: atk.pid, name: atk.name, color: atk.color, race: atk.race, bot: !!atk.bot, gold: RULES.atkGoldPer * this.N, hoard: 0, idle: 0, income: RULES.atkIncomePer * this.N, invest: 0, speed: 0, queue: [], sent: 0, leaked: 0, spent: 0, dmg: 0 };
     this.players[atk.pid] = this.atk;
     this.defs = defs.map((p, i) => { const d = { pid: p.pid, name: p.name, color: p.color, race: p.race, bot: !!p.bot, slot: i, gold: RULES.defGold, income: RULES.defIncome, kills: 0, built: 0, dmg: 0, shared: 0, scd: { meteor: 0, jet: 0 } }; this.players[p.pid] = d; return d; });
-    this.noBotSpells = true; // bot-vs-bot tests: casting bots end up weaker than ones that buy towers; revisit with upgrades
+    this.noBotSpells = false; // bots only cast in emergencies (see botCast); bot-vs-bot tests can turn this off than ones that buy towers; revisit with upgrades
     this.meteors = []; this.fields = []; this.jets = []; this.graves = []; this.packDead = {}; this.packN = 0; this.laneNext = {};
     this.units = []; this.towers = []; this.pulseT = RULES.pulse; this.wave = 0; this.spawnAt = []; this.pending = [];
     this.occ = new Uint8Array(this.L.cols * this.L.rows); this.grid = new Map();
@@ -398,7 +398,7 @@ class Sim {
     const mine = this.towers.filter(t => t.owner === D.pid), seen = { swarm: 0, armor: 0, big: 0, golem: 0, ent: 0, ram: 0, n: 0 };
     for (const u of this.units) { if (u.l !== D.slot) continue; const U = UNITS[u.k]; seen.n++; if (U.pack) seen.swarm++; if (U.armor) seen.armor++; if (U.r >= 8) seen.big++; if (u.k === 'golem') seen.golem++; if (u.k === 'ent') seen.ent++; if (u.k === 'ram') seen.ram++; }
     // a big attacker bank (or a crowd on the lane) means a dump is coming: keep a Meteor's worth of gold and favour splash
-    const A = this.atk, threat = !this.noBotSpells && (A.gold > Math.max(150 * this.N, A.income * 35) || seen.n >= 20), reserve = threat && D.scd.meteor <= this.t + 6 ? SPELLS.meteor.cost + 20 : 0;
+    const A = this.atk, threat = false && (A.gold > Math.max(150 * this.N, A.income * 35) || seen.n >= 20), reserve = threat && D.scd.meteor <= this.t + 6 ? SPELLS.meteor.cost + 20 : 0;
     let k;
     if (mine.length < 2) k = 'archer';
     else if (threat && seen.n < 6) k = mine.length % 2 ? 'flame' : 'cannon';
@@ -411,21 +411,23 @@ class Sim {
     const near = TOWERS[k].r < 150, spot = (near && this.botSpots[D.slot].find(([c, r, , d]) => d < LANE + 36 && footFree(this.L, c, r, this.occ))) || this.botSpots[D.slot].find(([c, r]) => footFree(this.L, c, r, this.occ));; if (spot) this.input(D.pid, { c: 'build', k, c2: spot[0], r: spot[1] });
   }
   // bots cast too: a Meteor on the thickest clump (aimed where it will be), the Water Jet when the lane is being overrun
+  // emergency spells only: units have already walked past every tower this bot owns on its lane and will reach the base before a new tower could matter
   botCast(D, lane) {
     if (this.t < RULES.setup || this.noBotSpells) return false;
-    const mine = this.units.filter(u => u.l === D.slot && !u.run); if (mine.length < 4) return false;
-    const M = SPELLS.meteor, J = SPELLS.jet;
-    if (D.scd.meteor <= this.t && D.gold >= M.cost + 20) {
-      let best = null, bs = 0;
-      for (const u of mine) { let s2 = 0; for (const o of mine) if ((o.x - u.x) ** 2 + (o.y - u.y) ** 2 < 70 * 70) s2 += UNITS[o.k].r >= 8 ? 3 : 1; if (s2 > bs) { bs = s2; best = u; } }
-      if (best && bs >= 14) { const q = lane.at(best.d + best.sp * M.fall * 0.8); this.input(D.pid, { c: 'spell', k: 'meteor', x: q[0], y: q[1] }); return true; }
-    }
-    if (D.scd.jet <= this.t && D.gold >= J.cost + 20) {
-      const front = mine.reduce((m, u) => u.d > m.d ? u : m, mine[0]), deep = mine.filter(u => u.d > lane.total * 0.6).length;
-      if (front.d > lane.total * 0.8 && mine.filter(u => u.d > lane.total * 0.6).length >= 8) { const q = lane.at(Math.min(lane.total - 60, front.d + 110)); this.input(D.pid, { c: 'spell', k: 'jet', x: q[0], y: q[1] }); return true; }
-    }
+    const towers = this.towers.filter(t => t.owner === D.pid && t.ready <= this.t); if (!towers.length) return false;
+    let cover = 0;
+    for (const t of towers) { if (t.covLvl !== t.lvl) { const R2 = towerRange(t.k, t.lvl) * 0.95; let m = 0; for (let d = 0; d < lane.total; d += 12) { const q = lane.at(d); if ((q[0] - t.x) ** 2 + (q[1] - t.y) ** 2 < R2 * R2) m = d; } t.cov = m; t.covLvl = t.lvl; } cover = Math.max(cover, t.cov); }
+    const past = this.units.filter(u => u.l === D.slot && !u.run && u.hp > 0 && u.d > cover + 10); if (!past.length) return false;
+    const front = past.reduce((m, u) => u.d > m.d ? u : m, past[0]), secs = (lane.total - front.d) / Math.max(10, front.sp), dmg = past.reduce((a, u) => a + UNITS[u.k].dmg, 0);
+    if (dmg < 8 || secs > RULES.buildTime + 4) return false; // only worth a spell if the leak really hurts and a new tower can't be up in time
+    const M = SPELLS.meteor, J = SPELLS.jet, big = past.some(u => UNITS[u.k].dmg >= 10);
+    if ((past.length >= 4 || big) && D.scd.meteor <= this.t && D.gold >= M.cost) {
+      let best = past[0], bs = 0; for (const u of past) { let s2 = 0; for (const o of past) if ((o.x - u.x) ** 2 + (o.y - u.y) ** 2 < 70 * 70) s2 += UNITS[o.k].dmg; if (s2 > bs) { bs = s2; best = u; } }
+      const q = lane.at(Math.min(lane.total - 5, best.d + best.sp * M.fall * 0.8)); this.input(D.pid, { c: 'spell', k: 'meteor', x: q[0], y: q[1] }); return true; }
+    if (front.d - cover < J.r * 0.75 && D.scd.jet <= this.t && D.gold >= J.cost) { const q = lane.at(Math.min(lane.total - 40, front.d + 90)); this.input(D.pid, { c: 'spell', k: 'jet', x: q[0], y: q[1] }); return true; }
     return false;
   }
+
   // ---- network snapshot (compact) ----
   snapshot(full) {
     const s = { t: Math.round(this.t * 100) / 100, pu: Math.round(this.pulseT * 10) / 10, wv: this.wave, hp: this.hp, cl: this.closed ? 1 : 0,
