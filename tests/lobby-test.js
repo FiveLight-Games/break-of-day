@@ -104,11 +104,11 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   await C.click('#buildBtn'); await sleep(200);
   check(!(await C.isVisible('#buildTray')), 'Done closes build mode');
   await B.waitForFunction(() => window.TDC.V.t >= 10.5, null, { timeout: 15000 });
-  await B.evaluate(() => { window.TDC.send({ c: 'send', k: 'grunt', lane: 'all', n: 10 }); window.TDC.send({ c: 'send', k: 'brute', lane: 0, n: 1 }); });
+  await B.evaluate(() => { window.TDC.send({ c: 'send', k: 'grunt', lane: 'all', n: 10 }); window.TDC.send({ c: 'send', k: 'footknight', lane: 0, n: 1 }); });
   await sleep(1200);
   check(await C.evaluate(() => window.TDC.V.units.size) >= 15, 'sent units march out right away: ' + await C.evaluate(() => window.TDC.V.units.size));
   check(await B.evaluate(() => !document.getElementById('waveChip')), 'no wave timer');
-  check(await B.evaluate(() => { const c = document.querySelector('[data-unit=tarrasque]'), s = document.querySelector('[data-unit=skel]'); return c.classList.contains('off') && c.classList.contains('locked') && c.textContent.includes('15:00') && s.classList.contains('locked') && document.querySelectorAll('#atkPanel [data-unit]').length === 19; }), 'attacker sees 19 units; later ones are locked with their unlock time');
+  check(await B.evaluate(() => { const c = document.querySelector('[data-unit=tarrasque]'), s = document.querySelector('[data-unit=skel]'); return c.classList.contains('off') && c.classList.contains('locked') && c.textContent.includes('15:00') && s.classList.contains('locked') && document.querySelectorAll('#atkPanel [data-unit]').length === TD.UNIT_IDS.length; }), 'attacker sees all ' + 22 + ' units; later ones are locked with their unlock time');
   check(await A.evaluate(() => { const S = window.TDC.GS.sim, n = S.spawnAt.length; S.input(S.atk.pid, { c: 'send', k: 'tarrasque', lane: 'all' }); return S.spawnAt.length === n; }), 'host refuses a locked unit');
   // the unit row keeps its scroll position while gold ticks up
   await B.evaluate(() => { document.querySelector('#atkPanel .cards').scrollLeft = 260; }); await sleep(1600);
@@ -226,7 +226,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(ea.towers >= 4 && ea.kills.some(k => k > 0), 'AI defenders build and kill: ' + JSON.stringify(ea));
   await E.screenshot({ path: OUT + '/game-atk-ai.png' });
   // send rhythm: 30s open, 15s pause; sends during the pause are refused, sends raise income
-  { const inc0 = await E.evaluate(() => window.TDC.V.atk.income); await E.evaluate(() => window.TDC.send({ c: 'send', k: 'brute', lane: 'all', n: 1 })); await sleep(800);
+  { const inc0 = await E.evaluate(() => window.TDC.V.atk.income); await E.evaluate(() => window.TDC.send({ c: 'send', k: 'footknight', lane: 'all', n: 1 })); await sleep(800);
     check(await E.evaluate(i => window.TDC.V.atk.income > i, inc0), 'sending raises attacker income');
     check(await E.evaluate(() => /Sending/.test(document.getElementById('clock').textContent) && /Sending open/.test(document.querySelector('[data-setup]').textContent)), 'clock + panel show the open send window'); }
   await E.waitForFunction(() => window.TDC.V.t >= 41.5, null, { timeout: 30000 });

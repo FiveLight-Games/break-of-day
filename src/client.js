@@ -310,7 +310,7 @@ function clearTrees(t) { const x0 = t.c * CELL - 8, y0 = t.r * CELL - 8, x1 = (t
 function applySnap(s) {
   V.t = s.t; V.pulse = s.pu; V.wave = s.wv; V.closed = !!s.cl;
   if (s.hp < V.hp) V.baseFlash = V.clock || 0; V.hp = s.hp;
-  V.atk.gold = s.a[0]; V.atk.income = s.a[1]; V.atk.invest = s.a[2]; V.atk.investCost = s.a[3]; V.atk.queue = s.a[4]; V.atk.speed = s.a[5] || 0; V.atk.speedCost = s.a[6] || 0;
+  V.atk.gold = s.a[0]; V.atk.income = s.a[1]; V.atk.invest = s.a[2]; V.atk.investCost = s.a[3]; V.atk.queue = s.a[4]; V.atk.speed = s.a[5] || 0; V.atk.hoard = s.a[7] || 0; V.atk.speedCost = s.a[6] || 0;
   s.df.forEach((d, i) => { const D = V.defs[i]; if (!D) return; D.gold = d[0]; D.income = d[1]; D.kills = d[2]; if (d[3]) { D.scdAt = D.scdAt || {}; TD.SPELL_IDS.forEach((k, j) => D.scdAt[k] = (V.clock || 0) + d[3][j] / 10); } });
   if (s.tw) {
     const old = new Map(V.towers.map(t => [t.id, t])); V.occ.fill(0);
@@ -343,7 +343,7 @@ function handleEvent(e) {
   const k = e[0];
   if (k === 'u') addUnit(e[1], e[2], e[3], e[4], e[5], e[6]);
   else if (k === 'd') { const u = V.units.get(e[1]); if (u) { V.units.delete(e[1]); if (TD.UNITS[u.k].body === 'skel') sfx('bones', u.x, u.y); else if (e[2] !== 'blast' && e[2] !== 'meteor') sfx(e[2] === 'fire' ? 'burn' : 'die', u.x, u.y); if (onScreen(u.x, u.y, 200)) die(u, e[2], e[3], e[4]); else if (e[2] !== 'fire' && e[2] !== 'ice') stain(u.x, u.y, u.r * 1.6, BLOOD[0], 0.5); } }
-  else if (k === 's') { const t = V.towerMap.get(e[1]), u = V.units.get(e[2]); if (t && u) { sfx(t.k === 'cannon' ? 'cannon' : t.k === 'frost' ? 'frost' : 'arrow', t.x, t.y); const w = e[4], m = t.k === 'archer' && w !== undefined ? archerMuzzles(t.lvl || 1)[w] || [0, -27] : [0, -30], ox = m[0], oy = m[1] + 14, a = Math.atan2(u.y - t.y, u.x - t.x); t.aim = a; t.kick = 1; if (w !== undefined && t.arch && t.arch[w]) { t.arch[w].aim = a; t.arch[w].kick = 1; } if (onScreen(t.x, t.y, 300)) V.shots.push({ k: t.k, x: t.x + ox, y: t.y + oy, sx: t.x + ox, sy: t.y + oy, u, tx: u.x, ty: u.y, T: e[3] / 100, age: 0 }); } }
+  else if (k === 's') { const t = V.towerMap.get(e[1]), u = V.units.get(e[2]); if (t && u) { sfx(t.k === 'cannon' ? 'cannon' : t.k === 'frost' ? 'frost' : 'arrow', t.x, t.y); const w = e[4], m = t.k === 'archer' && w !== undefined ? archerMuzzles(t.lvl || 1)[w] || [0, -27] : [0, -30], bw = t.k === 'archer' && t.arch && t.arch[w] && t.arch[w].bow, ox = bw ? bw[0] : m[0], oy = bw ? bw[1] : m[1] + 14, a = Math.atan2(u.y - t.y, u.x - t.x); t.aim = a; t.kick = 1; if (w !== undefined && t.arch && t.arch[w]) { t.arch[w].aim = a; t.arch[w].kick = 1; t.arch[w].st = 0; } if (onScreen(t.x, t.y, 300)) V.shots.push({ k: t.k, x: t.x + ox, y: t.y + oy, sx: t.x + ox, sy: t.y + oy, u, tx: u.x, ty: u.y, T: e[3] / 100, age: 0 }); } }
   else if (k === 'z') { const t = V.towerMap.get(e[1]); if (t) { t.kick = 1; sfx('zap', t.x, t.y); const pts = [[t.x, t.y - 22]]; for (const id of e[2]) { const u = V.units.get(id); if (u) pts.push([u.x, u.y - u.r]); } if (pts.length > 1 && onScreen(t.x, t.y, 300)) V.fx.push({ k: 'bolt', pts, t0: V.clock }); } }
   else if (k === 'sl') sfx('coin'), V.fx.push({ k: 'boom', x: e[1], y: e[2], t0: V.clock, small: 1 });
   else if (k === 'lk') { sfx('leak'); V.units.delete(e[1]); V.fx.push({ k: 'leak', x: V.L.base.x + rr(-40, 40), y: V.L.base.y - 110, n: e[2], t0: V.clock }); }
@@ -415,7 +415,7 @@ function soldier(c, k, r, step, bodyCol, face) {
   if (B === 'ent') return drawEntUp(c, r, step, bodyCol, face);
   if (B === 'ram') return drawRamUp(c, r, step, bodyCol, face);
   if (B === 'mammoth') return drawMammothUp(c, r, step, bodyCol, face);
-  const ogre = B === 'ogre', chief = k === 'chief', scout = k === 'runner';
+  const ogre = B === 'ogre', chief = k === 'chief', scout = k === 'runner' || k === 'troop', fk = k === 'footknight';
   if (chief) { c.fillStyle = mix(bodyCol.startsWith('#') ? bodyCol : '#888888', '#000000', 0.3); c.beginPath(); c.moveTo(-r * 0.7, -r * 0.5); c.lineTo(r * 0.7, -r * 0.5); c.lineTo(r * 0.85 - face * r * 0.2, r * 0.9); c.lineTo(-r * 0.85 - face * r * 0.2, r * 0.9); c.fill(); }
   c.strokeStyle = '#2a1e16'; c.lineWidth = r * (ogre ? 0.42 : 0.35); c.lineCap = 'round'; c.beginPath(); c.moveTo(-r * 0.3, r * 0.3); c.lineTo(-r * 0.3 + step * r * 0.35, r * 0.95); c.moveTo(r * 0.3, r * 0.3); c.lineTo(r * 0.3 - step * r * 0.35, r * 0.95); c.stroke();
   c.fillStyle = bodyCol; c.beginPath(); c.ellipse(0, 0, r * 0.75, r * 0.85, 0, 0, 7); c.fill();
@@ -423,8 +423,10 @@ function soldier(c, k, r, step, bodyCol, face) {
   if (chief) { c.fillStyle = '#8a8a94'; for (const sx of [-1, 1]) { c.beginPath(); c.ellipse(sx * r * 0.6, -r * 0.45, r * 0.32, r * 0.24, 0, 0, 7); c.fill(); } c.fillStyle = '#6a6a74'; c.fillRect(-r * 0.6, r * 0.05, r * 1.2, r * 0.18); }
   c.fillStyle = ogre ? OGRE_SKIN : SKIN; c.beginPath(); c.arc(0, -r * 0.95, r * 0.5, 0, 7); c.fill();
   if (scout) { c.fillStyle = mix(bodyCol.startsWith('#') ? bodyCol : '#888888', '#000000', 0.35); c.beginPath(); c.moveTo(-r * 0.55, -r * 0.8); c.quadraticCurveTo(0, -r * 1.9, r * 0.55, -r * 0.8); c.lineTo(r * 0.3, -r * 1.05); c.lineTo(-r * 0.3, -r * 1.05); c.closePath(); c.fill(); }
+  else if (fk) { c.fillStyle = '#a8aeb6'; c.beginPath(); c.arc(0, -r * 0.98, r * 0.56, 0, 7); c.fill(); c.fillStyle = '#2a2a30'; c.fillRect(face * r * 0.05 - r * 0.3, -r * 1.02, r * 0.6, r * 0.12); c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(-r * 0.3, -r * 1.4, r * 0.15, r * 0.3); }
   else { c.fillStyle = chief ? '#7a7a84' : ogre ? '#4a4a52' : '#6a6a72'; c.beginPath(); c.arc(0, -r * 1.05, r * 0.52, Math.PI, 0); c.fill(); }
   if (ogre) { c.fillStyle = '#ddd'; c.beginPath(); c.moveTo(-r * 0.5, -r * 1.2); c.lineTo(-r * (chief ? 0.95 : 0.75), -r * (chief ? 1.85 : 1.65)); c.lineTo(-r * 0.3, -r * 1.3); c.moveTo(r * 0.5, -r * 1.2); c.lineTo(r * (chief ? 0.95 : 0.75), -r * (chief ? 1.85 : 1.65)); c.lineTo(r * 0.3, -r * 1.3); c.fill(); c.fillStyle = '#f4f0e0'; c.fillRect(-r * 0.22, -r * 0.62, r * 0.09, r * 0.16); c.fillRect(r * 0.13, -r * 0.62, r * 0.09, r * 0.16); }
+  if (fk) { const sx = -face * r * 0.75; c.fillStyle = '#7a8088'; c.beginPath(); c.moveTo(sx - r * 0.42, -r * 0.55); c.lineTo(sx + r * 0.42, -r * 0.55); c.lineTo(sx + r * 0.36, r * 0.2); c.lineTo(sx, r * 0.75); c.lineTo(sx - r * 0.36, r * 0.2); c.closePath(); c.fill(); c.fillStyle = bodyCol; c.beginPath(); c.moveTo(sx - r * 0.32, -r * 0.47); c.lineTo(sx + r * 0.32, -r * 0.47); c.lineTo(sx + r * 0.27, r * 0.15); c.lineTo(sx, r * 0.6); c.lineTo(sx - r * 0.27, r * 0.15); c.closePath(); c.fill(); }
   c.save(); c.rotate(face * (0.4 + step * 0.2));
   if (chief) { c.fillStyle = '#4a3020'; c.fillRect(r * 0.6 * face - r * 0.13, -r * 1.3, r * 0.26, r * 1.7); c.fillStyle = '#5a5a64'; c.beginPath(); c.arc(r * 0.6 * face, -r * 1.35, r * 0.42, 0, 7); c.fill(); c.fillStyle = '#c8c8d0'; for (let i = 0; i < 6; i++) { const a = i * 1.047; c.beginPath(); c.moveTo(r * 0.6 * face + Math.cos(a) * r * 0.38, -r * 1.35 + Math.sin(a) * r * 0.38); c.lineTo(r * 0.6 * face + Math.cos(a) * r * 0.62, -r * 1.35 + Math.sin(a) * r * 0.62); c.lineTo(r * 0.6 * face + Math.cos(a + 0.4) * r * 0.38, -r * 1.35 + Math.sin(a + 0.4) * r * 0.38); c.fill(); } }
   else if (ogre) { c.fillStyle = '#5a3a20'; c.fillRect(r * 0.6 * face - r * 0.15, -r * 1.2, r * 0.3, r * 1.6); c.fillStyle = '#9a9aa4'; c.fillRect(r * 0.6 * face - r * 0.55, -r * 1.4, r * 1.1, r * 0.7); }
@@ -689,14 +691,65 @@ function archerMuzzles(l) {
   return [[-10, -5], [0, -5], [10, -5], [-10, -19], [10, -19]];   // level 5: arrow slits, two floors
 }
 
-function archerMan(c, ax, ay, aim, kick, col) {
-  c.save(); c.translate(ax, ay);
-  c.fillStyle = col; c.beginPath(); c.ellipse(0, 0, 3.4, 3, 0, 0, 7); c.fill();
-  c.fillStyle = SKIN; c.beginPath(); c.arc(0, -4.2, 2.2, 0, 7); c.fill(); c.fillStyle = mix(col, '#000000', 0.35); c.beginPath(); c.arc(0, -4.8, 2.3, Math.PI, 0); c.fill();
-  c.rotate(aim); c.strokeStyle = '#3a2a1a'; c.lineWidth = 1.2; c.beginPath(); c.arc(3.5 - kick * 1.5, 0, 3.6, -1.3, 1.3); c.stroke();
-  c.strokeStyle = '#d8d0c0'; c.lineWidth = 0.5; c.beginPath(); c.moveTo(3.5 - kick * 1.5 + Math.cos(-1.3) * 3.6, Math.sin(-1.3) * 3.6); c.lineTo(1 - kick * 2, 0); c.lineTo(3.5 - kick * 1.5 + Math.cos(1.3) * 3.6, Math.sin(1.3) * 3.6); c.stroke();
+// archers: outfit by level, a recurve bow, the string drawn back between shots (ported from the approved demo)
+const GEAR = {
+  1: { name: 'Militia', body: 'col', trim: '#6a4a2a', head: 'cap', bow: '#a8804e', wrap: '#6a4a2a', quiver: 0, note: 'felt cap · plain tunic · simple bow' },
+  2: { name: 'Bowman', body: '#7a5a36', trim: 'col', head: 'hood', bow: '#8a5a2e', wrap: 'col', quiver: 1, note: 'leather hood · jerkin · quiver' },
+  3: { name: 'Ranger', body: '#4a5a3a', trim: 'col', head: 'colhood', bow: '#6a3a1c', wrap: '#2a1a10', quiver: 1, note: 'hooded cloak in your colour · yew longbow' },
+  4: { name: 'Yeoman', body: '#b8a888', trim: 'col', head: 'kettle', bow: '#5a2a14', wrap: 'col', quiver: 2, note: 'steel kettle helm · gambeson · tabard' },
+  5: { name: 'Royal archer', body: '#9aa0a8', trim: 'col', head: 'sallet', bow: '#2a1a14', wrap: '#e0b830', quiver: 2, note: 'sallet helm + plume · mail · gilded bow' },
+};
+function archerBow(c, gx, gy, ang, pull, kick, G, col) {
+  c.save(); c.translate(gx, gy); c.rotate(ang);
+  const nock = -(1.6 + 2.6 * pull), T = 4.4, wrap = G.wrap === 'col' ? col : G.wrap;
+  // limbs: out from the grip, curving forward, tips recurved back
+  c.strokeStyle = G.bow; c.lineWidth = 0.95; c.lineCap = 'round';
+  for (const sy of [-1, 1]) { c.beginPath(); c.moveTo(0.4, sy * 0.6); c.bezierCurveTo(1.6, sy * 1.6, 1.4 - pull * 0.5, sy * 3.4, 0.1 - pull * 0.4, sy * T); c.quadraticCurveTo(-0.3 - pull * 0.3, sy * (T + 0.5), -0.2 - pull * 0.3, sy * (T + 0.9)); c.stroke(); }
+  c.strokeStyle = G.wrap === '#e0b830' ? '#f6d860' : 'rgba(255,255,255,.18)'; c.lineWidth = 0.35; for (const sy of [-1, 1]) { c.beginPath(); c.moveTo(0.7, sy * 0.9); c.bezierCurveTo(1.6, sy * 1.8, 1.2 - pull * 0.5, sy * 3.2, 0.2 - pull * 0.4, sy * (T - 0.3)); c.stroke(); }
+  c.fillStyle = wrap; c.fillRect(-0.1, -0.9, 1.1, 1.8);
+  // string (snaps forward and wobbles right after the release)
+  const wob = kick > 0.5 ? Math.sin(kick * 40) * 0.5 * kick : 0;
+  c.strokeStyle = 'rgba(232,224,204,.85)'; c.lineWidth = 0.18; c.beginPath(); c.moveTo(-0.2 - pull * 0.3, -T - 0.8); c.lineTo(nock + wob, 0); c.lineTo(-0.2 - pull * 0.3, T + 0.8); c.stroke();
+  // arrow on the string while drawn
+  if (pull > 0.3) { c.strokeStyle = '#4a3220'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(nock, 0); c.lineTo(2.6, 0); c.stroke(); c.fillStyle = '#c8ccd2'; c.beginPath(); c.moveTo(3.4, 0); c.lineTo(2.4, -0.5); c.lineTo(2.4, 0.5); c.fill(); c.fillStyle = col; c.fillRect(nock + 0.1, -0.55, 1, 0.45); c.fillRect(nock + 0.1, 0.1, 1, 0.45); }
   c.restore();
 }
+function archerMan(c, ax, ay, aim, kick, col, L, t, scale) {
+  const G = GEAR[L || 1], S = scale || 1; c.save(); c.translate(ax, ay); c.scale(S, S);
+  const ux = Math.cos(aim), uy = Math.sin(aim) * 0.55, f = ux >= 0 ? 1 : -1, ang = Math.atan2(uy, ux);
+  const pull = Math.max(0, Math.min(1, 1 - kick * 1.5)), body = G.body === 'col' ? col : G.body, trim = G.trim === 'col' ? col : G.trim;
+  const sh = -5.6, bx = ux * 4.3, by = sh + 0.3 + uy * 4.3; // bow grip, out at arm's length toward the target
+  const back = uy < -0.15; // aiming up the screen: the bow is behind him
+  const SK = '#e2b48a', SKD = '#b8865e';
+  if (G.quiver) { c.save(); c.translate(-f * 2.1, -4.2); c.rotate(-f * 0.4); c.fillStyle = '#4a2e18'; c.fillRect(-0.95, -2.8, 1.9, 5); c.fillStyle = G.quiver > 1 ? trim : '#6a4a2a'; c.fillRect(-0.95, -2.8, 1.9, 0.7); for (const k of [-0.5, 0.15, 0.7]) { c.fillStyle = '#e8e0cc'; c.beginPath(); c.moveTo(k, -2.8); c.lineTo(k - 0.28, -3.9); c.lineTo(k + 0.28, -3.9); c.fill(); } c.restore(); }
+  if (G.head === 'colhood') { c.fillStyle = mix(col, '#000000', 0.25); c.beginPath(); c.moveTo(-2.4, sh + 0.4); c.quadraticCurveTo(-f * 3.6, -2, -f * 3.2 - 0.4, 0.4); c.lineTo(f * 1.6, 0.4); c.lineTo(2.4, sh + 0.4); c.closePath(); c.fill(); } // cape behind him
+  if (back) archerBow(c, bx, by, ang, pull, kick, G, col);
+  // torso: tunic / jerkin / mail, with a belt and a trim or tabard in the owner's colour
+  c.fillStyle = body; c.beginPath(); c.moveTo(-2.2, 0); c.lineTo(-2.5, sh + 0.8); c.quadraticCurveTo(0, sh - 0.7, 2.5, sh + 0.8); c.lineTo(2.2, 0); c.closePath(); c.fill();
+  if (L >= 4) { c.fillStyle = trim; c.beginPath(); c.moveTo(-1.2, sh + 0.6); c.lineTo(1.2, sh + 0.6); c.lineTo(1, 0); c.lineTo(-1, 0); c.fill(); if (L >= 5) { c.fillStyle = '#e8c840'; c.fillRect(-0.35, sh + 1.6, 0.7, 2.2); c.fillRect(-0.9, sh + 2.3, 1.8, 0.6); } }
+  if (L === 5) { c.fillStyle = 'rgba(255,255,255,.18)'; for (let yy = sh + 1; yy < -0.5; yy += 0.9) for (let xx = -2; xx < 2.2; xx += 0.9) c.fillRect(xx + (yy * 3 % 2 ? 0.45 : 0), yy, 0.35, 0.35); }
+  c.fillStyle = L === 1 ? '#6a4a2a' : '#3a2616'; c.fillRect(-2.3, -1.6, 4.6, 0.7); if (L === 2 || L === 3) { c.fillStyle = trim; c.fillRect(-2.3, sh + 1.4, 4.6, 0.6); }
+  // the back arm draws the string to the cheek; the bow arm holds the grip
+  const nockW = [bx - ux * (1.6 + 2.6 * pull), by - uy * (1.6 + 2.6 * pull)];
+  const arm = (sx, sy, hx, hy, col2) => { c.strokeStyle = col2; c.lineWidth = 1.15; c.lineCap = 'round'; c.beginPath(); c.moveTo(sx, sy); c.quadraticCurveTo((sx + hx) / 2, (sy + hy) / 2 + 0.6, hx, hy); c.stroke(); };
+  const sleeve = L >= 4 ? body : L === 1 ? col : body;
+  arm(-f * 1.7, sh + 0.9, nockW[0], nockW[1], sleeve); arm(f * 1.7, sh + 0.9, bx, by, sleeve);
+  c.fillStyle = SK; c.beginPath(); c.arc(nockW[0], nockW[1], 0.55, 0, 7); c.fill(); c.beginPath(); c.arc(bx, by, 0.55, 0, 7); c.fill();
+  if (L >= 2) { c.fillStyle = '#5a3a1e'; c.save(); c.translate((f * 1.7 + bx) / 2 + bx * 0.25, (sh + 0.9 + by) / 2 + 0.3); c.rotate(ang); c.fillRect(-0.8, -0.55, 1.6, 1.1); c.restore(); } // bracer
+  // head and headgear
+  const hx = ux * 0.4, hy = sh - 2;
+  c.fillStyle = SK; c.beginPath(); c.arc(hx, hy, 1.85, 0, 7); c.fill();
+  c.fillStyle = '#2a1a10'; c.beginPath(); c.arc(hx + f * 0.8, hy - 0.1, 0.32, 0, 7); c.fill(); // eye, looking down the arrow
+  if (G.head === 'cap') { c.fillStyle = '#7a5530'; c.beginPath(); c.arc(hx, hy - 0.4, 1.95, Math.PI, 0); c.fill(); c.fillRect(hx - 2.4, hy - 0.6, 4.8, 0.6); c.fillStyle = '#c8a050'; c.beginPath(); c.moveTo(hx - f * 1.2, hy - 1.8); c.lineTo(hx - f * 2.6, hy - 3.4); c.lineTo(hx - f * 1.6, hy - 1.6); c.fill(); }
+  if (G.head === 'hood' || G.head === 'colhood') { const hc = G.head === 'colhood' ? col : '#5a3a20'; c.fillStyle = hc; c.beginPath(); c.arc(hx, hy - 0.2, 2.25, Math.PI * 0.95, Math.PI * 2.05); c.lineTo(hx - f * 1.3, hy + 2.2); c.closePath(); c.fill(); c.beginPath(); c.moveTo(hx - f * 1.6, hy - 1.4); c.lineTo(hx - f * 3.4, hy + 0.6); c.lineTo(hx - f * 1.2, hy + 0.8); c.fill(); if (G.head === 'colhood') { c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.arc(hx + f * 0.4, hy + 0.1, 1.5, -Math.PI * 0.6, Math.PI * 0.2); c.fill();} }
+  if (G.head === 'kettle') { c.fillStyle = '#8a9098'; c.beginPath(); c.ellipse(hx, hy - 0.7, 3, 0.8, 0, 0, 7); c.fill(); c.fillStyle = '#a8aeb6'; c.beginPath(); c.arc(hx, hy - 0.8, 1.8, Math.PI, 0); c.fill(); c.fillStyle = 'rgba(255,255,255,.4)'; c.fillRect(hx - 0.8, hy - 2.3, 0.6, 0.9); }
+  if (G.head === 'sallet') { c.fillStyle = '#b8bec6'; c.beginPath(); c.arc(hx, hy - 0.3, 2.05, Math.PI * 0.9, Math.PI * 2.1); c.lineTo(hx - f * 3, hy + 0.9); c.closePath(); c.fill(); c.fillStyle = '#2a2a30'; c.fillRect(hx + f * 0.2 - (f < 0 ? 1.8 : 0), hy - 0.35, 1.8, 0.45); c.fillStyle = '#e0b830'; c.fillRect(hx - 2, hy + 0.3, 4, 0.4); const sw = Math.sin(t * 5) * 0.4; c.fillStyle = col; c.beginPath(); c.moveTo(hx - f * 0.4, hy - 2); c.quadraticCurveTo(hx - f * 2.5, hy - 5 + sw, hx - f * 4.2, hy - 2.8 + sw); c.quadraticCurveTo(hx - f * 2.2, hy - 3, hx - f * 0.2, hy - 1.4); c.fill(); }
+  if (!back) archerBow(c, bx, by, ang, pull, kick, G, col);
+  c.restore();
+  return [ax + bx * S, ay + by * S];
+}
+// a hanging banner on a pole with a crossbar, gently waving
+function archerBanner(c, px, py, h, col, t) { c.fillStyle = '#3a2a1a'; c.fillRect(px - 0.6, py - h, 1.2, h); c.fillStyle = '#c8a040'; c.beginPath(); c.arc(px, py - h - 0.6, 0.9, 0, 7); c.fill(); c.fillRect(px - 3.2, py - h + 1, 6.4, 0.8); const w = Math.sin(t * 3) * 0.6; c.fillStyle = col; c.beginPath(); c.moveTo(px - 2.9, py - h + 1.8); c.lineTo(px + 2.9, py - h + 1.8); c.lineTo(px + 2.9 + w, py - h + 9); c.lineTo(px + w * 0.5, py - h + 7.4); c.lineTo(px - 2.9 + w, py - h + 9); c.closePath(); c.fill(); c.fillStyle = 'rgba(0,0,0,.18)'; c.fillRect(px + 0.8, py - h + 1.8, 2.1, 6); c.fillStyle = '#e8c840'; c.beginPath(); c.arc(px + w * 0.3, py - h + 4.6, 1, 0, 7); c.fill(); }
 function archerPennant(c, px, py, h, col, t) { c.fillStyle = '#3a2a1a'; c.fillRect(px - 0.7, py - h, 1.4, h); c.fillStyle = col; const w = Math.sin(t * 4 + px) * 1.2; c.beginPath(); c.moveTo(px + 0.7, py - h); c.quadraticCurveTo(px + 5, py - h + 1.5 + w, px + 9, py - h + 2.5 + w); c.lineTo(px + 0.7, py - h + 5); c.fill(); }
 function archerLvl(c, T, t, COL) {
   const L = T.lvl, A = T.archers; c.save(); c.translate(T.x, T.y);
@@ -707,7 +760,7 @@ function archerLvl(c, T, t, COL) {
     c.strokeStyle = '#7a5530'; c.lineWidth = 3; for (const [px, py] of [[-13, 15], [13, 15], [-9, 10], [9, 10]]) { c.beginPath(); c.moveTo(px, py); c.lineTo(px * 0.75, -6); c.stroke(); }
     c.strokeStyle = '#5a3d22'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-12, 13); c.lineTo(9, -4); c.moveTo(12, 13); c.lineTo(-9, -4); c.moveTo(-12, 4); c.lineTo(12, 4); c.stroke();
     c.fillStyle = '#8a6238'; c.fillRect(-14, -9, 28, 5); c.fillStyle = '#6a4a28'; c.fillRect(-14, -4, 28, 2);
-    archerMuzzles(L).forEach((m, i) => archerMan(c, m[0], m[1] + 14, A[i].aim, A[i].kick, COL));
+    archerMuzzles(L).forEach((m, i) => { A[i].bow = archerMan(c, m[0], m[1] + 14, A[i].aim, A[i].kick, COL, L, t); });
     c.fillStyle = '#9a7244'; for (let i = -13; i <= 11; i += 4) c.fillRect(i, -15, 2.4, 6); c.fillRect(-14, -15, 28, 1.6);
     archerPennant(c, -14, -15, 10, COL, t);
   } else if (L === 3) {
@@ -718,7 +771,7 @@ function archerLvl(c, T, t, COL) {
     c.fillStyle = '#4a3218'; c.fillRect(-15, 3, 30, 2); c.fillRect(-14, -4, 28, 1.6);
     c.fillStyle = '#2a1a0e'; c.fillRect(-3, 6, 6, 8); c.fillStyle = '#8a6238'; c.fillRect(-16, -13, 32, 4);
     c.fillStyle = '#6a4a28'; for (const px of [-15, 15]) c.fillRect(px - 1.2, -34, 2.4, 22);
-    archerMuzzles(3).forEach((m, i) => archerMan(c, m[0], m[1] + 14, A[i].aim, A[i].kick, COL));
+    archerMuzzles(3).forEach((m, i) => { A[i].bow = archerMan(c, m[0], m[1] + 14, A[i].aim, A[i].kick, COL, 3, t); });
     c.fillStyle = '#9a7244'; c.fillRect(-16, -18, 32, 1.8); for (let i = -15; i <= 13; i += 4) c.fillRect(i, -18, 2, 5);
     c.save(); c.translate(0, 2);
     { // thatch: a lumpy straw cone with a ragged hem, sagging a little, one patch in the player's colour
@@ -738,7 +791,7 @@ function archerLvl(c, T, t, COL) {
     c.strokeStyle = '#3a3630'; c.lineWidth = 0.7; c.beginPath(); c.moveTo(6, -12); c.lineTo(8, -5); c.lineTo(6.5, 1); c.moveTo(-10, 8); c.lineTo(-7, 12); c.stroke();
     c.fillStyle = '#2a2420'; c.beginPath(); c.moveTo(-3, 15); c.lineTo(-3, 8); c.quadraticCurveTo(0, 5, 3, 8); c.lineTo(3, 15); c.fill();
     c.fillStyle = '#6a4a28'; c.fillRect(-18, -18, 36, 4.5); c.fillStyle = '#5a3d22'; for (const px of [-16, -6, 6, 16]) { c.beginPath(); c.moveTo(px, -14); c.lineTo(px + (px < 0 ? 3 : -3), -6); c.lineWidth = 1.4; c.strokeStyle = '#5a3d22'; c.stroke(); }
-    archerMuzzles(4).forEach((m, i) => archerMan(c, m[0], m[1] + 14, A[i].aim, A[i].kick, COL));
+    archerMuzzles(4).forEach((m, i) => { A[i].bow = archerMan(c, m[0], m[1] + 14, A[i].aim, A[i].kick, COL, 4, t); });
     c.fillStyle = '#8a6238'; c.fillRect(-18, -23, 36, 1.8); for (let i = -17; i <= 15; i += 3.4) c.fillRect(i, -23, 1.8, 5.5);
     c.strokeStyle = '#5a3d22'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(-17, -22); c.lineTo(-16.4, -36); c.moveTo(17, -22); c.lineTo(16, -36.5); c.stroke();
     c.fillStyle = mix(COL, '#000000', 0.25); c.beginPath(); c.moveTo(-22, -35); c.lineTo(0, -49); c.lineTo(22, -35); c.closePath(); c.fill();
@@ -753,12 +806,19 @@ function archerLvl(c, T, t, COL) {
     c.fillStyle = g; c.fillRect(-16, -26, 32, 36);
     c.strokeStyle = 'rgba(60,56,50,.55)'; c.lineWidth = 0.6; for (let y = 6; y > -26; y -= 4.5) { c.beginPath(); c.moveTo(-16, y); c.lineTo(16, y); c.stroke(); const off = (Math.round(y) % 2) ? 0 : 4; for (let xx = -16 + off; xx < 16; xx += 8) { c.beginPath(); c.moveTo(xx, y); c.lineTo(xx, y - 4.5); c.stroke(); } }
     c.fillStyle = '#a8a49a'; c.fillRect(-18, -30, 36, 4); for (let k = 0; k < 7; k++) c.fillRect(-18 + k * 5.5, -35, 3, 5);
-    c.fillStyle = mix(COL, '#000000', 0.3); c.beginPath(); c.moveTo(-14, -35); c.lineTo(0, -52); c.lineTo(14, -35); c.fill(); c.fillStyle = COL; c.beginPath(); c.moveTo(-14, -35); c.lineTo(0, -52); c.lineTo(0, -35); c.fill();
-    archerPennant(c, 0, -52, 9, COL, t);
+    for (const bx2 of [-12, 0, 12]) archerBanner(c, bx2, -35, bx2 ? 13 : 16, COL, t + bx2 * 0.3);
     c.fillStyle = COL; c.fillRect(-4, -24, 8, 11); c.fillStyle = '#e8d070'; c.beginPath(); c.moveTo(-2, -21); c.lineTo(0, -17); c.lineTo(2, -21); c.fill();
     c.fillStyle = '#2a2420'; c.beginPath(); c.moveTo(-3.5, 15); c.lineTo(-3.5, 6); c.quadraticCurveTo(0, 2.5, 3.5, 6); c.lineTo(3.5, 15); c.fill();
     // arrow slits; the archer inside shows as a shadow and a glint when they loose
-    archerMuzzles(5).forEach((m, i) => { const sx = m[0], sy = m[1]; c.fillStyle = '#1a1612'; c.fillRect(sx - 1, sy - 4, 2, 8); c.fillRect(sx - 2.5, sy - 0.8, 5, 1.6); if (A[i].kick > 0.4) { c.fillStyle = `rgba(255,230,170,${A[i].kick * 0.8})`; c.fillRect(sx - 0.8, sy - 3, 1.6, 6); } else { c.fillStyle = mix(COL, '#000000', 0.5); c.fillRect(sx - 0.8, sy - 1, 1.6, 2.5); } });
+    // arrow slits: empty and dark; when an archer looses, a pair of arms and a bow push out of the slit, shoot, and pull back in
+    archerMuzzles(5).forEach((m, i) => { const sx = m[0], sy = m[1], a = A[i]; c.fillStyle = '#1a1612'; c.fillRect(sx - 1, sy - 4, 2, 8); c.fillRect(sx - 2.5, sy - 0.8, 5, 1.6); a.bow = [sx, sy];
+      const pre = a.at >= 0 && a.at < 0.22 ? 1 - a.at / 0.22 : 0, post = a.st !== undefined && a.st < 0.5 ? (a.st < 0.08 ? a.st / 0.08 : a.st < 0.2 ? 1 : 1 - (a.st - 0.2) / 0.3) : 0, e = Math.max(pre, post); if (e <= 0.01) return;
+      const ux = Math.cos(a.aim), uy = Math.sin(a.aim) * 0.55, n = Math.hypot(ux, uy), dx = ux / n, dy = uy / n, ease = e * e * (3 - 2 * e);
+      const gx = sx + dx * (0.6 + 3.4 * ease), gy = sy + dy * (0.6 + 3.4 * ease), pull = pre > 0 ? pre : a.st !== undefined && a.st < 0.08 ? 1 : 0, kick = post > 0 && a.st < 0.25 ? 1 - a.st / 0.25 : 0;
+      const nx = gx - dx * (1.6 + 2.6 * pull), ny = gy - dy * (1.6 + 2.6 * pull);
+      c.strokeStyle = '#9aa0a8'; c.lineWidth = 1.1; c.lineCap = 'round'; c.beginPath(); c.moveTo(sx - dy * 0.5, sy + dx * 0.5); c.lineTo(gx, gy); c.moveTo(sx + dy * 0.5, sy - dx * 0.5); c.lineTo(nx, ny); c.stroke(); // mailed sleeves
+      c.fillStyle = '#e2b48a'; c.beginPath(); c.arc(gx, gy, 0.5, 0, 7); c.fill(); c.beginPath(); c.arc(nx, ny, 0.5, 0, 7); c.fill();
+      c.save(); c.globalAlpha = Math.min(1, ease * 1.5); archerBow(c, gx, gy, Math.atan2(dy, dx), pull, kick, GEAR[5], COL); c.restore(); a.bow = [gx, gy]; });
   }
   c.restore();
 }
@@ -1229,7 +1289,7 @@ function stepRag(b, dt) {
 }
 function stepFx(dt) {
   for (const u of V.units.values()) { const k = Math.min(1, dt * 5), pushed = u.mvAt !== undefined && V.clock - u.mvAt < 0.35; u.dr += (pushed ? u.vel : u.sp * ((u.f & 1) ? 0.5 : 1) * ((u.f & 8) ? 0 : 1)) * dt * (u.dr > 0 ? V.L.lanes[u.l].pace(u.dr, u.off) : 1) + u.err * k; u.err -= u.err * k; if (u.offT !== undefined) u.off += (u.offT - u.off) * Math.min(1, dt * 10); if ((u.f & 8) && !u.hop && !(u.z > 0)) { u.hop = 1; u.vz = 170; u.z = 0.1; } if (!(u.f & 8)) u.hop = 0; if (u.z > 0) { u.vz -= 900 * dt; u.z = Math.max(0, u.z + u.vz * dt); } if (u.frAt !== undefined && V.clock - u.frAt < 0.45) { const ddx = u.tx - u.x, ddy = u.ty - u.y; u.x += ddx * Math.min(1, dt * 8); u.y += ddy * Math.min(1, dt * 8); if (Math.abs(ddx) + Math.abs(ddy) > 0.5) u.a = Math.atan2(ddy, ddx); if (Math.random() < 0.3 && onScreen(u.x, u.y, 30)) particle('dust', u.x, u.y + u.r * 0.8, 1, rr(-20, 20), rr(-10, 10), rr(10, 30), rr(0.3, 0.5), '#9a8a6a', rr(1, 2)); } else unitXY(u); if ((u.f & 2) && Math.random() < 0.25 && onScreen(u.x, u.y, 40)) particle('flame', u.x + rr(-u.r, u.r) * 0.6, u.y, rr(3, u.r * 1.6), rr(-8, 8), rr(-5, 5), rr(25, 50), rr(0.3, 0.5), '#ff9a2a', 0); }
-  for (const t of V.towers) { if (t.offAt > V.clock && Math.random() < 0.25 && onScreen(t.x, t.y, 40)) particle('smoke', t.x + rr(-8, 8), t.y - 10, 20, rr(-6, 6), rr(-4, 4), rr(20, 40), rr(0.8, 1.4), '#2a2622', rr(4, 7)); t.kick = Math.max(0, (t.kick || 0) - dt * 4); if (t.arch) for (const q of t.arch) if (q.kick) q.kick = Math.max(0, q.kick - dt * 4); if (t.readyAt && t.readyAt <= V.clock && !t.doneFx) { t.doneFx = 1; if (V.clock - t.readyAt < 1 && onScreen(t.x, t.y, 60)) sfx('done', t.x, t.y), V.fx.push({ k: 'build', x: t.x, y: t.y + 10, t0: V.clock, col: t.col }); } }
+  for (const t of V.towers) { if (t.offAt > V.clock && Math.random() < 0.25 && onScreen(t.x, t.y, 40)) particle('smoke', t.x + rr(-8, 8), t.y - 10, 20, rr(-6, 6), rr(-4, 4), rr(20, 40), rr(0.8, 1.4), '#2a2622', rr(4, 7)); t.kick = Math.max(0, (t.kick || 0) - dt * 4); if (t.arch) for (const q of t.arch) { if (q.kick) q.kick = Math.max(0, q.kick - dt * 4); if (q.st !== undefined && q.st < 1) q.st += dt; } if (t.readyAt && t.readyAt <= V.clock && !t.doneFx) { t.doneFx = 1; if (V.clock - t.readyAt < 1 && onScreen(t.x, t.y, 60)) sfx('done', t.x, t.y), V.fx.push({ k: 'build', x: t.x, y: t.y + 10, t0: V.clock, col: t.col }); } }
   { const fire = new Map(); for (let i = 0; i < V.beams.length; i += 2) { const t = V.towerMap.get(V.beams[i]), u = V.units.get(V.beams[i + 1]); if (t && u) { t.aim = Math.atan2(u.y - t.y, u.x - t.x); fire.set(t.id, u); } }
     const fbs = V.towers.filter(t => t.k === 'flame'); for (const t of fbs) FB.update(t, dt, !(t.readyAt > V.clock) && !(t.offAt > V.clock) ? fire.get(t.id) : null, onScreen(t.x, t.y, 260)); FB.budget(fbs); }
   for (const s of V.shots) {
@@ -1365,7 +1425,8 @@ const cam = { x: 600, y: 600, z: 0.7 };
 function resize() { VW = innerWidth; VH = innerHeight; cv.width = VW * DPR; cv.height = VH * DPR; clampCam(); }
 window.addEventListener('resize', resize); window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 const minZ = () => V ? Math.max(0.1, Math.min(VW / V.world.W, VH / (V.world.H + TD.STAGE_H)) * 0.95) : 0.3;
-function clampCam() { if (!V) return; cam.z = Math.max(minZ(), Math.min(2.5, cam.z)); const hw = VW / 2 / cam.z, hh = VH / 2 / cam.z, W = V.world.W, top = -TD.STAGE_H, H = V.world.H, padB = (build.on ? bottomCover() + 40 : 60) / cam.z, padX = 40 / cam.z; cam.x = hw * 2 > W + padX * 2 ? W / 2 : Math.max(hw - padX, Math.min(W - hw + padX, cam.x)); cam.y = hh * 2 > H - top + padB ? (top + H + padB) / 2 : Math.max(top + hh, Math.min(H - hh + padB, cam.y)); }
+function clampCam() { if (!V) return; cam.z = Math.max(minZ(), Math.min(2.5, cam.z)); const hw = VW / 2 / cam.z, hh = VH / 2 / cam.z, W = V.world.W, top = -TD.STAGE_H, H = V.world.H, padB = (build.on ? bottomCover() + 40 : V.isAtk ? atkCover() + 40 : 60) / cam.z, padX = 40 / cam.z; cam.x = hw * 2 > W + padX * 2 ? W / 2 : Math.max(hw - padX, Math.min(W - hw + padX, cam.x)); cam.y = hh * 2 > H - top + padB ? (top + H + padB) / 2 : Math.max(top + hh, Math.min(H - hh + padB, cam.y)); }
+function atkCover() { const P = $('atkPanel'); return P && !P.classList.contains('hidden') ? Math.max(0, innerHeight - P.getBoundingClientRect().top) : 0; }
 function bottomCover() { const T = $('buildTray'); return T && !T.classList.contains('hidden') ? Math.max(0, innerHeight - T.getBoundingClientRect().top) : 0; }
 function resetCamera() { if (V.myDef) { cam.z = Math.min(1.1, VW > VH ? VW / 1100 : VH / 1250); const p = V.L.lanes[V.myDef.slot].at(500); cam.x = p[0]; cam.y = p[1]; } else { cam.z = minZ(); cam.x = V.world.W / 2; cam.y = (V.world.H - TD.STAGE_H) / 2; } clampCam(); }
 function lookAtLane(slot) { const L2 = V.L.lanes[slot]; if (!L2) return; cam.z = Math.max(cam.z, Math.min(1, Math.max(VW, VH * 0.75) / 1300)); const p = L2.at(400); cam.x = p[0]; cam.y = p[1]; clampCam(); }
@@ -1477,7 +1538,8 @@ function renderHUD(force) {
   const left = TD.RULES.setup + TD.RULES.length - V.t;
   $('clock').innerHTML = V.closed ? `⏱ Final push · ${V.units.size} left` : V.t < TD.RULES.setup ? `🛠 Setup <b>${fmtT(TD.RULES.setup - V.t)}</b>` : `⏱ ${fmtT(left)}` + (ph => ph.open ? ` <span class="phase go">⚔ Sending ${Math.ceil(ph.left)}s</span>` : ` <span class="phase hold">⏸ Pause ${Math.ceil(ph.left)}s</span>`)(TD.sendPhase(V.t));
   $('hpChip').innerHTML = `🏰 <b style="color:${V.hp > V.hpMax * .5 ? '#9ff08a' : V.hp > V.hpMax * .25 ? '#f0c419' : '#ff7a6a'}">${Math.ceil(V.hp)}</b><small>/ ${V.hpMax}</small>`;
-  $('defChips').innerHTML = V.defs.map(d => `<div class="dchip ${d.pid === myPid ? 'me' : ''}" data-lane="${d.slot}"><span class="sw" style="background:${colHex(d.color)}"></span>${esc(d.name)}<span class="lv" style="color:var(--muted)">${d.kills} kills</span></div>`).join('') + `<div class="dchip" style="cursor:default"><span class="sw" style="background:${V.atkCol}"></span>${esc(V.atk.name)}<span class="lv" style="color:var(--muted)">attacker</span></div>`;
+  const hn = []; for (const u of V.units.values()) hn[u.l] = (hn[u.l] || 0) + 1;
+  $('defChips').innerHTML = V.defs.map(d => { const n = hn[d.slot] || 0, ha = TD.hordeArmorOf(n), fill = Math.min(1, n / TD.RULES.hordeMax); return `<div class="dchip ${d.pid === myPid ? 'me' : ''}" data-lane="${d.slot}"><span class="sw" style="background:${colHex(d.color)}"></span>${esc(d.name)}<span class="lv" style="color:var(--muted)">${d.kills} kills</span>${ha >= 0.005 ? `<span class="horde" title="Horde armor: every unit on this lane takes ${Math.round(ha * 100)}% less damage (${n}/${TD.RULES.hordeMax} units, max ${Math.round(TD.RULES.hordeArmor * 100)}%)"><i style="width:${fill * 100}%"></i><b>🛡${Math.round(ha * 100)}%</b></span>` : ''}</div>`; }).join('') + `<div class="dchip" style="cursor:default"><span class="sw" style="background:${V.atkCol}"></span>${esc(V.atk.name)}<span class="lv" style="color:var(--muted)">attacker</span></div>`;
   $('defChips').querySelectorAll('[data-lane]').forEach(b => b.onclick = () => lookAtLane(+b.dataset.lane));
   const tb = $('topBar').getBoundingClientRect(), narrow = innerWidth <= 640; $('defChips').style.top = narrow ? (tb.bottom + 6) + 'px' : ''; $('ecoBar').style.top = narrow ? (tb.bottom + 6) + 'px' : '';
   if (V.myDef) { const D = V.myDef; $('ecoBar').innerHTML = `<div class="chip">💰 ${D.gold}<small>+${D.income}/s</small></div>`; renderTray(); }
@@ -1489,30 +1551,39 @@ function renderAtk() {
   const A = V.atk, P = $('atkPanel'); P.classList.remove('hidden');
   const lanes = atkUI.target === 'all' ? V.defs.length : 1, mt = V.t - TD.RULES.setup, open = TD.UNIT_IDS.filter(k => mt >= TD.UNITS[k].unlock * 60).length, setup = V.t < TD.RULES.setup, ph = TD.sendPhase(V.t), shut = !ph.open;
   // rebuild only when the layout changes; numbers update in place so the unit row keeps its scroll position
-  const skey = JSON.stringify([open, atkUI, V.closed, lanes, setup]);
+  const skey = JSON.stringify([open, atkUI.target, atkUI.qty, atkUI.min, atkUI.min ? atkUI.last : 0, V.closed, lanes, setup]);
   if (P.dataset.skey !== skey) {
     P.dataset.skey = skey; const old = P.querySelector('.cards'), sl = old ? old.scrollLeft : 0;
     if (V.closed) { P.innerHTML = '<div class="qrow">Time is up. Your last units are on the field.</div>'; return; }
+    if (atkUI.min) { // collapsed: a slim bar with gold, the setup/pause line and a one-tap repeat of the last send
+      P.innerHTML = `<div class="targets"><button class="btn ghost sm" data-min title="Show the unit panel">▴ Units</button>${atkUI.last ? '<button class="btn sm" data-again></button>' : ''}<span style="margin-left:auto" class="chip" data-gold></span></div><div class="qrow" data-setup></div>`;
+      P.querySelector('[data-min]').onclick = () => { atkUI.min = false; renderAtk(); clampCam(); };
+      const ag = P.querySelector('[data-again]'); if (ag) ag.onclick = () => { if (!ag.disabled) send({ c: 'send', k: atkUI.last, lane: atkUI.target, n: atkUI.qty }); };
+      P.dataset.key = ''; }
+    else {
     P.innerHTML = `<div class="targets"><span class="small muted">Send to</span><button data-tg="all" class="${atkUI.target === 'all' ? 'on' : ''}">All lanes</button>${V.defs.map(d => `<button data-tg="${d.slot}" class="${atkUI.target === d.slot ? 'on' : ''}"><span class="sw" style="background:${colHex(d.color)}"></span>${esc(d.name)}</button>`).join('')}
-      <span style="margin-left:auto" class="chip" data-gold></span></div>
-      <div class="cards atkCards">${TD.UNIT_IDS.map(k => { const U = TD.UNITS[k], lock = mt < U.unlock * 60; return `<button class="card ${lock ? 'locked' : ''}" data-unit="${k}" title="${esc(U.d)}"><span data-uprev="${k}"></span><b>${U.n}${U.pack ? ' ×' + U.pack : ''}</b><span class="cost">${lock ? '🔒 ' + fmtT(U.unlock * 60) : U.cost * lanes * atkUI.qty + 'g'}</span>${lock ? '' : `<small class="inc">+${fmtInc(U.cost * lanes * atkUI.qty * TD.RULES.sendIncome)}/s</small>`}</button>`; }).join('')}</div>
+      <span style="margin-left:auto" class="chip" data-gold></span><button class="btn ghost sm" data-min title="Hide the unit panel">▾</button></div>
+      <div class="cards atkCards">${TD.UNIT_IDS.map(k => { const U = TD.UNITS[k], lock = U.unlock > 0 && mt < U.unlock * 60; return `<button class="card ${lock ? 'locked' : ''}" data-unit="${k}" title="${esc(U.d)}"><span data-uprev="${k}"></span><b>${U.n}${U.pack ? ' ×' + U.pack : ''}</b>${lock ? `<span class="lockTag">🔒 ${fmtT(U.unlock * 60)}</span>` : ''}<span class="cost">${U.cost * lanes * atkUI.qty + 'g'}</span>${U.noIncome ? '<small class="inc" style="color:#a59c88">no income</small>' : `<small class="inc">+${fmtInc(U.cost * lanes * atkUI.qty * TD.RULES.sendIncome * (U.swarm ? TD.RULES.swarmIncome : 1))}/s${U.swarm ? ' ×' + TD.RULES.swarmIncome : ''}</small>`}</button>`; }).join('')}</div>
       <div class="row"><div class="prios">${[1, 5, 10].map(n => `<button data-qty="${n}" class="${atkUI.qty === n ? 'on' : ''}">×${n}</button>`).join('')}</div>
         <button class="btn sm" data-speed style="margin-left:auto" title="Units you send from now on move ${Math.round(TD.RULES.speedStep * 100)}% faster"></button></div><div class="qrow" data-setup></div>`;
     P.querySelectorAll('[data-uprev]').forEach(s => s.replaceWith(previewCanvas(g => { const S = sprite(s.dataset.uprev, 'n', 1, 0, V.atkCol), sz = Math.min(64, 100 * S.size / (TD.UNITS.brute.r * 4.4)); g.drawImage(S.c, 42 - sz / 2, 66 - sz * 0.72, sz, sz); })));
     P.querySelectorAll('[data-tg]').forEach(b => b.onclick = () => { atkUI.target = b.dataset.tg === 'all' ? 'all' : +b.dataset.tg; if (atkUI.target !== 'all') lookAtLane(atkUI.target); renderAtk(); });
     P.querySelectorAll('[data-qty]').forEach(b => b.onclick = () => { atkUI.qty = +b.dataset.qty; renderAtk(); });
-    P.querySelectorAll('[data-unit]').forEach(b => b.onclick = () => { if (b.classList.contains('off')) return; send({ c: 'send', k: b.dataset.unit, lane: atkUI.target, n: atkUI.qty }); b.classList.remove('sent'); void b.offsetWidth; b.classList.add('sent'); });
+    P.querySelectorAll('[data-unit]').forEach(b => b.onclick = () => { if (b.classList.contains('off')) return; send({ c: 'send', k: b.dataset.unit, lane: atkUI.target, n: atkUI.qty }); atkUI.last = b.dataset.unit; b.classList.remove('sent'); void b.offsetWidth; b.classList.add('sent'); });
     P.querySelector('[data-speed]').onclick = () => send({ c: 'speed' });
+    P.querySelector('[data-min]').onclick = () => { atkUI.min = true; renderAtk(); clampCam(); };
     const row = P.querySelector('.cards'); row.scrollLeft = sl;
     row.addEventListener('wheel', e => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { row.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
     P.dataset.key = '';
+    }
   }
   if (V.closed) return;
-  const key = JSON.stringify([A.gold, A.income, A.investCost, A.speed, A.speedCost, Math.ceil(ph.left), shut]); if (P.dataset.key === key) return; P.dataset.key = key;
-  { const hm = V.t >= TD.RULES.setup ? TD.hoardMulOf(A.gold, A.income) : 1, eff = Math.round(A.income * hm * 10) / 10; P.querySelector('[data-gold]').innerHTML = `💰 ${A.gold}<small>+${eff}/s</small>` + (hm < 0.995 ? `<small class="hoard" title="Holding more than ${TD.RULES.hoardFree}s of income cuts your income (down to half at ${TD.RULES.hoardFull}s). Spend to lift it.">−${Math.round((1 - hm) * 100)}% hoarding</small>` : ''); }
-  P.querySelectorAll('[data-unit]').forEach(b => { const U = TD.UNITS[b.dataset.unit], lock = mt < U.unlock * 60; b.classList.toggle('off', shut || lock || A.gold < U.cost * lanes * atkUI.qty); });
+  const key = JSON.stringify([A.gold, A.income, A.hoard, A.investCost, A.speed, A.speedCost, Math.ceil(ph.left), shut]); if (P.dataset.key === key) return; P.dataset.key = key;
+  { const hm = 1 - (A.hoard || 0), eff = Math.round(A.income * hm * 10) / 10; P.querySelector('[data-gold]').innerHTML = `💰 ${A.gold}<small>+${eff}/s</small>` + (hm < 0.995 ? `<small class="hoard" title="Sitting on gold: after ${TD.RULES.hoardGrace}s without spending, your income drops 1% a second (up to ${Math.round(TD.RULES.hoardMax * 100)}%). Spending part of your bank lifts the same share of the penalty.">−${Math.round((1 - hm) * 100)}% hoarding</small>` : ''); }
+  P.querySelectorAll('[data-unit]').forEach(b => { const U = TD.UNITS[b.dataset.unit], lock = U.unlock > 0 && mt < U.unlock * 60; b.classList.toggle('off', shut || lock || A.gold < U.cost * lanes * atkUI.qty); });
   const su = P.querySelector('[data-setup]'); if (su) { su.classList.toggle('hold', shut); su.textContent = setup ? `Setup: you can send units in ${Math.ceil(ph.left)}s` : shut ? `⏸ Pause: sending reopens in ${Math.ceil(ph.left)}s` : `⚔ Sending open: ${Math.ceil(ph.left)}s left, then a ${TD.RULES.sendOff}s pause. Every unit you send raises your income.`; }
-  const spb = P.querySelector('[data-speed]'), maxed = A.speed >= TD.RULES.speedMax; spb.disabled = maxed || A.gold < A.speedCost; spb.innerHTML = maxed ? '👢 Speed maxed' : `👢 Speed ${A.speed + 1}/${TD.RULES.speedMax} · ${A.speedCost}g`;
+  const ag = P.querySelector('[data-again]'); if (ag && atkUI.last) { const U = TD.UNITS[atkUI.last], cost = U.cost * lanes * atkUI.qty; ag.disabled = shut || A.gold < cost; ag.textContent = `⟳ ${U.n} ×${atkUI.qty} · ${cost}g`; }
+  const spb = P.querySelector('[data-speed]'); if (!spb) return; const maxed = A.speed >= TD.RULES.speedMax; spb.disabled = maxed || A.gold < A.speedCost; spb.innerHTML = maxed ? '👢 Speed maxed' : `👢 Speed ${A.speed + 1}/${TD.RULES.speedMax} · ${A.speedCost}g`;
 }
 
 $('menuBtn').onclick = () => openModal(`<h2>Menu</h2><p class="muted">One finger drags the map, two fingers pinch to zoom.${V && V.myDef ? ' Tap Build, then drag a tower from the tray onto the grid (white cells = it fits). Tap a tower to set its target or sell it. Drag a spell from its button onto the map to cast it (or tap the button, then tap the map).' : ''}${V && V.isAtk ? ' Pick a lane and tap a unit: it marches out right away. Sending runs ' + TD.RULES.sendOn + 's on, ' + TD.RULES.sendOff + 's paused. Every unit you send raises your income; sitting on a big bank lowers it.' : ''}</p><div class="row" style="margin-bottom:10px"><button class="btn" id="mMus">🎵 Music: ${AU.musOn ? 'On' : 'Off'}</button><button class="btn" id="mSfx">🔊 Sound: ${AU.sfxOn ? 'On' : 'Off'}</button></div><div class="row"><button class="btn" id="mResume">Resume</button><button class="btn danger" id="mQuit">Leave match</button></div>`, () => { $('mResume').onclick = closeModal; $('mMus').onclick = () => { setMusic(!AU.musOn); $('mMus').textContent = '🎵 Music: ' + (AU.musOn ? 'On' : 'Off'); }; $('mSfx').onclick = () => { setSfx(!AU.sfxOn); $('mSfx').textContent = '🔊 Sound: ' + (AU.sfxOn ? 'On' : 'Off'); }; $('mQuit').onclick = () => { closeModal(); quitGame(); }; });
