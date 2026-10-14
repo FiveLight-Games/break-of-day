@@ -1436,7 +1436,7 @@ function buildLoop(on) {
 function hissLevel(lv) {
   if (!AU.ctx || AU.ctx.state !== 'running') return; const c = AU.ctx;
   if (!AU.hiss) { const s = c.createBufferSource(), f = c.createBiquadFilter(), f2 = c.createBiquadFilter(), g = c.createGain(); s.buffer = AU.noise; s.loop = true; f.type = 'bandpass'; f.frequency.value = 2200; f.Q.value = 0.6; f2.type = 'lowpass'; f2.frequency.value = 6000; g.gain.value = 0; s.connect(f); f.connect(f2); f2.connect(g); g.connect(AU.sfx); s.start(); AU.hiss = g; }
-  AU.hiss.gain.setTargetAtTime(lv * 0.16, c.currentTime, 0.08);
+  AU.hiss.gain.setTargetAtTime(lv * 0.104, c.currentTime, 0.08);
 }
 // ---- music: generative, tense, minor key; drums get busier as the field fills up ----
 const MUS = { bpm: 84, step: 0, next: 0, timer: null };
