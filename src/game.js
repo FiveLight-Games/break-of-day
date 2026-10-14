@@ -92,6 +92,7 @@ const lvlStat = (k, lvl, key) => { const L = LEVELS[k]; return L && L[key] ? L[k
 const towerRange = (k, lvl) => TOWERS[k].r * (lvlStat(k, lvl, 'range') || 1);
 const towerDmg = (k, lvl) => lvlStat(k, lvl, 'dmg') || TOWERS[k].dmg;
 // hoarding tax: income drops linearly from 100% at hoardFree seconds of income banked to 50% at hoardFull
+const hordeArmorOf = n => RULES.hordeArmor * Math.min(1, n / RULES.hordeMax);
 const hoardMulOf = (gold, income, free = RULES.hoardFree, full = RULES.hoardFull) => 1 - 0.5 * Math.max(0, Math.min(1, (gold / Math.max(0.1, income) - free) / (full - free)));
 const towerDps = (k, lvl) => lvlStat(k, lvl, 'dps') || TOWERS[k].dps;
 const towerCone = (k, lvl) => (TOWERS[k].cone || 0) * (lvlStat(k, lvl, 'wide') || 1);
@@ -106,12 +107,15 @@ const UNITS = {
   // unlock: minute the attacker can first send it. pack: units per send. armor: less damage from arrows and shells.
   grunt: { n: 'Footman', hp: 150, sp: 46, r: 5.5, cost: 3, bounty: 1, dmg: 3, body: 'human', unlock: 0, d: 'Cheap and sturdy. 3 damage to the base.' },
   runner: { n: 'Scout', hp: 85, sp: 70, r: 4.5, cost: 3, bounty: 1, dmg: 1, body: 'human', unlock: 0, d: 'Fast and fragile. 1 damage to the base.' },
-  brute: { n: 'Ogre', hp: 650, sp: 40, r: 8.5, cost: 12, bounty: 4, dmg: 12, body: 'ogre', unlock: 0, d: 'Huge and slow. 12 damage to the base.' },
-  zombie: { n: 'Zombie Horde', hp: 45, sp: 24, r: 5, cost: 6, pack: 8, bounty: 0.2, dmg: 1, body: 'hum', unlock: 1, d: 'Eight shambling zombies per send. Slow, but they pile up. 1 damage each.' },
-  skel: { n: 'Skeleton Horde', hp: 32, sp: 50, r: 4.2, cost: 5, pack: 6, bounty: 0.25, dmg: 1, body: 'skel', unlock: 2, d: 'Six brittle skeletons per send. They swamp single-target towers. 1 damage each.' },
-  gnoll: { n: 'Gnoll Pack', hp: 120, sp: 60, r: 5, cost: 9, pack: 4, bounty: 0.8, dmg: 2, body: 'hum', unlock: 3, packRage: 0.15, d: 'Four gnolls. Each one that dies makes the rest 15% faster. 2 damage each.' },
+  footknight: { n: 'Knight', hp: 420, sp: 42, r: 6.5, cost: 8, bounty: 2.5, dmg: 4, body: 'human', armor: 0.15, unlock: 0, d: 'An armoured foot knight: tougher than a Footman, lighter than an Ogre. Arrows and shells do 15% less. 4 damage.' },
+  troop: { n: 'Scout Troop', swarm: 1, hp: 85, sp: 70, r: 4.5, cost: 15, pack: 6, bounty: 0.6, dmg: 1, body: 'human', unlock: 1, d: 'Six fast scouts per send. A horde: extra income, little bounty. 1 damage each.' },
+  warband: { n: 'Footman Warband', swarm: 1, hp: 150, sp: 46, r: 5.5, cost: 15, pack: 6, bounty: 0.6, dmg: 1, body: 'human', unlock: 2, d: 'Six footmen per send. A horde: extra income, little bounty. 1 damage each.' },
+  brute: { n: 'Ogre', hp: 650, sp: 40, r: 8.5, cost: 12, bounty: 4, dmg: 12, body: 'ogre', unlock: 2, d: 'Huge and slow. 12 damage to the base.' },
+  zombie: { n: 'Zombie Horde', swarm: 1, hp: 45, sp: 24, r: 5, cost: 6, pack: 8, bounty: 0.2, dmg: 1, body: 'hum', unlock: 1, d: 'Eight shambling zombies per send. Slow, but they pile up. 1 damage each.' },
+  skel: { n: 'Skeleton Horde', swarm: 1, hp: 32, sp: 50, r: 4.2, cost: 5, pack: 6, bounty: 0.25, dmg: 1, body: 'skel', unlock: 2, d: 'Six brittle skeletons per send. They swamp single-target towers. 1 damage each.' },
+  gnoll: { n: 'Gnoll Pack', swarm: 1, hp: 120, sp: 60, r: 5, cost: 9, pack: 4, bounty: 0.8, dmg: 2, body: 'hum', unlock: 3, packRage: 0.15, d: 'Four gnolls. Each one that dies makes the rest 15% faster. 2 damage each.' },
   naga: { n: 'Naga Myrmidon', hp: 420, sp: 50, r: 6.5, cost: 10, bounty: 3, dmg: 5, body: 'naga', unlock: 4, slowRes: 0.5, pushRes: 0.7, d: 'Serpent warrior. Shrugs off half of any slow and most of the Water Jet. 5 damage.' },
-  sapper: { n: 'Goblin Sapper', hp: 140, sp: 55, r: 4.5, cost: 16, bounty: 3, dmg: 4, fixedDmg: 1, body: 'hum', unlock: 5, sapper: { r: 140, sp: 165, stun: 4 }, d: 'Spots a tower within range, sprints straight at it and blows it up, knocking it out for 4s.' },
+  sapper: { n: 'Goblin Sapper', hp: 140, sp: 55, r: 4.5, cost: 40, noIncome: 1, bounty: 3, dmg: 4, fixedDmg: 1, body: 'hum', unlock: 5, sapper: { r: 140, sp: 165, stun: 4 }, d: 'Spots a tower within range, sprints straight at it and blows it up, knocking it out for 4s.' },
   warg: { n: 'Warg Rider', hp: 340, sp: 92, r: 7, cost: 11, bounty: 3, dmg: 6, body: 'warg', unlock: 6, d: 'An orc on a giant wolf. Very fast. 6 damage.' },
   shield: { n: 'Shieldwall', hp: 260, sp: 40, r: 6, cost: 16, pack: 4, bounty: 2, dmg: 3, body: 'hum', unlock: 7, frontGuard: 0.6, d: 'Four shield-bearers. Arrows from the front do 60% less. 3 damage each.' },
   knight: { n: 'Mounted Knight', hp: 520, sp: 56, r: 7.5, cost: 18, bounty: 4, dmg: 7, body: 'horse', unlock: 8, charge: { r: 180, mul: 2.2, t: 3 }, d: 'Charges at double speed for 3s when it first sees a tower. 7 damage.' },
@@ -124,11 +128,12 @@ const UNITS = {
   mammoth: { n: 'War Mammoth', hp: 4500, sp: 26, r: 18, cost: 90, bounty: 25, dmg: 60, body: 'mammoth', unlock: 14, spill: { k: 'grunt', n: 4 }, d: 'A mammoth with a war tower on its back. When it falls, 4 Footmen jump out. 60 damage.' },
   tarrasque: { n: 'Tarrasque', hp: 9000, sp: 17, r: 26, cost: 200, bounty: 120, dmg: 100, noScale: 1, body: 'beast', armor: 0.25, unstoppable: 1, unlock: 15, d: 'A walking catastrophe. Can\'t be slowed, pushed or one-shot. 100 damage.' },
 };
+{ const order = ['runner', 'grunt', 'footknight'], rest = Object.keys(UNITS).filter(k => !order.includes(k)), all = order.concat(rest), copy = { ...UNITS }; for (const k of Object.keys(UNITS)) delete UNITS[k]; for (const k of all) UNITS[k] = copy[k]; }
 const UNIT_IDS = Object.keys(UNITS);
 // base damage on a leak scales with the unit's share of its send cost (min 1); descriptions follow
 function setLeakRate(r) { RULES.leakRate = r; for (const k of UNIT_IDS) { const U = UNITS[k]; if (U.fixedDmg) continue; U.dmg = Math.max(1, Math.round(U.cost / (U.pack || 1) * r)); U.d = U.d.replace(/\d+ damage/, U.dmg + ' damage'); } }
 // gold is per second; kill gold is shared: every defender gets bounty / number of defenders
-const RULES = { setup: 10, refundWindow: 10, sendOn: 30, sendOff: 15, hoardFree: 25, hoardFull: 75, unitSpeed: 0.95, pulse: 15, length: 20 * 60, hpPer: 300, leakRate: 0.5, buildTime: 3, levelTime: 1.5, defGold: 230, defIncome: 1, atkGoldPer: 60, atkIncomePer: 2, sendIncome: 0.0025, leakBounty: 0.5, investCost: 80, investGain: 0.8, speedCost: 90, speedStep: 0.05, speedMax: 5, sell: 0.7, hpPerMin: 0.05 };
+const RULES = { setup: 10, refundWindow: 10, sendOn: 30, sendOff: 15, hoardFree: 25, hoardFull: 75, swarmIncome: 1.5, swarmBounty: 0.5, hordeMax: 200, hordeArmor: 0.15, unitSpeed: 0.95, pulse: 15, length: 20 * 60, hpPer: 300, leakRate: 0.5, buildTime: 3, levelTime: 1.5, defGold: 230, defIncome: 1, atkGoldPer: 60, atkIncomePer: 2, sendIncome: 0.0021, leakBounty: 0.5, investCost: 80, investGain: 0.8, speedCost: 90, speedStep: 0.05, speedMax: 5, sell: 0.7, hpPerMin: 0.05 };
 setLeakRate(RULES.leakRate);
 // attack rhythm: after setup, sends open for sendOn seconds, then a sendOff-second pause, repeating
 function sendPhase(t) { if (t < RULES.setup) return { open: false, left: RULES.setup - t, setup: true }; const cyc = RULES.sendOn + RULES.sendOff, p = (t - RULES.setup) % cyc; return p < RULES.sendOn ? { open: true, left: RULES.sendOn - p } : { open: false, left: cyc - p }; }
@@ -155,7 +160,7 @@ class Sim {
     const P = this.players[pid]; if (!P || this.over) return;
     if (P === this.atk) {
       if (this.closed) return;
-      if (c.c === 'send') { const U = UNITS[c.k]; if (!U || !this.canSend() || this.mins() < U.unlock) return; const lanes = c.lane === 'all' ? this.defs.map(d => d.slot) : [this.defs[c.lane]].filter(Boolean).map(d => d.slot); const n = Math.max(1, Math.min(10, c.n | 0 || 1)), cost = U.cost * lanes.length * n; if (!lanes.length || P.gold < cost) return; P.gold -= cost; P.spent += cost; P.income += cost * (this.sendInc ?? RULES.sendIncome); for (const l of lanes) for (let i = 0; i < n; i++) { const pk = U.pack || 1, pid = pk > 1 ? ++this.packN : 0; for (let j = 0; j < pk; j++) { const gap = j ? 0.07 : this.gate ? Math.max(0.1, U.cost / (this.gate * P.income / this.N)) : 0.1, at = Math.max(this.t, this.laneNext[l] || 0) + gap; this.laneNext[l] = at; this.spawnAt.push({ at, k: c.k, l, pk: pid }); } } P.sent += lanes.length * n; }
+      if (c.c === 'send') { const U = UNITS[c.k]; if (!U || !this.canSend() || this.mins() < U.unlock) return; const lanes = c.lane === 'all' ? this.defs.map(d => d.slot) : [this.defs[c.lane]].filter(Boolean).map(d => d.slot); const n = Math.max(1, Math.min(10, c.n | 0 || 1)), cost = U.cost * lanes.length * n; if (!lanes.length || P.gold < cost) return; P.gold -= cost; P.spent += cost; if (!U.noIncome) P.income += cost * (this.sendInc ?? RULES.sendIncome) * (U.swarm ? RULES.swarmIncome : 1); for (const l of lanes) for (let i = 0; i < n; i++) { const pk = U.pack || 1, pid = pk > 1 ? ++this.packN : 0; for (let j = 0; j < pk; j++) { const gap = j ? 0.07 : this.gate ? Math.max(0.1, U.cost / (this.gate * P.income / this.N)) : 0.1, at = Math.max(this.t, this.laneNext[l] || 0) + gap; this.laneNext[l] = at; this.spawnAt.push({ at, k: c.k, l, pk: pid }); } } P.sent += lanes.length * n; }
       else if (c.c === 'speed') { if (P !== this.atk || this.closed || P.speed >= RULES.speedMax) return; const cost = this.speedCost(); if (P.gold < cost) return; P.gold -= cost; P.spent += cost; P.speed++; }
       return;
     }
@@ -194,6 +199,7 @@ class Sim {
   ev(e) { this.events.push(e); }
   // hoarding tax (test flag `hoardTax`): a bank bigger than `free` seconds of income cuts income, down to 50% at `full` seconds
   hoardMul() { const H = this.hoardTax === undefined ? { free: RULES.hoardFree, full: RULES.hoardFull } : this.hoardTax; if (!H || this.t < RULES.setup) return 1; const A = this.atk; A.grant = Math.min(A.grant || 0, A.gold); return hoardMulOf(A.gold - A.grant, A.income, H.free, H.full); } // the starting gold never counts as hoarding
+  hordeArmor(l) { return RULES.hordeArmor * Math.min(1, ((this.hordeN && this.hordeN[l]) || 0) / RULES.hordeMax); }
   canSend() { return this.noPause ? this.t >= RULES.setup : sendPhase(this.t).open; }
   mins() { return Math.max(0, this.t - RULES.setup) / 60; }
   // ---- step ----
@@ -203,6 +209,7 @@ class Sim {
     const per = dt; this.atk.gold += this.atk.income * per * this.hoardMul(); for (const d of this.defs) d.gold += d.income * per;
     // after the time limit the attacker can't send any more; the match ends when the field is clear
     if (!this.closed && this.t >= RULES.setup + RULES.length) { this.closed = true; this.atk.queue = []; this.ev(['closed']); }
+    { const hc = this.hordeN = this.hordeN || []; hc.fill(0); for (const u of this.units) if (u.hp > 0) hc[u.l] = (hc[u.l] || 0) + 1; }
     if (this.spawnAt.length) { const due = this.spawnAt.filter(s => s.at <= this.t); if (due.length) { this.spawnAt = this.spawnAt.filter(s => s.at > this.t); due.forEach(s => this.spawn(s.k, s.l, s.pk ? { pk: s.pk } : null)); } }
     // units walk their lane into the shared base
     for (const u of this.units) {
@@ -218,7 +225,7 @@ class Sim {
       if (u.kb || u.lv) { u.kb *= Math.exp(-3.2 * dt); u.off = Math.max(-LANE + 6, Math.min(LANE - 6, u.off + (u.lv || 0) * dt)); u.lv *= Math.exp(-4 * dt); if (Math.abs(u.kb) < 1) u.kb = 0; if (Math.abs(u.lv) < 1) u.lv = 0; u.mvT = this.t; }
       if (air) u.air -= dt;
       if (u.free) { u.free = 0; const q = lane.at(u.d); u.x = q[0]; u.y = q[1]; } // back on the lane
-      if (u.d >= lane.total) { u.dead = 1; const dmg = UNITS[u.k].dmg; this.hp = Math.max(0, this.hp - dmg); this.atk.leaked++; this.atk.dmg += dmg; const ls = UNITS[u.k].bounty * RULES.leakBounty / this.N; for (const d of this.defs) { d.gold += ls; d.shared += ls; } this.ev(['lk', u.id, dmg]); continue; }
+      if (u.d >= lane.total) { u.dead = 1; const dmg = UNITS[u.k].dmg; this.hp = Math.max(0, this.hp - dmg); this.atk.leaked++; this.atk.dmg += dmg; const ls = UNITS[u.k].bounty * (UNITS[u.k].swarm ? RULES.swarmBounty : 1) * RULES.leakBounty / this.N; for (const d of this.defs) { d.gold += ls; d.shared += ls; } this.ev(['lk', u.id, dmg]); continue; }
       const p = lane.at(u.d); u.x = p[0] + Math.cos(p[2] + Math.PI / 2) * u.off; u.y = p[1] + Math.sin(p[2] + Math.PI / 2) * u.off;
     }
     this.units = this.units.filter(u => !u.dead);
@@ -351,11 +358,12 @@ class Sim {
     if (type === 'fire' && Ua.fireMul !== undefined) amt *= Ua.fireMul; if (type === 'shock' && Ua.shockMul !== undefined) amt *= Ua.shockMul; if (type === 'ice' && Ua.iceMul) amt *= Ua.iceMul;
     if (type === 'fire' || type === 'meteor') u.burnLock = this.t + 3;
     if (Ua.frontGuard && type === 'phys' && t.x !== undefined) { const a = this.L.lanes[u.l].at(u.d)[2]; if ((t.x - u.x) * Math.cos(a) + (t.y - u.y) * Math.sin(a) > 0) amt *= 1 - Ua.frontGuard; }
+    amt *= 1 - this.hordeArmor(u.l); // a crowded lane shields every unit on it
     if (amt <= 0) return;
     u.hp -= amt; const D = this.players[t.owner]; if (D) D.dmg += amt; if (t.k && !t.dealt) { t.dealt = 1; this.towerVer++; }
     if (u.hp <= 0) {
       u.hp = 0; t.kills++; if (D) D.kills++;
-      const share = UNITS[u.k].bounty / this.N; for (const d of this.defs) { d.gold += share; d.shared += share; }
+      const share = UNITS[u.k].bounty * (UNITS[u.k].swarm ? RULES.swarmBounty : 1) / this.N; for (const d of this.defs) { d.gold += share; d.shared += share; }
       this.ev(['d', u.id, type, Math.round(sx !== undefined ? sx : t.x), Math.round(sy !== undefined ? sy : t.y)]);
       if (u.pk) this.packDead[u.pk] = (this.packDead[u.pk] || 0) + 1;
       if (u.run) { const tt = this.towers.find(o => o.id === u.run); if (tt && tt.sapped === u.id) tt.sapped = 0; }
@@ -374,7 +382,7 @@ class Sim {
     if (need && A.gold < need && A.gold + A.income * 25 >= need) return;
     if (!this.canSend()) return; // pause: upgrades only
     const lanes = this.defs.length;
-    const W = { grunt: 26, runner: 12, brute: 10, zombie: 12, skel: 14, gnoll: 10, naga: 10, sapper: 5, warg: 9, shield: 7, knight: 7, troll: 6, chief: 5, necro: 4, ent: 3, golem: 3, ram: 2, mammoth: 2 }, open = Object.keys(W).filter(k => this.mins() >= UNITS[k].unlock), tot = open.reduce((s2, k) => s2 + W[k], 0);
+    const W = { grunt: 22, runner: 12, footknight: 12, troop: 7, warband: 7, brute: 10, zombie: 12, skel: 14, gnoll: 10, naga: 10, sapper: 5, warg: 9, shield: 7, knight: 7, troll: 6, chief: 5, necro: 4, ent: 3, golem: 3, ram: 2, mammoth: 2 }, open = Object.keys(W).filter(k => this.mins() >= UNITS[k].unlock), tot = open.reduce((s2, k) => s2 + W[k], 0);
     if (this.mins() >= UNITS.tarrasque.unlock && !this.units.some(u => u.k === 'tarrasque')) { const c2 = UNITS.tarrasque.cost * lanes; if (A.gold >= c2) this.input(A.pid, { c: 'send', k: 'tarrasque', lane: 'all' }); else if (A.gold + A.income * 40 >= c2) return; }
     // test flag botMix: commit to each rolled unit and save for it, instead of re-rolling until something cheap comes up
     let guard = 40; while (guard-- > 0) { let k = this.botMix && A.want; if (!k) { let roll = this.R() * tot; k = open[0]; for (const o of open) { roll -= W[o]; if (roll <= 0) { k = o; break; } } } const cost = UNITS[k].cost * lanes; if (A.gold < cost + A.income * 3) { if (this.botMix) A.want = k; break; } A.want = null; this.input(A.pid, { c: 'send', k, lane: 'all' }); }
@@ -436,6 +444,6 @@ class Sim {
   stats() { return { hp: this.hp, atk: { sent: this.atk.sent, leaked: this.atk.leaked, dmg: this.atk.dmg, spent: this.atk.spent, invest: this.atk.invest, speed: this.atk.speed }, defs: this.defs.map(d => ({ kills: d.kills, built: d.built, dmg: Math.round(d.dmg), shared: Math.round(d.shared) })) }; }
 }
 
-const API = { COLORS, RACES, MAPS, LANE, CELL, FOOT, STAGE_H, MAX_DEF, TOWERS, TOWER_IDS, LEVELS, PROMOTIONS, towerRange, towerDmg, towerDps, towerCone, towerVolley, hoardMulOf, sendPhase, setLeakRate, UNITS, UNIT_IDS, SPELLS, SPELL_IDS, RULES, PRIORITIES, Sim, layout, footFree, mulberry32 };
+const API = { COLORS, RACES, MAPS, LANE, CELL, FOOT, STAGE_H, MAX_DEF, TOWERS, TOWER_IDS, LEVELS, PROMOTIONS, towerRange, towerDmg, towerDps, towerCone, towerVolley, hoardMulOf, hordeArmorOf, sendPhase, setLeakRate, UNITS, UNIT_IDS, SPELLS, SPELL_IDS, RULES, PRIORITIES, Sim, layout, footFree, mulberry32 };
 if (typeof module !== 'undefined') module.exports = API; else G.TD = API;
 })(typeof window !== 'undefined' ? window : globalThis);
