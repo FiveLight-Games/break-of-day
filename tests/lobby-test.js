@@ -48,8 +48,8 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(await B.evaluate(() => document.getElementById('clock').textContent.includes('Setup')), 'match opens with a setup countdown');
   check(await A.evaluate(() => { const S = window.TDC.GS.sim, n = S.spawnAt.length; S.atk.gold += 100; S.input(S.atk.pid, { c: 'send', k: 'grunt', lane: 'all', n: 1 }); return S.spawnAt.length === n && S.t < 10; }), 'host refuses sends during setup');
   check(await A.evaluate(() => { const S = window.TDC.GS.sim, D = S.defs[0], L = S.L, q = L.lanes[0].at(300); let c0 = -1, r0 = -1; for (let r = 0; r < L.rows - 1 && c0 < 0; r++) for (let c = 0; c < L.cols - 1; c++) if (Math.hypot((c + 1) * 24 - q[0], (r + 1) * 24 - q[1]) < 200 && window.TD.footFree(L, c, r, S.occ)) { c0 = c; r0 = r; break; }
-    const g0 = D.gold; S.input(D.pid, { c: 'build', k: 'cannon', c2: c0, r: r0 }); const t = S.towers[S.towers.length - 1]; S.input(D.pid, { c: 'sell', id: t.id }); const full = Math.abs(D.gold - g0) < 1e-6;
-    S.input(D.pid, { c: 'build', k: 'cannon', c2: c0, r: r0 }); const t2 = S.towers[S.towers.length - 1]; t2.placed -= 11; const g1 = D.gold; S.input(D.pid, { c: 'sell', id: t2.id }); return full && Math.round(D.gold - g1) === 70; }), 'tower sold within 10s of placing gets a full refund; later it is 70%');
+    const g0 = D.gold; S.input(D.pid, { c: 'build', k: 'ptero', c2: c0, r: r0 }); const t = S.towers[S.towers.length - 1]; S.input(D.pid, { c: 'sell', id: t.id }); const full = Math.abs(D.gold - g0) < 1e-6;
+    S.input(D.pid, { c: 'build', k: 'ptero', c2: c0, r: r0 }); const t2 = S.towers[S.towers.length - 1]; t2.placed -= 11; const g1 = D.gold; S.input(D.pid, { c: 'sell', id: t2.id }); return full && Math.round(D.gold - g1) === 63; }), 'tower sold within 10s of placing gets a full refund; later it is 70%');
   // free 2x2 spots near my lane, scored by distance to the lane point at path distance d
   const spots = (P, n, d) => P.evaluate(([n, d]) => { const V = window.TDC.V, L = V.L, lane = L.lanes[V.myDef.slot], pt = lane.at(d), out = [], occ = V.occ.slice();
     const cand = []; for (let r = 0; r < L.rows - 1; r++) for (let c = 0; c < L.cols - 1; c++) { const x = (c + 1) * 24, y = (r + 1) * 24, dd = Math.hypot(x - pt[0], y - pt[1]); if (dd < 260) cand.push([dd, c, r]); }
@@ -60,7 +60,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   // C: real drag from the tray onto the field (mouse pointer, so no finger offset)
   await C.click('#buildBtn'); await sleep(300);
   check(await C.isVisible('#buildTray'), 'build mode opens the tray');
-  check(await C.evaluate(() => document.querySelector('#buildTray .strip').textContent.includes('Archer Post')), 'info strip shows the selected tower');
+  check(await C.evaluate(() => document.querySelector('#buildTray .strip').textContent.includes('Stone Thrower')), 'info strip shows the selected tower');
   await C.click('#buildTray [data-tw=storm]'); await sleep(200);
   check(await C.evaluate(() => { const s = document.querySelector('#buildTray .strip').textContent; return s.includes('Tesla Coil') && s.includes('range 175') && window.TDC.V.towers.length === 0; }), 'tapping a tower shows its info without building');
   check(await C.evaluate(() => document.getElementById('buildBtn').getBoundingClientRect().bottom <= document.getElementById('buildTray').getBoundingClientRect().top), 'Done sits above the tray');
@@ -68,7 +68,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   const g0 = await C.evaluate(() => window.TDC.V.myDef.gold);
   const [[tc, tr]] = await spots(C, 1, 450);
   await C.evaluate(([c, r]) => { const cam = window.TDC.cam; cam.x = (c + 1) * 24; cam.y = (r + 1) * 24; }, [tc, tr]); await sleep(200);
-  const card = await C.locator('#buildTray [data-tw=archer]').boundingBox();
+  const card = await C.locator('#buildTray [data-tw=stone]').boundingBox();
   await C.mouse.move(card.x + card.width / 2, card.y + card.height / 2); await C.mouse.down();
   await C.mouse.move(195, 600, { steps: 5 }); await C.mouse.move(195, 422, { steps: 5 }); await sleep(250);
   const dr = await C.evaluate(() => { const d = window.TDC.build.drag; return d && { ok: d.ok, c: d.c, r: d.r }; });
@@ -78,7 +78,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   await C.mouse.up(); await sleep(600);
   check(await C.evaluate(() => window.TDC.V.towers.length) === 1, 'tower placed on release');
   await C.screenshot({ path: OUT + '/build-construct.png' });
-  check(await C.evaluate(g0 => window.TDC.V.myDef.gold <= g0 - 30 + 4, g0), 'gold spent on build (Archer Post 30g)');
+  check(await C.evaluate(g0 => window.TDC.V.myDef.gold <= g0 - 30 + 4, g0), 'gold spent on build (Stone Thrower 30g)');
   // drag onto the occupied spot shows red / invalid, then drop back on the tray cancels
   await C.mouse.move(card.x + card.width / 2, card.y + card.height / 2); await C.mouse.down(); await C.mouse.move(195, 422, { steps: 6 }); await sleep(150);
   check(await C.evaluate(() => !window.TDC.build.drag.ok), 'occupied cells are invalid');
@@ -94,9 +94,9 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(await C.evaluate(() => { const c = window.TDC.cam, b = window.TDC.V.L.base; c.y = 99999; window.TDC.cam.x = b.x; window.dispatchEvent(new Event('resize')); const tray = document.getElementById('buildTray').getBoundingClientRect().top, sy = (b.y - c.y) * c.z + innerHeight / 2; return sy < tray - 20; }), 'in build mode the base can be scrolled above the tray');
   await C.evaluate(s => { const c = window.TDC.cam; c.x = s[0]; c.y = s[1]; c.z = s[2]; }, camSave);
   // a tower on a road cell is refused by the host
-  await A.evaluate(() => { const L = window.TDC.V.L, p = L.lanes[0].at(600); window.TDC.send({ c: 'build', k: 'archer', c2: Math.round(p[0] / 24 - 1), r: Math.round(p[1] / 24 - 1) }); });
+  await A.evaluate(() => { const L = window.TDC.V.L, p = L.lanes[0].at(600); window.TDC.send({ c: 'build', k: 'stone', c2: Math.round(p[0] / 24 - 1), r: Math.round(p[1] / 24 - 1) }); });
   // both defenders build more via input
-  for (const P of [A, C]) { const sp = await spots(P, 2, 300); await P.evaluate(sp => sp.forEach(([c, r], i) => window.TDC.send({ c: 'build', k: ['cannon', 'archer'][i], c2: c, r })), sp); }
+  for (const P of [A, C]) { const sp = await spots(P, 2, 300); await P.evaluate(sp => sp.forEach(([c, r], i) => window.TDC.send({ c: 'build', k: ['ptero', 'stone'][i], c2: c, r })), sp); }
   await sleep(800);
   const nt = await C.evaluate(() => window.TDC.V.towers.length);
   check(nt === 5, 'towers from both defenders show on every screen, road build refused: ' + nt);
@@ -179,20 +179,26 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   // portrait: tapping a tower hides the Build button, closing the sheet brings it back
   await C.evaluate(() => { const t = window.TDC.V.towers.find(t => t.owner === window.TDC.V.myDef.pid) || window.TDC.V.towers[0]; window.TDC.cam.x = t.x; window.TDC.cam.y = t.y; window.TDC.onTap(t.x, t.y); }); await sleep(300);
   check(await C.isVisible('#sheet') && !(await C.isVisible('#buildBtn')), 'tower sheet open, Build button hidden');
-  { // level up an Archer Post from its panel: pays, rebuilds for 3s, shows locked promotions
-    const tid = await C.evaluate(() => { const T = window.TDC.V.towers.find(t => t.owner === window.TDC.V.myDef.pid && t.k === 'archer'); window.TDC.cam.x = T.x; window.TDC.cam.y = T.y; window.TDC.onTap(T.x, T.y); return T.id; });
+  { // level up a Stone Thrower from its panel: pays, rebuilds, shows its promotions; then promote it into an Archer Post
+    const tid = await C.evaluate(() => { const T = window.TDC.V.towers.find(t => t.owner === window.TDC.V.myDef.pid && t.k === 'stone'); window.TDC.cam.x = T.x; window.TDC.cam.y = T.y; window.TDC.onTap(T.x, T.y); return T.id; });
     await A.evaluate(() => { window.TDC.GS.sim.defs.forEach(d => d.gold += 1000); }); await sleep(700);
-    check(await C.evaluate(() => document.querySelectorAll('#sheet .promo').length === 2 && document.querySelector('#sheet .promo').textContent.includes('Requires Level 3')), 'tower panel shows locked promotions with level requirements');
+    check(await C.evaluate(() => document.querySelectorAll('#sheet .promo').length === 2 && document.querySelector('#sheet .promo').textContent.includes('Requires Level 3')), 'tower panel shows its promotions with level requirements');
     const g0 = await A.evaluate(id => window.TDC.GS.sim.defs.find(d => d.pid === window.TDC.GS.sim.towers.find(t => t.id === id).owner).gold, tid);
     await C.click('#sheet [data-level]'); await sleep(700);
     const st = await A.evaluate(([id, g0]) => { const S = window.TDC.GS.sim, T = S.towers.find(t => t.id === id), D = S.defs.find(d => d.pid === T.owner); return { lvl: T.lvl, paid: Math.round(g0 - D.gold), building: T.ready > S.t }; }, [tid, g0]);
-    check(st.lvl === 2 && st.paid >= 33 && st.paid <= 35 && st.building, 'level up: Archer Post to level 2 for 35g and rebuilds: ' + JSON.stringify(st));
+    check(st.lvl === 2 && st.paid >= 33 && st.paid <= 35 && st.building, 'level up: Stone Thrower to level 2 for 35g and rebuilds: ' + JSON.stringify(st));
     check(await C.evaluate(id => window.TDC.V.towerMap.get(id).lvl === 2, tid), 'new level shows on other screens');
     await C.screenshot({ path: OUT + '/tower-levelup.png' });
     for (let i = 0; i < 3; i++) { await A.evaluate(id => { const S = window.TDC.GS.sim, T = S.towers.find(t => t.id === id); T.ready = 0; S.input(T.owner, { c: 'level', id }); }, tid); await sleep(150); }
-    check(await A.evaluate(id => window.TDC.GS.sim.towers.find(t => t.id === id).lvl, tid) === 5, 'Archer Post reaches level 5');
+    check(await A.evaluate(id => window.TDC.GS.sim.towers.find(t => t.id === id).lvl, tid) === 5, 'Stone Thrower reaches level 5');
     await sleep(3400); await C.evaluate(id => { const T = window.TDC.V.towerMap.get(id); window.TDC.cam.z = 2.2; window.TDC.cam.x = T.x; window.TDC.cam.y = T.y - 20; }, tid); await sleep(400);
     await C.screenshot({ path: OUT + '/tower-lvl5.png' });
+    await C.evaluate(id => { const T = window.TDC.V.towerMap.get(id); window.TDC.onTap(T.x, T.y); }, tid); await sleep(400);
+    const g2 = await A.evaluate(id => window.TDC.GS.sim.defs.find(d => d.pid === window.TDC.GS.sim.towers.find(t => t.id === id).owner).gold, tid);
+    await C.click('#sheet [data-promo="0"]'); await sleep(700);
+    const pr = await A.evaluate(([id, g2]) => { const S = window.TDC.GS.sim, T = S.towers.find(t => t.id === id), D = S.defs.find(d => d.pid === T.owner); return { k: T.k, lvl: T.lvl, paid: Math.round(g2 - D.gold) }; }, [tid, g2]);
+    check(pr.k === 'archer' && pr.lvl === 5 && pr.paid >= 88 && pr.paid <= 90, 'promotion: Stone Thrower becomes an Archer Post for 90g and keeps its level: ' + JSON.stringify(pr));
+    check(await C.evaluate(id => window.TDC.V.towerMap.get(id).k === 'archer', tid), 'promotion shows on other screens');
     await C.evaluate(() => window.TDC.onTap(-999, -999)); await sleep(200);
     await C.evaluate(() => { const T = window.TDC.V.towers.find(t => t.owner === window.TDC.V.myDef.pid); window.TDC.onTap(T.x, T.y); }); await sleep(200);
   }
@@ -205,7 +211,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   await D.click('[data-act=vsai]'); await sleep(300);
   check(await D.evaluate(() => window.TDC.LS.seats[0] === 'ai'), 'vs AI: AI takes the attacker seat');
   await D.click('#btnReady'); await sleep(500);
-  { const sp = await spots(D, 5, 400); await D.evaluate(sp => sp.forEach(([c, r]) => window.TDC.send({ c: 'build', k: 'archer', c2: c, r })), sp); }
+  { const sp = await spots(D, 5, 400); await D.evaluate(sp => sp.forEach(([c, r]) => window.TDC.send({ c: 'build', k: 'stone', c2: c, r })), sp); }
   check(await D.evaluate(() => window.TDC.V.hpMax) === 300, 'solo base HP = 300');
   await sleep(20000);
   const sd = await D.evaluate(() => ({ units: window.TDC.V.units.size, towers: window.TDC.V.towers.length, hp: window.TDC.V.hp, t: window.TDC.V.t }));

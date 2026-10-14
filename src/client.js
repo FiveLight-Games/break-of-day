@@ -344,6 +344,9 @@ function handleEvent(e) {
   if (k === 'u') addUnit(e[1], e[2], e[3], e[4], e[5], e[6]);
   else if (k === 'd') { const u = V.units.get(e[1]); if (u) { V.units.delete(e[1]); if (TD.UNITS[u.k].body === 'skel') sfx('bones', u.x, u.y); else if (e[2] !== 'blast' && e[2] !== 'meteor') sfx(e[2] === 'fire' ? 'burn' : 'die', u.x, u.y); if (onScreen(u.x, u.y, 200)) die(u, e[2], e[3], e[4]); else if (e[2] !== 'fire' && e[2] !== 'ice') stain(u.x, u.y, u.r * 1.6, BLOOD[0], 0.5); } }
   else if (k === 's') { const t = V.towerMap.get(e[1]), u = V.units.get(e[2]); if (t && u) { sfx(t.k === 'cannon' ? 'cannon' : t.k === 'frost' ? 'frost' : 'arrow', t.x, t.y); const w = e[4], m = t.k === 'archer' && w !== undefined ? archerMuzzles(t.lvl || 1)[w] || [0, -27] : [0, -30], bw = t.k === 'archer' && t.arch && t.arch[w] && t.arch[w].bow, ox = bw ? bw[0] : m[0], oy = bw ? bw[1] : m[1] + 14, a = Math.atan2(u.y - t.y, u.x - t.x); t.aim = a; t.kick = 1; if (w !== undefined && t.arch && t.arch[w]) { t.arch[w].aim = a; t.arch[w].kick = 1; t.arch[w].st = 0; } if (onScreen(t.x, t.y, 300)) V.shots.push({ k: t.k, x: t.x + ox, y: t.y + oy, sx: t.x + ox, sy: t.y + oy, u, tx: e[5] != null ? e[5] : u.x, ty: e[6] != null ? e[6] : u.y, T: e[3] / 100, age: 0 }); } }
+  else if (k === 'th') { const t = V.towerMap.get(e[1]), u = V.units.get(e[2]); if (t && u) ST.throwEv(t, e[3], u, e[4] / 100, e[5] / 100, V.clock); }
+  else if (k === 'pt') { const t = V.towerMap.get(e[1]); if (t) PT.launch(t, e[3], e[4], e[5] / 100, V.clock); }
+  else if (k === 'pr') { const t = V.towerMap.get(e[1]); if (t) { t.st = null; t.pt = null; t.k = TD.TOWER_IDS[e[2]]; if (t.owner === myPid) toast('Promoted to ' + TD.TOWERS[t.k].n); } }
   else if (k === 'rl') { const t = V.towerMap.get(e[1]); if (t) { t.relDur = e[2] / 100; t.relAt = V.clock + t.relDur; } }
   else if (k === 'z') { const t = V.towerMap.get(e[1]); if (t) { t.kick = 1; sfx('zap', t.x, t.y); const pts = [[t.x, t.y - 22]]; for (const id of e[2]) { const u = V.units.get(id); if (u) pts.push([u.x, u.y - u.r]); } if (pts.length > 1 && onScreen(t.x, t.y, 300)) V.fx.push({ k: 'bolt', pts, t0: V.clock }); } }
   else if (k === 'sl') sfx('coin'), V.fx.push({ k: 'boom', x: e[1], y: e[2], t0: V.clock, small: 1 });
@@ -893,6 +896,8 @@ function towerBody(c, k, col, aim, now, kick, seed, lvl) {
     c.fillStyle = g; c.beginPath(); c.moveTo(0, -24); c.lineTo(6, -6); c.lineTo(4, 9); c.lineTo(-4, 9); c.lineTo(-6, -6); c.closePath(); c.fill();
     c.fillStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.moveTo(0, -22); c.lineTo(-2.5, -6); c.lineTo(-1, 6); c.lineTo(0.5, -6); c.closePath(); c.fill();
     for (let i = 0; i < 3; i++) { const a = now * 1.4 + i * 2.094, sx = Math.cos(a) * 12, sy = -8 + Math.sin(a) * 4; c.fillStyle = Math.sin(a) > 0 ? '#d8f4ff' : '#9ad0ec'; c.beginPath(); c.moveTo(sx, sy - 4); c.lineTo(sx + 1.8, sy); c.lineTo(sx, sy + 4); c.lineTo(sx - 1.8, sy); c.closePath(); c.fill(); }
+  } else if (k === 'stone') { ST.draw(c, { lvl: lvl || 1, col, id: seed }, now);
+  } else if (k === 'ptero') { PT.draw(c, { lvl: lvl || 1, col, id: seed }, now);
   } else if (k === 'flame') {
     FB.draw(c, { lvl: lvl || 1, col, ph: now * 4.2 + seed, pos: now * 1.1 + seed, att: 0 }, now);
   } else {
@@ -1171,13 +1176,15 @@ function drawTower(t, now, c = X0) {
   else if (building) drawConstruction(c, t, 1 - (t.readyAt - now) / ((t.lvl || 1) > 1 ? TD.RULES.levelTime : TD.RULES.buildTime), now);
   else if (t.k === 'archer') towerBody(c, t.k, t.col, t.arch || archerSlots(), now, 0, t.id || 0, t.lvl);
   else if (t.k === 'flame') FB.draw(c, t, now);
+  else if (t.k === 'stone') ST.draw(c, t, now);
+  else if (t.k === 'ptero') PT.draw(c, t, now);
   else towerBody(c, t.k, t.col, t.aim, now, t.kick || 0, t.id || 0);
   if (t.offAt > now) { const left = t.offAt - now, tot = TD.UNITS.sapper.sapper.stun; c.fillStyle = 'rgba(15,15,15,.45)'; c.beginPath(); c.ellipse(0, -2, 20, 24, 0, 0, 7); c.fill(); c.strokeStyle = 'rgba(0,0,0,.6)'; c.lineWidth = 3; c.beginPath(); c.arc(0, -30, 7, 0, 7); c.stroke(); c.strokeStyle = '#ffcc40'; c.beginPath(); c.arc(0, -30, 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left / tot); c.stroke(); if (Math.random() < 0.5) { c.strokeStyle = '#bfe6ff'; c.lineWidth = 1.2; c.beginPath(); const a = rr(0, 6.28); c.moveTo(Math.cos(a) * 6, -10 + Math.sin(a) * 6); c.lineTo(Math.cos(a) * 14 + rr(-3, 3), -10 + Math.sin(a) * 14); c.stroke(); } }
   c.restore();
 }
 // 3-second build: the tower's ghost, scaffold rising, a worker sawing a log
 function drawConstruction(c, t, p, now) {
-  c.globalAlpha = 0.22; towerBody(c, t.k, t.col, Math.PI / 2, now, 0, 0); c.globalAlpha = 1;
+  c.globalAlpha = 0.22; towerBody(c, t.k, t.col, Math.PI / 2, now, 0, 0, t.lvl); c.globalAlpha = 1;
   c.fillStyle = 'rgba(90,70,40,.5)'; c.beginPath(); c.ellipse(0, 13, 20, 7, 0, 0, 7); c.fill();
   const h = 6 + p * 30; c.strokeStyle = '#8a6238'; c.lineWidth = 2;
   for (const sx of [-11, 11]) { c.beginPath(); c.moveTo(sx, 14); c.lineTo(sx, 14 - h); c.stroke(); }
@@ -1406,6 +1413,8 @@ function stepFx(dt) {
   for (const t of V.towers) { if (t.offAt > V.clock && Math.random() < 0.25 && onScreen(t.x, t.y, 40)) particle('smoke', t.x + rr(-8, 8), t.y - 10, 20, rr(-6, 6), rr(-4, 4), rr(20, 40), rr(0.8, 1.4), '#2a2622', rr(4, 7)); t.kick = Math.max(0, (t.kick || 0) - dt * 4); if (t.arch) for (const q of t.arch) { if (q.kick) q.kick = Math.max(0, q.kick - dt * 4); if (q.st !== undefined && q.st < 1) q.st += dt; } if (t.readyAt && t.readyAt <= V.clock && !t.doneFx) { t.doneFx = 1; if (V.clock - t.readyAt < 1 && onScreen(t.x, t.y, 60)) sfx('done', t.x, t.y), V.fx.push({ k: 'build', x: t.x, y: t.y + 10, t0: V.clock, col: t.col }); } }
   { const fire = new Map(); for (let i = 0; i < V.beams.length; i += 2) { const t = V.towerMap.get(V.beams[i]), u = V.units.get(V.beams[i + 1]); if (t && u) { t.aim = Math.atan2(u.y - t.y, u.x - t.x); fire.set(t.id, u); } }
     const fbs = V.towers.filter(t => t.k === 'flame'); for (const t of fbs) FB.update(t, dt, !(t.readyAt > V.clock) && !(t.offAt > V.clock) ? fire.get(t.id) : null, onScreen(t.x, t.y, 260)); FB.budget(fbs); }
+  for (const t of V.towers) { if (t.readyAt > V.clock) continue; if (t.k === 'stone') ST.update(t, dt, V.clock); else if (t.k === 'ptero') PT.update(t, dt, V.clock); }
+  ST.step(dt); PT.step(dt);
   for (const s of V.shots) {
     s.age += dt; if (s.u && V.units.has(s.u.id)) { s.tx = s.u.x; s.ty = s.u.y; }
     const f = Math.min(1, s.age / Math.max(0.05, s.T)); s.x = s.sx + (s.tx - s.sx) * f; s.y = s.sy + 16 + (s.ty - s.sy - 16) * f; s.a = Math.atan2(s.ty - s.sy - 16, s.tx - s.sx); s.h = s.k === 'cannon' ? 22 + Math.sin(f * Math.PI) * 30 - f * 22 : 22 * (1 - f) + 6 * f;
@@ -1596,7 +1605,7 @@ function renderSpellBar() {
 }
 
 // ---------- build mode: drag a tower from the tray onto the grid ----------
-const build = { on: false, drag: null, sel: 'archer' };
+const build = { on: false, drag: null, sel: 'stone' };
 function setBuild(on) {
   build.on = !!on && !!(V && V.myDef) && !(V && V.over); build.drag = null; if (build.on) spell.armed = null;
   $('buildBtn').classList.toggle('on', build.on); $('buildBtn').innerHTML = build.on ? '✕ Done' : '🔨 Build';
@@ -1605,13 +1614,13 @@ function setBuild(on) {
 // keep Done just above the tray, whatever height the tray ends up
 function placeBuildBtn() { if (!build.on) return; const T = $('buildTray').getBoundingClientRect(); $('buildBtn').style.bottom = (innerHeight - T.top + 8) + 'px'; }
 addEventListener('resize', () => requestAnimationFrame(placeBuildBtn));
-function towerStats(k) { const T = TD.TOWERS[k]; if (T.cone) return [T.dps + ' dmg/s cone', 'burns ' + T.burn + 's', 'range ' + T.r + ' · 5 levels']; if (TD.LEVELS[k]) return [TD.towerDmg(k, 1) + ' dmg × ' + TD.towerVolley(k, 1), 'every ' + T.cd + 's', 'range ' + T.r + ' · 5 levels']; return [T.dps ? T.dps + '/s dmg' : T.volley ? T.dmg + '×' + T.volley + ' dmg' : T.dmg + ' dmg', T.dps ? 'constant beam' : 'every ' + T.cd + 's', 'range ' + T.r]; }
+function towerStats(k) { const T = TD.TOWERS[k]; if (T.bird) return [TD.towerDmg(k, 1) + ' dmg splash', 'round trips', 'range ' + T.r + ' · 5 levels']; if (T.throws) return [TD.towerDmg(k, 1) + ' dmg rocks', 'every ' + TD.towerCd(k, 1) + 's', 'range ' + T.r + ' · 5 levels']; if (T.cone) return [T.dps + ' dmg/s cone', 'burns ' + T.burn + 's', 'range ' + T.r + ' · 5 levels']; if (TD.LEVELS[k]) return [TD.towerDmg(k, 1) + ' dmg × ' + TD.towerVolley(k, 1), 'every ' + T.cd + 's', 'range ' + T.r + ' · 5 levels']; return [T.dps ? T.dps + '/s dmg' : T.volley ? T.dmg + '×' + T.volley + ' dmg' : T.dmg + ' dmg', T.dps ? 'constant beam' : 'every ' + T.cd + 's', 'range ' + T.r]; }
 function updateStrip() { const T = $('buildTray'), k = build.sel, S = T.querySelector('.strip'); T.querySelectorAll('[data-tw]').forEach(b => b.classList.toggle('sel', b.dataset.tw === k)); if (!S) return; const st = towerStats(k); S.innerHTML = `<b>${TD.TOWERS[k].n}</b> — ${esc(TD.TOWERS[k].tip)}<div class="st"><span>⚔ ${st[0]}</span><span>⏱ ${st[1]}</span><span>◎ ${st[2]}</span></div>`; }
 $('buildBtn').onclick = () => setBuild(!build.on);
 function renderTray(force) {
-  if (!build.on || !V || !V.myDef) return; const T = $('buildTray'), D = V.myDef, key = TD.TOWER_IDS.map(k => D.gold >= TD.TOWERS[k].cost ? 1 : 0).join('');
+  if (!build.on || !V || !V.myDef) return; const T = $('buildTray'), D = V.myDef, key = TD.BUILD_IDS.map(k => D.gold >= TD.TOWERS[k].cost ? 1 : 0).join('');
   if (!force && T.dataset.key === key) return; T.dataset.key = key;
-  T.innerHTML = `<div class="sheetHead"><b>Drag a tower onto the field</b><span class="muted small">Drop it back here to cancel</span></div><div class="cards">${TD.TOWER_IDS.map(k => `<button class="card ${D.gold < TD.TOWERS[k].cost ? 'off' : ''}" data-tw="${k}" title="${esc(TD.TOWERS[k].d)}"><span data-prev="${k}"></span><b>${TD.TOWERS[k].n}</b><span class="cost">${TD.TOWERS[k].cost}g</span></button>`).join('')}</div><div class="strip"></div>`;
+  T.innerHTML = `<div class="sheetHead"><b>Drag a tower onto the field</b><span class="muted small">Drop it back here to cancel</span></div><div class="cards">${TD.BUILD_IDS.map(k => `<button class="card ${D.gold < TD.TOWERS[k].cost ? 'off' : ''}" data-tw="${k}" title="${esc(TD.TOWERS[k].d)}"><span data-prev="${k}"></span><b>${TD.TOWERS[k].n}</b><span class="cost">${TD.TOWERS[k].cost}g</span></button>`).join('')}</div><div class="strip"></div>`;
   updateStrip(); requestAnimationFrame(placeBuildBtn);
   T.querySelectorAll('[data-prev]').forEach(s => s.replaceWith(previewCanvas(g => { g.translate(42, 33); g.scale(1.15, 1.15); towerBody(g, s.dataset.prev, colHex(D.color), 0.6, V.clock || 0, 0, 1); })));
   T.querySelectorAll('[data-tw]').forEach(b => b.onpointerdown = e => { e.preventDefault(); build.sel = b.dataset.tw; updateStrip(); if (!b.classList.contains('off')) startDrag(b.dataset.tw, e); else toast('Not enough gold'); });
@@ -1631,21 +1640,23 @@ function stopDragListeners() { window.removeEventListener('pointermove', moveDra
 // ---------- HUD ----------
 const atkUI = { target: 'all', qty: 1 };
 let sheetKind = null;
-function sellLabel(t) { return t.refundAt > V.clock ? `Refund ${t.spent}g · ${Math.ceil(t.refundAt - V.clock)}s` : `Sell +${Math.floor(t.spent * TD.RULES.sell)}g`; }
+function sellLabel(t) { return t.refundAt > V.clock ? `Refund ${t.spent}g · ${Math.ceil(t.refundAt - V.clock)}s` : `Sell +${Math.floor(t.spent * TD.RULES.sell + 1e-6)}g`; }
 function hideSheet() { $('sheet').classList.add('hidden'); document.body.classList.remove('sheetOpen'); sheetKind = null; if (V) V.sel = null; if (V && V.myDef && !V.over) $('buildBtn').classList.remove('hidden'); }
 function previewCanvas(draw) { const c = document.createElement('canvas'); c.width = 168; c.height = 124; const g = c.getContext('2d'); g.scale(2, 2); draw(g); return c; }
 function levelBlock(t, mine) {
   const T = TD.TOWERS[t.k], Lv = TD.LEVELS[t.k], lvl = t.lvl || 1, n = TD.towerVolley(t.k, lvl), dmg = TD.towerDmg(t.k, lvl), rng = Math.round(TD.towerRange(t.k, lvl));
   if (!Lv) return `<p class="muted small" style="margin:0 0 8px">${esc(T.d)} Range ${T.r}. <i>Levels coming soon.</i></p>`;
   const cone = !!T.cone, wide = l => Math.round((TD.LEVELS[t.k].wide ? TD.LEVELS[t.k].wide[l - 1] : 1) * 100 - 100);
-  const stat = cone ? `${TD.towerDps(t.k, lvl)} dmg/s to everything in the cone · burns ${T.burn}s · range ${rng}` : `${n} archer${n > 1 ? 's' : ''} · ${dmg} dmg each · ${n * dmg} dmg/s · range ${rng}`, busy = t.readyAt > V.clock;
+  const who = T.throws ? (n > 1 ? 'cavemen' : 'caveman') : n > 1 ? 'archers' : 'archer', cd = TD.towerCd(t.k, lvl), dps = l => Math.round(TD.towerVolley(t.k, l) * TD.towerDmg(t.k, l) / TD.towerCd(t.k, l));
+  const stat = cone ? `${TD.towerDps(t.k, lvl)} dmg/s to everything in the cone · burns ${T.burn}s · range ${rng}` : T.bird ? `${dmg} dmg boulders · ${TD.towerSplash(t.k, lvl)} blast · range ${rng}` : `${n} ${who} · ${dmg} dmg each · ${dps(lvl)} dmg/s · range ${rng}`, busy = t.readyAt > V.clock;
   let up = '';
   if (lvl < 5) { const cost = Lv.cost[lvl], nn = TD.towerVolley(t.k, lvl + 1), nd = TD.towerDmg(t.k, lvl + 1), nr = Math.round(TD.towerRange(t.k, lvl + 1));
-    up = `<div class="lvUp"><div><b>Level ${lvl + 1} · ${Lv.names[lvl]}</b><small>${cone ? `${TD.towerDps(t.k, lvl + 1)} dmg/s · cone +${wide(lvl + 1)}% wider` : `${nn} archers · ${nd} dmg each`}${nr > rng ? ' · range ' + nr : ''}</small></div>${mine ? `<button class="btn sm primary" data-level ${busy || V.myDef.gold < cost ? 'disabled' : ''}>⬆ ${cost}g</button>` : ''}</div>`; }
+    up = `<div class="lvUp"><div><b>Level ${lvl + 1} · ${Lv.names[lvl]}</b><small>${cone ? `${TD.towerDps(t.k, lvl + 1)} dmg/s · cone +${wide(lvl + 1)}% wider` : T.bird ? `${nd} dmg · ${TD.towerSplash(t.k, lvl + 1)} blast · faster flights` : `${nn} ${T.throws ? (nn > 1 ? 'cavemen' : 'caveman') : 'archers'} · ${nd} dmg each · ${dps(lvl + 1)} dmg/s`}${nr > rng ? ' · range ' + nr : ''}</small></div>${mine ? `<button class="btn sm primary" data-level ${busy || V.myDef.gold < cost ? 'disabled' : ''}>⬆ ${cost}g</button>` : ''}</div>`; }
   else up = `<div class="lvUp"><div><b>Max level</b><small>Promotions will take it further.</small></div></div>`;
-  const promos = (TD.PROMOTIONS[t.k] || []).map(q => `<div class="promo"><span>🔒</span><div><b>${q.n}</b><small>Requires Level ${q.need} · coming soon</small></div></div>`).join('');
+  const promos = (TD.PROMOTIONS[t.k] || []).map((q, i) => q.to ? `<div class="promo open"><span>⭐</span><div><b>${q.n}</b><small>${esc(TD.TOWERS[q.to].tip)} Requires Level ${q.need}${q.keepLvl ? ' · keeps its level' : ''}</small></div>${mine ? `<button class="btn sm primary" data-promo="${i}" ${busy || lvl < q.need || V.myDef.gold < q.cost ? 'disabled' : ''}>${lvl < q.need ? '🔒 ' : ''}${q.cost}g</button>` : ''}</div>` : `<div class="promo"><span>🔒</span><div><b>${q.n}</b><small>Requires Level ${q.need} · coming soon</small></div></div>`).join('');
   return `<div class="lvRow"><span class="lvPips">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= lvl ? 'on' : ''}"></i>`).join('')}</span><b>Level ${lvl} · ${Lv.names[lvl - 1]}</b>${busy ? '<span class="tag">Building…</span>' : ''}</div><p class="muted small" style="margin:2px 0 8px">${stat}</p>${up}${promos ? `<div class="promos">${promos}</div>` : ''}`;
 }
+function sheetKey(t) { const g = V.myDef ? V.myDef.gold : 0; return [t.k, t.lvl || 1, t.readyAt > V.clock ? 1 : 0, TD.LEVELS[t.k] ? +(g >= (TD.LEVELS[t.k].cost[t.lvl || 1] || 1e9)) : 0, (TD.PROMOTIONS[t.k] || []).map(q => q.to ? +(g >= q.cost) : 0).join('')].join(':'); }
 function showTowerSheet(t) {
   sheetKind = 'tower'; const sh = $('sheet'), mine = t.owner === myPid, T = TD.TOWERS[t.k], owner = V.defs[t.slot] || V.defs[0];
   sh.classList.remove('hidden'); document.body.classList.add('sheetOpen'); $('buildBtn').classList.add('hidden');
@@ -1656,7 +1667,8 @@ function showTowerSheet(t) {
   sh.querySelectorAll('[data-prio]').forEach(b => b.onclick = () => { send({ c: 'prio', id: t.id, p: b.dataset.prio }); t.prio = b.dataset.prio; showTowerSheet(t); });
   const sb2 = sh.querySelector('[data-sell]'); if (sb2) sb2.onclick = () => { send({ c: 'sell', id: t.id }); hideSheet(); };
   const lb = sh.querySelector('[data-level]'); if (lb) lb.onclick = () => { send({ c: 'level', id: t.id }); lb.disabled = true; };
-  sh.dataset.lv = (t.lvl || 1) + ':' + (t.readyAt > V.clock ? 1 : 0) + ':' + (V.myDef && TD.LEVELS[t.k] ? +(V.myDef.gold >= (TD.LEVELS[t.k].cost[t.lvl || 1] || 1e9)) : 0);
+  sh.querySelectorAll('[data-promo]').forEach(b => b.onclick = () => { send({ c: 'promote', id: t.id, i: +b.dataset.promo }); b.disabled = true; });
+  sh.dataset.lv = sheetKey(t);
 }
 let hudT = 0;
 function renderHUD(force) {
@@ -1767,6 +1779,7 @@ function frame(ms) {
   if (z > 0.5) { x.fillStyle = '#000a'; for (const u of V.units.values()) if (u.hp < 100 && inView(u.x, u.y, 20)) x.fillRect(u.x - u.r * 1.3 - 0.5, u.y - u.r * 2.3 - 0.5, u.r * 2.6 + 1, 3); for (const u of V.units.values()) if (u.hp < 100 && inView(u.x, u.y, 20)) { x.fillStyle = u.hp > 40 ? '#6ae06a' : '#e0503a'; x.fillRect(u.x - u.r * 1.3, u.y - u.r * 2.3, u.r * 2.6 * u.hp / 100, 2); }
     if (V.deadBars && V.deadBars.length) { for (const b of V.deadBars) if (inView(b.x, b.y, 20)) { x.fillStyle = '#000'; x.fillRect(b.x - b.r * 1.3 - 0.5, b.y - b.r * 2.3 - 0.5, b.r * 2.6 + 1, 3); x.fillStyle = '#5a1a14'; x.fillRect(b.x - b.r * 1.3, b.y - b.r * 2.3, b.r * 2.6, 2); } } }
   for (const t of V.towers) if (t.k === 'flame' && t.fp && t.fp.length && inView(t.x, t.y, 260)) FB.drawBreath(x, t, V.clock);
+  ST.drawAir(x, inView); PT.drawAir(x, V.clock, inView);
   for (let i = 0; i < V.beams.length; i += 2) { const t = V.towerMap.get(V.beams[i]), b = V.units.get(V.beams[i + 1]); if (!t || t.k === 'flame' || !b || !inView(t.x, t.y, 200)) continue; const fl = 0.7 + 0.3 * Math.sin(V.clock * 40); x.strokeStyle = `rgba(255,90,40,${0.45 * fl})`; x.lineWidth = 6; x.lineCap = 'round'; x.beginPath(); x.moveTo(t.x, t.y - 20); x.lineTo(b.x, b.y - b.r); x.stroke(); x.strokeStyle = '#fff0c0'; x.lineWidth = 2; x.stroke(); }
   for (const s of V.shots) { if (!inView(s.x, s.y, 20)) continue; if (s.k === 'cannon') { x.fillStyle = '#1e1e22'; x.beginPath(); x.arc(s.x, s.y - s.h + 6, 4.5, 0, 7); x.fill(); continue; } x.save(); x.translate(s.x, s.y - s.h + 16); x.rotate(s.a || 0); if (s.k === 'archer') { x.strokeStyle = '#3a2a1a'; x.lineWidth = 1.6; x.beginPath(); x.moveTo(-8, 0); x.lineTo(6, 0); x.stroke(); x.fillStyle = '#ccc'; x.fillRect(5, -1.5, 3, 3); } else { x.fillStyle = '#c8f0ff'; x.beginPath(); x.moveTo(7, 0); x.lineTo(0, -3.5); x.lineTo(-5, 0); x.lineTo(0, 3.5); x.fill(); } x.restore(); }
   for (const p of V.parts) { if (!p.p || !inView(p.x, p.y, 20)) continue; const q = p.life / p.max; x.globalAlpha = 1 - q * q;
@@ -1793,7 +1806,7 @@ function frame(ms) {
   if (V.beams.length) { const t = V.towerMap.get(V.beams[0]); if (t) sfx('crackle', t.x, t.y); }
   for (const f of V.fields) if (V.clock - f.t0 < f.dur - 0.5) sfx('burn', f.x, f.y);
   { let lv = 0; for (const j of V.jets.values()) if (j.fire && V.clock - j.t0 > TD.SPELLS.jet.unfold && onScreen(j.x, j.y, 150)) lv = 1; hissLevel(lv); }
-  if (sheetKind === 'tower' && V.sel) { const t0 = V.towerMap.get(V.sel.tower); if (t0) { const k2 = (t0.lvl || 1) + ':' + (t0.readyAt > V.clock ? 1 : 0) + ':' + (V.myDef && TD.LEVELS[t0.k] ? +(V.myDef.gold >= (TD.LEVELS[t0.k].cost[t0.lvl || 1] || 1e9)) : 0); if ($('sheet').dataset.lv !== k2) showTowerSheet(t0); } }
+  if (sheetKind === 'tower' && V.sel) { const t0 = V.towerMap.get(V.sel.tower); if (t0) { const k2 = sheetKey(t0); if ($('sheet').dataset.lv !== k2) showTowerSheet(t0); } }
   if (sheetKind === 'tower' && V.sel) { const t = V.towerMap.get(V.sel.tower), b = $('sheet').querySelector('[data-sell]'); if (t && b) { const l = sellLabel(t); if (b.textContent !== l) b.textContent = l; } }
   buildLoop(V.towers.some(t => t.readyAt > V.clock && onScreen(t.x, t.y, 120)));
   renderSpellBar();
