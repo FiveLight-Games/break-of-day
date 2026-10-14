@@ -5,8 +5,8 @@
 import hashlib, json, pathlib, sys, datetime
 root = pathlib.Path(__file__).parent; d = root / 'src'
 srcs = sorted(p for p in d.rglob('*') if p.is_file())
-blob = ''.join(p.read_text() for p in srcs)
-build = hashlib.sha1(blob.encode()).hexdigest()[-6:]
+blob = b''.join(p.read_bytes() for p in srcs)
+build = hashlib.sha1(blob).hexdigest()[-6:]
 log_p = root / 'BUILDS.json'; log = json.loads(log_p.read_text()) if log_p.exists() else []
 fmt = lambda n: '%d.%02d' % divmod(n, 100)
 known = next((e for e in log if e['build'] == build), None)
@@ -18,7 +18,9 @@ if shipping and not known:
     log_p.write_text('[\n' + ',\n'.join('  ' + json.dumps(e, ensure_ascii=False) for e in log) + '\n]\n' if log else '[]\n')
 tpl = (d / 'index.template.html').read_text()
 safe = lambda f: (d / f).read_text().replace('</script', '<\\/script')
-out = tpl.replace('__BUILD__', build).replace('__VER__', ver).replace('/*__GAME__*/', safe('game.js')).replace('/*__CLIENT__*/', safe('client.js'))
+import base64
+assets = 'window.TD_ASSETS = { buildLoop: "data:audio/mpeg;base64,' + base64.b64encode((d / 'assets' / 'build-loop.mp3').read_bytes()).decode() + '" };'
+out = tpl.replace('__BUILD__', build).replace('__VER__', ver).replace('/*__GAME__*/', assets + '\n' + safe('game.js')).replace('/*__CLIENT__*/', safe('client.js'))
 (root / 'index.html').write_text(out)
 (root / 'version.json').write_text(json.dumps({'version': build, 'v': ver}) + '\n')
 print('v' + ver, 'build', build, len(out), 'bytes', '(shipped)' if shipping or known else '(unshipped)')

@@ -300,7 +300,7 @@ function startGame(cfg, mode) {
   }
   renderHUD(true);
 }
-function endGame() { musicStop(); hissLevel(0); GS.running = false; clearInterval(GS.timer); GS.timer = null; GS.sim = null; hideSheet(); setBuild(false); }
+function endGame() { musicStop(); hissLevel(0); buildLoop(false); GS.running = false; clearInterval(GS.timer); GS.timer = null; GS.sim = null; hideSheet(); setBuild(false); }
 function send(c) { if (!GS.running) return; if (GS.mode === 'client') { if (L.ch) L.ch.send({ type: 'broadcast', event: 'in', payload: { pid: myPid, c } }); } else if (GS.sim) GS.sim.input(myPid, c); }
 
 // ---------- snapshots ----------
@@ -315,11 +315,12 @@ function applySnap(s) {
   if (s.tw) {
     const old = new Map(V.towers.map(t => [t.id, t])); V.occ.fill(0);
     V.towers = s.tw.map(a => { const prev = old.get(a[0]), o = prev || { aim: Math.PI / 2, kick: 0, born: V.clock || 0 }; const D = V.defs[a[1]] || V.defs[0];
+      if (!o.arch) o.arch = archerSlots(); o.lvl = a[11] || 1;
       Object.assign(o, { id: a[0], slot: a[1], k: TD.TOWER_IDS[a[2]], c: a[3], r: a[4], prio: TD.PRIORITIES[a[5]] || 'first', kills: a[6], spent: a[7], x: (a[3] + FOOT / 2) * CELL, y: (a[4] + FOOT / 2) * CELL, col: colHex(D.color), owner: D.pid });
       if (a[9] > 0) o.offAt = (V.clock || 0) + a[9] / 100; else o.offAt = 0;
       o.refundAt = a[10] > 0 ? (V.clock || 0) + a[10] / 100 : 0;
       const left = a[8] / 100; if (left > 0) o.readyAt = (V.clock || 0) + left; else if (o.readyAt && o.readyAt > (V.clock || 0)) o.readyAt = V.clock || 0;
-      if (!prev) { clearTrees(o); if (left > 0) sfx('build', o.x, o.y); }
+      if (!prev) clearTrees(o);
       for (let j = 0; j < FOOT; j++) for (let i = 0; i < FOOT; i++) V.occ[(o.r + j) * V.L.cols + o.c + i] = 1;
       return o; });
     V.towerMap = new Map(V.towers.map(t => [t.id, t]));
@@ -342,7 +343,7 @@ function handleEvent(e) {
   const k = e[0];
   if (k === 'u') addUnit(e[1], e[2], e[3], e[4], e[5], e[6]);
   else if (k === 'd') { const u = V.units.get(e[1]); if (u) { V.units.delete(e[1]); if (TD.UNITS[u.k].body === 'skel') sfx('bones', u.x, u.y); else if (e[2] !== 'blast' && e[2] !== 'meteor') sfx(e[2] === 'fire' ? 'burn' : 'die', u.x, u.y); if (onScreen(u.x, u.y, 200)) die(u, e[2], e[3], e[4]); else if (e[2] !== 'fire' && e[2] !== 'ice') stain(u.x, u.y, u.r * 1.6, BLOOD[0], 0.5); } }
-  else if (k === 's') { const t = V.towerMap.get(e[1]), u = V.units.get(e[2]); if (t && u) { sfx(t.k === 'cannon' ? 'cannon' : t.k === 'frost' ? 'frost' : 'arrow', t.x, t.y); const w = e[4], ox = w === 0 ? -6 : w === 1 ? 6 : 0, a = Math.atan2(u.y - t.y, u.x - t.x); t.aim = a; t.kick = 1; if (w !== undefined) { t['aim' + w] = a; t['kick' + w] = 1; } if (onScreen(t.x, t.y, 300)) V.shots.push({ k: t.k, x: t.x + ox, y: t.y - 16, sx: t.x + ox, sy: t.y - 16, u, tx: u.x, ty: u.y, T: e[3] / 100, age: 0 }); } }
+  else if (k === 's') { const t = V.towerMap.get(e[1]), u = V.units.get(e[2]); if (t && u) { sfx(t.k === 'cannon' ? 'cannon' : t.k === 'frost' ? 'frost' : 'arrow', t.x, t.y); const w = e[4], m = t.k === 'archer' && w !== undefined ? archerMuzzles(t.lvl || 1)[w] || [0, -27] : [0, -30], ox = m[0], oy = m[1] + 14, a = Math.atan2(u.y - t.y, u.x - t.x); t.aim = a; t.kick = 1; if (w !== undefined && t.arch && t.arch[w]) { t.arch[w].aim = a; t.arch[w].kick = 1; } if (onScreen(t.x, t.y, 300)) V.shots.push({ k: t.k, x: t.x + ox, y: t.y + oy, sx: t.x + ox, sy: t.y + oy, u, tx: u.x, ty: u.y, T: e[3] / 100, age: 0 }); } }
   else if (k === 'z') { const t = V.towerMap.get(e[1]); if (t) { t.kick = 1; sfx('zap', t.x, t.y); const pts = [[t.x, t.y - 22]]; for (const id of e[2]) { const u = V.units.get(id); if (u) pts.push([u.x, u.y - u.r]); } if (pts.length > 1 && onScreen(t.x, t.y, 300)) V.fx.push({ k: 'bolt', pts, t0: V.clock }); } }
   else if (k === 'sl') sfx('coin'), V.fx.push({ k: 'boom', x: e[1], y: e[2], t0: V.clock, small: 1 });
   else if (k === 'lk') { sfx('leak'); V.units.delete(e[1]); V.fx.push({ k: 'leak', x: V.L.base.x + rr(-40, 40), y: V.L.base.y - 110, n: e[2], t0: V.clock }); }
@@ -679,28 +680,143 @@ function drawPiece(c, p) {
 
 // ---------- towers: each fits inside its 2x2 cells (48x48), skinny bodies on wider bases ----------
 // local box: x -24..24, y -24..24, ground at y +14
-function towerBody(c, k, col, aim, now, kick, seed) {
-  const dark = mix(col, '#000000', 0.35), light = mix(col, '#ffffff', 0.25);
-  c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(3, 16, 22, 7, 0, 0, 7); c.fill();
-  if (k === 'archer') {
-    // wooden four-post watchtower, two archers on the platform
+// ---------- Archer Post: five levels, each a different build (from the level demo) ----------
+function archerMuzzles(l) {
+  if (l === 1) return [[0, -27]];
+  if (l === 2) return [[-6, -27], [6, -27]];
+  if (l === 3) return [[-10, -33], [0, -33], [10, -33]];
+  if (l === 4) return [[-13, -37], [-4.5, -37], [4.5, -37], [13, -37]];
+  return [[-10, -5], [0, -5], [10, -5], [-10, -19], [10, -19]];   // level 5: arrow slits, two floors
+}
+
+function archerMan(c, ax, ay, aim, kick, col) {
+  c.save(); c.translate(ax, ay);
+  c.fillStyle = col; c.beginPath(); c.ellipse(0, 0, 3.4, 3, 0, 0, 7); c.fill();
+  c.fillStyle = SKIN; c.beginPath(); c.arc(0, -4.2, 2.2, 0, 7); c.fill(); c.fillStyle = mix(col, '#000000', 0.35); c.beginPath(); c.arc(0, -4.8, 2.3, Math.PI, 0); c.fill();
+  c.rotate(aim); c.strokeStyle = '#3a2a1a'; c.lineWidth = 1.2; c.beginPath(); c.arc(3.5 - kick * 1.5, 0, 3.6, -1.3, 1.3); c.stroke();
+  c.strokeStyle = '#d8d0c0'; c.lineWidth = 0.5; c.beginPath(); c.moveTo(3.5 - kick * 1.5 + Math.cos(-1.3) * 3.6, Math.sin(-1.3) * 3.6); c.lineTo(1 - kick * 2, 0); c.lineTo(3.5 - kick * 1.5 + Math.cos(1.3) * 3.6, Math.sin(1.3) * 3.6); c.stroke();
+  c.restore();
+}
+function archerPennant(c, px, py, h, col, t) { c.fillStyle = '#3a2a1a'; c.fillRect(px - 0.7, py - h, 1.4, h); c.fillStyle = col; const w = Math.sin(t * 4 + px) * 1.2; c.beginPath(); c.moveTo(px + 0.7, py - h); c.quadraticCurveTo(px + 5, py - h + 1.5 + w, px + 9, py - h + 2.5 + w); c.lineTo(px + 0.7, py - h + 5); c.fill(); }
+function archerLvl(c, T, t, COL) {
+  const L = T.lvl, A = T.archers; c.save(); c.translate(T.x, T.y);
+  c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(3, 14, L >= 4 ? 21 : 18, 6, 0, 0, 7); c.fill();
+  if (L <= 2) {
+    // wooden four-post watchtower (today's tower)
     c.fillStyle = '#5a3d22'; c.beginPath(); c.ellipse(0, 14, 17, 5, 0, 0, 7); c.fill();
-    const posts = [[-13, 15], [13, 15], [-9, 10], [9, 10]];
-    c.strokeStyle = '#7a5530'; c.lineWidth = 3; c.lineCap = 'butt';
-    for (const [px, py] of posts) { c.beginPath(); c.moveTo(px, py); c.lineTo(px * 0.75, -6); c.stroke(); }
+    c.strokeStyle = '#7a5530'; c.lineWidth = 3; for (const [px, py] of [[-13, 15], [13, 15], [-9, 10], [9, 10]]) { c.beginPath(); c.moveTo(px, py); c.lineTo(px * 0.75, -6); c.stroke(); }
     c.strokeStyle = '#5a3d22'; c.lineWidth = 1.5; c.beginPath(); c.moveTo(-12, 13); c.lineTo(9, -4); c.moveTo(12, 13); c.lineTo(-9, -4); c.moveTo(-12, 4); c.lineTo(12, 4); c.stroke();
     c.fillStyle = '#8a6238'; c.fillRect(-14, -9, 28, 5); c.fillStyle = '#6a4a28'; c.fillRect(-14, -4, 28, 2);
+    archerMuzzles(L).forEach((m, i) => archerMan(c, m[0], m[1] + 14, A[i].aim, A[i].kick, COL));
     c.fillStyle = '#9a7244'; for (let i = -13; i <= 11; i += 4) c.fillRect(i, -15, 2.4, 6); c.fillRect(-14, -15, 28, 1.6);
-    for (const sx of [-6, 6]) { // archers, each with their own aim and draw
-      const ai = sx < 0 ? 0 : 1, aimA = Array.isArray(aim) ? aim[ai] : aim, kickA = Array.isArray(kick) ? kick[ai] : kick;
-      c.save(); c.translate(sx, -13);
-      c.fillStyle = col; c.beginPath(); c.ellipse(0, 0, 3.4, 3, 0, 0, 7); c.fill();
-      c.fillStyle = '#e8c39a'; c.beginPath(); c.arc(0, -4.2, 2.2, 0, 7); c.fill(); c.fillStyle = dark; c.beginPath(); c.arc(0, -4.8, 2.3, Math.PI, 0); c.fill();
-      c.rotate(aimA + (sx < 0 ? 0.05 : -0.05)); c.strokeStyle = '#3a2a1a'; c.lineWidth = 1.2; c.beginPath(); c.arc(3.5 - kickA * 1.5, 0, 3.6, -1.3, 1.3); c.stroke();
-      c.restore();
+    archerPennant(c, -14, -15, 10, COL, t);
+  } else if (L === 3) {
+    // solid timber tower: planked walls, archers on a roofed platform
+    c.fillStyle = '#5a3d22'; c.beginPath(); c.moveTo(-16, 15); c.lineTo(16, 15); c.lineTo(13, -10); c.lineTo(-13, -10); c.fill();
+    c.fillStyle = '#7a5530'; c.beginPath(); c.moveTo(-15, 14); c.lineTo(15, 14); c.lineTo(12.5, -9); c.lineTo(-12.5, -9); c.fill();
+    c.strokeStyle = '#5a3d22'; c.lineWidth = 0.8; for (let i = -12; i <= 12; i += 3) { c.beginPath(); c.moveTo(i * 1.15, 14); c.lineTo(i, -9); c.stroke(); }
+    c.fillStyle = '#4a3218'; c.fillRect(-15, 3, 30, 2); c.fillRect(-14, -4, 28, 1.6);
+    c.fillStyle = '#2a1a0e'; c.fillRect(-3, 6, 6, 8); c.fillStyle = '#8a6238'; c.fillRect(-16, -13, 32, 4);
+    c.fillStyle = '#6a4a28'; for (const px of [-15, 15]) c.fillRect(px - 1.2, -34, 2.4, 22);
+    archerMuzzles(3).forEach((m, i) => archerMan(c, m[0], m[1] + 14, A[i].aim, A[i].kick, COL));
+    c.fillStyle = '#9a7244'; c.fillRect(-16, -18, 32, 1.8); for (let i = -15; i <= 13; i += 4) c.fillRect(i, -18, 2, 5);
+    c.save(); c.translate(0, 2);
+    { // thatch: a lumpy straw cone with a ragged hem, sagging a little, one patch in the player's colour
+      c.fillStyle = '#b8913e'; c.beginPath(); c.moveTo(-23, -35); c.quadraticCurveTo(-14, -47, -2, -55); c.quadraticCurveTo(2, -56, 4, -54); c.quadraticCurveTo(15, -47, 23, -36);
+      for (let i = 0; i <= 12; i++) { const hx = 23 - i * 46 / 12, hy = -34 + (i % 2 ? 2.4 : 0) + Math.sin(i * 1.7) * 0.8; c.lineTo(hx, hy); } c.closePath(); c.fill();
+      c.strokeStyle = '#8a6a2a'; c.lineWidth = 0.6; for (let i = -18; i <= 18; i += 3) { c.beginPath(); c.moveTo(i, -34.5 + Math.abs(i) * 0.04); c.lineTo(i * 0.25 + 1, -52 + Math.abs(i) * 0.3); c.stroke(); }
+      c.strokeStyle = '#6a4a1a'; c.lineWidth = 1; c.beginPath(); c.moveTo(-20, -39); c.quadraticCurveTo(0, -42, 20, -39.5); c.stroke(); c.beginPath(); c.moveTo(-12, -46); c.quadraticCurveTo(1, -48.5, 13, -46.5); c.stroke();
+      c.fillStyle = COL; c.beginPath(); c.moveTo(6, -44); c.lineTo(13, -43); c.lineTo(12, -38); c.lineTo(5.5, -38.5); c.fill(); c.strokeStyle = '#e8dcc6'; c.lineWidth = 0.4; c.setLineDash([0.8, 0.8]); c.stroke(); c.setLineDash([]);
+      c.fillStyle = '#3a2a1a'; c.fillRect(0, -58, 1.4, 5);
     }
-    c.fillStyle = '#3a2a1a'; c.fillRect(-14, -24, 1.4, 10); c.fillStyle = col; c.beginPath(); c.moveTo(-12.6, -24); c.lineTo(-5, -21.5); c.lineTo(-12.6, -19); c.fill();
-  } else if (k === 'cannon') {
+    c.restore(); archerPennant(c, 0.7, -55, 7, COL, t);
+  } else if (L === 4) {
+    // shabby stone: uneven blocks, gaps, moss; a timber hoarding on top
+    c.fillStyle = '#5c5850'; c.beginPath(); c.moveTo(-18, 15); c.lineTo(18, 15); c.lineTo(15, -14); c.lineTo(-15, -14); c.fill();
+    const rows = [[15, 9], [9, 3], [3, -3], [-3, -9], [-9, -14]], seed = [3, 7, 2, 9, 5, 1, 8, 4, 6, 0, 7, 3, 5, 2];
+    rows.forEach(([y0, y1], ri) => { let xx = -18 + ri * 0.6 + (ri % 2) * 3; const half = 18 - ri * 0.7; let k = 0; while (xx < half - 1) { const w = 5 + seed[(ri * 3 + k) % 14] * 0.6, xe = Math.min(half, xx + w); const shade = ['#8a857a', '#7c776c', '#948f83', '#6f6a60'][(ri + k) % 4]; c.fillStyle = shade; c.fillRect(xx + 0.5, y1 + 0.5, xe - xx - 1, y0 - y1 - 1); if ((ri + k) % 5 === 2) { c.fillStyle = '#5a7a3a'; c.fillRect(xx + 1, y0 - 2, 3, 1.4); } xx = xe + 0.4; k++; } });
+    c.strokeStyle = '#3a3630'; c.lineWidth = 0.7; c.beginPath(); c.moveTo(6, -12); c.lineTo(8, -5); c.lineTo(6.5, 1); c.moveTo(-10, 8); c.lineTo(-7, 12); c.stroke();
+    c.fillStyle = '#2a2420'; c.beginPath(); c.moveTo(-3, 15); c.lineTo(-3, 8); c.quadraticCurveTo(0, 5, 3, 8); c.lineTo(3, 15); c.fill();
+    c.fillStyle = '#6a4a28'; c.fillRect(-18, -18, 36, 4.5); c.fillStyle = '#5a3d22'; for (const px of [-16, -6, 6, 16]) { c.beginPath(); c.moveTo(px, -14); c.lineTo(px + (px < 0 ? 3 : -3), -6); c.lineWidth = 1.4; c.strokeStyle = '#5a3d22'; c.stroke(); }
+    archerMuzzles(4).forEach((m, i) => archerMan(c, m[0], m[1] + 14, A[i].aim, A[i].kick, COL));
+    c.fillStyle = '#8a6238'; c.fillRect(-18, -23, 36, 1.8); for (let i = -17; i <= 15; i += 3.4) c.fillRect(i, -23, 1.8, 5.5);
+    c.strokeStyle = '#5a3d22'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(-17, -22); c.lineTo(-16.4, -36); c.moveTo(17, -22); c.lineTo(16, -36.5); c.stroke();
+    c.fillStyle = mix(COL, '#000000', 0.25); c.beginPath(); c.moveTo(-22, -35); c.lineTo(0, -49); c.lineTo(22, -35); c.closePath(); c.fill();
+    c.fillStyle = COL; c.beginPath(); c.moveTo(-22, -35); c.lineTo(0, -49); c.lineTo(0, -35); c.fill();
+    c.strokeStyle = mix(COL, '#000000', 0.45); c.lineWidth = 0.6; for (let i = 1; i < 4; i++) { c.beginPath(); c.moveTo(-22 + i * 3.8, -35 - i * 2.55 + 0.2); c.lineTo(22 - i * 3.8, -35 - i * 2.55 + 0.2); c.stroke(); }
+    archerPennant(c, 0, -49, 8, COL, t);
+    c.fillStyle = COL; c.beginPath(); c.moveTo(14, -8); c.lineTo(19, -8); c.lineTo(19, 2); c.lineTo(17.5, 0); c.lineTo(16, 3); c.lineTo(14, 0); c.fill();
+  } else {
+    // solid stone keep: clean courses, arrow slits on two floors, crenellations, a conical cap in the player's colour
+    const g = c.createLinearGradient(-16, 0, 16, 0); g.addColorStop(0, '#9a968c'); g.addColorStop(0.55, '#b8b4aa'); g.addColorStop(1, '#827e74');
+    c.fillStyle = '#6a665e'; c.fillRect(-19, 9, 38, 6);
+    c.fillStyle = g; c.fillRect(-16, -26, 32, 36);
+    c.strokeStyle = 'rgba(60,56,50,.55)'; c.lineWidth = 0.6; for (let y = 6; y > -26; y -= 4.5) { c.beginPath(); c.moveTo(-16, y); c.lineTo(16, y); c.stroke(); const off = (Math.round(y) % 2) ? 0 : 4; for (let xx = -16 + off; xx < 16; xx += 8) { c.beginPath(); c.moveTo(xx, y); c.lineTo(xx, y - 4.5); c.stroke(); } }
+    c.fillStyle = '#a8a49a'; c.fillRect(-18, -30, 36, 4); for (let k = 0; k < 7; k++) c.fillRect(-18 + k * 5.5, -35, 3, 5);
+    c.fillStyle = mix(COL, '#000000', 0.3); c.beginPath(); c.moveTo(-14, -35); c.lineTo(0, -52); c.lineTo(14, -35); c.fill(); c.fillStyle = COL; c.beginPath(); c.moveTo(-14, -35); c.lineTo(0, -52); c.lineTo(0, -35); c.fill();
+    archerPennant(c, 0, -52, 9, COL, t);
+    c.fillStyle = COL; c.fillRect(-4, -24, 8, 11); c.fillStyle = '#e8d070'; c.beginPath(); c.moveTo(-2, -21); c.lineTo(0, -17); c.lineTo(2, -21); c.fill();
+    c.fillStyle = '#2a2420'; c.beginPath(); c.moveTo(-3.5, 15); c.lineTo(-3.5, 6); c.quadraticCurveTo(0, 2.5, 3.5, 6); c.lineTo(3.5, 15); c.fill();
+    // arrow slits; the archer inside shows as a shadow and a glint when they loose
+    archerMuzzles(5).forEach((m, i) => { const sx = m[0], sy = m[1]; c.fillStyle = '#1a1612'; c.fillRect(sx - 1, sy - 4, 2, 8); c.fillRect(sx - 2.5, sy - 0.8, 5, 1.6); if (A[i].kick > 0.4) { c.fillStyle = `rgba(255,230,170,${A[i].kick * 0.8})`; c.fillRect(sx - 0.8, sy - 3, 1.6, 6); } else { c.fillStyle = mix(COL, '#000000', 0.5); c.fillRect(sx - 0.8, sy - 1, 1.6, 2.5); } });
+  }
+  c.restore();
+}
+// ---------- 3-second construction: the tower rises behind scaffolding while workers do the job that fits its material ----------
+
+const ARCHER_TOPS = [0, -30, -30, -55, -50, -54];
+function bWorker(c, wx, wy, f, tool, swing) { // tiny labourer: tunic, cap, and whatever tool
+  c.save(); c.translate(wx, wy);
+  c.strokeStyle = '#3a2a1a'; c.lineWidth = 1.3; c.lineCap = 'round'; c.beginPath(); c.moveTo(-1, 2); c.lineTo(-1.6, 5); c.moveTo(1, 2); c.lineTo(1.6, 5); c.stroke();
+  c.fillStyle = '#b07a3a'; c.beginPath(); c.ellipse(0, 0, 2.6, 2.8, 0, 0, 7); c.fill();
+  c.fillStyle = SKIN; c.beginPath(); c.arc(0, -3.6, 1.8, 0, 7); c.fill(); c.fillStyle = '#e0b030'; c.beginPath(); c.arc(0, -4, 1.9, Math.PI, 0); c.fill();
+  c.translate(f * 1.6, -0.8);
+  if (tool === 'saw') { c.translate(swing * 2.4 * f, 0); c.fillStyle = '#c8ccd2'; c.beginPath(); c.moveTo(0, 0); c.lineTo(f * 8, 1.5); c.lineTo(f * 8, 3); c.lineTo(0, 1.6); c.fill(); c.fillStyle = '#6a4a2a'; c.fillRect(-f * 1.6 - 0.8, -0.4, 1.8, 2.6); }
+  else { c.rotate(f * (-1.2 + swing * 1.5)); c.fillStyle = '#6a4a2a'; c.fillRect(-0.45, -6, 0.9, 6.5); c.fillStyle = tool === 'mallet' ? '#8a6a44' : '#5a5f68'; c.fillRect(-1.7, -7.4, 3.4, tool === 'mallet' ? 2.4 : 1.7); }
+  c.restore();
+}
+// stateless flying bits: chips, dust or sawdust thrown up at a point, timed to the tool strikes
+function bBits(c, px, py, t, rate, col, n, spread) { for (let k = 0; k < n; k++) { const ph = (t * rate + k / n) % 1, dir = ((k * 7919) % 13) / 13 - 0.5; c.globalAlpha = 1 - ph; c.fillStyle = col; c.fillRect(px + dir * spread * ph * 2, py - Math.sin(ph * Math.PI) * spread * 0.7 + ph * 3, 1.1, 1.1); } c.globalAlpha = 1; }
+function archerBuild(c, T, t, COL) {
+  const L = T.lvl, p = Math.max(0, Math.min(1, 1 - T.build / TD.RULES.buildTime)), top = ARCHER_TOPS[L], cutY = 15 + (top - 15) * p, solid = { ...T, build: 0 };
+  c.save(); c.globalAlpha = 0.16; archerLvl(c, solid, t, COL); c.restore();
+  c.save(); c.beginPath(); c.rect(T.x - 45, T.y + cutY, 90, 15 - cutY + 6); c.clip(); archerLvl(c, solid, t, COL); c.restore();
+  c.save(); c.translate(T.x, T.y);
+  // scaffold climbs with the build
+  const sTop = Math.min(10, cutY - 3); c.strokeStyle = '#a07a48'; c.lineWidth = 1.1;
+  for (const px of [-20, 20]) { c.beginPath(); c.moveTo(px, 15); c.lineTo(px, sTop); c.stroke(); }
+  for (let y = 9; y > sTop; y -= 9) { c.fillStyle = '#8a6238'; c.fillRect(-21, y, 42, 1.4); c.strokeStyle = '#7a5530'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(-20, y); c.lineTo(20, y - 9 > sTop ? y - 9 : sTop); c.stroke(); }
+  const hit = Math.abs(Math.sin(t * 9 + L)), saw = Math.sin(t * 13), lift = (t * 0.5) % 1;
+  if (L <= 3) { // a log on trestles being sawn
+    c.fillStyle = '#5a3d22'; for (const tx of [-27, -17]) { c.fillRect(tx - 0.6, 9, 1.2, 6); c.fillRect(tx - 2.5, 9, 5, 1); }
+    c.fillStyle = '#8a6238'; c.fillRect(-30, 6.5, 16, 3); c.fillStyle = '#c8a070'; c.beginPath(); c.arc(-30, 8, 1.5, 0, 7); c.fill();
+    bWorker(c, -13, 6, -1, 'saw', saw); bBits(c, -21, 10, t, 2.2, '#e8d0a0', 7, 6);
+  }
+  if (L === 3 || L === 2) { // someone up on the scaffold nailing planks
+    const y = Math.max(sTop + 2, -4); bWorker(c, 15, y - 5, -1, 'hammer', hit > 0.85 ? 1 : hit); if (hit > 0.92) { c.fillStyle = '#fff4c0'; c.fillRect(10.5, y - 7, 1.2, 1.2); }
+  }
+  if (L === 4) { // rough stone: a mason knocks blocks into shape with a mallet and chisel
+    c.fillStyle = '#8a857a'; c.fillRect(-31, 6, 9, 7); c.fillStyle = '#6f6a60'; c.fillRect(-31, 6, 9, 1.6);
+    bWorker(c, -18, 7, -1, 'mallet', hit); bBits(c, -24, 7, t, 1.8, '#b8b4aa', 6, 7);
+    bWorker(c, 14, Math.max(sTop + 2, -6) - 5, -1, 'hammer', Math.abs(Math.sin(t * 7 + 2)));
+  }
+  if (L === 5) { // the keep: blocks hoisted up a crane while a mason dresses stone below
+    c.strokeStyle = '#6a4a28'; c.lineWidth = 1.6; c.beginPath(); c.moveTo(26, 15); c.lineTo(26, -52); c.lineTo(6, -52); c.stroke(); c.lineWidth = 0.8; c.beginPath(); c.moveTo(26, -40); c.lineTo(18, -52); c.stroke();
+    const by = 12 + (cutY - 10 - 12) * (lift < 0.8 ? lift / 0.8 : 1); c.strokeStyle = '#d8d0c0'; c.lineWidth = 0.5; c.beginPath(); c.moveTo(8, -52); c.lineTo(8, by - 3); c.stroke();
+    c.fillStyle = '#b8b4aa'; c.fillRect(5, by - 3, 6, 4.5); c.fillStyle = '#9a968c'; c.fillRect(5, by - 3, 6, 1);
+    c.fillStyle = '#b8b4aa'; c.fillRect(-31, 7, 8, 6); bWorker(c, -18, 7, -1, 'hammer', hit); bBits(c, -23, 7, t, 2, '#d8d4ca', 6, 6);
+  }
+  // progress bar
+  c.fillStyle = '#000a'; c.fillRect(-16, 18, 32, 3.5); c.fillStyle = '#f0c419'; c.fillRect(-15.5, 18.5, 31 * p, 2.5);
+  c.restore();
+}
+
+const archerSlots = () => [0, 1, 2, 3, 4].map(() => ({ aim: 1.1, kick: 0 }));
+function towerBody(c, k, col, aim, now, kick, seed, lvl) {
+  if (k === 'archer') { archerLvl(c, { lvl: lvl || 1, x: 0, y: 0, archers: Array.isArray(aim) ? aim : archerSlots().map(a => (a.aim = aim, a)) }, now, col); return; }
+  const dark = mix(col, '#000000', 0.35), light = mix(col, '#ffffff', 0.25);
+  c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(3, 16, 22, 7, 0, 0, 7); c.fill();
+  if (k === 'cannon') {
     // bombard: wide round plinth, slim stone column, swivel gun on top
     c.fillStyle = '#6e6b64'; c.beginPath(); c.ellipse(0, 13, 20, 7, 0, 0, 7); c.fill(); c.fillStyle = '#8f8c84'; c.fillRect(-20, 8, 40, 5); c.beginPath(); c.ellipse(0, 8, 20, 7, 0, 0, 7); c.fill();
     c.fillStyle = col; c.fillRect(-20, 9, 40, 2.5);
@@ -742,8 +858,9 @@ function towerBody(c, k, col, aim, now, kick, seed) {
 function drawTower(t, now, c = X0) {
   const building = t.readyAt && t.readyAt > now;
   c.save(); c.translate(t.x, t.y);
-  if (building) drawConstruction(c, t, 1 - (t.readyAt - now) / TD.RULES.buildTime, now);
-  else if (t.k === 'archer') towerBody(c, t.k, t.col, [t.aim0 ?? t.aim ?? 0.6, t.aim1 ?? t.aim ?? 0.6], now, [t.kick0 || 0, t.kick1 || 0], t.id || 0);
+  if (building && t.k === 'archer') archerBuild(c, { lvl: t.lvl || 1, x: 0, y: 0, archers: t.arch || archerSlots(), build: t.readyAt - now }, now, t.col);
+  else if (building) drawConstruction(c, t, 1 - (t.readyAt - now) / TD.RULES.buildTime, now);
+  else if (t.k === 'archer') towerBody(c, t.k, t.col, t.arch || archerSlots(), now, 0, t.id || 0, t.lvl);
   else towerBody(c, t.k, t.col, t.aim, now, t.kick || 0, t.id || 0);
   if (t.offAt > now) { const left = t.offAt - now, tot = TD.UNITS.sapper.sapper.stun; c.fillStyle = 'rgba(15,15,15,.45)'; c.beginPath(); c.ellipse(0, -2, 20, 24, 0, 0, 7); c.fill(); c.strokeStyle = 'rgba(0,0,0,.6)'; c.lineWidth = 3; c.beginPath(); c.arc(0, -30, 7, 0, 7); c.stroke(); c.strokeStyle = '#ffcc40'; c.beginPath(); c.arc(0, -30, 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left / tot); c.stroke(); if (Math.random() < 0.5) { c.strokeStyle = '#bfe6ff'; c.lineWidth = 1.2; c.beginPath(); const a = rr(0, 6.28); c.moveTo(Math.cos(a) * 6, -10 + Math.sin(a) * 6); c.lineTo(Math.cos(a) * 14 + rr(-3, 3), -10 + Math.sin(a) * 14); c.stroke(); } }
   c.restore();
@@ -881,7 +998,7 @@ function stepRag(b, dt) {
 }
 function stepFx(dt) {
   for (const u of V.units.values()) { const k = Math.min(1, dt * 5), pushed = u.mvAt !== undefined && V.clock - u.mvAt < 0.35; u.dr += (pushed ? u.vel : u.sp * ((u.f & 1) ? 0.5 : 1) * ((u.f & 8) ? 0 : 1)) * dt + u.err * k; u.err -= u.err * k; if (u.offT !== undefined) u.off += (u.offT - u.off) * Math.min(1, dt * 10); if ((u.f & 8) && !u.hop && !(u.z > 0)) { u.hop = 1; u.vz = 170; u.z = 0.1; } if (!(u.f & 8)) u.hop = 0; if (u.z > 0) { u.vz -= 900 * dt; u.z = Math.max(0, u.z + u.vz * dt); } if (u.frAt !== undefined && V.clock - u.frAt < 0.45) { const ddx = u.tx - u.x, ddy = u.ty - u.y; u.x += ddx * Math.min(1, dt * 8); u.y += ddy * Math.min(1, dt * 8); if (Math.abs(ddx) + Math.abs(ddy) > 0.5) u.a = Math.atan2(ddy, ddx); if (Math.random() < 0.3 && onScreen(u.x, u.y, 30)) particle('dust', u.x, u.y + u.r * 0.8, 1, rr(-20, 20), rr(-10, 10), rr(10, 30), rr(0.3, 0.5), '#9a8a6a', rr(1, 2)); } else unitXY(u); if ((u.f & 2) && Math.random() < 0.25 && onScreen(u.x, u.y, 40)) particle('flame', u.x + rr(-u.r, u.r) * 0.6, u.y, rr(3, u.r * 1.6), rr(-8, 8), rr(-5, 5), rr(25, 50), rr(0.3, 0.5), '#ff9a2a', 0); }
-  for (const t of V.towers) { if (t.offAt > V.clock && Math.random() < 0.25 && onScreen(t.x, t.y, 40)) particle('smoke', t.x + rr(-8, 8), t.y - 10, 20, rr(-6, 6), rr(-4, 4), rr(20, 40), rr(0.8, 1.4), '#2a2622', rr(4, 7)); t.kick = Math.max(0, (t.kick || 0) - dt * 4); if (t.kick0) t.kick0 = Math.max(0, t.kick0 - dt * 4); if (t.kick1) t.kick1 = Math.max(0, t.kick1 - dt * 4); if (t.readyAt && t.readyAt <= V.clock && !t.doneFx) { t.doneFx = 1; if (V.clock - t.readyAt < 1 && onScreen(t.x, t.y, 60)) sfx('done', t.x, t.y), V.fx.push({ k: 'build', x: t.x, y: t.y + 10, t0: V.clock, col: t.col }); } }
+  for (const t of V.towers) { if (t.offAt > V.clock && Math.random() < 0.25 && onScreen(t.x, t.y, 40)) particle('smoke', t.x + rr(-8, 8), t.y - 10, 20, rr(-6, 6), rr(-4, 4), rr(20, 40), rr(0.8, 1.4), '#2a2622', rr(4, 7)); t.kick = Math.max(0, (t.kick || 0) - dt * 4); if (t.arch) for (const q of t.arch) if (q.kick) q.kick = Math.max(0, q.kick - dt * 4); if (t.readyAt && t.readyAt <= V.clock && !t.doneFx) { t.doneFx = 1; if (V.clock - t.readyAt < 1 && onScreen(t.x, t.y, 60)) sfx('done', t.x, t.y), V.fx.push({ k: 'build', x: t.x, y: t.y + 10, t0: V.clock, col: t.col }); } }
   for (let i = 0; i < V.beams.length; i += 2) { const t = V.towerMap.get(V.beams[i]), u = V.units.get(V.beams[i + 1]); if (t && u) t.aim = Math.atan2(u.y - t.y, u.x - t.x); }
   for (const s of V.shots) {
     s.age += dt; if (s.u && V.units.has(s.u.id)) { s.tx = s.u.x; s.ty = s.u.y; }
@@ -1069,7 +1186,7 @@ function setBuild(on) {
 // keep Done just above the tray, whatever height the tray ends up
 function placeBuildBtn() { if (!build.on) return; const T = $('buildTray').getBoundingClientRect(); $('buildBtn').style.bottom = (innerHeight - T.top + 8) + 'px'; }
 addEventListener('resize', () => requestAnimationFrame(placeBuildBtn));
-function towerStats(k) { const T = TD.TOWERS[k]; return [T.dps ? T.dps + '/s dmg' : T.volley ? T.dmg + '×' + T.volley + ' dmg' : T.dmg + ' dmg', T.dps ? 'constant beam' : 'every ' + T.cd + 's', 'range ' + T.r]; }
+function towerStats(k) { const T = TD.TOWERS[k]; if (TD.LEVELS[k]) return [TD.towerDmg(k, 1) + ' dmg × ' + TD.towerVolley(k, 1), 'every ' + T.cd + 's', 'range ' + T.r + ' · 5 levels']; return [T.dps ? T.dps + '/s dmg' : T.volley ? T.dmg + '×' + T.volley + ' dmg' : T.dmg + ' dmg', T.dps ? 'constant beam' : 'every ' + T.cd + 's', 'range ' + T.r]; }
 function updateStrip() { const T = $('buildTray'), k = build.sel, S = T.querySelector('.strip'); T.querySelectorAll('[data-tw]').forEach(b => b.classList.toggle('sel', b.dataset.tw === k)); if (!S) return; const st = towerStats(k); S.innerHTML = `<b>${TD.TOWERS[k].n}</b> — ${esc(TD.TOWERS[k].tip)}<div class="st"><span>⚔ ${st[0]}</span><span>⏱ ${st[1]}</span><span>◎ ${st[2]}</span></div>`; }
 $('buildBtn').onclick = () => setBuild(!build.on);
 function renderTray(force) {
@@ -1098,15 +1215,28 @@ let sheetKind = null;
 function sellLabel(t) { return t.refundAt > V.clock ? `Refund ${t.spent}g · ${Math.ceil(t.refundAt - V.clock)}s` : `Sell +${Math.floor(t.spent * TD.RULES.sell)}g`; }
 function hideSheet() { $('sheet').classList.add('hidden'); sheetKind = null; if (V) V.sel = null; if (V && V.myDef && !V.over) $('buildBtn').classList.remove('hidden'); }
 function previewCanvas(draw) { const c = document.createElement('canvas'); c.width = 168; c.height = 124; const g = c.getContext('2d'); g.scale(2, 2); draw(g); return c; }
+function levelBlock(t, mine) {
+  const T = TD.TOWERS[t.k], Lv = TD.LEVELS[t.k], lvl = t.lvl || 1, n = TD.towerVolley(t.k, lvl), dmg = TD.towerDmg(t.k, lvl), rng = Math.round(TD.towerRange(t.k, lvl));
+  if (!Lv) return `<p class="muted small" style="margin:0 0 8px">${esc(T.d)} Range ${T.r}. <i>Levels coming soon.</i></p>`;
+  const stat = `${n} archer${n > 1 ? 's' : ''} · ${dmg} dmg each · ${n * dmg} dmg/s · range ${rng}`, busy = t.readyAt > V.clock;
+  let up = '';
+  if (lvl < 5) { const cost = Lv.cost[lvl], nn = TD.towerVolley(t.k, lvl + 1), nd = TD.towerDmg(t.k, lvl + 1), nr = Math.round(TD.towerRange(t.k, lvl + 1));
+    up = `<div class="lvUp"><div><b>Level ${lvl + 1} · ${Lv.names[lvl]}</b><small>${nn} archers · ${nd} dmg each${nr > rng ? ' · range ' + nr : ''}</small></div>${mine ? `<button class="btn sm primary" data-level ${busy || V.myDef.gold < cost ? 'disabled' : ''}>⬆ ${cost}g</button>` : ''}</div>`; }
+  else up = `<div class="lvUp"><div><b>Max level</b><small>Promotions will take it further.</small></div></div>`;
+  const promos = (TD.PROMOTIONS[t.k] || []).map(q => `<div class="promo"><span>🔒</span><div><b>${q.n}</b><small>Requires Level ${q.need} · coming soon</small></div></div>`).join('');
+  return `<div class="lvRow"><span class="lvPips">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= lvl ? 'on' : ''}"></i>`).join('')}</span><b>Level ${lvl} · ${Lv.names[lvl - 1]}</b>${busy ? '<span class="tag">Building…</span>' : ''}</div><p class="muted small" style="margin:2px 0 8px">${stat}</p>${up}${promos ? `<div class="promos">${promos}</div>` : ''}`;
+}
 function showTowerSheet(t) {
   sheetKind = 'tower'; const sh = $('sheet'), mine = t.owner === myPid, T = TD.TOWERS[t.k], owner = V.defs[t.slot] || V.defs[0];
   sh.classList.remove('hidden'); $('buildBtn').classList.add('hidden');
   sh.innerHTML = `<div class="sheetHead"><b>${T.n}</b><span class="muted small">${esc(owner.name)} · ${t.kills} kills</span><button class="btn ghost sm x" data-close>✕</button></div>
-    <p class="muted small" style="margin:0 0 8px">${esc(T.d)} Range ${T.r}.</p>
+    ${levelBlock(t, mine)}
     ${mine ? `<div class="row"><span class="small muted">Target</span><div class="prios">${TD.PRIORITIES.map(p => `<button data-prio="${p}" class="${t.prio === p ? 'on' : ''}">${p[0].toUpperCase() + p.slice(1)}</button>`).join('')}</div><button class="btn sm danger" data-sell style="margin-left:auto">${sellLabel(t)}</button></div>` : ''}`;
   sh.querySelector('[data-close]').onclick = hideSheet;
   sh.querySelectorAll('[data-prio]').forEach(b => b.onclick = () => { send({ c: 'prio', id: t.id, p: b.dataset.prio }); t.prio = b.dataset.prio; showTowerSheet(t); });
   const sb2 = sh.querySelector('[data-sell]'); if (sb2) sb2.onclick = () => { send({ c: 'sell', id: t.id }); hideSheet(); };
+  const lb = sh.querySelector('[data-level]'); if (lb) lb.onclick = () => { send({ c: 'level', id: t.id }); lb.disabled = true; };
+  sh.dataset.lv = (t.lvl || 1) + ':' + (t.readyAt > V.clock ? 1 : 0) + ':' + (V.myDef && TD.LEVELS[t.k] ? +(V.myDef.gold >= (TD.LEVELS[t.k].cost[t.lvl || 1] || 1e9)) : 0);
 }
 let hudT = 0;
 function renderHUD(force) {
@@ -1184,7 +1314,7 @@ function frame(ms) {
   for (const f of V.fields) if (inView(f.x, f.y, f.r + 20)) drawFieldGlow(f);
   V.L.lanes.forEach((L2, i) => { if (inView(L2.gate[0], -150, 300)) drawCamp(L2, i); });
   drawSpellAim();
-  if (V.sel && V.sel.tower) { const t = V.towerMap.get(V.sel.tower); if (t) { x.fillStyle = 'rgba(255,224,138,.08)'; x.strokeStyle = 'rgba(255,224,138,.6)'; x.lineWidth = 2; x.beginPath(); x.arc(t.x, t.y, TD.TOWERS[t.k].r, 0, 7); x.fill(); x.stroke(); } }
+  if (V.sel && V.sel.tower) { const t = V.towerMap.get(V.sel.tower); if (t) { x.fillStyle = 'rgba(255,224,138,.08)'; x.strokeStyle = 'rgba(255,224,138,.6)'; x.lineWidth = 2; x.beginPath(); x.arc(t.x, t.y, TD.towerRange(t.k, t.lvl), 0, 7); x.fill(); x.stroke(); } }
   // drag preview: cells this tower would take light up white, or red where blocked
   const d = build.drag;
   if (d && !d.overTray && d.c !== undefined) { for (let j = 0; j < FOOT; j++) for (let i = 0; i < FOOT; i++) { const cc = d.c + i, r = d.r + j, bad = cc < 0 || r < 0 || cc >= V.L.cols || r >= V.L.rows || V.L.blocked[r * V.L.cols + cc] || V.occ[r * V.L.cols + cc]; x.fillStyle = bad ? 'rgba(235,50,40,.78)' : d.ok ? 'rgba(255,255,255,.85)' : 'rgba(255,255,255,.4)'; x.fillRect(cc * CELL + 1, r * CELL + 1, CELL - 2, CELL - 2); } x.strokeStyle = 'rgba(255,224,138,.5)'; x.lineWidth = 1.5; x.beginPath(); x.arc((d.c + 1) * CELL, (d.r + 1) * CELL, TD.TOWERS[d.k].r, 0, 7); x.stroke(); }
@@ -1234,7 +1364,9 @@ function frame(ms) {
   if (V.beams.length) { const t = V.towerMap.get(V.beams[0]); if (t) sfx('crackle', t.x, t.y); }
   for (const f of V.fields) if (V.clock - f.t0 < f.dur - 0.5) sfx('burn', f.x, f.y);
   { let lv = 0; for (const j of V.jets.values()) if (j.fire && V.clock - j.t0 > TD.SPELLS.jet.unfold && onScreen(j.x, j.y, 150)) lv = 1; hissLevel(lv); }
+  if (sheetKind === 'tower' && V.sel) { const t0 = V.towerMap.get(V.sel.tower); if (t0) { const k2 = (t0.lvl || 1) + ':' + (t0.readyAt > V.clock ? 1 : 0) + ':' + (V.myDef && TD.LEVELS[t0.k] ? +(V.myDef.gold >= (TD.LEVELS[t0.k].cost[t0.lvl || 1] || 1e9)) : 0); if ($('sheet').dataset.lv !== k2) showTowerSheet(t0); } }
   if (sheetKind === 'tower' && V.sel) { const t = V.towerMap.get(V.sel.tower), b = $('sheet').querySelector('[data-sell]'); if (t && b) { const l = sellLabel(t); if (b.textContent !== l) b.textContent = l; } }
+  buildLoop(V.towers.some(t => t.readyAt > V.clock && onScreen(t.x, t.y, 120)));
   renderSpellBar();
   renderHUD();
 }
@@ -1292,6 +1424,15 @@ function sfx(k, wx, wy) {
   }
 }
 // continuous hiss while any water jet sprays on screen
+const BLOOP = { buf: null, src: null, g: null, loading: false };
+function buildLoop(on) {
+  if (!AU.ctx || AU.ctx.state !== 'running') return; const c = AU.ctx;
+  if (!BLOOP.buf) { if (!BLOOP.loading && window.TD_ASSETS) { BLOOP.loading = true; fetch(window.TD_ASSETS.buildLoop).then(r => r.arrayBuffer()).then(a => c.decodeAudioData(a)).then(b => { BLOOP.buf = b; }).catch(() => { }); } return; }
+  if (!BLOOP.g) { BLOOP.g = c.createGain(); BLOOP.g.gain.value = 0; BLOOP.g.connect(AU.sfx); }
+  if (on && !BLOOP.src) { const s2 = c.createBufferSource(); s2.buffer = BLOOP.buf; s2.loop = true; s2.connect(BLOOP.g); s2.start(0, Math.random() * BLOOP.buf.duration); BLOOP.src = s2; }
+  BLOOP.g.gain.setTargetAtTime(on ? 0.8 : 0, c.currentTime, on ? 0.05 : 0.15);
+  if (!on && BLOOP.src && BLOOP.g.gain.value < 0.01) { try { BLOOP.src.stop(); } catch (e) { } BLOOP.src = null; }
+}
 function hissLevel(lv) {
   if (!AU.ctx || AU.ctx.state !== 'running') return; const c = AU.ctx;
   if (!AU.hiss) { const s = c.createBufferSource(), f = c.createBiquadFilter(), f2 = c.createBiquadFilter(), g = c.createGain(); s.buffer = AU.noise; s.loop = true; f.type = 'bandpass'; f.frequency.value = 2200; f.Q.value = 0.6; f2.type = 'lowpass'; f2.frequency.value = 6000; g.gain.value = 0; s.connect(f); f.connect(f2); f2.connect(g); g.connect(AU.sfx); s.start(); AU.hiss = g; }

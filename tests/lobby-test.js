@@ -78,7 +78,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   await C.mouse.up(); await sleep(600);
   check(await C.evaluate(() => window.TDC.V.towers.length) === 1, 'tower placed on release');
   await C.screenshot({ path: OUT + '/build-construct.png' });
-  check(await C.evaluate(g0 => window.TDC.V.myDef.gold <= g0 - 60 + 4, g0), 'gold spent on build');
+  check(await C.evaluate(g0 => window.TDC.V.myDef.gold <= g0 - 30 + 4, g0), 'gold spent on build (Archer Post 30g)');
   // drag onto the occupied spot shows red / invalid, then drop back on the tray cancels
   await C.mouse.move(card.x + card.width / 2, card.y + card.height / 2); await C.mouse.down(); await C.mouse.move(195, 422, { steps: 6 }); await sleep(150);
   check(await C.evaluate(() => !window.TDC.build.drag.ok), 'occupied cells are invalid');
@@ -179,6 +179,23 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   // portrait: tapping a tower hides the Build button, closing the sheet brings it back
   await C.evaluate(() => { const t = window.TDC.V.towers.find(t => t.owner === window.TDC.V.myDef.pid) || window.TDC.V.towers[0]; window.TDC.cam.x = t.x; window.TDC.cam.y = t.y; window.TDC.onTap(t.x, t.y); }); await sleep(300);
   check(await C.isVisible('#sheet') && !(await C.isVisible('#buildBtn')), 'tower sheet open, Build button hidden');
+  { // level up an Archer Post from its panel: pays, rebuilds for 3s, shows locked promotions
+    const tid = await C.evaluate(() => { const T = window.TDC.V.towers.find(t => t.owner === window.TDC.V.myDef.pid && t.k === 'archer'); window.TDC.cam.x = T.x; window.TDC.cam.y = T.y; window.TDC.onTap(T.x, T.y); return T.id; });
+    await A.evaluate(() => { window.TDC.GS.sim.defs.forEach(d => d.gold += 1000); }); await sleep(700);
+    check(await C.evaluate(() => document.querySelectorAll('#sheet .promo').length === 2 && document.querySelector('#sheet .promo').textContent.includes('Requires Level 3')), 'tower panel shows locked promotions with level requirements');
+    const g0 = await A.evaluate(id => window.TDC.GS.sim.defs.find(d => d.pid === window.TDC.GS.sim.towers.find(t => t.id === id).owner).gold, tid);
+    await C.click('#sheet [data-level]'); await sleep(700);
+    const st = await A.evaluate(([id, g0]) => { const S = window.TDC.GS.sim, T = S.towers.find(t => t.id === id), D = S.defs.find(d => d.pid === T.owner); return { lvl: T.lvl, paid: Math.round(g0 - D.gold), building: T.ready > S.t }; }, [tid, g0]);
+    check(st.lvl === 2 && st.paid >= 33 && st.paid <= 35 && st.building, 'level up: Archer Post to level 2 for 35g and rebuilds: ' + JSON.stringify(st));
+    check(await C.evaluate(id => window.TDC.V.towerMap.get(id).lvl === 2, tid), 'new level shows on other screens');
+    await C.screenshot({ path: OUT + '/tower-levelup.png' });
+    for (let i = 0; i < 3; i++) { await A.evaluate(id => { const S = window.TDC.GS.sim, T = S.towers.find(t => t.id === id); T.ready = 0; S.input(T.owner, { c: 'level', id }); }, tid); await sleep(150); }
+    check(await A.evaluate(id => window.TDC.GS.sim.towers.find(t => t.id === id).lvl, tid) === 5, 'Archer Post reaches level 5');
+    await sleep(3400); await C.evaluate(id => { const T = window.TDC.V.towerMap.get(id); window.TDC.cam.z = 2.2; window.TDC.cam.x = T.x; window.TDC.cam.y = T.y - 20; }, tid); await sleep(400);
+    await C.screenshot({ path: OUT + '/tower-lvl5.png' });
+    await C.evaluate(() => window.TDC.onTap(-999, -999)); await sleep(200);
+    await C.evaluate(() => { const T = window.TDC.V.towers.find(t => t.owner === window.TDC.V.myDef.pid); window.TDC.onTap(T.x, T.y); }); await sleep(200);
+  }
   await C.screenshot({ path: OUT + '/tower-sheet-portrait.png' });
   await C.click('#sheet [data-close]'); await sleep(200);
   check(await C.isVisible('#buildBtn'), 'Build button back after closing the sheet');

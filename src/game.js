@@ -67,13 +67,23 @@ const footFree = (L, c, r, occ) => { for (let j = 0; j < FOOT; j++) for (let i =
 
 // ---------------- Human race ----------------
 const TOWERS = {
-  archer: { n: 'Archer Post', cost: 60, r: 190, cd: 0.5, dmg: 13, volley: 2, dt: 'phys', d: 'Two archers in a wooden watchtower, each loosing their own arrow.', tip: 'Two arrows per volley. Great all-rounder.' },
+  archer: { n: 'Archer Post', cost: 30, r: 190, cd: 1, dmg: 20, volley: 1, dt: 'phys', d: 'A wooden watch post with one archer. Level it up for more archers, harder arrows and more range.', tip: 'One archer, one arrow a second. Level up for up to 5 archers.' },
   cannon: { n: 'Bombard', cost: 100, r: 175, cd: 1.6, dmg: 52, splash: 46, dt: 'blast', d: 'A heavy gun on a stone column. Shells hit everything nearby.', tip: 'Shells hit everything nearby. Best vs crowds.' },
   frost: { n: 'Frost Obelisk', cost: 90, r: 160, cd: 1.0, dmg: 30, slow: 1.6, dt: 'ice', d: 'An ice shard that chills its target, slowing it by half.', tip: 'Chills its target to half speed for 1.6s.' },
   flame: { n: 'Fire Brazier', cost: 120, r: 165, dps: 62, dt: 'fire', d: 'A burning beam from a raised fire bowl. Melts one target.', tip: 'Constant beam on one target. Melts Ogres.' },
   storm: { n: 'Tesla Coil', cost: 140, r: 175, cd: 1.3, dmg: 40, chain: 5, dt: 'shock', d: 'Lightning that arcs to up to 5 enemies.', tip: 'Lightning arcs to up to 5 enemies.' },
 };
 const TOWER_IDS = Object.keys(TOWERS);
+// levels 1-5: each level-up rebuilds the tower (3s) with a new look and stats. Only the Archer Post has levels so far.
+const LEVELS = {
+  archer: { cost: [0, 35, 55, 80, 110], volley: [1, 2, 3, 4, 5], dmg: [20, 23, 26, 29, 32], range: [1, 1, 1.15, 1.30, 1.45], names: ['Watch post', 'Watch post', 'Timber tower', 'Rough stone tower', 'Stone keep'] },
+};
+// promotions change a tower completely; slots exist with their level requirement but are all locked for now
+const PROMOTIONS = { archer: [{ n: 'Promotion I', need: 3 }, { n: 'Promotion II', need: 5 }] };
+const lvlStat = (k, lvl, key) => { const L = LEVELS[k]; return L ? L[key][Math.max(1, Math.min(5, lvl || 1)) - 1] : null; };
+const towerRange = (k, lvl) => TOWERS[k].r * (lvlStat(k, lvl, 'range') || 1);
+const towerDmg = (k, lvl) => lvlStat(k, lvl, 'dmg') || TOWERS[k].dmg;
+const towerVolley = (k, lvl) => lvlStat(k, lvl, 'volley') || TOWERS[k].volley || 1;
 // ---------------- defender spells (free for now) ----------------
 const SPELLS = {
   meteor: { n: 'Meteor', cost: 125, cd: 20, fall: 0.75, core: 45, edge: 165, fireR: 90, fireDur: 6, fireDps: 110, tip: 'Crushes everything at the center, blasts the edge back and leaves the ground burning.' },
@@ -136,7 +146,7 @@ class Sim {
     if (c.c === 'build') {
       const T = TOWERS[c.k], cc = c.c2 | 0, r = c.r | 0; if (!T || P.gold < T.cost || !footFree(this.L, cc, r, this.occ)) return;
       P.gold -= T.cost; P.built++;
-      const t = { id: this.nid++, owner: pid, slot: P.slot, k: c.k, c: cc, r, x: (cc + FOOT / 2) * CELL, y: (r + FOOT / 2) * CELL, cd: 0, aim: Math.PI / 2, prio: 'first', spent: T.cost, kills: 0, ready: this.t + RULES.buildTime, placed: this.t, dealt: 0 };
+      const t = { id: this.nid++, owner: pid, slot: P.slot, k: c.k, c: cc, r, x: (cc + FOOT / 2) * CELL, y: (r + FOOT / 2) * CELL, cd: 0, aim: Math.PI / 2, prio: 'first', spent: T.cost, kills: 0, ready: this.t + RULES.buildTime, placed: this.t, dealt: 0, lvl: 1 };
       this.towers.push(t); this.mark(t, 1); this.towerVer++;
     }
     else if (c.c === 'sell') { const i = this.towers.findIndex(t => t.id === c.id && t.owner === pid); if (i < 0) return; const t = this.towers[i]; P.gold += this.sellValue(t); this.towers.splice(i, 1); this.mark(t, 0); this.towerVer++; this.ev(['sl', t.x, t.y]); }
@@ -152,6 +162,11 @@ class Sim {
         const j = { id: this.nid++, x, y, t0: this.t, l, jd, off, aim: Math.atan2(up[1] - y, up[0] - x), fire: 0, src };
         this.jets.push(j); this.ev(['sp', 1, Math.round(x), Math.round(y), P.slot, j.id, Math.round(j.aim * 100)]);
       }
+    }
+    else if (c.c === 'level') {
+      const t = this.towers.find(o => o.id === c.id && o.owner === pid), Lv = t && LEVELS[t.k]; if (!Lv || t.lvl >= 5 || t.ready > this.t) return;
+      const cost = Lv.cost[t.lvl]; if (P.gold < cost) return;
+      P.gold -= cost; t.spent += cost; t.lvl++; t.ready = this.t + RULES.buildTime; t.shots = null; t.cd = 0; this.towerVer++; this.ev(['lv', t.id, t.lvl]);
     }
     else if (c.c === 'prio') { const t = this.towers.find(t => t.id === c.id && t.owner === pid); if (t && PRIORITIES.includes(c.p)) { t.prio = c.p; this.towerVer++; } }
   }
@@ -197,14 +212,19 @@ class Sim {
       if (t.ready > this.t || t.off > this.t) continue;
       const T = TOWERS[t.k]; t.cd -= dt;
       let best = null, score = -Infinity, alive = null, aScore = -Infinity;
-      near(t.x, t.y, T.r, u => { const s = t.prio === 'first' ? u.d / this.L.lanes[u.l].total : t.prio === 'last' ? -u.d : t.prio === 'strong' ? u.hp : -((u.x - t.x) ** 2 + (u.y - t.y) ** 2); if (s > score) { score = s; best = u; } if (T.volley && (u.inc || 0) < u.hp && s > aScore) { aScore = s; alive = u; } });
+      near(t.x, t.y, towerRange(t.k, t.lvl), u => { const s = t.prio === 'first' ? u.d / this.L.lanes[u.l].total : t.prio === 'last' ? -u.d : t.prio === 'strong' ? u.hp : -((u.x - t.x) ** 2 + (u.y - t.y) ** 2); if (s > score) { score = s; best = u; } if (T.volley && (u.inc || 0) < u.hp && s > aScore) { aScore = s; alive = u; } });
       if (T.volley && alive) best = alive;
       if (!best) continue;
       t.aim = Math.atan2(best.y - t.y, best.x - t.x);
       if (T.dps) { this.beams.push(t.id, best.id); best.burn = 0.3; this.hurt(best, T.dps * dt, 'fire', t); continue; }
-      if (T.volley && t.second && this.t >= t.second) { t.second = 0; this.loose(t, best, 1 - t.first); }
+      if (T.volley && t.shots) { for (let i = 0; i < t.shots.length; i++) if (t.shots[i] >= 0 && this.t >= t.shots[i]) { t.shots[i] = -1; this.loose(t, best, i); } }
       if (t.cd > 0) continue; t.cd = T.cd;
-      if (T.volley) { t.first = t.first ? 0 : 1; this.loose(t, best, t.first); t.second = this.t + rr(this.R, 0.15, 0.35); continue; }
+      if (T.volley) { // plan this volley: each archer gets its own random moment
+        const n = towerVolley(t.k, t.lvl), span = n > 1 ? 0.8 : 0, slot = n > 1 ? span / n : 0, at = []; for (let i = 0; i < n; i++) at.push(this.t + i * slot + (n > 1 ? rr(this.R, 0, Math.max(0, slot - 0.09)) : 0));
+        for (let i = at.length - 1; i > 0; i--) { const j = Math.floor(this.R() * (i + 1)); [at[i], at[j]] = [at[j], at[i]]; }
+        t.shots = at; for (let i = 0; i < n; i++) if (at[i] <= this.t) { at[i] = -1; this.loose(t, best, i); }
+        continue;
+      }
       if (T.chain) {
         const hit = [best]; let cur = best;
         for (let i = 1; i < T.chain; i++) { let nb = null, nd = 1e9; near(cur.x, cur.y, 70, u => { if (hit.includes(u)) return; const d = (u.x - cur.x) ** 2 + (u.y - cur.y) ** 2; if (d < nd) { nd = d; nb = u; } }); if (!nb) break; hit.push(nb); cur = nb; }
@@ -216,7 +236,7 @@ class Sim {
     }
     if (this.pending.length) {
       const due = this.pending.filter(p => p.at <= this.t); this.pending = this.pending.filter(p => p.at > this.t);
-      for (const p of due) { if (p.dmg) p.u.inc = Math.max(0, (p.u.inc || 0) - p.dmg); const T = TOWERS[p.t.k], x = p.u.hp > 0 ? p.u.x : p.x, y = p.u.hp > 0 ? p.u.y : p.y; if (T.splash) near(x, y, T.splash, u => this.hurt(u, T.dmg, 'blast', p.t, x, y)); else if (p.u.hp > 0) { if (T.slow) p.u.slowU = this.t + T.slow; this.hurt(p.u, T.dmg, T.dt, p.t); } }
+      for (const p of due) { if (p.dmg) p.u.inc = Math.max(0, (p.u.inc || 0) - p.dmg); const T = TOWERS[p.t.k], x = p.u.hp > 0 ? p.u.x : p.x, y = p.u.hp > 0 ? p.u.y : p.y; if (T.splash) near(x, y, T.splash, u => this.hurt(u, T.dmg, 'blast', p.t, x, y)); else if (p.u.hp > 0) { if (T.slow) p.u.slowU = this.t + T.slow; this.hurt(p.u, p.dmg || T.dmg, T.dt, p.t); } }
     }
     this.units = this.units.filter(u => u.hp > 0);
     if (this.hp <= 0) this.finish('atk');
@@ -224,9 +244,9 @@ class Sim {
     if (this.atk.bot) this.botAttack(); for (const d of this.defs) if (d.bot) this.botDefend(d);
   }
   loose(t, u, who) { // one archer's arrow
-    const T = TOWERS[t.k], fly = Math.hypot(u.x - t.x, u.y - t.y) / 560;
-    this.ev(['s', t.id, u.id, Math.round(fly * 100), who]); u.inc = (u.inc || 0) + T.dmg;
-    this.pending.push({ at: this.t + fly, t, u, x: u.x, y: u.y, dmg: T.dmg });
+    const dmg = towerDmg(t.k, t.lvl), fly = Math.hypot(u.x - t.x, u.y - t.y) / 560;
+    this.ev(['s', t.id, u.id, Math.round(fly * 100), who]); u.inc = (u.inc || 0) + dmg;
+    this.pending.push({ at: this.t + fly, t, u, x: u.x, y: u.y, dmg });
   }
   near(px, py, r, fn) { for (const u of this.units) if (u.hp > 0 && (u.x - px) ** 2 + (u.y - py) ** 2 < r * r) fn(u, Math.hypot(u.x - px, u.y - py)); }
   shove(u, dx, dy, along, side) { const U = UNITS[u.k]; if (U.unstoppable) return; const res = 1 - (U.pushRes || 0) * 0.5; along *= res; side *= res; const a = this.L.lanes[u.l].at(u.d)[2], tx = Math.cos(a), ty = Math.sin(a); u.kb = (u.kb || 0) + (dx * tx + dy * ty) * along; u.lv = (u.lv || 0) + (dx * -ty + dy * tx) * side; u.mvT = this.t; }
@@ -347,6 +367,8 @@ class Sim {
     if (mine.length < 2) k = 'archer';
     else if (seen.n) { const w = { archer: 3, cannon: 1 + seen.swarm * 0.6, storm: 0.5 + seen.swarm * 0.4 - seen.golem * 3, frost: 1 + seen.big * 0.5 + seen.golem * 2, flame: 1 + seen.armor * 0.8 + seen.big * 0.5 + seen.ent * 2 - seen.ram * 3 }; k = Object.keys(w).sort((a, b) => w[b] - w[a])[mine.length % 3 === 2 ? 1 : 0]; }
     else k = ['archer', 'archer', 'cannon', 'frost', 'archer', 'flame', 'storm', 'cannon'][mine.length % 8];
+    const up = mine.length >= 4 && mine.filter(o => LEVELS[o.k] && o.lvl < 5 && o.ready <= this.t).sort((a, b) => a.lvl - b.lvl)[0];
+    if (up && D.gold >= LEVELS[up.k].cost[up.lvl] && (mine.length >= 10 || this.R() < 0.45)) return this.input(D.pid, { c: 'level', id: up.id });
     if (D.gold < TOWERS[k].cost) return;
     const spot = this.botSpots[D.slot].find(([c, r]) => footFree(this.L, c, r, this.occ)); if (spot) this.input(D.pid, { c: 'build', k, c2: spot[0], r: spot[1] });
   }
@@ -376,7 +398,7 @@ class Sim {
     for (const u of this.units) if (u.mvT !== undefined && this.t - u.mvT < 0.4) (s.mv || (s.mv = [])).push(u.id, Math.round(u.off * 10) / 10, Math.round(u.v || 0));
     for (const u of this.units) if (u.run) (s.fr || (s.fr = [])).push(u.id, Math.round(u.x), Math.round(u.y));
     if (this.jets.length) s.jt = this.jets.map(j => [j.id, Math.round(j.aim * 100), j.fire]);
-    if (full || this.sentTowerVer !== this.towerVer || this.towers.some(t => t.ready > this.t || t.off > this.t || this.refundable(t))) { s.tw = this.towers.map(t => [t.id, t.slot, TOWER_IDS.indexOf(t.k), t.c, t.r, PRIORITIES.indexOf(t.prio), t.kills, t.spent, Math.max(0, Math.round((t.ready - this.t) * 100)), Math.max(0, Math.round(((t.off || 0) - this.t) * 100)), this.refundable(t) ? Math.round((RULES.refundWindow - (this.t - t.placed)) * 100) : 0]); s.tv = this.towerVer; this.sentTowerVer = this.towerVer; }
+    if (full || this.sentTowerVer !== this.towerVer || this.towers.some(t => t.ready > this.t || t.off > this.t || this.refundable(t))) { s.tw = this.towers.map(t => [t.id, t.slot, TOWER_IDS.indexOf(t.k), t.c, t.r, PRIORITIES.indexOf(t.prio), t.kills, t.spent, Math.max(0, Math.round((t.ready - this.t) * 100)), Math.max(0, Math.round(((t.off || 0) - this.t) * 100)), this.refundable(t) ? Math.round((RULES.refundWindow - (this.t - t.placed)) * 100) : 0, t.lvl || 1]); s.tv = this.towerVer; this.sentTowerVer = this.towerVer; }
     if (full) { s.full = 1; s.units = this.units.map(u => [u.id, UNIT_IDS.indexOf(u.k), u.l, u.off, u.sp, Math.round(u.d)]); }
     if (full || this.over) s.stats = this.stats();
     this.events = [];
@@ -385,6 +407,6 @@ class Sim {
   stats() { return { hp: this.hp, atk: { sent: this.atk.sent, leaked: this.atk.leaked, dmg: this.atk.dmg, spent: this.atk.spent, invest: this.atk.invest, speed: this.atk.speed }, defs: this.defs.map(d => ({ kills: d.kills, built: d.built, dmg: Math.round(d.dmg), shared: Math.round(d.shared) })) }; }
 }
 
-const API = { COLORS, RACES, MAPS, LANE, CELL, FOOT, STAGE_H, MAX_DEF, TOWERS, TOWER_IDS, UNITS, UNIT_IDS, SPELLS, SPELL_IDS, RULES, PRIORITIES, Sim, layout, footFree, mulberry32 };
+const API = { COLORS, RACES, MAPS, LANE, CELL, FOOT, STAGE_H, MAX_DEF, TOWERS, TOWER_IDS, LEVELS, PROMOTIONS, towerRange, towerDmg, towerVolley, UNITS, UNIT_IDS, SPELLS, SPELL_IDS, RULES, PRIORITIES, Sim, layout, footFree, mulberry32 };
 if (typeof module !== 'undefined') module.exports = API; else G.TD = API;
 })(typeof window !== 'undefined' ? window : globalThis);

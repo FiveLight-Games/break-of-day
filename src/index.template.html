@@ -119,6 +119,12 @@ body.dragging #dragCancel{transform:translate(-50%,0);pointer-events:auto}
 body.dragging #buildTray{transform:translateY(130%);opacity:0;pointer-events:none}
 body.dragging #buildBtn,body.dragging #spellBar{opacity:0;pointer-events:none}
 #buildTray{transition:transform .15s ease-out,opacity .15s}
+.lvRow{display:flex;align-items:center;gap:8px;margin:2px 0 0}
+.lvPips{display:flex;gap:3px}.lvPips i{width:9px;height:9px;border-radius:2px;background:#3a332a;display:block}.lvPips i.on{background:var(--gold)}
+.lvUp{display:flex;align-items:center;gap:10px;background:#0006;border:1px solid #5a4a34;border-radius:10px;padding:7px 9px;margin-bottom:8px}
+.lvUp div{flex:1}.lvUp b{display:block;font-size:13px}.lvUp small{color:var(--muted);font-size:11.5px}
+.promos{display:flex;gap:6px;margin-bottom:8px}.promo{flex:1;display:flex;gap:7px;align-items:center;border:1px dashed #5a4a34;border-radius:10px;padding:6px 8px;opacity:.6}
+.promo b{display:block;font-size:12px}.promo small{color:var(--muted);font-size:10.5px}
 .sheetHead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .sheetHead b{font-family:Cinzel,serif;font-size:15px}
 .sheetHead .x{margin-left:auto}
