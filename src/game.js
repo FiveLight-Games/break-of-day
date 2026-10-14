@@ -75,7 +75,7 @@ const footFree = (L, c, r, occ) => { for (let j = 0; j < FOOT; j++) for (let i =
 // ---------------- Human race ----------------
 const TOWERS = {
   stone: { n: 'Stone Thrower', cost: 30, r: 185, cd: 1, dmg: 23, volley: 1, throws: 1, dt: 'phys', d: 'A caveman on a patch of rocky ground who hurls rocks at one enemy. Level it up for more cavemen, bones, slings and a chieftain. Promotes into the Archer Post.', tip: 'One caveman, a rock every second. Level up for more throwers.' },
-  ptero: { n: 'Pterodactyl Roost', cost: 90, r: 170, dmg: 95, splash: 30, fly: 230, bird: 1, dt: 'blast', d: 'A pterodactyl that flies out, drops a boulder on one enemy and everything around it, then flies home for another. The closer the lane, the faster it comes back. Promotes into the Bombard.', tip: 'Boulders that splash. Faster round trips near the lane.' },
+  ptero: { n: 'Pterodactyl Roost', cost: 90, r: 170, dmg: 95, splash: 30, fly: 230, bird: 1, dt: 'crush', d: 'A pterodactyl that flies out, drops a boulder on one enemy and everything around it, then flies home for another. The closer the lane, the faster it comes back. Promotes into the Bombard.', tip: 'Boulders that splash. Faster round trips near the lane.' },
   archer: { n: 'Archer Post', promo: 'stone', cost: 30, r: 190, cd: 1, dmg: 20, volley: 1, dt: 'phys', d: 'A wooden watch post full of archers, promoted from a Stone Thrower (it keeps its level). More archers, harder arrows and more range each level.', tip: 'A volley of arrows from 3 to 5 archers, with more range.' },
   cannon: { n: 'Bombard', promo: 'ptero', cost: 100, r: 200, cd: 1.2, dmg: 120, splash: 40, dt: 'blast', d: 'A heavy gun on a stone column. Shells hit everything nearby.', tip: 'Shells hit everything nearby. Best vs crowds.' },
   frost: { n: 'Frost Obelisk', cost: 90, r: 160, cd: 1.0, dmg: 30, slow: 1.6, dt: 'ice', d: 'An ice shard that chills its target, slowing it by half.', tip: 'Chills its target to half speed for 1.6s.' },
@@ -306,7 +306,7 @@ class Sim {
     }
     if (this.pending.length) {
       const due = this.pending.filter(p => p.at <= this.t); this.pending = this.pending.filter(p => p.at > this.t);
-      for (const p of due) { if (p.dmg) p.u.inc = Math.max(0, (p.u.inc || 0) - p.dmg); const T = TOWERS[p.t.k], x = p.u.hp > 0 && !p.fixed ? p.u.x : p.x, y = p.u.hp > 0 && !p.fixed ? p.u.y : p.y; const spl = p.sp || T.splash; if (spl) near(x, y, spl, u => this.hurt(u, p.bd || T.dmg, 'blast', p.t, x, y)); else if (p.u.hp > 0) { if (T.slow) p.u.slowU = this.t + T.slow; this.hurt(p.u, p.dmg || T.dmg, T.dt, p.t); } }
+      for (const p of due) { if (p.dmg) p.u.inc = Math.max(0, (p.u.inc || 0) - p.dmg); const T = TOWERS[p.t.k], x = p.u.hp > 0 && !p.fixed ? p.u.x : p.x, y = p.u.hp > 0 && !p.fixed ? p.u.y : p.y; const spl = p.sp || T.splash; if (spl) near(x, y, spl, u => this.hurt(u, p.bd || T.dmg, p.bd ? 'crush' : 'blast', p.t, x, y)); else if (p.u.hp > 0) { if (T.slow) p.u.slowU = this.t + T.slow; this.hurt(p.u, p.dmg || T.dmg, T.dt, p.t); } }
     }
     this.units = this.units.filter(u => u.hp > 0);
     if (this.hp <= 0) this.finish('atk');
@@ -397,7 +397,7 @@ class Sim {
   }
   hurt(u, amt, type, t, sx, sy) {
     if (u.hp <= 0) return;
-    const Ua = UNITS[u.k]; if (Ua.armor && (type === 'phys' || type === 'blast')) amt *= 1 - Ua.armor;
+    const Ua = UNITS[u.k]; if (Ua.armor && (type === 'phys' || type === 'blast' || type === 'crush')) amt *= 1 - Ua.armor;
     if (type === 'fire' && Ua.fireMul !== undefined) amt *= Ua.fireMul; if (type === 'shock' && Ua.shockMul !== undefined) amt *= Ua.shockMul; if (type === 'ice' && Ua.iceMul) amt *= Ua.iceMul;
     if (type === 'fire' || type === 'meteor') u.burnLock = this.t + 3;
     if (Ua.frontGuard && type === 'phys' && t.x !== undefined) { const a = this.L.lanes[u.l].at(u.d)[2]; if ((t.x - u.x) * Math.cos(a) + (t.y - u.y) * Math.sin(a) > 0) amt *= 1 - Ua.frontGuard; }

@@ -342,7 +342,7 @@ function applySnap(s) {
 function handleEvent(e) {
   const k = e[0];
   if (k === 'u') addUnit(e[1], e[2], e[3], e[4], e[5], e[6]);
-  else if (k === 'd') { const u = V.units.get(e[1]); if (u) { V.units.delete(e[1]); if (TD.UNITS[u.k].body === 'skel') sfx('bones', u.x, u.y); else if (e[2] !== 'blast' && e[2] !== 'meteor') sfx(e[2] === 'fire' ? 'burn' : 'die', u.x, u.y); if (onScreen(u.x, u.y, 200)) die(u, e[2], e[3], e[4]); else if (e[2] !== 'fire' && e[2] !== 'ice') stain(u.x, u.y, u.r * 1.6, BLOOD[0], 0.5); } }
+  else if (k === 'd') { const u = V.units.get(e[1]); if (u) { V.units.delete(e[1]); if (TD.UNITS[u.k].body === 'skel') sfx('bones', u.x, u.y); else if (e[2] !== 'blast' && e[2] !== 'crush' && e[2] !== 'meteor') sfx(e[2] === 'fire' ? 'burn' : 'die', u.x, u.y); if (onScreen(u.x, u.y, 200)) die(u, e[2], e[3], e[4]); else if (e[2] !== 'fire' && e[2] !== 'ice') stain(u.x, u.y, u.r * 1.6, BLOOD[0], 0.5); } }
   else if (k === 's') { const t = V.towerMap.get(e[1]), u = V.units.get(e[2]); if (t && u) { sfx(t.k === 'cannon' ? 'cannon' : t.k === 'frost' ? 'frost' : 'arrow', t.x, t.y); const w = e[4], m = t.k === 'archer' && w !== undefined ? archerMuzzles(t.lvl || 1)[w] || [0, -27] : [0, -30], bw = t.k === 'archer' && t.arch && t.arch[w] && t.arch[w].bow, ox = bw ? bw[0] : m[0], oy = bw ? bw[1] : m[1] + 14, a = Math.atan2(u.y - t.y, u.x - t.x); t.aim = a; t.kick = 1; if (w !== undefined && t.arch && t.arch[w]) { t.arch[w].aim = a; t.arch[w].kick = 1; t.arch[w].st = 0; } if (onScreen(t.x, t.y, 300)) V.shots.push({ k: t.k, x: t.x + ox, y: t.y + oy, sx: t.x + ox, sy: t.y + oy, u, tx: e[5] != null ? e[5] : u.x, ty: e[6] != null ? e[6] : u.y, T: e[3] / 100, age: 0 }); } }
   else if (k === 'th') { const t = V.towerMap.get(e[1]), u = V.units.get(e[2]); if (t && u) ST.throwEv(t, e[3], u, e[4] / 100, e[5] / 100, V.clock); }
   else if (k === 'pt') { const t = V.towerMap.get(e[1]); if (t) PT.launch(t, e[3], e[4], e[5] / 100, V.clock); }
@@ -1327,6 +1327,7 @@ function die(u, type, sx, sy) {
   let push, vz, tear = 0, gib = false, twitch = 0, hold = 0;
   if (type === 'shock') { push = rr(10, 30); vz = rr(40, 80); hold = 0.4; }
   else if (type === 'water') { push = rr(90, 150); vz = rr(60, 110); }
+  else if (type === 'crush') { const f = Math.max(0, 1 - dist / 40); gib = dist < 8 && Math.random() < 0.25; push = 35 + 85 * f * rr(0.7, 1.1); vz = 80 + 70 * f; tear = 0.1 + 0.18 * f; } // a dropped boulder: knocks bodies about and tears limbs, far less than a shell
   else if (type === 'blast') { const f = Math.max(0, 1 - dist / 50); gib = dist < 14 && Math.random() < 0.7; push = 70 + 200 * f * rr(0.7, 1.1); vz = 140 + 160 * f; tear = 0.12 + 0.3 * f; }
   else if (type === 'meteor') { const core = TD.SPELLS.meteor.core; if (dist < core) gib = true; else if (dist < 105) { push = rr(330, 500) * (1 - dist / 220); vz = rr(300, 460); tear = 0.45; } else { push = rr(110, 190); vz = rr(110, 190); tear = 0.08; twitch = Math.random() < 0.45 ? rr(0.6, 1.6) : 0; } }
   else { push = rr(55, 95); vz = rr(90, 150); tear = 0.03; twitch = Math.random() < 0.12 ? rr(0.4, 1) : 0; }
