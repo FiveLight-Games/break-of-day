@@ -182,7 +182,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   { // level up a Stone Thrower from its panel: pays, rebuilds, shows its promotions; then promote it into an Archer Post
     const tid = await C.evaluate(() => { const T = window.TDC.V.towers.find(t => t.owner === window.TDC.V.myDef.pid && t.k === 'stone'); window.TDC.cam.x = T.x; window.TDC.cam.y = T.y; window.TDC.onTap(T.x, T.y); return T.id; });
     await A.evaluate(() => { window.TDC.GS.sim.defs.forEach(d => d.gold += 1000); }); await sleep(700);
-    check(await C.evaluate(() => document.querySelectorAll('#sheet .promo').length === 2 && document.querySelector('#sheet .promo').textContent.includes('Requires Level 3')), 'tower panel shows its promotions with level requirements');
+    check(await C.evaluate(() => document.querySelectorAll('#sheet .promo').length === 2 && document.querySelector('#sheet .promo').textContent.includes('Requires Level 5')), 'tower panel shows its promotions with level requirements');
     const g0 = await A.evaluate(id => window.TDC.GS.sim.defs.find(d => d.pid === window.TDC.GS.sim.towers.find(t => t.id === id).owner).gold, tid);
     await C.click('#sheet [data-level]'); await sleep(700);
     const st = await A.evaluate(([id, g0]) => { const S = window.TDC.GS.sim, T = S.towers.find(t => t.id === id), D = S.defs.find(d => d.pid === T.owner); return { lvl: T.lvl, paid: Math.round(g0 - D.gold), building: T.ready > S.t }; }, [tid, g0]);
@@ -197,7 +197,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
     const g2 = await A.evaluate(id => window.TDC.GS.sim.defs.find(d => d.pid === window.TDC.GS.sim.towers.find(t => t.id === id).owner).gold, tid);
     await C.click('#sheet [data-promo="0"]'); await sleep(700);
     const pr = await A.evaluate(([id, g2]) => { const S = window.TDC.GS.sim, T = S.towers.find(t => t.id === id), D = S.defs.find(d => d.pid === T.owner); return { k: T.k, lvl: T.lvl, paid: Math.round(g2 - D.gold) }; }, [tid, g2]);
-    check(pr.k === 'archer' && pr.lvl === 1 && pr.paid <= 0 && pr.paid >= -3, 'promotion: level-5 Stone Thrower becomes a level-1 Archer Post; its levels past 3 cover the 90g: ' + JSON.stringify(pr));
+    check(pr.k === 'archer' && pr.lvl === 1 && pr.paid <= 130 && pr.paid >= 126, 'promotion: level-5 Stone Thrower becomes a level-1 Archer Post for 130g: ' + JSON.stringify(pr));
     check(await C.evaluate(id => window.TDC.V.towerMap.get(id).k === 'archer', tid), 'promotion shows on other screens');
     await C.evaluate(() => window.TDC.onTap(-999, -999)); await sleep(200);
     await C.evaluate(() => { const T = window.TDC.V.towers.find(t => t.owner === window.TDC.V.myDef.pid); window.TDC.onTap(T.x, T.y); }); await sleep(200);
