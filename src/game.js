@@ -75,7 +75,7 @@ const footFree = (L, c, r, occ) => { for (let j = 0; j < FOOT; j++) for (let i =
 // ---------------- Human race ----------------
 const TOWERS = {
   archer: { n: 'Archer Post', cost: 30, r: 190, cd: 1, dmg: 20, volley: 1, dt: 'phys', d: 'A wooden watch post with one archer. Level it up for more archers, harder arrows and more range.', tip: 'One archer, one arrow a second. Level up for up to 5 archers.' },
-  cannon: { n: 'Bombard', cost: 100, r: 175, cd: 1.6, dmg: 52, splash: 46, dt: 'blast', d: 'A heavy gun on a stone column. Shells hit everything nearby.', tip: 'Shells hit everything nearby. Best vs crowds.' },
+  cannon: { n: 'Bombard', cost: 100, r: 175, cd: 1.6, dmg: 52, splash: 32, dt: 'blast', d: 'A heavy gun on a stone column. Shells hit everything nearby.', tip: 'Shells hit everything nearby. Best vs crowds.' },
   frost: { n: 'Frost Obelisk', cost: 90, r: 160, cd: 1.0, dmg: 30, slow: 1.6, dt: 'ice', d: 'An ice shard that chills its target, slowing it by half.', tip: 'Chills its target to half speed for 1.6s.' },
   flame: { n: 'Firebreather', cost: 100, r: 140, cone: 0.3, dps: 60, burn: 5, burnPct: 0.12, fuel: 4.5, reload: 1.8, refill: 2.5, dt: 'fire', d: 'A tribal fire-dancer. Breathes a cone of flame through his crossed torches: it burns everything inside and sets them alight for 5s. After 4.5s of breathing his torches go out and he relights them in the fire (1.8s); they top up while he dances.', tip: 'Cone of fire: hits whole clumps and sets them burning for 5s. Relights after 4.5s of fire.' },
   storm: { n: 'Tesla Coil', cost: 140, r: 175, cd: 1.3, dmg: 40, chain: 5, dt: 'shock', d: 'Lightning that arcs to up to 5 enemies.', tip: 'Lightning arcs to up to 5 enemies.' },
