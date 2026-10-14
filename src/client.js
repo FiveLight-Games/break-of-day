@@ -40,7 +40,7 @@ function renderMenu() {
   else { const on = !!getSB(); m.innerHTML = `<div class="eyebrow">Play</div>
     <button class="btn primary big" data-act="find" ${on ? '' : 'disabled'}>Find Match<small>Join the next open lobby</small></button>
     <div class="row2"><button class="btn big" data-act="hostForm" ${on ? '' : 'disabled'}>Host Lobby</button><button class="btn big" data-act="browse" ${on ? '' : 'disabled'}>Browse Lobbies</button></div>
-    <button class="btn big" data-act="vsai">Play vs AI<small>Defend your lane against an AI attacker</small></button>
+    <div class="row2"><button class="btn big" data-act="vsai">Defend vs AI<small>Hold your lane against an AI attacker</small></button><button class="btn big" data-act="atkai">Attack vs AI<small>Break through AI defenders</small></button></div>
     ${on ? '' : '<p class="err">Online play is unavailable (the game server didn\'t load). Play vs AI still works.</p>'}<p class="err">${esc(menuErr)}</p>`; }
   bindMenu();
 }
@@ -62,7 +62,8 @@ function menuAct(a) {
   if (a === 'find') { goFull(); return startQuick(); }
   if (a === 'cancelSearch') { stopQuick(); homeScreen = 'home'; return renderMenu(); }
   if (a === 'cancelJoin') { leaveLobby(); return; }
-  if (a === 'vsai') { goFull(); return enterSolo(); }
+  if (a === 'vsai') { goFull(); return enterSolo('def'); }
+  if (a === 'atkai') { goFull(); return enterSolo('atk'); }
 }
 
 // ============================ LOBBY DIRECTORY ============================
@@ -77,7 +78,7 @@ async function fetchLobbies() {
 }
 function startBrowsing() { stopBrowsing(); dir = { list: [], ready: false, err: '' }; fetchLobbies(); browseTimer = setInterval(fetchLobbies, 5000); }
 function stopBrowsing() { if (browseTimer) clearInterval(browseTimer); browseTimer = null; }
-const humanCap = () => LS.seats[0] === 'ai' ? TD.MAX_DEF : TD.MAX_DEF + 1;
+const humanCap = () => LS.seats.filter(s => s !== 'ai').length;
 const humansIn = () => L.players.length;
 function lobbyRow() {
   const nd = LS.seats.slice(1).filter(Boolean).length;
@@ -117,7 +118,10 @@ function quickWatch() {
 // L: my connection to a lobby. LS: the lobby's state (seats, map, picks), owned by the host and broadcast to everyone.
 const L = { mode: null, code: null, ch: null, players: [], started: false, lobbyName: '', quick: false };
 let LS = freshLS();
-function freshLS() { return { map: 'greenvale', seats: [null, null, null, null, null], pl: {} }; }
+function freshLS() { return { map: 'greenvale', seats: [null, null, null, null, null], pl: {}, aiCol: {} }; }
+// colours in use by players and AI seats (the AI attacker is always red)
+function usedColors(exceptPid) { const u = new Set(Object.entries(LS.pl).filter(([q]) => q !== exceptPid).map(([, p]) => p.color)); if (LS.seats[0] === 'ai') u.add('red'); for (const [i, c] of Object.entries(LS.aiCol || {})) if (LS.seats[i] === 'ai') u.add(c); return u; }
+const aiName = i => 'AI Defender' + (LS.seats.slice(1).filter(s => s === 'ai').length > 1 ? ' ' + i : '');
 const isHost = () => L.mode === 'host' || L.mode === 'solo';
 function hostLobby(o) {
   if (!getSB()) { menuErr = 'Network unavailable'; return renderMenu(); }
@@ -131,9 +135,11 @@ function joinLobby(code) {
   LS = freshLS(); homeScreen = 'joining'; renderMenu(); openRoomChannel();
   clearTimeout(L.joinTimer); L.joinTimer = setTimeout(() => { if (!L.seenHost && L.mode === 'client' && !GS.running) { leaveLobby(); menuErr = 'That lobby is no longer open.'; renderMenu(); } }, 9000);
 }
-function enterSolo() {
-  Object.assign(L, { mode: 'solo', started: false, code: null, lobbyName: 'Play vs AI', quick: false, players: [{ pid: myPid, name: myName }] });
-  LS = freshLS(); LS.pl[myPid] = { name: myName, color: myColor === 'red' ? 'blue' : myColor, race: 'human', ready: true }; LS.seats[0] = 'ai'; LS.seats[1] = myPid;
+function enterSolo(role) {
+  Object.assign(L, { mode: 'solo', started: false, code: null, lobbyName: role === 'atk' ? 'Attack vs AI' : 'Defend vs AI', quick: false, players: [{ pid: myPid, name: myName }] });
+  LS = freshLS();
+  if (role === 'atk') { LS.pl[myPid] = { name: myName, color: myColor, race: 'human', ready: true }; LS.seats[0] = myPid; LS.seats[1] = 'ai'; LS.aiCol[1] = TD.COLORS.find(c => c.id !== myColor).id; }
+  else { LS.pl[myPid] = { name: myName, color: myColor === 'red' ? 'blue' : myColor, race: 'human', ready: true }; LS.seats[0] = 'ai'; LS.seats[1] = myPid; }
   enterLobbyScreen();
 }
 function enterLobbyScreen() { show('lobby'); renderLobby(); }
@@ -184,11 +190,12 @@ function lsChanged() { if (L.mode === 'host' && L.ch) { L.ch.send({ type: 'broad
 function req(r) { if (isHost()) applyReq(myPid, r); else if (L.ch) L.ch.send({ type: 'broadcast', event: 'rq', payload: { pid: myPid, r } }); }
 function applyReq(pid, r) {
   const me = LS.pl[pid]; if (!me) return; const host = pid === myPid;
-  if (r.a === 'seat') { const i = r.i | 0; if (i < 0 || i > 4 || LS.seats[i]) return; if (L.mode === 'solo' && i === 0) return; LS.seats = LS.seats.map(s => s === pid ? null : s); LS.seats[i] = pid; if (!host) me.ready = false; }
-  else if (r.a === 'color') { if (!TD.COLORS.some(c => c.id === r.c) || Object.entries(LS.pl).some(([q, p]) => q !== pid && p.color === r.c) || (LS.seats[0] === 'ai' && r.c === 'red')) return; me.color = r.c; }
+  if (r.a === 'seat') { const i = r.i | 0; if (i < 0 || i > 4 || LS.seats[i]) return; LS.seats = LS.seats.map(s => s === pid ? null : s); LS.seats[i] = pid; if (!host) me.ready = false; }
+  else if (r.a === 'color') { if (!TD.COLORS.some(c => c.id === r.c) || usedColors(pid).has(r.c)) return; me.color = r.c; }
   else if (r.a === 'race') { if (!TD.RACES.some(x => x.id === r.race && x.on)) return; me.race = r.race; }
   else if (r.a === 'ready') me.ready = !!r.v;
   else if (host && r.a === 'map') { if (TD.MAPS.some(m => m.id === r.m && m.on)) LS.map = r.m; }
+  else if (host && r.a === 'ai' && (r.i | 0) > 0) { const i = r.i | 0; if (i > 4) return; if (LS.seats[i] === 'ai') { LS.seats[i] = null; delete LS.aiCol[i]; } else if (!LS.seats[i]) { const used = usedColors(null); LS.seats[i] = 'ai'; LS.aiCol[i] = (TD.COLORS.find(c => c.id !== 'red' && !used.has(c.id)) || TD.COLORS[1]).id; } }
   else if (host && r.a === 'ai') { if (LS.seats[0] === 'ai') LS.seats[0] = null; else if (!LS.seats[0]) { LS.seats[0] = 'ai'; for (const p of Object.values(LS.pl)) if (p.color === 'red') p.color = (TD.COLORS.find(c => c.id !== 'red' && !Object.values(LS.pl).some(q => q.color === c.id)) || TD.COLORS[1]).id; } }
   else if (host && r.a === 'kick' && r.pid !== myPid) { if (L.ch) L.ch.send({ type: 'broadcast', event: 'kick', payload: { pid: r.pid, reason: 'The host removed you from the lobby.' } }); }
   if (pid === myPid && r.a === 'color') { myColor = r.c; store.set('color', r.c); }
@@ -203,8 +210,9 @@ function leaveLobby(silent) {
 // ---------- lobby screen ----------
 function seatRow(i) {
   const s = LS.seats[i], p = s && s !== 'ai' ? LS.pl[s] : null, mine = s === myPid;
-  if (s === 'ai') return `<div class="seat"><div class="sw" style="background:${colHex('red')}"></div><div class="grow"><b>AI Attacker</b><small class="muted">Human · Red</small></div>${isHost() && L.mode !== 'solo' ? '<button class="btn ghost sm" data-ai>Remove AI</button>' : '<span class="tag ok">Ready</span>'}</div>`;
-  if (!p) return `<div class="seat open" data-seat="${i}"><div class="sw" style="background:#0004"></div><div class="grow"><b>${i === 0 ? 'Open attacker seat' : 'Open defender seat'}</b><small>Tap to take this seat</small></div>${i === 0 && isHost() ? '<button class="btn sm" data-ai>Add AI attacker</button>' : ''}</div>`;
+  if (s === 'ai' && i === 0) return `<div class="seat"><div class="sw" style="background:${colHex('red')}"></div><div class="grow"><b>AI Attacker</b><small class="muted">Human · Red</small></div>${isHost() && L.mode !== 'solo' ? '<button class="btn ghost sm" data-ai="0">Remove AI</button>' : '<span class="tag ok">Ready</span>'}</div>`;
+  if (s === 'ai') { const c = LS.aiCol[i] || 'blue'; return `<div class="seat"><div class="sw" style="background:${colHex(c)}"></div><div class="grow"><b>${aiName(i)}</b><small class="muted">Human · ${(TD.COLORS.find(q => q.id === c) || {}).n || ''}</small></div>${isHost() ? `<button class="btn ghost sm" data-ai="${i}">Remove AI</button>` : '<span class="tag ok">Ready</span>'}</div>`; }
+  if (!p) return `<div class="seat open" data-seat="${i}"><div class="sw" style="background:#0004"></div><div class="grow"><b>${i === 0 ? 'Open attacker seat' : 'Open defender seat'}</b><small>Tap to take this seat</small></div>${isHost() && (i > 0 || L.mode !== 'solo') ? `<button class="btn sm" data-ai="${i}">${i === 0 ? 'Add AI attacker' : 'Add AI'}</button>` : ''}</div>`;
   const ishost = L.mode === 'solo' ? true : (L.players.find(q => q.pid === s) || {}).host || (isHost() && s === myPid);
   return `<div class="seat ${mine ? 'mine' : ''}"><div class="sw" style="background:${colHex(p.color)}"></div><div class="grow"><b>${esc(p.name)}${mine ? ' (you)' : ''}${ishost ? ' 👑' : ''}</b><small class="muted">${(TD.RACES.find(r => r.id === p.race) || TD.RACES[0]).n} · ${(TD.COLORS.find(c => c.id === p.color) || {}).n || ''}</small></div><span class="tag ${p.ready || ishost ? 'ok' : ''}">${ishost ? 'Host' : p.ready ? 'Ready' : 'Not ready'}</span>${isHost() && L.mode === 'host' && s !== myPid ? `<button class="btn ghost sm" data-kick="${esc(s)}">✕</button>` : ''}</div>`;
 }
@@ -221,21 +229,21 @@ function renderLobby() {
   if ($('lobby').classList.contains('hidden')) return;
   const me = LS.pl[myPid]; if (!me) { $('seats').innerHTML = '<div class="spin"></div>'; return; }
   const nd = LS.seats.slice(1).filter(Boolean).length;
-  $('lobbyEyebrow').textContent = L.mode === 'solo' ? 'Practice' : (LS.seats[0] === 'ai' ? 'vs AI attacker' : '1v' + Math.max(1, nd)) + ' · ' + mapName(LS.map);
-  $('lobbyTitle').textContent = L.mode === 'solo' ? 'Play vs AI' : (L.lobbyName || (((L.players.find(p => p.host) || {}).name) || myName) + "'s Lobby");
+  $('lobbyEyebrow').textContent = (L.mode === 'solo' ? 'Practice · 1v' + Math.max(1, nd) : (LS.seats[0] === 'ai' ? 'vs AI attacker' : '1v' + Math.max(1, nd))) + ' · ' + mapName(LS.map);
+  $('lobbyTitle').textContent = L.mode === 'solo' ? L.lobbyName : (L.lobbyName || (((L.players.find(p => p.host) || {}).name) || myName) + "'s Lobby");
   $('mapPick').innerHTML = TD.MAPS.map(m => `<button class="mapCard ${LS.map === m.id ? 'on' : ''}" data-map="${m.id}" ${m.on && isHost() ? '' : 'disabled'}><div class="mapThumb" style="background:${m.on ? 'linear-gradient(135deg,#4f7a3a,#2f5a2a 60%,#b38f5c 61%,#b38f5c 66%,#4f7a3a 67%)' : '#2a2620'}"></div><b>${m.n}</b><small>${m.on ? (isHost() ? m.d : 'Host picks the map') : 'Coming soon'}</small></button>`).join('');
   $('seats').innerHTML = `<div class="seatHead">Attacker</div>${seatRow(0)}<div class="seatHead">Defenders</div>${[1, 2, 3, 4].map(seatRow).join('')}`;
   $('racePick').innerHTML = TD.RACES.map(r => `<button class="race ${me.race === r.id ? 'on' : ''}" data-race="${r.id}" ${r.on ? '' : 'disabled'}>${r.n}<small>${r.on ? 'Available' : 'Coming soon'}</small></button>`).join('');
-  const taken = new Set(Object.entries(LS.pl).filter(([q]) => q !== myPid).map(([, p]) => p.color)); if (LS.seats[0] === 'ai') taken.add('red');
+  const taken = usedColors(myPid);
   $('colorPick').innerHTML = TD.COLORS.map(c => `<button class="swatch ${me.color === c.id ? 'on' : ''}" data-col="${c.id}" title="${c.n}" style="background:${c.c}" ${taken.has(c.id) ? 'disabled' : ''}></button>`).join('');
   const why = startable(), btn = $('btnReady');
-  if (isHost()) { btn.textContent = L.mode === 'solo' ? 'Start' : 'Start match'; btn.disabled = !!why; btn.onclick = hostStart; $('lobbyHint').textContent = why || (L.mode === 'solo' ? 'You defend; the AI attacks. Tap an open defender seat to switch lanes.' : 'Ready to start. Keep this page open: your device runs the match.'); }
+  if (isHost()) { btn.textContent = L.mode === 'solo' ? 'Start' : 'Start match'; btn.disabled = !!why; btn.onclick = hostStart; $('lobbyHint').textContent = why || (L.mode === 'solo' ? (LS.seats[0] === myPid ? 'You attack the AI defenders. Add AI to more seats for a bigger fight (each lane gets its own AI).' : 'You defend; the AI attacks. Add AI defenders as teammates, or tap a seat to switch lanes.') : 'Ready to start. Keep this page open: your device runs the match.'); }
   else { btn.disabled = false; btn.textContent = me.ready ? 'Unready' : 'Ready'; btn.onclick = () => req({ a: 'ready', v: !me.ready }); $('lobbyHint').textContent = 'Tap an open seat to switch seats. The host starts the match.'; }
   $('btnLeave').textContent = L.mode === 'solo' ? 'Back' : L.mode === 'host' ? 'Close lobby' : 'Leave';
   $('btnLeave').onclick = () => { if (L.mode === 'solo') { L.mode = null; show('menu'); renderMenu(); } else leaveLobby(); };
   const lob = $('lobby');
   lob.querySelectorAll('[data-seat]').forEach(b => b.onclick = e => { if (e.target.closest('[data-ai]')) return; req({ a: 'seat', i: +b.dataset.seat }); });
-  lob.querySelectorAll('[data-ai]').forEach(b => b.onclick = e => { e.stopPropagation(); req({ a: 'ai' }); });
+  lob.querySelectorAll('[data-ai]').forEach(b => b.onclick = e => { e.stopPropagation(); req({ a: 'ai', i: +b.dataset.ai || 0 }); });
   lob.querySelectorAll('[data-kick]').forEach(b => b.onclick = () => req({ a: 'kick', pid: b.dataset.kick }));
   lob.querySelectorAll('[data-map]').forEach(b => b.onclick = () => req({ a: 'map', m: b.dataset.map }));
   lob.querySelectorAll('[data-race]').forEach(b => b.onclick = () => req({ a: 'race', race: b.dataset.race }));
@@ -245,7 +253,7 @@ function hostStart() {
   if (startable()) return; goFull();
   const players = [];
   const a = LS.seats[0]; players.push(a === 'ai' ? { pid: 'ai', name: 'AI Attacker', role: 'atk', color: 'red', race: 'human', bot: 1 } : { pid: a, name: LS.pl[a].name, role: 'atk', color: LS.pl[a].color, race: LS.pl[a].race });
-  LS.seats.slice(1).forEach(s => { if (s && LS.pl[s]) players.push({ pid: s, name: LS.pl[s].name, role: 'def', color: LS.pl[s].color, race: LS.pl[s].race }); });
+  LS.seats.slice(1).forEach((s, j) => { const i = j + 1; if (s === 'ai') players.push({ pid: 'aid' + i, name: aiName(i), role: 'def', color: LS.aiCol[i] || 'blue', race: 'human', bot: 1 }); else if (s && LS.pl[s]) players.push({ pid: s, name: LS.pl[s].name, role: 'def', color: LS.pl[s].color, race: LS.pl[s].race }); });
   const cfg = { seed: Math.floor(Math.random() * 2 ** 31), map: LS.map, players };
   if (L.mode === 'host') { L.started = true; stopQuick(); unadvertise(); pushPresence(); L.ch.send({ type: 'broadcast', event: 'start', payload: cfg }); }
   startGame(cfg, L.mode);

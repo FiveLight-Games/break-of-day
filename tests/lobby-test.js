@@ -194,6 +194,20 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   const sd = await D.evaluate(() => ({ units: window.TDC.V.units.size, towers: window.TDC.V.towers.length, hp: window.TDC.V.hp, t: window.TDC.V.t }));
   check(sd.t > 15 && sd.towers >= 3, 'vs AI match runs: ' + JSON.stringify(sd));
   await D.screenshot({ path: OUT + '/game-vsai.png' });
+  // attack vs AI defenders
+  const E = await mk('E', 'Raider2', { width: 390, height: 844 });
+  await E.click('[data-act=atkai]'); await sleep(300);
+  check(await E.evaluate(() => window.TDC.LS.seats[0] === window.localStorage.getItem('td_pid') && window.TDC.LS.seats[1] === 'ai'), 'Attack vs AI: you attack, an AI defends');
+  await E.click('[data-ai="2"]'); await sleep(200);
+  check(await E.evaluate(() => window.TDC.LS.seats[2] === 'ai' && window.TDC.LS.aiCol[1] !== window.TDC.LS.aiCol[2]), 'host can add a second AI defender with its own colour');
+  await E.screenshot({ path: OUT + '/lobby-atk-ai.png' });
+  await E.click('#btnReady'); await sleep(800);
+  check(await E.evaluate(() => window.TDC.V.isAtk && window.TDC.V.defs.length === 2 && window.TDC.V.defs.every(d => d.bot)), 'match starts with you attacking two AI defenders');
+  await E.waitForFunction(() => window.TDC.V.t >= 10.5, null, { timeout: 15000 });
+  await E.evaluate(() => window.TDC.send({ c: 'send', k: 'grunt', lane: 'all', n: 10 })); await sleep(7000);
+  const ea = await E.evaluate(() => ({ towers: window.TDC.V.towers.length, kills: window.TDC.V.defs.map(d => d.kills) }));
+  check(ea.towers >= 4 && ea.kills.some(k => k > 0), 'AI defenders build and kill: ' + JSON.stringify(ea));
+  await E.screenshot({ path: OUT + '/game-atk-ai.png' });
   check(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 5).join(' | ') : ''));
   console.log(fails ? 'LOBBY FAIL ' + fails : 'LOBBY OK');
   await b.close(); srv.close(); process.exit(fails ? 1 : 0);

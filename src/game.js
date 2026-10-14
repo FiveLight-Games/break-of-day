@@ -118,6 +118,7 @@ class Sim {
     this.atk = { pid: atk.pid, name: atk.name, color: atk.color, race: atk.race, bot: !!atk.bot, gold: RULES.atkGoldPer * this.N, income: RULES.atkIncomePer * this.N, invest: 0, speed: 0, queue: [], sent: 0, leaked: 0, spent: 0, dmg: 0 };
     this.players[atk.pid] = this.atk;
     this.defs = defs.map((p, i) => { const d = { pid: p.pid, name: p.name, color: p.color, race: p.race, bot: !!p.bot, slot: i, gold: RULES.defGold, income: RULES.defIncome, kills: 0, built: 0, dmg: 0, shared: 0, scd: { meteor: 0, jet: 0 } }; this.players[p.pid] = d; return d; });
+    this.noBotSpells = true; // bot-vs-bot tests: casting bots end up weaker than ones that buy towers; revisit with upgrades
     this.meteors = []; this.fields = []; this.jets = []; this.graves = []; this.packDead = {}; this.packN = 0; this.laneNext = {};
     this.units = []; this.towers = []; this.pulseT = RULES.pulse; this.wave = 0; this.spawnAt = []; this.pending = [];
     this.occ = new Uint8Array(this.L.cols * this.L.rows); this.grid = new Map();
@@ -338,9 +339,32 @@ class Sim {
     const lane = this.L.lanes[D.slot];
     if (!this.botSpots) this.botSpots = {};
     if (!this.botSpots[D.slot]) { const s = []; for (let r = 0; r < this.L.rows; r += 2) for (let c = 0; c < this.L.cols; c += 2) { const x = (c + 1) * CELL, y = (r + 1) * CELL, d = lane.dist(x, y); if (d > LANE + 90 || d < LANE + 10) continue; let cov = 0; for (let q = 0; q < lane.total; q += 40) { const p = lane.at(q); if ((p[0] - x) ** 2 + (p[1] - y) ** 2 < 175 * 175) cov++; } s.push([c, r, cov - y * 0.002]); } s.sort((a, b) => b[2] - a[2]); this.botSpots[D.slot] = s; }
-    const mine = this.towers.filter(t => t.owner === D.pid), mix = ['archer', 'archer', 'cannon', 'frost', 'archer', 'flame', 'storm', 'cannon'], k = mix[mine.length % mix.length];
+    if (this.botCast(D, lane)) return;
+    // pick a tower that answers what is walking down this lane
+    const mine = this.towers.filter(t => t.owner === D.pid), seen = { swarm: 0, armor: 0, big: 0, golem: 0, ent: 0, ram: 0, n: 0 };
+    for (const u of this.units) { if (u.l !== D.slot) continue; const U = UNITS[u.k]; seen.n++; if (U.pack) seen.swarm++; if (U.armor) seen.armor++; if (U.r >= 8) seen.big++; if (u.k === 'golem') seen.golem++; if (u.k === 'ent') seen.ent++; if (u.k === 'ram') seen.ram++; }
+    let k;
+    if (mine.length < 2) k = 'archer';
+    else if (seen.n) { const w = { archer: 3, cannon: 1 + seen.swarm * 0.6, storm: 0.5 + seen.swarm * 0.4 - seen.golem * 3, frost: 1 + seen.big * 0.5 + seen.golem * 2, flame: 1 + seen.armor * 0.8 + seen.big * 0.5 + seen.ent * 2 - seen.ram * 3 }; k = Object.keys(w).sort((a, b) => w[b] - w[a])[mine.length % 3 === 2 ? 1 : 0]; }
+    else k = ['archer', 'archer', 'cannon', 'frost', 'archer', 'flame', 'storm', 'cannon'][mine.length % 8];
     if (D.gold < TOWERS[k].cost) return;
     const spot = this.botSpots[D.slot].find(([c, r]) => footFree(this.L, c, r, this.occ)); if (spot) this.input(D.pid, { c: 'build', k, c2: spot[0], r: spot[1] });
+  }
+  // bots cast too: a Meteor on the thickest clump (aimed where it will be), the Water Jet when the lane is being overrun
+  botCast(D, lane) {
+    if (this.t < RULES.setup || this.noBotSpells) return false;
+    const mine = this.units.filter(u => u.l === D.slot && !u.run); if (mine.length < 4) return false;
+    const M = SPELLS.meteor, J = SPELLS.jet;
+    if (D.scd.meteor <= this.t && D.gold >= M.cost + 20) {
+      let best = null, bs = 0;
+      for (const u of mine) { let s2 = 0; for (const o of mine) if ((o.x - u.x) ** 2 + (o.y - u.y) ** 2 < 70 * 70) s2 += UNITS[o.k].r >= 8 ? 3 : 1; if (s2 > bs) { bs = s2; best = u; } }
+      if (best && bs >= 14) { const q = lane.at(best.d + best.sp * M.fall * 0.8); this.input(D.pid, { c: 'spell', k: 'meteor', x: q[0], y: q[1] }); return true; }
+    }
+    if (D.scd.jet <= this.t && D.gold >= J.cost + 20) {
+      const front = mine.reduce((m, u) => u.d > m.d ? u : m, mine[0]), deep = mine.filter(u => u.d > lane.total * 0.6).length;
+      if (front.d > lane.total * 0.8 && mine.filter(u => u.d > lane.total * 0.6).length >= 8) { const q = lane.at(Math.min(lane.total - 60, front.d + 110)); this.input(D.pid, { c: 'spell', k: 'jet', x: q[0], y: q[1] }); return true; }
+    }
+    return false;
   }
   // ---- network snapshot (compact) ----
   snapshot(full) {
