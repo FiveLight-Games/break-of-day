@@ -469,8 +469,9 @@ function nest(c, Ro, L, t, back) { // back half drawn behind the bird, front hal
   c.lineCap = 'butt';
 }
 // ---------- the pterodactyl (drawn at its own scale; feet/body at origin) ----------
-const SKN = '#8d6c55', SKD = '#6a4f3e', BEL = '#c9a983', MEM = '#a8805f', MEMD = '#7d5c45';
+let SKN, SKD, BEL, MEM, MEMD; const MK = '#f4ecdc';
 function ptero(c, P, L, t) {
+  SKN = COL; SKD = shade(COL, -0.45); BEL = shade(COL, 0.45); MEM = shade(COL, 0.12); MEMD = shade(COL, -0.22);
   const s = LV[L].ps, f = P.f, fly = P.fly, fl = P.flap;
   c.save(); c.scale(s * f, s);
   const lift = fly > 0.5 ? Math.sin(fl) * 4.2 : 0, spread = Math.max(fly, P.stretch || 0), sl = (P.stretch || 0) * Math.sin(t * 6) * 1.2;
@@ -484,7 +485,7 @@ function ptero(c, P, L, t) {
     const sh = [0.8, -0.4], wr = [2.4, sgn * (4.6 * spread) - lf * 0.55 - (1 - spread) * 0.8], tp = [-0.6 - (1 - spread) * 1.5, sgn * (9.4 * spread + 1) - lf * (near ? 1.1 : 1) - (1 - spread) * 1.4], hp = [-2.6, 0.4];
     c.fillStyle = near ? MEM : MEMD; c.beginPath(); c.moveTo(sh[0], sh[1]); c.lineTo(wr[0], wr[1]); c.lineTo(tp[0], tp[1]); c.quadraticCurveTo((tp[0] + hp[0]) / 2 - 1.2, (tp[1] + hp[1]) / 2, hp[0], hp[1]); c.closePath(); c.fill();
     c.strokeStyle = SKD; c.lineWidth = 0.5; c.beginPath(); c.moveTo(sh[0], sh[1]); c.lineTo(wr[0], wr[1]); c.lineTo(tp[0], tp[1]); c.stroke();
-    if (L >= 2 && spread > 0.3) { c.strokeStyle = COL; c.lineWidth = 0.55; c.beginPath(); c.moveTo(lerp(wr[0], tp[0], 0.45), lerp(wr[1], tp[1], 0.45)); c.lineTo(lerp(lerp(wr[0], tp[0], 0.45), hp[0], 0.45), lerp(lerp(wr[1], tp[1], 0.45), hp[1], 0.45)); if (L >= 4) { c.moveTo(lerp(wr[0], tp[0], 0.75), lerp(wr[1], tp[1], 0.75)); c.lineTo(lerp(lerp(wr[0], tp[0], 0.75), hp[0], 0.3), lerp(lerp(wr[1], tp[1], 0.75), hp[1], 0.3)); } c.stroke(); }
+    if (L >= 2 && spread > 0.3) { c.strokeStyle = MK; c.lineWidth = 0.55; c.beginPath(); c.moveTo(lerp(wr[0], tp[0], 0.45), lerp(wr[1], tp[1], 0.45)); c.lineTo(lerp(lerp(wr[0], tp[0], 0.45), hp[0], 0.45), lerp(lerp(wr[1], tp[1], 0.45), hp[1], 0.45)); if (L >= 4) { c.moveTo(lerp(wr[0], tp[0], 0.75), lerp(wr[1], tp[1], 0.75)); c.lineTo(lerp(lerp(wr[0], tp[0], 0.75), hp[0], 0.3), lerp(lerp(wr[1], tp[1], 0.75), hp[1], 0.3)); } c.stroke(); }
   };
   if (spread > 0.05) wing(false);
   // legs (dangling in flight, standing when perched) and the boulder in its feet
@@ -497,11 +498,11 @@ function ptero(c, P, L, t) {
   if (spread > 0.05 && P.f) {} 
   c.fillStyle = SKN; c.beginPath(); c.ellipse(0, 0, 3.2, 1.55, 0, 0, 7); c.fill();
   c.fillStyle = BEL; c.beginPath(); c.ellipse(0.4, 0.6, 2.3, 0.75, 0, 0, 7); c.fill();
-  c.strokeStyle = COL; c.lineWidth = 0.42; c.beginPath(); for (let i = 0; i < Math.min(3, L); i++) { c.moveTo(-1.6 + i * 1.1, -1.4); c.lineTo(-1.2 + i * 1.1, -0.5); } c.stroke();
+  c.strokeStyle = MK; c.lineWidth = 0.42; c.beginPath(); for (let i = 0; i < Math.min(3, L); i++) { c.moveTo(-1.6 + i * 1.1, -1.4); c.lineTo(-1.2 + i * 1.1, -0.5); } c.stroke();
   if (spread <= 0.05) { // folded wing along the side
     c.fillStyle = MEMD; c.beginPath(); c.moveTo(1.4, -0.8); c.lineTo(2.6, -3.2); c.quadraticCurveTo(0, -1.6, -3.4, 0.6); c.quadraticCurveTo(-1, 0.6, 1.4, -0.8); c.fill();
     c.strokeStyle = SKD; c.lineWidth = 0.45; c.beginPath(); c.moveTo(1.4, -0.8); c.lineTo(2.6, -3.2); c.stroke();
-    if (L >= 2) { c.strokeStyle = COL; c.lineWidth = 0.4; c.beginPath(); c.moveTo(-0.4, -0.6); c.lineTo(0.6, -1.6); c.stroke(); }
+    if (L >= 2) { c.strokeStyle = MK; c.lineWidth = 0.4; c.beginPath(); c.moveTo(-0.4, -0.6); c.lineTo(0.6, -1.6); c.stroke(); }
   }
   if (spread > 0.05) wing(true);
   if (P.carry) { c.strokeStyle = SKD; c.lineWidth = 0.45; c.beginPath(); c.moveTo(-0.6, 1); c.lineTo(-0.3, 2.4); c.moveTo(0.4, 1); c.lineTo(0.7, 2.4); c.stroke(); boulder(c, 0.2, 2.6 + LV[L].bs * BS / s * 0.9, Math.sin(t * 3) * 0.2, LV[L].bs * BS / s); }
@@ -509,14 +510,14 @@ function ptero(c, P, L, t) {
   c.strokeStyle = SKN; c.lineWidth = 1.1; c.beginPath(); c.moveTo(2.4, -0.6); c.quadraticCurveTo(head[0] - 0.6, (head[1] - 0.6) * 0.5, head[0], head[1]); c.stroke();
   c.save(); c.translate(head[0], head[1]); c.rotate(look * 0.5 + (fly > 0.5 ? 0.12 : 0) - preen * 2.4);
   const crest = 2.6 + L * 0.35;
-  c.fillStyle = shade(COL, -0.3); c.beginPath(); c.moveTo(0.2, -0.6); c.lineTo(-crest, -1.6 - L * 0.12); c.lineTo(-0.9, 0.2); c.closePath(); c.fill();
-  c.fillStyle = COL; c.beginPath(); c.moveTo(0.2, -0.65); c.lineTo(-crest + 0.3, -1.5 - L * 0.12); c.lineTo(-0.6, -0.1); c.closePath(); c.fill();
+  c.fillStyle = shade(COL, -0.6); c.beginPath(); c.moveTo(0.2, -0.6); c.lineTo(-crest, -1.6 - L * 0.12); c.lineTo(-0.9, 0.2); c.closePath(); c.fill();
+  c.fillStyle = shade(COL, -0.4); c.beginPath(); c.moveTo(0.2, -0.65); c.lineTo(-crest + 0.3, -1.5 - L * 0.12); c.lineTo(-0.6, -0.1); c.closePath(); c.fill();
   c.fillStyle = SKN; c.beginPath(); c.ellipse(0, 0, 1.2, 0.85, 0, 0, 7); c.fill();
   const gape = P.squawk ? 0.5 : 0.08;
   c.fillStyle = '#d8c39a'; c.beginPath(); c.moveTo(0.6, -0.35); c.lineTo(4.4, 0.2); c.lineTo(0.8, 0.15); c.closePath(); c.fill();
   c.fillStyle = '#bfa77f'; c.beginPath(); c.moveTo(0.8, 0.25); c.lineTo(4.1, 0.3 + gape); c.lineTo(0.6, 0.6); c.closePath(); c.fill();
   c.fillStyle = '#1a120c'; c.beginPath(); c.arc(0.25, -0.2, 0.24, 0, 7); c.fill();
-  if (L >= 3) { c.strokeStyle = COL; c.lineWidth = 0.3; c.beginPath(); c.moveTo(-0.5, 0.35); c.lineTo(0.5, 0.45); c.stroke(); } // cheek stripe
+  if (L >= 3) { c.strokeStyle = MK; c.lineWidth = 0.3; c.beginPath(); c.moveTo(-0.5, 0.35); c.lineTo(0.5, 0.45); c.stroke(); } // cheek stripe
   c.restore();
   c.restore();
 }
