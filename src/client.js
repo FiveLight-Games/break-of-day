@@ -1245,7 +1245,7 @@ function skelParts(r, face) {
     bone(sd * 0.24 * r, 0.42 * r, sd * 0.3 * r, 0.95 * r, r * 0.15, sd * R2(0.2, 0.6) * r, R2(0.85, 1.05) * r, R2(-0.6, 0.6) + Math.PI / 2, 0.55 * r, 0.22);
   }
   // charred scraps stuck to the bones
-  for (const q of P) q.scraps = Array.from({ length: q.t === 'ribs' ? 4 : 2 }, () => [R2(-0.3, 0.3), R2(-0.3, 0.3), R2(0.08, 0.16) * r, Math.random() < 0.6 ? '#241812' : '#4a1c12']);
+  for (const q of P) { q.scraps = Array.from({ length: q.t === 'ribs' ? 9 : 4 }, () => [R2(-0.35, 0.35), R2(-0.35, 0.35), R2(0.1, 0.2) * r, Math.random() < 0.65 ? '#1e140e' : '#4a1c12']); q.soot = [R2(0, 0.35), R2(0.55, 1)]; }
   return P;
 }
 // four-legged bodies: a side-view skeleton fitted inside the Mammoth / Tarrasque sprite; it slumps flat when it falls
@@ -1258,11 +1258,11 @@ function skelPartsQuad(r, face, k) {
   legs.forEach((lx, i) => bone(f * r * lx, r * 0.22, f * r * lx, r * 0.9, r * 0.13, f * r * lx * 1.15, r * 0.82, (i % 2 ? 1 : -1) * R2(1.2, 1.5) + Math.PI / 2, 0.05 + i * 0.04));
   if (beast) bone(-f * r * 1.05, r * 0.08, -f * r * 1.85, r * 0.5, r * 0.1, -f * r * 1.5, r * 0.75, R2(-0.2, 0.2), 0.25); // tail
   P.push({ t: 'skullQ', up: [hx, -r * 0.15, 0], pile: [hx * 1.05, r * 0.55, f * R2(0.2, 0.5)], delay: 0.1, f, tusks: k === 'mammoth' });
-  for (const q of P) q.scraps = Array.from({ length: q.t === 'ribsSide' ? 6 : 2 }, () => [R2(-0.3, 0.3), R2(-0.3, 0.3), R2(0.06, 0.12) * r, Math.random() < 0.6 ? '#241812' : '#4a1c12']);
+  for (const q of P) { q.scraps = Array.from({ length: q.t === 'ribsSide' ? 12 : 4 }, () => [R2(-0.35, 0.35), R2(-0.35, 0.35), R2(0.08, 0.15) * r, Math.random() < 0.65 ? '#1e140e' : '#4a1c12']); q.soot = [R2(0, 0.35), R2(0.55, 1)]; }
   return P;
 }
 function drawSkelParts(g, P, k, r) {
-  const ash = '#bdb4a2', dk = '#8e8676', E = x => x * x * (3 - 2 * x);
+  const ash = '#a89e8a', dk = '#6e665a', soot = 'rgba(28,18,12,.6)', E = x => x * x * (3 - 2 * x);
   for (const q of P) {
     const kk = Math.max(0, Math.min(1, (k - q.delay) / (1 - q.delay))), e = E(kk), bounce = kk > 0.7 ? Math.sin((kk - 0.7) / 0.3 * Math.PI) * 0.06 * r : 0;
     if (q.t === 'bone') {
@@ -1270,6 +1270,7 @@ function drawSkelParts(g, P, k, r) {
       const cx = mx + (px - mx) * e, cy = my + (py - my) * e - bounce, a = ua + (pr - ua) * e, hl = len0 / 2;
       g.strokeStyle = ash; g.lineWidth = q.w; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx - Math.cos(a) * hl, cy - Math.sin(a) * hl); g.lineTo(cx + Math.cos(a) * hl, cy + Math.sin(a) * hl); g.stroke();
       g.fillStyle = dk; for (const sd of [-1, 1]) { g.beginPath(); g.arc(cx + Math.cos(a) * hl * sd, cy + Math.sin(a) * hl * sd, q.w * 0.7, 0, 7); g.fill(); }
+      { const [s0, s1] = q.soot; g.strokeStyle = soot; g.lineWidth = q.w * 0.85; g.beginPath(); g.moveTo(cx + Math.cos(a) * hl * (s0 * 2 - 1), cy + Math.sin(a) * hl * (s0 * 2 - 1)); g.lineTo(cx + Math.cos(a) * hl * (s1 * 2 - 1), cy + Math.sin(a) * hl * (s1 * 2 - 1)); g.stroke(); }
       for (const [sx, sy, sz, col] of q.scraps) { g.fillStyle = col; g.beginPath(); g.arc(cx + Math.cos(a) * hl * sx * 2, cy + Math.sin(a) * hl * sx * 2 + sy * q.w, sz * 0.6, 0, 7); g.fill(); }
       continue;
     }
@@ -1280,7 +1281,8 @@ function drawSkelParts(g, P, k, r) {
     if (q.t === 'ribsSide') { g.strokeStyle = ash; g.lineWidth = r * 0.08; g.lineCap = 'round'; for (let i = 0; i < 6; i++) { const xx = (-0.55 + i * 0.22) * r * q.w; g.beginPath(); g.moveTo(xx, -r * 0.3); g.quadraticCurveTo(xx + r * 0.1, -r * 0.02, xx - r * 0.02, r * 0.3); g.stroke(); } }
     if (q.t === 'skullQ') { g.fillStyle = ash; g.beginPath(); g.ellipse(0, 0, r * 0.36, r * 0.27, 0, 0, 7); g.fill(); g.fillRect(q.f > 0 ? 0 : -r * 0.42, r * 0.08, r * 0.42, r * 0.14); g.fillStyle = '#241812'; g.beginPath(); g.arc(q.f * r * 0.1, -r * 0.06, r * 0.08, 0, 7); g.fill(); if (q.tusks) { g.strokeStyle = '#efe6cf'; g.lineWidth = r * 0.08; g.beginPath(); g.moveTo(q.f * r * 0.2, r * 0.12); g.quadraticCurveTo(q.f * r * 0.75, r * 0.45, q.f * r * 0.8, -r * 0.05); g.stroke(); } }
     if (q.t === 'pelvis') { g.fillStyle = ash; g.beginPath(); g.ellipse(0, 0, r * 0.34, r * 0.16, 0, 0, 7); g.fill(); g.fillStyle = dk; g.beginPath(); g.arc(0, 0, r * 0.07, 0, 7); g.fill(); }
-    for (const [sx, sy, sz, col] of q.scraps) { g.fillStyle = col; g.beginPath(); g.arc(sx * r * 0.8, sy * r * 0.8, sz * 0.7, 0, 7); g.fill(); }
+    g.fillStyle = soot; g.beginPath(); g.ellipse(q.soot[0] * r * 0.4 - r * 0.1, (q.soot[1] - 0.6) * r * 0.5, r * 0.28, r * 0.18, q.soot[0] * 3, 0, 7); g.fill();
+    for (const [sx, sy, sz, col] of q.scraps) { g.fillStyle = col; g.beginPath(); g.arc(sx * r * 0.8, sy * r * 0.8, sz * 0.7, 0, 7); g.fill(); if (sz > r * 0.15) { g.strokeStyle = col; g.lineWidth = sz * 0.35; g.beginPath(); g.moveTo(sx * r * 0.8, sy * r * 0.8); g.lineTo(sx * r * 0.8 + sz * 0.3, sy * r * 0.8 + sz * 1.6); g.stroke(); } }
     g.restore();
   }
 }
