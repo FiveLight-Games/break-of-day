@@ -871,10 +871,10 @@ function pal(L) {
   };
 }
 // a flickering flame: layered teardrops, base at (fx, fy)
-function flame(c, fx0, fy0, h, w, t, P, seed, hot) {
+function flame(c, fx0, fy0, h, w, t, P, seed, hot, noHalo) {
   const fl = k => Math.sin(t * (9 + k) + seed * 3.1 + k) * 0.5 + Math.sin(t * (14 + k * 2) + seed) * 0.5;
-  c.save(); c.globalCompositeOperation = 'lighter';
-  const g = c.createRadialGradient(fx0, fy0 - h * 0.35, 0, fx0, fy0 - h * 0.35, h * 1.3); g.addColorStop(0, 'rgba(255,150,40,.35)'); g.addColorStop(1, 'rgba(255,90,20,0)'); c.fillStyle = g; c.beginPath(); c.arc(fx0, fy0 - h * 0.35, h * 1.3, 0, 7); c.fill(); c.restore();
+  if (!noHalo) { c.save(); c.globalCompositeOperation = 'lighter';
+  const g = c.createRadialGradient(fx0, fy0 - h * 0.35, 0, fx0, fy0 - h * 0.35, h * 1.3); g.addColorStop(0, 'rgba(255,150,40,.35)'); g.addColorStop(1, 'rgba(255,90,20,0)'); c.fillStyle = g; c.beginPath(); c.arc(fx0, fy0 - h * 0.35, h * 1.3, 0, 7); c.fill(); c.restore(); }
   const tongue = (hh, ww, col, k) => { const sway = fl(k) * ww * 0.5, hgt = hh * (0.85 + 0.15 * fl(k + 3)); c.fillStyle = col; c.beginPath(); c.moveTo(fx0 - ww, fy0); c.bezierCurveTo(fx0 - ww * 1.05, fy0 - hgt * 0.45, fx0 + sway - ww * 0.25, fy0 - hgt * 0.7, fx0 + sway, fy0 - hgt); c.bezierCurveTo(fx0 + sway + ww * 0.25, fy0 - hgt * 0.7, fx0 + ww * 1.05, fy0 - hgt * 0.45, fx0 + ww, fy0); c.quadraticCurveTo(fx0, fy0 + ww * 0.45, fx0 - ww, fy0); c.fill(); };
   tongue(h, w, P.outer, 0); tongue(h * 0.55, w * 0.5, P.outer, 5); tongue(h * 0.78, w * 0.72, P.mid, 1); tongue(h * 0.5, w * 0.45, P.core, 2);
   const wt = Math.max(P.white, hot || 0);
@@ -891,12 +891,31 @@ function stone(c, s) {
   c.restore();
 }
 function shade(h, k) { const p = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); return '#' + p.map(v => Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k))).toString(16).padStart(2, '0')).join(''); }
-function firePit(c, L, t, P) {
+let PIT = [0, -1, 9];
+  // the fire's warm glow, drawn under everything; the dancer gets his own masked copy that fades in while he's behind the fire
+  function glow(c, a) { const [fx0, fy0, h] = PIT; c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = a; const g = c.createRadialGradient(fx0, fy0 - h * 0.35, 0, fx0, fy0 - h * 0.35, h * 1.3); g.addColorStop(0, 'rgba(255,150,40,.35)'); g.addColorStop(1, 'rgba(255,90,20,0)'); c.fillStyle = g; c.beginPath(); c.arc(fx0, fy0 - h * 0.35, h * 1.3, 0, 7); c.fill(); c.restore(); }
+  function litMan(c, T, dx, dy, sc, t, P, L) {
+    const lit = T.lit || 0;
+    if (lit < 0.001) { c.save(); c.translate(dx, dy); const m = man(c, sc, T.ph || 0, T.att || 0, T.aimS !== undefined ? T.aimS : Math.PI / 2, t, P, L); c.restore(); return m; }
+    const M = c.getTransform(), k = Math.hypot(M.a, M.b), BW = 84, BH = 84, OX = 42, OY = 70, w = Math.ceil(BW * k), h = Math.ceil(BH * k);
+    if (!T.mc) { T.mc = document.createElement('canvas'); T.gc = document.createElement('canvas'); }
+    for (const cv of [T.mc, T.gc]) if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    const mc = T.mc.getContext('2d'); mc.setTransform(1, 0, 0, 1, 0, 0); mc.clearRect(0, 0, w, h); mc.setTransform(k, 0, 0, k, OX * k, OY * k);
+    const m = man(mc, sc, T.ph || 0, T.att || 0, T.aimS !== undefined ? T.aimS : Math.PI / 2, t, P, L);
+    const px = M.a * dx + M.c * dy + M.e, py = M.b * dx + M.d * dy + M.f, ga = c.globalAlpha;
+    c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(T.mc, px - OX * k, py - OY * k);
+    const g = T.gc.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, w, h); g.setTransform(k, 0, 0, k, OX * k, OY * k);
+    const [fx0, fy0, fh] = PIT, gx = fx0 - dx, gy = fy0 - fh * 0.35 - dy, gr = g.createRadialGradient(gx, gy, 0, gx, gy, fh * 1.3); gr.addColorStop(0, 'rgba(255,150,40,.35)'); gr.addColorStop(1, 'rgba(255,90,20,0)');
+    g.fillStyle = gr; g.fillRect(-OX, -OY, BW, BH); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'destination-in'; g.drawImage(T.mc, 0, 0);
+    c.globalCompositeOperation = 'lighter'; c.globalAlpha = lit * ga; c.drawImage(T.gc, px - OX * k, py - OY * k);
+    c.restore(); return m;
+  }
+  function firePit(c, L, t, P) {
   if (L <= 2) {
     // small campfire: ash ring + two crossed logs
     c.fillStyle = '#3b3029'; c.beginPath(); c.ellipse(0, 0, 6, 2.6, 0, 0, 7); c.fill(); c.fillStyle = '#5a2d16'; c.beginPath(); c.ellipse(0, -0.3, 4, 1.6, 0, 0, 7); c.fill();
     log(c, -4.5, 1, 4.5, -1.2, 1.3); log(c, -4, -1.2, 4.2, 1, 1.3);
-    flame(c, 0, -1, 9, 3.3, t, P, 1);
+    flame(c, 0, -1, 9, 3.3, t, P, 1, 0, true);
   } else {
     // pyre: a log crib, taller at level 5
     const layers = L >= 5 ? 5 : 3, lw = L >= 5 ? 1.6 : 1.5;
@@ -904,7 +923,7 @@ function firePit(c, L, t, P) {
     for (let i = 0; i < layers; i++) { const y = -i * 1.9, wd = 6.2 - i * 0.35; if (i % 2 === 0) { log(c, -wd, y + 1.2, wd, y + 1.2, lw); log(c, -wd, y - 1.0, wd, y - 1.0, lw); } else { log(c, -wd * 0.6, y + 2, -wd * 0.6, y - 1.8, lw); log(c, wd * 0.6, y + 2, wd * 0.6, y - 1.8, lw); } }
     const top = -layers * 1.9 + 1;
     { const gy = top + layers * 0.95, g = c.createRadialGradient(0, gy, 0, 0, gy, 6); g.addColorStop(0, 'rgba(255,190,80,.55)'); g.addColorStop(1, 'rgba(255,120,30,0)'); c.fillStyle = g; c.beginPath(); c.ellipse(0, gy, 6, layers * 1.1, 0, 0, 7); c.fill(); }
-    flame(c, 0, top + 2, L >= 5 ? 22 : 15, L >= 5 ? 6.5 : 5.5, t, P, 2);
+    flame(c, 0, top + 2, L >= 5 ? 22 : 15, L >= 5 ? 6.5 : 5.5, t, P, 2, 0, true);
   }
 }
 function log(c, x1, y1, x2, y2, w) { c.strokeStyle = '#5b3a1f'; c.lineWidth = w; c.lineCap = 'round'; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.strokeStyle = '#7a5130'; c.lineWidth = w * 0.4; c.beginPath(); c.moveTo(x1, y1 - w * 0.2); c.lineTo(x2, y2 - w * 0.2); c.stroke(); c.lineCap = 'butt'; }
@@ -1039,11 +1058,12 @@ function drawBreath(c, T, t) {
     const torches = L >= 4 ? [0, 1, 2, 3, 4].map(p => { const a = p / 5 * Math.PI * 2 + 0.35 + 0.42; return { a, x: Math.cos(a) * 25, y: Math.sin(a) * 10.5 }; }) : [];
     const pos = T.pos || 0, ph = T.ph || 0, att = T.att || 0, aim = T.aimS !== undefined ? T.aimS : Math.PI / 2;
     const dx = Math.cos(pos) * 11, dy = Math.sin(pos) * 4.4, items = [];
+    PIT = [0, L <= 2 ? -1 : -(L >= 5 ? 5 : 3) * 1.9 + 3, L <= 2 ? 9 : L >= 5 ? 22 : 15]; glow(c, 1);
     stones.forEach(s => items.push([s.y + s.z * 0.01, () => stone(c, s)]));
     torches.forEach((q, i) => items.push([q.y, () => { c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(q.x + 0.8, q.y + 0.6, 1.8, 0.8, 0, 0, 7); c.fill(); c.strokeStyle = '#5b3a1f'; c.lineWidth = 1.3; c.beginPath(); c.moveTo(q.x, q.y); c.lineTo(q.x, q.y - 9); c.stroke(); c.fillStyle = '#2b2018'; c.beginPath(); c.ellipse(q.x, q.y - 9.5, 1.2, 1.5, 0, 0, 7); c.fill(); flame(c, q.x, q.y - 9.6, 5.5, 1.7, t, P, 10 + i, L >= 5 ? 1 : 0); }]));
     items.push([0, () => firePit(c, L, t, P)]);
     let m = null;
-    items.push([dy + 0.1, () => { c.save(); c.translate(dx, dy); m = man(c, 1 + (L - 1) * 0.07, ph, att, aim, t, P, L); c.restore(); }]);
+    items.push([dy + 0.1, () => { m = litMan(c, T, dx, dy, 1 + (L - 1) * 0.07, t, P, L); }]);
     items.sort((a, b) => a[0] - b[0]).forEach(i => i[1]());
     c.restore();
     if (m && T.x !== undefined) T.mouthW = [T.x + dx + m.conv[0], T.y + 4 + dy + m.conv[1]];
@@ -1056,6 +1076,7 @@ function drawBreath(c, T, t) {
     if (tgt) { const want = Math.atan2(tgt.y - (tgt.r || 6) - my, tgt.x - mx); let d = want - T.aimS; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; T.aimS += d * Math.min(1, dt * 6); T.att = Math.min(1, T.att + dt * 5); T.cone = T.att >= 0.8 ? Math.min(1, T.cone + dt * 4) : 0; }
     else { T.att = Math.max(0, T.att - dt * 3); T.cone = Math.max(0, T.cone - dt * 6); }
     if (T.att < 0.05) { T.pos += dt * 1.1; T.ph += dt * 4.2; }
+    { const behind = Math.sin(T.pos) * 4.4 + 0.1 < 0 ? 1 : 0, st = dt / 0.45; T.lit = (T.lit || 0) + Math.max(-st, Math.min(st, behind - (T.lit || 0))); } // firelight on him fades over 0.45s
     T.aim = T.aimS;
     if (visible && T.mouthW) emitBreath(T, dt); else if (!visible) T.fp = null;
     stepBreath(T, dt);

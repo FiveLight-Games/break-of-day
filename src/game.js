@@ -376,7 +376,8 @@ class Sim {
     const lanes = this.defs.length;
     const W = { grunt: 26, runner: 12, brute: 10, zombie: 12, skel: 14, gnoll: 10, naga: 10, sapper: 5, warg: 9, shield: 7, knight: 7, troll: 6, chief: 5, necro: 4, ent: 3, golem: 3, ram: 2, mammoth: 2 }, open = Object.keys(W).filter(k => this.mins() >= UNITS[k].unlock), tot = open.reduce((s2, k) => s2 + W[k], 0);
     if (this.mins() >= UNITS.tarrasque.unlock && !this.units.some(u => u.k === 'tarrasque')) { const c2 = UNITS.tarrasque.cost * lanes; if (A.gold >= c2) this.input(A.pid, { c: 'send', k: 'tarrasque', lane: 'all' }); else if (A.gold + A.income * 40 >= c2) return; }
-    let guard = 40; while (guard-- > 0) { let roll = this.R() * tot, k = open[0]; for (const o of open) { roll -= W[o]; if (roll <= 0) { k = o; break; } } const cost = UNITS[k].cost * lanes; if (A.gold < cost + A.income * 3) break; this.input(A.pid, { c: 'send', k, lane: 'all' }); }
+    // test flag botMix: commit to each rolled unit and save for it, instead of re-rolling until something cheap comes up
+    let guard = 40; while (guard-- > 0) { let k = this.botMix && A.want; if (!k) { let roll = this.R() * tot; k = open[0]; for (const o of open) { roll -= W[o]; if (roll <= 0) { k = o; break; } } } const cost = UNITS[k].cost * lanes; if (A.gold < cost + A.income * 3) { if (this.botMix) A.want = k; break; } A.want = null; this.input(A.pid, { c: 'send', k, lane: 'all' }); }
   }
   botDefend(D) {
     if ((this.tick + D.slot * 5) % 20) return;
@@ -387,13 +388,16 @@ class Sim {
     // pick a tower that answers what is walking down this lane
     const mine = this.towers.filter(t => t.owner === D.pid), seen = { swarm: 0, armor: 0, big: 0, golem: 0, ent: 0, ram: 0, n: 0 };
     for (const u of this.units) { if (u.l !== D.slot) continue; const U = UNITS[u.k]; seen.n++; if (U.pack) seen.swarm++; if (U.armor) seen.armor++; if (U.r >= 8) seen.big++; if (u.k === 'golem') seen.golem++; if (u.k === 'ent') seen.ent++; if (u.k === 'ram') seen.ram++; }
+    // a big attacker bank (or a crowd on the lane) means a dump is coming: keep a Meteor's worth of gold and favour splash
+    const A = this.atk, threat = !this.noBotSpells && (A.gold > Math.max(150 * this.N, A.income * 35) || seen.n >= 20), reserve = threat && D.scd.meteor <= this.t + 6 ? SPELLS.meteor.cost + 20 : 0;
     let k;
     if (mine.length < 2) k = 'archer';
+    else if (threat && seen.n < 6) k = mine.length % 2 ? 'flame' : 'cannon';
     else if (seen.n) { const w = { archer: 3, cannon: 1 + seen.swarm * 0.6, storm: 0.5 + seen.swarm * 0.4 - seen.golem * 3, frost: 1 + seen.big * 0.5 + seen.golem * 2, flame: 1 + seen.swarm * 0.7 + seen.ent * 2 - seen.ram * 3 }; k = Object.keys(w).sort((a, b) => w[b] - w[a])[mine.length % 3 === 2 ? 1 : 0]; }
     else k = ['archer', 'archer', 'cannon', 'frost', 'archer', 'flame', 'storm', 'cannon'][mine.length % 8];
     const up = mine.length >= 4 && mine.filter(o => LEVELS[o.k] && o.lvl < 5 && o.ready <= this.t).sort((a, b) => a.lvl - b.lvl)[0];
-    if (up && D.gold >= LEVELS[up.k].cost[up.lvl] && (mine.length >= 10 || this.R() < 0.45)) return this.input(D.pid, { c: 'level', id: up.id });
-    if (D.gold < TOWERS[k].cost) return;
+    if (up && D.gold - reserve >= LEVELS[up.k].cost[up.lvl] && (mine.length >= 10 || this.R() < 0.45)) return this.input(D.pid, { c: 'level', id: up.id });
+    if (D.gold - reserve < TOWERS[k].cost) return;
     // short-range towers hug the lane
     const near = TOWERS[k].r < 150, spot = (near && this.botSpots[D.slot].find(([c, r, , d]) => d < LANE + 36 && footFree(this.L, c, r, this.occ))) || this.botSpots[D.slot].find(([c, r]) => footFree(this.L, c, r, this.occ));; if (spot) this.input(D.pid, { c: 'build', k, c2: spot[0], r: spot[1] });
   }
