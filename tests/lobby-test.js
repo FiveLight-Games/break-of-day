@@ -54,8 +54,8 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   const spots = (P, n, d) => P.evaluate(([n, d]) => { const V = window.TDC.V, L = V.L, lane = L.lanes[V.myDef.slot], pt = lane.at(d), out = [], occ = V.occ.slice();
     const cand = []; for (let r = 0; r < L.rows - 1; r++) for (let c = 0; c < L.cols - 1; c++) { const x = (c + 1) * 24, y = (r + 1) * 24, dd = Math.hypot(x - pt[0], y - pt[1]); if (dd < 260) cand.push([dd, c, r]); }
     cand.sort((a, b) => a[0] - b[0]); for (const [, c, r] of cand) { if (out.length >= n) break; if (TD.footFree(L, c, r, occ)) { out.push([c, r]); for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) occ[(r + j) * L.cols + c + i] = 1; } } return out; }, [n, d]);
-  check(await A.evaluate(() => window.TDC.V.hp === 500 && window.TDC.V.hpMax === 500), 'shared base HP = 250 x 2 defenders');
-  check(await A.evaluate(() => document.getElementById('hpChip').textContent.includes('500')), 'HP chip shows 500');
+  check(await A.evaluate(() => window.TDC.V.hp === 600 && window.TDC.V.hpMax === 600), 'shared base HP = 300 x 2 defenders');
+  check(await A.evaluate(() => document.getElementById('hpChip').textContent.includes('600')), 'HP chip shows 600');
   check(await B.evaluate(() => document.getElementById('buildBtn').classList.contains('hidden')), 'attacker has no Build button');
   // C: real drag from the tray onto the field (mouse pointer, so no finger offset)
   await C.click('#buildBtn'); await sleep(300);
@@ -206,7 +206,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(await D.evaluate(() => window.TDC.LS.seats[0] === 'ai'), 'vs AI: AI takes the attacker seat');
   await D.click('#btnReady'); await sleep(500);
   { const sp = await spots(D, 5, 400); await D.evaluate(sp => sp.forEach(([c, r]) => window.TDC.send({ c: 'build', k: 'archer', c2: c, r })), sp); }
-  check(await D.evaluate(() => window.TDC.V.hpMax) === 250, 'solo base HP = 250');
+  check(await D.evaluate(() => window.TDC.V.hpMax) === 300, 'solo base HP = 300');
   await sleep(20000);
   const sd = await D.evaluate(() => ({ units: window.TDC.V.units.size, towers: window.TDC.V.towers.length, hp: window.TDC.V.hp, t: window.TDC.V.t }));
   check(sd.t > 15 && sd.towers >= 3, 'vs AI match runs: ' + JSON.stringify(sd));
@@ -225,6 +225,15 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   const ea = await E.evaluate(() => ({ towers: window.TDC.V.towers.length, kills: window.TDC.V.defs.map(d => d.kills) }));
   check(ea.towers >= 4 && ea.kills.some(k => k > 0), 'AI defenders build and kill: ' + JSON.stringify(ea));
   await E.screenshot({ path: OUT + '/game-atk-ai.png' });
+  // send rhythm: 30s open, 15s pause; sends during the pause are refused, sends raise income
+  { const inc0 = await E.evaluate(() => window.TDC.V.atk.income); await E.evaluate(() => window.TDC.send({ c: 'send', k: 'brute', lane: 'all', n: 1 })); await sleep(800);
+    check(await E.evaluate(i => window.TDC.V.atk.income > i, inc0), 'sending raises attacker income');
+    check(await E.evaluate(() => /Sending/.test(document.getElementById('clock').textContent) && /Sending open/.test(document.querySelector('[data-setup]').textContent)), 'clock + panel show the open send window'); }
+  await E.waitForFunction(() => window.TDC.V.t >= 41.5, null, { timeout: 30000 });
+  { const s0 = await E.evaluate(() => window.TDC.GS.sim.atk.sent); await E.evaluate(() => window.TDC.send({ c: 'send', k: 'grunt', lane: 'all', n: 1 })); await sleep(500);
+    check(await E.evaluate(s0 => window.TDC.GS.sim.atk.sent === s0, s0), 'sends are refused during the pause');
+    check(await E.evaluate(() => /Pause/.test(document.getElementById('clock').textContent) && [...document.querySelectorAll('[data-unit]')].every(b => b.classList.contains('off'))), 'pause shown, unit cards greyed');
+    await E.screenshot({ path: OUT + '/game-atk-pause.png' }); }
   check(!errs.length, 'no page errors' + (errs.length ? ': ' + errs.slice(0, 5).join(' | ') : ''));
   console.log(fails ? 'LOBBY FAIL ' + fails : 'LOBBY OK');
   await b.close(); srv.close(); process.exit(fails ? 1 : 0);
