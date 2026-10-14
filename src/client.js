@@ -1229,6 +1229,61 @@ function charSkel(g, x, y, r, rot, quad, tusks) {
 }
 // a golem's shell slumps into a cooling iron puddle with a glowing core
 function meltPool(g, x, y, r) { g.save(); g.translate(x, y); g.fillStyle = '#2e2e32'; g.beginPath(); for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283, d = r * (1.1 + Math.random() * 0.5); g.lineTo(Math.cos(a) * d, Math.sin(a) * d * 0.55); } g.closePath(); g.fill(); g.fillStyle = '#4a4a50'; g.beginPath(); g.ellipse(-r * 0.2, -r * 0.1, r * 0.8, r * 0.35, 0, 0, 7); g.fill(); g.strokeStyle = '#c85a1a'; g.lineWidth = r * 0.08; for (let i = 0; i < 4; i++) { g.beginPath(); g.moveTo((Math.random() - 0.5) * r, (Math.random() - 0.5) * r * 0.4); g.lineTo((Math.random() - 0.5) * r * 1.2, (Math.random() - 0.5) * r * 0.5); g.stroke(); } g.restore(); }
+
+// burned big units: a charring line sweeps down the body, the flesh above it is gone and the bones show standing inside;
+// then the bones collapse into a pile that is baked into the ground (and fades with the gore)
+const BURN_T = 1.25, FALL_T = 0.55;
+function skelParts(r, face) {
+  const R2 = (a, b) => a + Math.random() * (b - a), f = face || 1, P = [];
+  const bone = (ax, ay, bx, by, w, px, py, pr, len, delay) => P.push({ t: 'bone', up: [ax, ay, bx, by], pile: [px, py, pr, len], w, delay });
+  // upright positions match the unit sprite (head at about -0.95r, feet at about +0.95r)
+  P.push({ t: 'skull', up: [0, -0.95 * r, 0], pile: [f * R2(0.5, 0.9) * r, R2(0.55, 0.8) * r, R2(-1, 1)], delay: 0.05 });
+  P.push({ t: 'ribs', up: [0, -0.28 * r, 0], pile: [R2(-0.15, 0.15) * r, 0.62 * r, f * R2(1.2, 1.6)], delay: 0.12 });
+  P.push({ t: 'pelvis', up: [0, 0.38 * r, 0], pile: [R2(-0.2, 0.2) * r, 0.8 * r, R2(-0.4, 0.4)], delay: 0.2 });
+  for (const sd of [-1, 1]) {
+    bone(sd * 0.62 * r, -0.45 * r, sd * 0.78 * r, 0.25 * r, r * 0.13, sd * R2(0.6, 1.1) * r, R2(0.5, 0.9) * r, R2(-1.5, 1.5), 0.7 * r, 0.08);
+    bone(sd * 0.24 * r, 0.42 * r, sd * 0.3 * r, 0.95 * r, r * 0.15, sd * R2(0.2, 0.6) * r, R2(0.85, 1.05) * r, R2(-0.6, 0.6) + Math.PI / 2, 0.55 * r, 0.22);
+  }
+  // charred scraps stuck to the bones
+  for (const q of P) q.scraps = Array.from({ length: q.t === 'ribs' ? 4 : 2 }, () => [R2(-0.3, 0.3), R2(-0.3, 0.3), R2(0.08, 0.16) * r, Math.random() < 0.6 ? '#241812' : '#4a1c12']);
+  return P;
+}
+// four-legged bodies: a side-view skeleton fitted inside the Mammoth / Tarrasque sprite; it slumps flat when it falls
+function skelPartsQuad(r, face, k) {
+  const R2 = (a, b) => a + Math.random() * (b - a), f = face || 1, beast = k === 'tarrasque', P = [];
+  const legs = beast ? [0.75, 0.45, -0.55, -0.85] : [0.6, 0.35, -0.45, -0.7], hx = f * r * (beast ? 1.35 : 0.95), bw = beast ? 1.15 : 0.95;
+  const bone = (ax, ay, bx, by, w, px, py, pr, delay) => P.push({ t: 'bone', up: [ax, ay, bx, by], pile: [px, py, pr], w, delay });
+  bone(-f * r * bw, -r * 0.3, f * r * bw * 0.8, -r * 0.36, r * 0.12, 0, r * 0.45, R2(-0.08, 0.08), 0.15); // spine
+  P.push({ t: 'ribsSide', up: [0, -r * 0.02, 0], pile: [0, r * 0.5, R2(-0.1, 0.1)], delay: 0.2, w: bw });
+  legs.forEach((lx, i) => bone(f * r * lx, r * 0.22, f * r * lx, r * 0.9, r * 0.13, f * r * lx * 1.15, r * 0.82, (i % 2 ? 1 : -1) * R2(1.2, 1.5) + Math.PI / 2, 0.05 + i * 0.04));
+  if (beast) bone(-f * r * 1.05, r * 0.08, -f * r * 1.85, r * 0.5, r * 0.1, -f * r * 1.5, r * 0.75, R2(-0.2, 0.2), 0.25); // tail
+  P.push({ t: 'skullQ', up: [hx, -r * 0.15, 0], pile: [hx * 1.05, r * 0.55, f * R2(0.2, 0.5)], delay: 0.1, f, tusks: k === 'mammoth' });
+  for (const q of P) q.scraps = Array.from({ length: q.t === 'ribsSide' ? 6 : 2 }, () => [R2(-0.3, 0.3), R2(-0.3, 0.3), R2(0.06, 0.12) * r, Math.random() < 0.6 ? '#241812' : '#4a1c12']);
+  return P;
+}
+function drawSkelParts(g, P, k, r) {
+  const ash = '#bdb4a2', dk = '#8e8676', E = x => x * x * (3 - 2 * x);
+  for (const q of P) {
+    const kk = Math.max(0, Math.min(1, (k - q.delay) / (1 - q.delay))), e = E(kk), bounce = kk > 0.7 ? Math.sin((kk - 0.7) / 0.3 * Math.PI) * 0.06 * r : 0;
+    if (q.t === 'bone') {
+      const [ax, ay, bx, by] = q.up, mx = (ax + bx) / 2, my = (ay + by) / 2, ua = Math.atan2(by - ay, bx - ax), len0 = Math.hypot(bx - ax, by - ay), [px, py, pr] = q.pile;
+      const cx = mx + (px - mx) * e, cy = my + (py - my) * e - bounce, a = ua + (pr - ua) * e, hl = len0 / 2;
+      g.strokeStyle = ash; g.lineWidth = q.w; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx - Math.cos(a) * hl, cy - Math.sin(a) * hl); g.lineTo(cx + Math.cos(a) * hl, cy + Math.sin(a) * hl); g.stroke();
+      g.fillStyle = dk; for (const sd of [-1, 1]) { g.beginPath(); g.arc(cx + Math.cos(a) * hl * sd, cy + Math.sin(a) * hl * sd, q.w * 0.7, 0, 7); g.fill(); }
+      for (const [sx, sy, sz, col] of q.scraps) { g.fillStyle = col; g.beginPath(); g.arc(cx + Math.cos(a) * hl * sx * 2, cy + Math.sin(a) * hl * sx * 2 + sy * q.w, sz * 0.6, 0, 7); g.fill(); }
+      continue;
+    }
+    const [ux, uy, ur] = q.up, [px, py, pr] = q.pile, cx = ux + (px - ux) * e, cy = uy + (py - uy) * e - bounce, a = ur + (pr - ur) * e;
+    g.save(); g.translate(cx, cy); g.rotate(a);
+    if (q.t === 'skull') { g.fillStyle = ash; g.beginPath(); g.arc(0, 0, r * 0.4, 0, 7); g.fill(); g.fillRect(-r * 0.22, r * 0.25, r * 0.44, r * 0.18); g.fillStyle = '#241812'; for (const ex of [-1, 1]) { g.beginPath(); g.arc(ex * r * 0.15, -r * 0.02, r * 0.11, 0, 7); g.fill(); } g.fillRect(-r * 0.05, r * 0.12, r * 0.1, r * 0.08); }
+    if (q.t === 'ribs') { g.strokeStyle = ash; g.lineWidth = r * 0.1; g.lineCap = 'round'; g.beginPath(); g.moveTo(0, -r * 0.42); g.lineTo(0, r * 0.5); g.stroke(); g.lineWidth = r * 0.08; for (let i = 0; i < 4; i++) { const yy = -r * 0.35 + i * r * 0.2, w = r * (0.55 - i * 0.05); g.beginPath(); g.moveTo(0, yy); g.quadraticCurveTo(-w, yy - r * 0.04, -w * 0.85, yy + r * 0.16); g.moveTo(0, yy); g.quadraticCurveTo(w, yy - r * 0.04, w * 0.85, yy + r * 0.16); g.stroke(); } }
+    if (q.t === 'ribsSide') { g.strokeStyle = ash; g.lineWidth = r * 0.08; g.lineCap = 'round'; for (let i = 0; i < 6; i++) { const xx = (-0.55 + i * 0.22) * r * q.w; g.beginPath(); g.moveTo(xx, -r * 0.3); g.quadraticCurveTo(xx + r * 0.1, -r * 0.02, xx - r * 0.02, r * 0.3); g.stroke(); } }
+    if (q.t === 'skullQ') { g.fillStyle = ash; g.beginPath(); g.ellipse(0, 0, r * 0.36, r * 0.27, 0, 0, 7); g.fill(); g.fillRect(q.f > 0 ? 0 : -r * 0.42, r * 0.08, r * 0.42, r * 0.14); g.fillStyle = '#241812'; g.beginPath(); g.arc(q.f * r * 0.1, -r * 0.06, r * 0.08, 0, 7); g.fill(); if (q.tusks) { g.strokeStyle = '#efe6cf'; g.lineWidth = r * 0.08; g.beginPath(); g.moveTo(q.f * r * 0.2, r * 0.12); g.quadraticCurveTo(q.f * r * 0.75, r * 0.45, q.f * r * 0.8, -r * 0.05); g.stroke(); } }
+    if (q.t === 'pelvis') { g.fillStyle = ash; g.beginPath(); g.ellipse(0, 0, r * 0.34, r * 0.16, 0, 0, 7); g.fill(); g.fillStyle = dk; g.beginPath(); g.arc(0, 0, r * 0.07, 0, 7); g.fill(); }
+    for (const [sx, sy, sz, col] of q.scraps) { g.fillStyle = col; g.beginPath(); g.arc(sx * r * 0.8, sy * r * 0.8, sz * 0.7, 0, 7); g.fill(); }
+    g.restore();
+  }
+}
 function frozenChunks(c) { // pieces of the unit in its own colours with a frost rim; they fly, land and fade with the gore
   const col = FLESH[c.k] || SKIN, bl = c.k === 'golem' || c.k === 'ram' ? 'none' : c.k === 'ent' ? 'sap' : 'red', n = c.r >= 15 ? 10 : 7;
   for (let i = 0; i < n; i++) { const a = rr(0, 6.28), sp = rr(50, 140); piece({ kind: 'chunk', col: mix(col, '#d8f2ff', rr(0.15, 0.35)), r: c.r * rr(0.32, 0.55), blood: bl, frost: 1 }, c.x + rr(-c.r, c.r) * 0.5, c.y + rr(-c.r, c.r) * 0.3, rr(4, c.r * 1.8), Math.cos(a) * sp, Math.sin(a) * sp * 0.6, rr(90, 220), c.r * 0.5, bl === 'red', false); }
@@ -1359,9 +1414,11 @@ function stepFx(dt) {
     if (c.burning && !c.rest && Math.random() < 0.8) { particle('flame', c.x + rr(-3, 3), c.y, c.z + c.r, rr(-10, 10), rr(-6, 6), rr(10, 40), rr(0.25, 0.45), '#ff9a2a'); if (Math.random() < 0.3) particle('smoke', c.x, c.y, c.z + c.r, rr(-8, 8), rr(-5, 5), rr(20, 40), rr(0.6, 1.1), '#2a2420', rr(2, 4)); }
     if (c.kind === 'ash' && c.t > 0.35 && c.t < 1.2 && Math.random() < 0.6) particle('ash', c.x + rr(-c.r, c.r) * 0.7, c.y, rr(0, c.r * 2.2) * (1 - (c.t - 0.35) / 0.85), rr(-15, 15), rr(-8, 8), rr(25, 60), rr(0.8, 1.5), Math.random() < 0.25 ? '#ff8a2a' : '#3a3530', rr(1, 2.2));
     if (c.kind === 'freeze' && c.t > 0.45 && !c.shattered) { c.shattered = 1; if (c.big) frozenChunks(c); for (let i = 0; i < (c.big ? 12 : 7); i++) { const a = rr(0, 6.28), s = rr(40, 110); V.parts.push({ shape: 'shard', x: c.x, y: c.y, z: rr(2, c.r * 2), vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: rr(80, 200), rot: rr(0, 6), vr: rr(-12, 12), life: 0, size: rr(2, 4) * c.r / 6, inner: c.big && c.k !== 'golem' && c.k !== 'ram' && c.k !== 'ent' && Math.random() < 0.45 }); } }
-    if ((c.kind === 'char' || c.kind === 'melt') && c.t < 0.9 && Math.random() < 0.9) particle('flame', c.x + rr(-c.r, c.r) * 0.8, c.y, rr(2, c.r * 2), rr(-10, 10), rr(-6, 6), rr(25, 60), rr(0.3, 0.6), '#ff9a2a');
-    if ((c.kind === 'char' || c.kind === 'melt') && !c.bakedSk) { c.bakedSk = 1; const m = c.r * 4; onGround(c.x - m, c.y - m, c.x + m, c.y + m, g => c.kind === 'melt' ? meltPool(g, c.x, c.y, c.r) : charSkel(g, c.x, c.y, c.r, c.rot, c.quad, c.tusks)); }
-    if ((c.kind === 'char' || c.kind === 'melt') && c.t > 0.6 && Math.random() < 0.5) particle('smoke', c.x + rr(-c.r, c.r) * 0.6, c.y, rr(2, 6), rr(-6, 6), rr(-4, 4), rr(15, 35), rr(1, 1.8), '#3a3430', rr(c.r * 0.3, c.r * 0.6));
+    if (c.kind === 'melt' && c.t < 0.9 && Math.random() < 0.9) particle('flame', c.x + rr(-c.r, c.r) * 0.8, c.y, rr(2, c.r * 2), rr(-10, 10), rr(-6, 6), rr(25, 60), rr(0.3, 0.6), '#ff9a2a');
+    if (c.kind === 'char' && !c.parts) c.parts = c.quad ? skelPartsQuad(c.r, c.face, c.k) : skelParts(c.r, c.face);
+    if (c.kind === 'char' && c.t < BURN_T && Math.random() < 0.35) { const by = c.y - 2.2 * c.r + (c.t / BURN_T) * 3.2 * c.r; particle('flame', c.x + rr(-0.8, 0.8) * c.r, by, rr(0, 3), rr(-10, 10), rr(-4, 4), rr(20, 50), rr(0.25, 0.5), '#ff9a2a'); if (Math.random() < 0.5) particle('ash', c.x + rr(-0.8, 0.8) * c.r, by, rr(2, 8), rr(-14, 14), rr(-6, 6), rr(20, 50), rr(0.8, 1.4), Math.random() < 0.3 ? '#ff8a2a' : '#3a3530', rr(1, 2)); }
+    if ((c.kind === 'melt' || (c.kind === 'char' && c.t >= BURN_T + FALL_T)) && !c.bakedSk) { c.bakedSk = 1; const m = c.r * 4; onGround(c.x - m, c.y - m, c.x + m, c.y + m, g => { if (c.kind === 'melt') meltPool(g, c.x, c.y, c.r); else { g.save(); g.translate(c.x, c.y); g.globalAlpha = 0.45; g.fillStyle = '#1a1612'; g.beginPath(); g.ellipse(0, c.r * (c.quad ? 0.6 : 0.75), c.r * (c.quad ? 1.6 : 1.3), c.r * 0.5, 0, 0, 7); g.fill(); g.globalAlpha = 1; drawSkelParts(g, c.parts, 1, c.r); g.restore(); } }); }
+    if ((c.kind === 'melt' ? c.t > 0.6 : c.t > BURN_T * 0.6) && (c.kind === 'char' || c.kind === 'melt') && Math.random() < 0.5) particle('smoke', c.x + rr(-c.r, c.r) * 0.6, c.y, rr(2, 6), rr(-6, 6), rr(-4, 4), rr(15, 35), rr(1, 1.8), '#3a3430', rr(c.r * 0.3, c.r * 0.6));
   }
   for (const c of V.corpses) if (!c.baked && c.kind === 'rag' && c.done) { c.baked = 1; const m = c.r * 4; onGround(c.x - m, c.y - m, c.x + m, c.y + m, g => drawRag(g, c)); }
   for (const c of V.corpses) if (!c.baked && ((c.kind === 'flop' && c.rest && c.t > 0.3) || (c.kind === 'shock' && c.t > 0.9))) { c.baked = 1; const m = c.r * 3; onGround(c.x - m, c.y - m, c.x + m, c.y + m, g => drawSprite(sprite(c.k, 'dead', c.face, -1, V.atkCol), c.x, c.y + c.r * 0.3, c.kind === 'flop' ? c.rot : c.dir * Math.PI / 2, g)); }
@@ -1446,7 +1503,13 @@ function drawCorpse(c) {
   const r = c.r; x.globalAlpha = Math.max(0, Math.min(1, 6 - c.t));
   if (c.kind === 'flop') drawSprite(sprite(c.k, 'dead', c.face, -1, V.atkCol), c.x, c.y + r * 0.3 - c.z, c.rot);
   else if (c.kind === 'shock') { const tt = Math.max(0, c.t - 0.4), fall = Math.min(1, tt / 0.28); if (c.t < 0.4) drawSprite(sprite(c.k, Math.floor(c.t * 30) % 2 ? 'flash' : 'slow', c.face, -1, V.atkCol), c.x + rr(-1, 1), c.y, 0); else drawSprite(sprite(c.k, 'dead', c.face, -1, V.atkCol), c.x, c.y + r * 0.3, c.dir * Math.PI / 2 * fall * fall); }
-  else if (c.kind === 'char' || c.kind === 'melt') { const k2 = Math.min(1, c.t / 0.5), fade = 1 - Math.max(0, Math.min(1, (c.t - 0.45) / 0.55)); if (fade > 0) { x.save(); x.translate(c.x, c.y); x.globalAlpha = fade; if (c.kind === 'melt') { x.scale(1 + k2 * 0.25, 1 - k2 * 0.55); soldier(x, c.k, r, 0, mix('#6a6f78', '#ff6a1a', k2 * 0.8), c.face); } else soldier(x, c.k, r, 0, mix(V.atkCol, '#1a1410', k2), c.face); x.restore(); } }
+  else if (c.kind === 'melt') { const k2 = Math.min(1, c.t / 0.5), fade = 1 - Math.max(0, Math.min(1, (c.t - 0.45) / 0.55)); if (fade > 0) { x.save(); x.translate(c.x, c.y); x.globalAlpha = fade; x.scale(1 + k2 * 0.25, 1 - k2 * 0.55); soldier(x, c.k, r, 0, mix('#6a6f78', '#ff6a1a', k2 * 0.8), c.face); x.restore(); } }
+  else if (c.kind === 'char') { if (c.bakedSk) return; const p = Math.min(1, c.t / BURN_T), lineY = -2.2 * r + p * 3.2 * r, fall = Math.max(0, (c.t - BURN_T) / FALL_T);
+    x.save(); x.translate(c.x, c.y);
+    drawSkelParts(x, c.parts || [], fall, r);
+    if (p < 1) { x.save(); x.beginPath(); x.rect(-r * 3, lineY, r * 6, r * 4); x.clip(); soldier(x, c.k, r, 0, mix(V.atkCol, '#1a1410', Math.min(1, p * 1.6)), c.face); x.restore();
+      const gr = x.createLinearGradient(0, lineY - r * 0.12, 0, lineY + r * 0.2); gr.addColorStop(0, 'rgba(255,200,90,0)'); gr.addColorStop(0.4, 'rgba(255,150,40,.7)'); gr.addColorStop(1, 'rgba(120,30,10,0)'); x.fillStyle = gr; x.fillRect(-r * (c.quad ? 2 : 0.8), lineY - r * 0.1, r * (c.quad ? 4 : 1.6), r * 0.24); }
+    x.restore(); }
   else if (c.kind === 'ash') { const charT = Math.min(1, c.t / 0.35), crumble = Math.max(0, (c.t - 0.35) / 0.85); x.save(); x.translate(c.x, c.y); x.beginPath(); x.rect(-r * 2, -r * 2.2 + crumble * r * 3.2, r * 4, r * 4); x.clip(); soldier(x, c.k, r, 0, mix(V.atkCol, '#1a1614', charT), c.face); x.restore(); }
   else if (c.kind === 'freeze') { x.save(); x.translate(c.x, c.y); soldier(x, c.k, r, 0, mix(V.atkCol, '#bfe8ff', Math.min(1, c.t / 0.15)), c.face); x.globalAlpha = 0.5; x.fillStyle = '#e8f8ff'; x.beginPath(); x.moveTo(-r, r); x.lineTo(-r * 1.1, -r * 0.6); x.lineTo(-r * 0.2, -r * 1.9); x.lineTo(r * 0.9, -r * 0.9); x.lineTo(r, r); x.closePath(); x.fill(); x.restore(); }
   x.globalAlpha = 1;

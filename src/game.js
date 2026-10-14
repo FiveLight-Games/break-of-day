@@ -131,7 +131,7 @@ const UNIT_IDS = Object.keys(UNITS);
 // base damage on a leak scales with the unit's share of its send cost (min 1); descriptions follow
 function setLeakRate(r) { RULES.leakRate = r; for (const k of UNIT_IDS) { const U = UNITS[k]; if (U.fixedDmg) continue; U.dmg = Math.max(1, Math.round(U.cost / (U.pack || 1) * r)); U.d = U.d.replace(/\d+ damage/, U.dmg + ' damage'); } }
 // gold is per second; kill gold is shared: every defender gets bounty / number of defenders
-const RULES = { setup: 10, refundWindow: 10, sendOn: 30, sendOff: 15, hoardRate: 0.01, hoardMax: 0.65, hoardGrace: 10, swarmIncome: 1.5, swarmBounty: 0.5, hordeMax: 200, hordeArmor: 0.15, unitSpeed: 0.95, pulse: 15, length: 20 * 60, hpPer: 300, leakRate: 0.5, buildTime: 3, levelTime: 1.5, defGold: 230, defIncome: 1, atkGoldPer: 60, atkIncomePer: 2, sendIncome: 0.0021, leakBounty: 0.5, investCost: 80, investGain: 0.8, speedCost: 90, speedStep: 0.05, speedMax: 5, sell: 0.7, hpPerMin: 0.05 };
+const RULES = { setup: 10, refundWindow: 10, sendOn: 30, sendOff: 15, hoardRate: 0.01, hoardMax: 0.65, hoardGrace: 10, swarmIncome: 1.5, swarmBounty: 0.5, hordeMax: 200, hordeArmor: 0.15, unitSpeed: 0.95, pulse: 15, length: 20 * 60, hpPer: 300, leakRate: 0.5, buildTime: 3, levelTime: 1.5, defGold: 230, defIncome: 1, atkGoldPer: 30, atkIncomePer: 2, sendIncome: 0.0021, leakBounty: 0.5, investCost: 80, investGain: 0.8, speedCost: 90, speedStep: 0.05, speedMax: 5, sell: 0.7, hpPerMin: 0.05 };
 setLeakRate(RULES.leakRate);
 // attack rhythm: after setup, sends open for sendOn seconds, then a sendOff-second pause, repeating
 function sendPhase(t) { if (t < RULES.setup) return { open: false, left: RULES.setup - t, setup: true }; const cyc = RULES.sendOn + RULES.sendOff, p = (t - RULES.setup) % cyc; return p < RULES.sendOn ? { open: true, left: RULES.sendOn - p } : { open: false, left: cyc - p }; }
@@ -198,7 +198,7 @@ class Sim {
   // hoarding tax (test flag `hoardTax`): a bank bigger than `free` seconds of income cuts income, down to 50% at `full` seconds
   // hoarding counter: +1%/s (max 65%) once he's gone 10s of open sending time without spending; spending x% of his bank cuts it by x%
   hoardMul() { return this.hoardTax === false ? 1 : 1 - this.atk.hoard; }
-  stepHoard(dt) { const A = this.atk; if (this.hoardTax === false || this.t < RULES.setup || this.closed || !this.canSend()) return; A.idle += dt; if (A.idle > RULES.hoardGrace) A.hoard = Math.min(RULES.hoardMax, A.hoard + RULES.hoardRate * dt); }
+  stepHoard(dt) { const A = this.atk, open = this.canSend(); if (open && !this.wasOpen) A.idle = 0; this.wasOpen = open; if (this.hoardTax === false || this.t < RULES.setup || this.closed || !open) return; A.idle += dt; if (A.idle > RULES.hoardGrace) A.hoard = Math.min(RULES.hoardMax, A.hoard + RULES.hoardRate * dt); }
   atkSpend(cost) { const A = this.atk, before = A.gold; A.gold -= cost; A.spent += cost; A.hoard *= before > 0 ? Math.max(0, A.gold) / before : 0; A.idle = 0; }
   hordeArmor(l) { return RULES.hordeArmor * Math.min(1, ((this.hordeN && this.hordeN[l]) || 0) / RULES.hordeMax); }
   canSend() { return this.noPause ? this.t >= RULES.setup : sendPhase(this.t).open; }
@@ -207,7 +207,7 @@ class Sim {
   step(dt) {
     if (this.over) return; this.t += dt; this.tick++;
     // steady income every second
-    const per = dt; this.stepHoard(dt); this.atk.gold += this.atk.income * per * this.hoardMul(); for (const d of this.defs) d.gold += d.income * per;
+    const per = dt; this.stepHoard(dt); if (this.t >= RULES.setup) this.atk.gold += this.atk.income * per * this.hoardMul(); for (const d of this.defs) d.gold += d.income * per;
     // after the time limit the attacker can't send any more; the match ends when the field is clear
     if (!this.closed && this.t >= RULES.setup + RULES.length) { this.closed = true; this.atk.queue = []; this.ev(['closed']); }
     { const hc = this.hordeN = this.hordeN || []; hc.fill(0); for (const u of this.units) if (u.hp > 0) hc[u.l] = (hc[u.l] || 0) + 1; }
