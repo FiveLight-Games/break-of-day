@@ -374,7 +374,7 @@ return { draw, update, throwEv, step, drawAir };
 const PT = (() => {
 let COL = '#3a7bd5';
 const rr = (a, b) => a + Math.random() * (b - a), lerp = (a, b, k) => a + (b - a) * k;
-const CARRY = 0.6, CRUISE = 44, BS = 1.5; // CRUISE: flying height; BS: boulders drawn bigger than in the demo
+const CARRY = 0.6, CRUISE = 44, BS = 1.2; // CRUISE: flying height; BS: boulders drawn bigger than in the demo
 const LV = [null,
   { rs: 0.56, ps: 0.62, bs: 1.15, dmg: 36, sp: 10, fly: 62, r: 92 },
   { rs: 0.68, ps: 0.74, bs: 1.3, dmg: 44, sp: 11, fly: 66, r: 98 },
@@ -456,7 +456,21 @@ function marks(c, Ro, L) {
   if (L >= 5) { c.globalAlpha = 0.9; c.beginPath(); c.moveTo(-0.6 * s, (2.2 - 8.6) * s); c.lineTo(0.6 * s, (2.2 - 9.6) * s); c.lineTo(1.8 * s, (2.2 - 8.6) * s); c.lineTo(0.6 * s, (2.2 - 7.6) * s); c.closePath(); c.fill(); c.globalAlpha = 1; }
   c.restore();
 }
-function boulder(c, px, py, rot, s, ol) { c.save(); c.translate(px, py); c.rotate(rot); c.scale(s, s); c.fillStyle = '#6f675b'; c.beginPath(); c.moveTo(-1.4, -0.5); c.lineTo(-0.5, -1.3); c.lineTo(1, -1); c.lineTo(1.5, 0.3); c.lineTo(0.6, 1.2); c.lineTo(-1.1, 1); c.closePath(); if (ol) { c.strokeStyle = '#1c1610'; c.lineWidth = 0.4; c.lineJoin = 'round'; c.stroke(); } c.fill(); c.fillStyle = '#9b9283'; c.beginPath(); c.moveTo(-1, -0.4); c.lineTo(-0.3, -1); c.lineTo(0.9, -0.7); c.lineTo(0.3, 0); c.closePath(); c.fill(); c.restore(); }
+// the pterodactyl's boulder: big, jagged, cool slate grey with a pale edge, chipped corners and a crack, dark outline
+const JAG = [[-1.6, -0.3], [-1.25, -0.95], [-0.7, -0.85], [-0.45, -1.4], [0.25, -1.15], [0.6, -1.45], [1.2, -0.9], [1.05, -0.45], [1.65, -0.05], [1.3, 0.55], [1.45, 1.0], [0.65, 1.15], [0.35, 1.5], [-0.35, 1.05], [-0.95, 1.3], [-1.2, 0.6], [-1.7, 0.45]];
+const BIG = 1.6;
+function boulder(c, px, py, rot, s, ol) {
+  c.save(); c.translate(px, py); c.rotate(rot); c.scale(s * BIG, s * BIG);
+  c.beginPath(); JAG.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath();
+  if (ol) { c.strokeStyle = '#141619'; c.lineWidth = 0.32; c.lineJoin = 'miter'; c.stroke(); }
+  c.fillStyle = '#4f555d'; c.fill();
+  c.fillStyle = '#6a717a'; c.beginPath(); c.moveTo(-1.25, -0.85); c.lineTo(-0.45, -1.3); c.lineTo(0.25, -1.05); c.lineTo(0.6, -1.35); c.lineTo(1.1, -0.85); c.lineTo(0.2, -0.2); c.lineTo(-0.9, -0.1); c.closePath(); c.fill();
+  c.strokeStyle = '#a9b0b8'; c.lineWidth = 0.18; c.beginPath(); c.moveTo(-1.2, -0.9); c.lineTo(-0.45, -1.32); c.lineTo(0.25, -1.08); c.lineTo(0.6, -1.38); c.stroke();
+  c.strokeStyle = '#2c3036'; c.lineWidth = 0.14; c.beginPath(); c.moveTo(-0.2, -0.4); c.lineTo(0.25, 0.2); c.lineTo(0.05, 0.75); c.moveTo(0.25, 0.2); c.lineTo(0.8, 0.35); c.stroke();
+  c.restore();
+}
+// a sharp shard of that boulder
+function shard(c, px, py, rot, s, v) { c.save(); c.translate(px, py); c.rotate(rot); c.scale(s * BIG, s * BIG); c.beginPath(); v.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); c.strokeStyle = '#141619'; c.lineWidth = 0.3; c.stroke(); c.fillStyle = '#565c64'; c.fill(); c.fillStyle = '#737a83'; c.beginPath(); c.moveTo(v[0][0], v[0][1]); c.lineTo(v[1][0], v[1][1]); c.lineTo((v[0][0] + v[1][0]) / 2, (v[0][1] + v[1][1]) / 2 + 0.25); c.closePath(); c.fill(); c.restore(); }
 function nest(c, Ro, L, t, back) { // back half drawn behind the bird, front half in front
   const s = Ro.ns, ny = -Ro.nestZ, rx = 4.6 * s + 0.6, ry = 1.9 * s + 0.3;
   if (back) { c.fillStyle = '#3d2a17'; c.beginPath(); c.ellipse(0, ny, rx, ry, 0, 0, 7); c.fill(); c.fillStyle = '#2a1c10'; c.beginPath(); c.ellipse(0, ny + 0.2, rx * 0.7, ry * 0.6, 0, 0, 7); c.fill();
@@ -505,7 +519,7 @@ function ptero(c, P, L, t) {
     if (L >= 2) { c.strokeStyle = MK; c.lineWidth = 0.4; c.beginPath(); c.moveTo(-0.4, -0.6); c.lineTo(0.6, -1.6); c.stroke(); }
   }
   if (spread > 0.05) wing(true);
-  if (P.carry) { c.strokeStyle = SKD; c.lineWidth = 0.45; c.beginPath(); c.moveTo(-0.6, 1); c.lineTo(-0.3, 2.4); c.moveTo(0.4, 1); c.lineTo(0.7, 2.4); c.stroke(); boulder(c, 0.2, 2.6 + LV[L].bs * BS / s * 0.9, Math.sin(t * 3) * 0.2, LV[L].bs * BS / s, true); }
+  if (P.carry) { c.strokeStyle = SKD; c.lineWidth = 0.45; c.beginPath(); c.moveTo(-0.6, 1); c.lineTo(-0.3, 2.4); c.moveTo(0.4, 1); c.lineTo(0.7, 2.4); c.stroke(); boulder(c, 0.2, 2.6 + LV[L].bs * BS * BIG / s * 0.9, Math.sin(t * 3) * 0.2, LV[L].bs * BS / s, true); }
   // neck + head: long beak forward, crest swept back (painted in the owner's colour)
   c.strokeStyle = SKN; c.lineWidth = 1.1; c.beginPath(); c.moveTo(2.4, -0.6); c.quadraticCurveTo(head[0] - 0.6, (head[1] - 0.6) * 0.5, head[0], head[1]); c.stroke();
   c.save(); c.translate(head[0], head[1]); c.rotate(look * 0.5 + (fly > 0.5 ? 0.12 : 0) - preen * 2.4);
@@ -550,7 +564,7 @@ function launch(T, lx, ly, tImp, now) {
   Object.assign(P, { st: atNest ? 'grab' : 'out', t0: now, grab, tRel, from, R: [rx, ry], L: [lx, ly], tImp, act: null, preen: 0, stretch: 0, look: 0, carry: !atNest });
   if (!atNest) P.t0 = now - 0; P.f = rx >= from[0] ? 1 : -1;
 }
-const drops = [], bits = [], dust = [], rings = [];
+const drops = [], bits = [], dust = [], rings = [], craters = [];
 const flying = new Set();
 function update(T, dt, now) {
   const B = bird(T), P = B.P, L = B.L, [nx, ny, nz] = nestPos(T, B); P.squawk = 0;
@@ -569,9 +583,9 @@ function update(T, dt, now) {
     P.fly = Math.min(1, P.fly + dt * 6); P.flap += dt * 15; if (Math.abs(P.x - ox) > 0.01) P.f = P.x > ox ? 1 : -1; P.dive = 0;
     if (e >= P.tRel) {
       P.carry = false; P.squawk = 1;
-      const V2 = LV[L], off = 2.6 * V2.ps + (0.9 * V2.bs) * BS, z0 = Math.max(4, P.z - off), fall = Math.max(0.1, P.tImp - e), g = 2 * z0 / (fall * fall);
+      const V2 = LV[L], off = 2.6 * V2.ps + 0.9 * V2.bs * BS * BIG, z0 = Math.max(4, P.z - off), fall = Math.max(0.1, P.tImp - e), g = 2 * z0 / (fall * fall);
       const bx = P.x + 0.2 * V2.ps * P.f;
-      if (onScreen(P.x, P.y, 320)) drops.push({ L, x: bx, y: P.y, z: z0, vz: 0, g, vx: (P.L[0] - bx) / fall, vy: (P.L[1] - P.y) / fall, rot: 0 });
+      if (onScreen(P.x, P.y, 320)) drops.push({ L, x: bx, y: P.y, z: z0, vz: 0, g, vx: (P.L[0] - bx) / fall, vy: (P.L[1] - P.y) / fall, rot: 0, wob: 0 });
       P.st = 'back'; P.speed = TD.towerFly('ptero', L);
     }
   } else if (P.st === 'back') {
@@ -583,24 +597,30 @@ function update(T, dt, now) {
   }
 }
 function step(dt) {
-  for (const b of drops) { b.vz -= b.g * dt; b.z += b.vz * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.rot += dt * 4; if (b.z <= 0 && !b.done) { b.done = 1; land(b); } }
+  for (const b of drops) { b.vz -= b.g * dt; b.z += b.vz * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.rot += dt * 1.6; b.wob += dt * 9; if (b.z <= 0 && !b.done) { b.done = 1; land(b); } }
   for (let i = drops.length - 1; i >= 0; i--) if (drops[i].done) drops.splice(i, 1);
   for (const b of bits) { b.t += dt; if (!b.rest) { b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; b.vz -= 240 * dt; b.rot += b.spin * dt; if (b.z <= 0) { b.z = 0; if (b.vz < -28) { b.vz *= -0.35; b.vx *= 0.5; b.spin *= 0.5; } else b.rest = b.t; } } }
   for (let i = bits.length - 1; i >= 0; i--) if (bits[i].rest && bits[i].t - bits[i].rest > 1.6) bits.splice(i, 1);
   for (const p of dust) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 5; p.vy *= 1 - dt * 5; }
   for (let i = dust.length - 1; i >= 0; i--) if (dust[i].t >= dust[i].max) dust.splice(i, 1);
   for (const r of rings) r.t += dt; for (let i = rings.length - 1; i >= 0; i--) if (rings[i].t > 0.4) rings.splice(i, 1);
+  for (const k of craters) k.t += dt; for (let i = craters.length - 1; i >= 0; i--) if (craters[i].t > 2.5) craters.splice(i, 1);
 }
 function land(b) {
   const V2 = LV[b.L], sp = TD.towerSplash('ptero', b.L);
   sfx('boom', b.x, b.y); stain(b.x, b.y, sp * 0.5, '#2a2218', 0.3);
   for (let i = 0; i < 12; i++) { const a = rr(0, 6.28); dust.push({ x: b.x + Math.cos(a) * 3, y: b.y + Math.sin(a) * 1.2, vx: Math.cos(a) * rr(30, 70), vy: Math.sin(a) * rr(10, 24), r: rr(2, 3.6) * V2.bs, t: 0, max: rr(0.5, 0.9) }); }
   rings.push({ x: b.x, y: b.y, t: 0, r: sp });
-  if (bits.length < 120) { bits.push({ x: b.x, y: b.y, z: 4, vx: b.vx * 0.3 + rr(-14, 14), vy: rr(-4, 6), vz: rr(34, 46), rot: 0, spin: rr(-10, 10), t: 0, rest: 0, s: V2.bs * 0.9 * BS }); for (let i = 0; i < 3; i++) bits.push({ x: b.x, y: b.y, z: 4, vx: rr(-36, 36), vy: rr(-10, 10), vz: rr(26, 48), rot: 0, spin: rr(-15, 15), t: 0, rest: 0, s: V2.bs * 0.35 * BS }); }
+  craters.push({ x: b.x, y: b.y, t: 0, r: (2.2 + V2.bs * 1.6) * 1.8 });
+  if (bits.length < 140) { const ns = 5 + Math.floor(Math.random() * 2); for (let i = 0; i < ns; i++) { const a = i / ns * Math.PI * 2 + rr(-0.3, 0.3), sp = rr(28, 52) * (0.8 + V2.bs * 0.3), k = rr(0.35, 0.6), v = [[-0.9 * k, -0.5 * k], [rr(0.4, 1) * k, -rr(0.7, 1.1) * k], [rr(0.8, 1.3) * k, rr(0.2, 0.6) * k], [-rr(0.1, 0.5) * k, rr(0.6, 1) * k]];
+    bits.push({ x: b.x, y: b.y, z: 4, vx: Math.cos(a) * sp + b.vx * 0.2, vy: Math.sin(a) * sp * 0.45, vz: rr(30, 50), rot: rr(0, 6), spin: rr(-12, 12), t: 0, rest: 0, s: V2.bs * BS, v }); }
+    for (let i = 0; i < 8; i++) { const a = rr(0, 6.28); bits.push({ x: b.x, y: b.y, z: 2, vx: Math.cos(a) * rr(20, 60), vy: Math.sin(a) * rr(8, 24), vz: rr(16, 36), rot: 0, spin: 0, t: 0, rest: 0, grit: 1 }); } }
 }
 function drawAir(c, t, inView) {
   for (const r of rings) { const k = r.t / 0.4; c.strokeStyle = `rgba(230,210,170,${0.6 * (1 - k)})`; c.lineWidth = 2; c.beginPath(); c.ellipse(r.x, r.y, r.r * (0.3 + k * 0.8), r.r * 0.45 * (0.3 + k * 0.8), 0, 0, 7); c.stroke(); }
-  for (const b of bits) { if (!inView(b.x, b.y, 10)) continue; c.globalAlpha = b.rest ? Math.max(0, 1 - (b.t - b.rest) / 1.6) : 1; boulder(c, b.x, b.y - 1 - b.z, b.rot, b.s); }
+  for (const k of craters) { if (!inView(k.x, k.y, 20)) continue; c.globalAlpha = Math.max(0, Math.min(1, (2.5 - k.t) / 0.8)); c.fillStyle = '#3a2c1e'; c.beginPath(); c.ellipse(k.x, k.y, k.r * 1.25, k.r * 0.55, 0, 0, 7); c.fill(); c.fillStyle = '#5c4630'; c.beginPath(); c.ellipse(k.x, k.y + 0.4, k.r * 0.85, k.r * 0.36, 0, 0, 7); c.fill(); c.strokeStyle = 'rgba(160,130,95,.7)'; c.lineWidth = 1; c.beginPath(); c.ellipse(k.x, k.y - 0.3, k.r * 1.3, k.r * 0.58, 0, Math.PI * 1.05, Math.PI * 1.95); c.stroke(); }
+  c.globalAlpha = 1;
+  for (const b of bits) { if (!inView(b.x, b.y, 10)) continue; c.globalAlpha = b.rest ? Math.max(0, 1 - (b.t - b.rest) / 1.6) : 1; if (b.grit) { c.fillStyle = '#6a7078'; c.fillRect(b.x - 0.6, b.y - 1 - b.z - 0.6, 1.2, 1.2); } else shard(c, b.x, b.y - 1 - b.z, b.rot, b.s, b.v); }
   c.globalAlpha = 1;
   for (const p of dust) { const k = p.t / p.max; c.fillStyle = `rgba(150,120,85,${0.55 * (1 - k)})`; c.beginPath(); c.arc(p.x, p.y - k * 5, p.r * (1 + k * 1.6), 0, 7); c.fill(); }
   for (const b of drops) { const k = Math.max(0.3, 1 - b.z / 60), s = LV[b.L].bs * BS; c.fillStyle = `rgba(0,0,0,${0.3 * k})`; c.beginPath(); c.ellipse(b.x, b.y + 0.5, 1.6 * s * (1.4 - k * 0.4), 0.7 * s, 0, 0, 7); c.fill(); }
@@ -609,7 +629,7 @@ function drawAir(c, t, inView) {
     const k = Math.max(0.25, 1 - P.z / 80); c.fillStyle = `rgba(0,0,0,${0.22 * k})`; c.beginPath(); c.ellipse(P.x, P.y + 0.5, 4.5 * LV[L].ps * (1 + P.fly * 0.6), 1.6 * LV[L].ps, 0, 0, 7); c.fill();
     COL = T.col || COL; c.save(); c.translate(P.x, P.y - P.z); ptero(c, P, L, t); c.restore();
   }
-  for (const b of drops) boulder(c, b.x, b.y - b.z, b.rot, LV[b.L].bs * BS, true);
+  for (const b of drops) boulder(c, b.x + Math.sin(b.wob) * 0.8, b.y - b.z, b.rot, LV[b.L].bs * BS, true);
 }
 return { draw, update, launch, step, drawAir };
 })();
