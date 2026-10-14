@@ -91,9 +91,7 @@ const PROMOTIONS = { archer: [{ n: 'Promotion I', need: 3 }, { n: 'Promotion II'
 const lvlStat = (k, lvl, key) => { const L = LEVELS[k]; return L && L[key] ? L[key][Math.max(1, Math.min(5, lvl || 1)) - 1] : null; }; // towers only list the stats their levels change
 const towerRange = (k, lvl) => TOWERS[k].r * (lvlStat(k, lvl, 'range') || 1);
 const towerDmg = (k, lvl) => lvlStat(k, lvl, 'dmg') || TOWERS[k].dmg;
-// hoarding tax: income drops linearly from 100% at hoardFree seconds of income banked to 50% at hoardFull
 const hordeArmorOf = n => RULES.hordeArmor * Math.min(1, n / RULES.hordeMax);
-const hoardMulOf = (gold, income, free = RULES.hoardFree, full = RULES.hoardFull) => 1 - 0.5 * Math.max(0, Math.min(1, (gold / Math.max(0.1, income) - free) / (full - free)));
 const towerDps = (k, lvl) => lvlStat(k, lvl, 'dps') || TOWERS[k].dps;
 const towerCone = (k, lvl) => (TOWERS[k].cone || 0) * (lvlStat(k, lvl, 'wide') || 1);
 const towerVolley = (k, lvl) => lvlStat(k, lvl, 'volley') || TOWERS[k].volley || 1;
@@ -111,7 +109,7 @@ const UNITS = {
   troop: { n: 'Scout Troop', swarm: 1, hp: 85, sp: 70, r: 4.5, cost: 15, pack: 6, bounty: 0.6, dmg: 1, body: 'human', unlock: 1, d: 'Six fast scouts per send. A horde: extra income, little bounty. 1 damage each.' },
   warband: { n: 'Footman Warband', swarm: 1, hp: 150, sp: 46, r: 5.5, cost: 15, pack: 6, bounty: 0.6, dmg: 1, body: 'human', unlock: 2, d: 'Six footmen per send. A horde: extra income, little bounty. 1 damage each.' },
   brute: { n: 'Ogre', hp: 650, sp: 40, r: 8.5, cost: 12, bounty: 4, dmg: 12, body: 'ogre', unlock: 2, d: 'Huge and slow. 12 damage to the base.' },
-  zombie: { n: 'Zombie Horde', swarm: 1, hp: 45, sp: 24, r: 5, cost: 6, pack: 8, bounty: 0.2, dmg: 1, body: 'hum', unlock: 1, d: 'Eight shambling zombies per send. Slow, but they pile up. 1 damage each.' },
+  zombie: { n: 'Zombie Horde', swarm: 1, hp: 70, sp: 24, r: 5, cost: 11, pack: 10, bounty: 0.2, dmg: 1, body: 'hum', unlock: 2, d: 'Ten shambling, hard-to-kill zombies per send. Slow, but they pile up. 1 damage each.' },
   skel: { n: 'Skeleton Horde', swarm: 1, hp: 32, sp: 50, r: 4.2, cost: 5, pack: 6, bounty: 0.25, dmg: 1, body: 'skel', unlock: 2, d: 'Six brittle skeletons per send. They swamp single-target towers. 1 damage each.' },
   gnoll: { n: 'Gnoll Pack', swarm: 1, hp: 120, sp: 60, r: 5, cost: 9, pack: 4, bounty: 0.8, dmg: 2, body: 'hum', unlock: 3, packRage: 0.15, d: 'Four gnolls. Each one that dies makes the rest 15% faster. 2 damage each.' },
   naga: { n: 'Naga Myrmidon', hp: 420, sp: 50, r: 6.5, cost: 10, bounty: 3, dmg: 5, body: 'naga', unlock: 4, slowRes: 0.5, pushRes: 0.7, d: 'Serpent warrior. Shrugs off half of any slow and most of the Water Jet. 5 damage.' },
@@ -133,7 +131,7 @@ const UNIT_IDS = Object.keys(UNITS);
 // base damage on a leak scales with the unit's share of its send cost (min 1); descriptions follow
 function setLeakRate(r) { RULES.leakRate = r; for (const k of UNIT_IDS) { const U = UNITS[k]; if (U.fixedDmg) continue; U.dmg = Math.max(1, Math.round(U.cost / (U.pack || 1) * r)); U.d = U.d.replace(/\d+ damage/, U.dmg + ' damage'); } }
 // gold is per second; kill gold is shared: every defender gets bounty / number of defenders
-const RULES = { setup: 10, refundWindow: 10, sendOn: 30, sendOff: 15, hoardFree: 25, hoardFull: 75, swarmIncome: 1.5, swarmBounty: 0.5, hordeMax: 200, hordeArmor: 0.15, unitSpeed: 0.95, pulse: 15, length: 20 * 60, hpPer: 300, leakRate: 0.5, buildTime: 3, levelTime: 1.5, defGold: 230, defIncome: 1, atkGoldPer: 60, atkIncomePer: 2, sendIncome: 0.0021, leakBounty: 0.5, investCost: 80, investGain: 0.8, speedCost: 90, speedStep: 0.05, speedMax: 5, sell: 0.7, hpPerMin: 0.05 };
+const RULES = { setup: 10, refundWindow: 10, sendOn: 30, sendOff: 15, hoardRate: 0.01, hoardMax: 0.65, hoardGrace: 10, swarmIncome: 1.5, swarmBounty: 0.5, hordeMax: 200, hordeArmor: 0.15, unitSpeed: 0.95, pulse: 15, length: 20 * 60, hpPer: 300, leakRate: 0.5, buildTime: 3, levelTime: 1.5, defGold: 230, defIncome: 1, atkGoldPer: 60, atkIncomePer: 2, sendIncome: 0.0021, leakBounty: 0.5, investCost: 80, investGain: 0.8, speedCost: 90, speedStep: 0.05, speedMax: 5, sell: 0.7, hpPerMin: 0.05 };
 setLeakRate(RULES.leakRate);
 // attack rhythm: after setup, sends open for sendOn seconds, then a sendOff-second pause, repeating
 function sendPhase(t) { if (t < RULES.setup) return { open: false, left: RULES.setup - t, setup: true }; const cyc = RULES.sendOn + RULES.sendOff, p = (t - RULES.setup) % cyc; return p < RULES.sendOn ? { open: true, left: RULES.sendOn - p } : { open: false, left: cyc - p }; }
@@ -147,7 +145,7 @@ class Sim {
     this.N = defs.length; this.L = layout(o.map, this.N); this.map = this.L.map;
     this.t = 0; this.tick = 0; this.nid = 1; this.over = null; this.events = []; this.towerVer = 1; this.hpMax = RULES.hpPer * this.N; this.hp = this.hpMax; this.closed = false;
     this.players = {};
-    this.atk = { pid: atk.pid, name: atk.name, color: atk.color, race: atk.race, bot: !!atk.bot, gold: RULES.atkGoldPer * this.N, grant: RULES.atkGoldPer * this.N, income: RULES.atkIncomePer * this.N, invest: 0, speed: 0, queue: [], sent: 0, leaked: 0, spent: 0, dmg: 0 };
+    this.atk = { pid: atk.pid, name: atk.name, color: atk.color, race: atk.race, bot: !!atk.bot, gold: RULES.atkGoldPer * this.N, hoard: 0, idle: 0, income: RULES.atkIncomePer * this.N, invest: 0, speed: 0, queue: [], sent: 0, leaked: 0, spent: 0, dmg: 0 };
     this.players[atk.pid] = this.atk;
     this.defs = defs.map((p, i) => { const d = { pid: p.pid, name: p.name, color: p.color, race: p.race, bot: !!p.bot, slot: i, gold: RULES.defGold, income: RULES.defIncome, kills: 0, built: 0, dmg: 0, shared: 0, scd: { meteor: 0, jet: 0 } }; this.players[p.pid] = d; return d; });
     this.noBotSpells = true; // bot-vs-bot tests: casting bots end up weaker than ones that buy towers; revisit with upgrades
@@ -160,8 +158,8 @@ class Sim {
     const P = this.players[pid]; if (!P || this.over) return;
     if (P === this.atk) {
       if (this.closed) return;
-      if (c.c === 'send') { const U = UNITS[c.k]; if (!U || !this.canSend() || this.mins() < U.unlock) return; const lanes = c.lane === 'all' ? this.defs.map(d => d.slot) : [this.defs[c.lane]].filter(Boolean).map(d => d.slot); const n = Math.max(1, Math.min(10, c.n | 0 || 1)), cost = U.cost * lanes.length * n; if (!lanes.length || P.gold < cost) return; P.gold -= cost; P.spent += cost; if (!U.noIncome) P.income += cost * (this.sendInc ?? RULES.sendIncome) * (U.swarm ? RULES.swarmIncome : 1); for (const l of lanes) for (let i = 0; i < n; i++) { const pk = U.pack || 1, pid = pk > 1 ? ++this.packN : 0; for (let j = 0; j < pk; j++) { const gap = j ? 0.07 : this.gate ? Math.max(0.1, U.cost / (this.gate * P.income / this.N)) : 0.1, at = Math.max(this.t, this.laneNext[l] || 0) + gap; this.laneNext[l] = at; this.spawnAt.push({ at, k: c.k, l, pk: pid }); } } P.sent += lanes.length * n; }
-      else if (c.c === 'speed') { if (P !== this.atk || this.closed || P.speed >= RULES.speedMax) return; const cost = this.speedCost(); if (P.gold < cost) return; P.gold -= cost; P.spent += cost; P.speed++; }
+      if (c.c === 'send') { const U = UNITS[c.k]; if (!U || !this.canSend() || this.mins() < U.unlock) return; const lanes = c.lane === 'all' ? this.defs.map(d => d.slot) : [this.defs[c.lane]].filter(Boolean).map(d => d.slot); const n = Math.max(1, Math.min(10, c.n | 0 || 1)), cost = U.cost * lanes.length * n; if (!lanes.length || P.gold < cost) return; this.atkSpend(cost); if (!U.noIncome) P.income += cost * (this.sendInc ?? RULES.sendIncome) * (U.swarm ? RULES.swarmIncome : 1); for (const l of lanes) for (let i = 0; i < n; i++) { const pk = U.pack || 1, pid = pk > 1 ? ++this.packN : 0; for (let j = 0; j < pk; j++) { const gap = j ? 0.07 : this.gate ? Math.max(0.1, U.cost / (this.gate * P.income / this.N)) : 0.1, at = Math.max(this.t, this.laneNext[l] || 0) + gap; this.laneNext[l] = at; this.spawnAt.push({ at, k: c.k, l, pk: pid }); } } P.sent += lanes.length * n; }
+      else if (c.c === 'speed') { if (P !== this.atk || this.closed || P.speed >= RULES.speedMax) return; const cost = this.speedCost(); if (P.gold < cost) return; this.atkSpend(cost); P.speed++; }
       return;
     }
     if (c.c === 'build') {
@@ -198,7 +196,10 @@ class Sim {
   investCost() { return Math.round(RULES.investCost * this.N * Math.pow(1.3, this.atk.invest)); }
   ev(e) { this.events.push(e); }
   // hoarding tax (test flag `hoardTax`): a bank bigger than `free` seconds of income cuts income, down to 50% at `full` seconds
-  hoardMul() { const H = this.hoardTax === undefined ? { free: RULES.hoardFree, full: RULES.hoardFull } : this.hoardTax; if (!H || this.t < RULES.setup) return 1; const A = this.atk; A.grant = Math.min(A.grant || 0, A.gold); return hoardMulOf(A.gold - A.grant, A.income, H.free, H.full); } // the starting gold never counts as hoarding
+  // hoarding counter: +1%/s (max 65%) once he's gone 10s of open sending time without spending; spending x% of his bank cuts it by x%
+  hoardMul() { return this.hoardTax === false ? 1 : 1 - this.atk.hoard; }
+  stepHoard(dt) { const A = this.atk; if (this.hoardTax === false || this.t < RULES.setup || this.closed || !this.canSend()) return; A.idle += dt; if (A.idle > RULES.hoardGrace) A.hoard = Math.min(RULES.hoardMax, A.hoard + RULES.hoardRate * dt); }
+  atkSpend(cost) { const A = this.atk, before = A.gold; A.gold -= cost; A.spent += cost; A.hoard *= before > 0 ? Math.max(0, A.gold) / before : 0; A.idle = 0; }
   hordeArmor(l) { return RULES.hordeArmor * Math.min(1, ((this.hordeN && this.hordeN[l]) || 0) / RULES.hordeMax); }
   canSend() { return this.noPause ? this.t >= RULES.setup : sendPhase(this.t).open; }
   mins() { return Math.max(0, this.t - RULES.setup) / 60; }
@@ -206,7 +207,7 @@ class Sim {
   step(dt) {
     if (this.over) return; this.t += dt; this.tick++;
     // steady income every second
-    const per = dt; this.atk.gold += this.atk.income * per * this.hoardMul(); for (const d of this.defs) d.gold += d.income * per;
+    const per = dt; this.stepHoard(dt); this.atk.gold += this.atk.income * per * this.hoardMul(); for (const d of this.defs) d.gold += d.income * per;
     // after the time limit the attacker can't send any more; the match ends when the field is clear
     if (!this.closed && this.t >= RULES.setup + RULES.length) { this.closed = true; this.atk.queue = []; this.ev(['closed']); }
     { const hc = this.hordeN = this.hordeN || []; hc.fill(0); for (const u of this.units) if (u.hp > 0) hc[u.l] = (hc[u.l] || 0) + 1; }
@@ -380,7 +381,7 @@ class Sim {
     if (wantSpd && A.gold >= this.speedCost()) this.input(A.pid, { c: 'speed' });
     const need = wantSpd ? this.speedCost() : wantInv ? this.investCost() : 0;
     if (need && A.gold < need && A.gold + A.income * 25 >= need) return;
-    if (!this.canSend()) return; // pause: upgrades only
+    if (!this.canSend() || (this.botHold && this.botHold())) return; // pause (or a test bot that chooses to hold its gold): upgrades only
     const lanes = this.defs.length;
     const W = { grunt: 22, runner: 12, footknight: 12, troop: 7, warband: 7, brute: 10, zombie: 12, skel: 14, gnoll: 10, naga: 10, sapper: 5, warg: 9, shield: 7, knight: 7, troll: 6, chief: 5, necro: 4, ent: 3, golem: 3, ram: 2, mammoth: 2 }, open = Object.keys(W).filter(k => this.mins() >= UNITS[k].unlock), tot = open.reduce((s2, k) => s2 + W[k], 0);
     if (this.mins() >= UNITS.tarrasque.unlock && !this.units.some(u => u.k === 'tarrasque')) { const c2 = UNITS.tarrasque.cost * lanes; if (A.gold >= c2) this.input(A.pid, { c: 'send', k: 'tarrasque', lane: 'all' }); else if (A.gold + A.income * 40 >= c2) return; }
@@ -428,7 +429,7 @@ class Sim {
   // ---- network snapshot (compact) ----
   snapshot(full) {
     const s = { t: Math.round(this.t * 100) / 100, pu: Math.round(this.pulseT * 10) / 10, wv: this.wave, hp: this.hp, cl: this.closed ? 1 : 0,
-      a: [Math.floor(this.atk.gold), Math.round(this.atk.income * 100) / 100, this.atk.invest, this.investCost(), this.atk.queue.map(q => UNIT_IDS.indexOf(q[0]) * 10 + q[1]), this.atk.speed, this.speedCost(), Math.floor(this.atk.grant || 0)],
+      a: [Math.floor(this.atk.gold), Math.round(this.atk.income * 100) / 100, this.atk.invest, this.investCost(), this.atk.queue.map(q => UNIT_IDS.indexOf(q[0]) * 10 + q[1]), this.atk.speed, this.speedCost(), Math.round(this.atk.hoard * 1000) / 1000],
       df: this.defs.map(d => [Math.floor(d.gold), Math.round(d.income * 10) / 10, d.kills, SPELL_IDS.map(k => Math.max(0, Math.round((d.scd[k] - this.t) * 10)))]),
       u: [], bm: this.beams || [], ev: this.events, over: this.over };
     for (const u of this.units) s.u.push(u.id, Math.round(u.d * 10) / 10, Math.round(u.hp / u.max * 100), (u.slowU > this.t ? 1 : 0) | (u.burn > 0 ? 2 : 0) | (u.wet > this.t ? 4 : 0) | (u.air > 0 ? 8 : 0));
@@ -444,6 +445,6 @@ class Sim {
   stats() { return { hp: this.hp, atk: { sent: this.atk.sent, leaked: this.atk.leaked, dmg: this.atk.dmg, spent: this.atk.spent, invest: this.atk.invest, speed: this.atk.speed }, defs: this.defs.map(d => ({ kills: d.kills, built: d.built, dmg: Math.round(d.dmg), shared: Math.round(d.shared) })) }; }
 }
 
-const API = { COLORS, RACES, MAPS, LANE, CELL, FOOT, STAGE_H, MAX_DEF, TOWERS, TOWER_IDS, LEVELS, PROMOTIONS, towerRange, towerDmg, towerDps, towerCone, towerVolley, hoardMulOf, hordeArmorOf, sendPhase, setLeakRate, UNITS, UNIT_IDS, SPELLS, SPELL_IDS, RULES, PRIORITIES, Sim, layout, footFree, mulberry32 };
+const API = { COLORS, RACES, MAPS, LANE, CELL, FOOT, STAGE_H, MAX_DEF, TOWERS, TOWER_IDS, LEVELS, PROMOTIONS, towerRange, towerDmg, towerDps, towerCone, towerVolley, hordeArmorOf, sendPhase, setLeakRate, UNITS, UNIT_IDS, SPELLS, SPELL_IDS, RULES, PRIORITIES, Sim, layout, footFree, mulberry32 };
 if (typeof module !== 'undefined') module.exports = API; else G.TD = API;
 })(typeof window !== 'undefined' ? window : globalThis);

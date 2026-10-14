@@ -310,7 +310,7 @@ function clearTrees(t) { const x0 = t.c * CELL - 8, y0 = t.r * CELL - 8, x1 = (t
 function applySnap(s) {
   V.t = s.t; V.pulse = s.pu; V.wave = s.wv; V.closed = !!s.cl;
   if (s.hp < V.hp) V.baseFlash = V.clock || 0; V.hp = s.hp;
-  V.atk.gold = s.a[0]; V.atk.income = s.a[1]; V.atk.invest = s.a[2]; V.atk.investCost = s.a[3]; V.atk.queue = s.a[4]; V.atk.speed = s.a[5] || 0; V.atk.grant = s.a[7] || 0; V.atk.speedCost = s.a[6] || 0;
+  V.atk.gold = s.a[0]; V.atk.income = s.a[1]; V.atk.invest = s.a[2]; V.atk.investCost = s.a[3]; V.atk.queue = s.a[4]; V.atk.speed = s.a[5] || 0; V.atk.hoard = s.a[7] || 0; V.atk.speedCost = s.a[6] || 0;
   s.df.forEach((d, i) => { const D = V.defs[i]; if (!D) return; D.gold = d[0]; D.income = d[1]; D.kills = d[2]; if (d[3]) { D.scdAt = D.scdAt || {}; TD.SPELL_IDS.forEach((k, j) => D.scdAt[k] = (V.clock || 0) + d[3][j] / 10); } });
   if (s.tw) {
     const old = new Map(V.towers.map(t => [t.id, t])); V.occ.fill(0);
@@ -1425,7 +1425,8 @@ const cam = { x: 600, y: 600, z: 0.7 };
 function resize() { VW = innerWidth; VH = innerHeight; cv.width = VW * DPR; cv.height = VH * DPR; clampCam(); }
 window.addEventListener('resize', resize); window.addEventListener('orientationchange', () => setTimeout(resize, 250));
 const minZ = () => V ? Math.max(0.1, Math.min(VW / V.world.W, VH / (V.world.H + TD.STAGE_H)) * 0.95) : 0.3;
-function clampCam() { if (!V) return; cam.z = Math.max(minZ(), Math.min(2.5, cam.z)); const hw = VW / 2 / cam.z, hh = VH / 2 / cam.z, W = V.world.W, top = -TD.STAGE_H, H = V.world.H, padB = (build.on ? bottomCover() + 40 : 60) / cam.z, padX = 40 / cam.z; cam.x = hw * 2 > W + padX * 2 ? W / 2 : Math.max(hw - padX, Math.min(W - hw + padX, cam.x)); cam.y = hh * 2 > H - top + padB ? (top + H + padB) / 2 : Math.max(top + hh, Math.min(H - hh + padB, cam.y)); }
+function clampCam() { if (!V) return; cam.z = Math.max(minZ(), Math.min(2.5, cam.z)); const hw = VW / 2 / cam.z, hh = VH / 2 / cam.z, W = V.world.W, top = -TD.STAGE_H, H = V.world.H, padB = (build.on ? bottomCover() + 40 : V.isAtk ? atkCover() + 40 : 60) / cam.z, padX = 40 / cam.z; cam.x = hw * 2 > W + padX * 2 ? W / 2 : Math.max(hw - padX, Math.min(W - hw + padX, cam.x)); cam.y = hh * 2 > H - top + padB ? (top + H + padB) / 2 : Math.max(top + hh, Math.min(H - hh + padB, cam.y)); }
+function atkCover() { const P = $('atkPanel'); return P && !P.classList.contains('hidden') ? Math.max(0, innerHeight - P.getBoundingClientRect().top) : 0; }
 function bottomCover() { const T = $('buildTray'); return T && !T.classList.contains('hidden') ? Math.max(0, innerHeight - T.getBoundingClientRect().top) : 0; }
 function resetCamera() { if (V.myDef) { cam.z = Math.min(1.1, VW > VH ? VW / 1100 : VH / 1250); const p = V.L.lanes[V.myDef.slot].at(500); cam.x = p[0]; cam.y = p[1]; } else { cam.z = minZ(); cam.x = V.world.W / 2; cam.y = (V.world.H - TD.STAGE_H) / 2; } clampCam(); }
 function lookAtLane(slot) { const L2 = V.L.lanes[slot]; if (!L2) return; cam.z = Math.max(cam.z, Math.min(1, Math.max(VW, VH * 0.75) / 1300)); const p = L2.at(400); cam.x = p[0]; cam.y = p[1]; clampCam(); }
@@ -1538,7 +1539,7 @@ function renderHUD(force) {
   $('clock').innerHTML = V.closed ? `⏱ Final push · ${V.units.size} left` : V.t < TD.RULES.setup ? `🛠 Setup <b>${fmtT(TD.RULES.setup - V.t)}</b>` : `⏱ ${fmtT(left)}` + (ph => ph.open ? ` <span class="phase go">⚔ Sending ${Math.ceil(ph.left)}s</span>` : ` <span class="phase hold">⏸ Pause ${Math.ceil(ph.left)}s</span>`)(TD.sendPhase(V.t));
   $('hpChip').innerHTML = `🏰 <b style="color:${V.hp > V.hpMax * .5 ? '#9ff08a' : V.hp > V.hpMax * .25 ? '#f0c419' : '#ff7a6a'}">${Math.ceil(V.hp)}</b><small>/ ${V.hpMax}</small>`;
   const hn = []; for (const u of V.units.values()) hn[u.l] = (hn[u.l] || 0) + 1;
-  $('defChips').innerHTML = V.defs.map(d => { const n = hn[d.slot] || 0, ha = TD.hordeArmorOf(n), fill = Math.min(1, n / TD.RULES.hordeMax); return `<div class="dchip ${d.pid === myPid ? 'me' : ''}" data-lane="${d.slot}"><span class="sw" style="background:${colHex(d.color)}"></span>${esc(d.name)}<span class="lv" style="color:var(--muted)">${d.kills} kills</span>${n ? `<span class="horde" title="Horde armor: every unit on this lane takes ${Math.round(ha * 100)}% less damage (${n}/${TD.RULES.hordeMax} units, max ${Math.round(TD.RULES.hordeArmor * 100)}%)"><i style="width:${fill * 100}%"></i><b>🛡${Math.round(ha * 100)}%</b></span>` : ''}</div>`; }).join('') + `<div class="dchip" style="cursor:default"><span class="sw" style="background:${V.atkCol}"></span>${esc(V.atk.name)}<span class="lv" style="color:var(--muted)">attacker</span></div>`;
+  $('defChips').innerHTML = V.defs.map(d => { const n = hn[d.slot] || 0, ha = TD.hordeArmorOf(n), fill = Math.min(1, n / TD.RULES.hordeMax); return `<div class="dchip ${d.pid === myPid ? 'me' : ''}" data-lane="${d.slot}"><span class="sw" style="background:${colHex(d.color)}"></span>${esc(d.name)}<span class="lv" style="color:var(--muted)">${d.kills} kills</span>${ha >= 0.005 ? `<span class="horde" title="Horde armor: every unit on this lane takes ${Math.round(ha * 100)}% less damage (${n}/${TD.RULES.hordeMax} units, max ${Math.round(TD.RULES.hordeArmor * 100)}%)"><i style="width:${fill * 100}%"></i><b>🛡${Math.round(ha * 100)}%</b></span>` : ''}</div>`; }).join('') + `<div class="dchip" style="cursor:default"><span class="sw" style="background:${V.atkCol}"></span>${esc(V.atk.name)}<span class="lv" style="color:var(--muted)">attacker</span></div>`;
   $('defChips').querySelectorAll('[data-lane]').forEach(b => b.onclick = () => lookAtLane(+b.dataset.lane));
   const tb = $('topBar').getBoundingClientRect(), narrow = innerWidth <= 640; $('defChips').style.top = narrow ? (tb.bottom + 6) + 'px' : ''; $('ecoBar').style.top = narrow ? (tb.bottom + 6) + 'px' : '';
   if (V.myDef) { const D = V.myDef; $('ecoBar').innerHTML = `<div class="chip">💰 ${D.gold}<small>+${D.income}/s</small></div>`; renderTray(); }
@@ -1550,30 +1551,39 @@ function renderAtk() {
   const A = V.atk, P = $('atkPanel'); P.classList.remove('hidden');
   const lanes = atkUI.target === 'all' ? V.defs.length : 1, mt = V.t - TD.RULES.setup, open = TD.UNIT_IDS.filter(k => mt >= TD.UNITS[k].unlock * 60).length, setup = V.t < TD.RULES.setup, ph = TD.sendPhase(V.t), shut = !ph.open;
   // rebuild only when the layout changes; numbers update in place so the unit row keeps its scroll position
-  const skey = JSON.stringify([open, atkUI, V.closed, lanes, setup]);
+  const skey = JSON.stringify([open, atkUI.target, atkUI.qty, atkUI.min, atkUI.min ? atkUI.last : 0, V.closed, lanes, setup]);
   if (P.dataset.skey !== skey) {
     P.dataset.skey = skey; const old = P.querySelector('.cards'), sl = old ? old.scrollLeft : 0;
     if (V.closed) { P.innerHTML = '<div class="qrow">Time is up. Your last units are on the field.</div>'; return; }
+    if (atkUI.min) { // collapsed: a slim bar with gold, the setup/pause line and a one-tap repeat of the last send
+      P.innerHTML = `<div class="targets"><button class="btn ghost sm" data-min title="Show the unit panel">▴ Units</button>${atkUI.last ? '<button class="btn sm" data-again></button>' : ''}<span style="margin-left:auto" class="chip" data-gold></span></div><div class="qrow" data-setup></div>`;
+      P.querySelector('[data-min]').onclick = () => { atkUI.min = false; renderAtk(); clampCam(); };
+      const ag = P.querySelector('[data-again]'); if (ag) ag.onclick = () => { if (!ag.disabled) send({ c: 'send', k: atkUI.last, lane: atkUI.target, n: atkUI.qty }); };
+      P.dataset.key = ''; }
+    else {
     P.innerHTML = `<div class="targets"><span class="small muted">Send to</span><button data-tg="all" class="${atkUI.target === 'all' ? 'on' : ''}">All lanes</button>${V.defs.map(d => `<button data-tg="${d.slot}" class="${atkUI.target === d.slot ? 'on' : ''}"><span class="sw" style="background:${colHex(d.color)}"></span>${esc(d.name)}</button>`).join('')}
-      <span style="margin-left:auto" class="chip" data-gold></span></div>
+      <span style="margin-left:auto" class="chip" data-gold></span><button class="btn ghost sm" data-min title="Hide the unit panel">▾</button></div>
       <div class="cards atkCards">${TD.UNIT_IDS.map(k => { const U = TD.UNITS[k], lock = U.unlock > 0 && mt < U.unlock * 60; return `<button class="card ${lock ? 'locked' : ''}" data-unit="${k}" title="${esc(U.d)}"><span data-uprev="${k}"></span><b>${U.n}${U.pack ? ' ×' + U.pack : ''}</b>${lock ? `<span class="lockTag">🔒 ${fmtT(U.unlock * 60)}</span>` : ''}<span class="cost">${U.cost * lanes * atkUI.qty + 'g'}</span>${U.noIncome ? '<small class="inc" style="color:#a59c88">no income</small>' : `<small class="inc">+${fmtInc(U.cost * lanes * atkUI.qty * TD.RULES.sendIncome * (U.swarm ? TD.RULES.swarmIncome : 1))}/s${U.swarm ? ' ×' + TD.RULES.swarmIncome : ''}</small>`}</button>`; }).join('')}</div>
       <div class="row"><div class="prios">${[1, 5, 10].map(n => `<button data-qty="${n}" class="${atkUI.qty === n ? 'on' : ''}">×${n}</button>`).join('')}</div>
         <button class="btn sm" data-speed style="margin-left:auto" title="Units you send from now on move ${Math.round(TD.RULES.speedStep * 100)}% faster"></button></div><div class="qrow" data-setup></div>`;
     P.querySelectorAll('[data-uprev]').forEach(s => s.replaceWith(previewCanvas(g => { const S = sprite(s.dataset.uprev, 'n', 1, 0, V.atkCol), sz = Math.min(64, 100 * S.size / (TD.UNITS.brute.r * 4.4)); g.drawImage(S.c, 42 - sz / 2, 66 - sz * 0.72, sz, sz); })));
     P.querySelectorAll('[data-tg]').forEach(b => b.onclick = () => { atkUI.target = b.dataset.tg === 'all' ? 'all' : +b.dataset.tg; if (atkUI.target !== 'all') lookAtLane(atkUI.target); renderAtk(); });
     P.querySelectorAll('[data-qty]').forEach(b => b.onclick = () => { atkUI.qty = +b.dataset.qty; renderAtk(); });
-    P.querySelectorAll('[data-unit]').forEach(b => b.onclick = () => { if (b.classList.contains('off')) return; send({ c: 'send', k: b.dataset.unit, lane: atkUI.target, n: atkUI.qty }); b.classList.remove('sent'); void b.offsetWidth; b.classList.add('sent'); });
+    P.querySelectorAll('[data-unit]').forEach(b => b.onclick = () => { if (b.classList.contains('off')) return; send({ c: 'send', k: b.dataset.unit, lane: atkUI.target, n: atkUI.qty }); atkUI.last = b.dataset.unit; b.classList.remove('sent'); void b.offsetWidth; b.classList.add('sent'); });
     P.querySelector('[data-speed]').onclick = () => send({ c: 'speed' });
+    P.querySelector('[data-min]').onclick = () => { atkUI.min = true; renderAtk(); clampCam(); };
     const row = P.querySelector('.cards'); row.scrollLeft = sl;
     row.addEventListener('wheel', e => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { row.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
     P.dataset.key = '';
+    }
   }
   if (V.closed) return;
-  const key = JSON.stringify([A.gold, A.income, A.investCost, A.speed, A.speedCost, Math.ceil(ph.left), shut]); if (P.dataset.key === key) return; P.dataset.key = key;
-  { const hm = V.t >= TD.RULES.setup ? TD.hoardMulOf(Math.max(0, A.gold - Math.min(A.grant || 0, A.gold)), A.income) : 1, eff = Math.round(A.income * hm * 10) / 10; P.querySelector('[data-gold]').innerHTML = `💰 ${A.gold}<small>+${eff}/s</small>` + (hm < 0.995 ? `<small class="hoard" title="Holding more than ${TD.RULES.hoardFree}s of income cuts your income (down to half at ${TD.RULES.hoardFull}s). Spend to lift it.">−${Math.round((1 - hm) * 100)}% hoarding</small>` : ''); }
+  const key = JSON.stringify([A.gold, A.income, A.hoard, A.investCost, A.speed, A.speedCost, Math.ceil(ph.left), shut]); if (P.dataset.key === key) return; P.dataset.key = key;
+  { const hm = 1 - (A.hoard || 0), eff = Math.round(A.income * hm * 10) / 10; P.querySelector('[data-gold]').innerHTML = `💰 ${A.gold}<small>+${eff}/s</small>` + (hm < 0.995 ? `<small class="hoard" title="Sitting on gold: after ${TD.RULES.hoardGrace}s without spending, your income drops 1% a second (up to ${Math.round(TD.RULES.hoardMax * 100)}%). Spending part of your bank lifts the same share of the penalty.">−${Math.round((1 - hm) * 100)}% hoarding</small>` : ''); }
   P.querySelectorAll('[data-unit]').forEach(b => { const U = TD.UNITS[b.dataset.unit], lock = U.unlock > 0 && mt < U.unlock * 60; b.classList.toggle('off', shut || lock || A.gold < U.cost * lanes * atkUI.qty); });
   const su = P.querySelector('[data-setup]'); if (su) { su.classList.toggle('hold', shut); su.textContent = setup ? `Setup: you can send units in ${Math.ceil(ph.left)}s` : shut ? `⏸ Pause: sending reopens in ${Math.ceil(ph.left)}s` : `⚔ Sending open: ${Math.ceil(ph.left)}s left, then a ${TD.RULES.sendOff}s pause. Every unit you send raises your income.`; }
-  const spb = P.querySelector('[data-speed]'), maxed = A.speed >= TD.RULES.speedMax; spb.disabled = maxed || A.gold < A.speedCost; spb.innerHTML = maxed ? '👢 Speed maxed' : `👢 Speed ${A.speed + 1}/${TD.RULES.speedMax} · ${A.speedCost}g`;
+  const ag = P.querySelector('[data-again]'); if (ag && atkUI.last) { const U = TD.UNITS[atkUI.last], cost = U.cost * lanes * atkUI.qty; ag.disabled = shut || A.gold < cost; ag.textContent = `⟳ ${U.n} ×${atkUI.qty} · ${cost}g`; }
+  const spb = P.querySelector('[data-speed]'); if (!spb) return; const maxed = A.speed >= TD.RULES.speedMax; spb.disabled = maxed || A.gold < A.speedCost; spb.innerHTML = maxed ? '👢 Speed maxed' : `👢 Speed ${A.speed + 1}/${TD.RULES.speedMax} · ${A.speedCost}g`;
 }
 
 $('menuBtn').onclick = () => openModal(`<h2>Menu</h2><p class="muted">One finger drags the map, two fingers pinch to zoom.${V && V.myDef ? ' Tap Build, then drag a tower from the tray onto the grid (white cells = it fits). Tap a tower to set its target or sell it. Drag a spell from its button onto the map to cast it (or tap the button, then tap the map).' : ''}${V && V.isAtk ? ' Pick a lane and tap a unit: it marches out right away. Sending runs ' + TD.RULES.sendOn + 's on, ' + TD.RULES.sendOff + 's paused. Every unit you send raises your income; sitting on a big bank lowers it.' : ''}</p><div class="row" style="margin-bottom:10px"><button class="btn" id="mMus">🎵 Music: ${AU.musOn ? 'On' : 'Off'}</button><button class="btn" id="mSfx">🔊 Sound: ${AU.sfxOn ? 'On' : 'Off'}</button></div><div class="row"><button class="btn" id="mResume">Resume</button><button class="btn danger" id="mQuit">Leave match</button></div>`, () => { $('mResume').onclick = closeModal; $('mMus').onclick = () => { setMusic(!AU.musOn); $('mMus').textContent = '🎵 Music: ' + (AU.musOn ? 'On' : 'Off'); }; $('mSfx').onclick = () => { setSfx(!AU.sfxOn); $('mSfx').textContent = '🔊 Sound: ' + (AU.sfxOn ? 'On' : 'Off'); }; $('mQuit').onclick = () => { closeModal(); quitGame(); }; });
