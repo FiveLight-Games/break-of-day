@@ -114,7 +114,9 @@ const UNITS = {
 };
 const UNIT_IDS = Object.keys(UNITS);
 // gold is per second; kill gold is shared: every defender gets bounty / number of defenders
-const RULES = { setup: 10, refundWindow: 10, pulse: 15, length: 20 * 60, hpPer: 250, buildTime: 3, defGold: 230, defIncome: 1, atkGoldPer: 60, atkIncomePer: 2, atkGrowth: 0.2, investCost: 80, investGain: 0.8, speedCost: 90, speedStep: 0.1, speedMax: 5, sell: 0.7, hpPerMin: 0.05 };
+const RULES = { setup: 10, refundWindow: 10, sendOn: 30, sendOff: 15, pulse: 15, length: 20 * 60, hpPer: 250, buildTime: 3, defGold: 230, defIncome: 1, atkGoldPer: 60, atkIncomePer: 2, atkGrowth: 0.2, investCost: 80, investGain: 0.8, speedCost: 90, speedStep: 0.1, speedMax: 5, sell: 0.7, hpPerMin: 0.05 };
+// attack rhythm: after setup, sends open for sendOn seconds, then a sendOff-second pause, repeating
+function sendPhase(t) { if (t < RULES.setup) return { open: false, left: RULES.setup - t, setup: true }; const cyc = RULES.sendOn + RULES.sendOff, p = (t - RULES.setup) % cyc; return p < RULES.sendOn ? { open: true, left: RULES.sendOn - p } : { open: false, left: cyc - p }; }
 const PRIORITIES = ['first', 'last', 'strong', 'close'];
 
 // ---------------- simulation ----------------
@@ -138,7 +140,7 @@ class Sim {
     const P = this.players[pid]; if (!P || this.over) return;
     if (P === this.atk) {
       if (this.closed) return;
-      if (c.c === 'send') { const U = UNITS[c.k]; if (!U || this.t < RULES.setup || this.mins() < U.unlock) return; const lanes = c.lane === 'all' ? this.defs.map(d => d.slot) : [this.defs[c.lane]].filter(Boolean).map(d => d.slot); const n = Math.max(1, Math.min(10, c.n | 0 || 1)), cost = U.cost * lanes.length * n; if (!lanes.length || P.gold < cost) return; P.gold -= cost; P.spent += cost; for (const l of lanes) for (let i = 0; i < n; i++) { const pk = U.pack || 1, pid = pk > 1 ? ++this.packN : 0; for (let j = 0; j < pk; j++) { const at = Math.max(this.t, this.laneNext[l] || 0) + (j ? 0.07 : 0.1); this.laneNext[l] = at; this.spawnAt.push({ at, k: c.k, l, pk: pid }); } } P.sent += lanes.length * n; }
+      if (c.c === 'send') { const U = UNITS[c.k]; if (!U || !this.canSend() || this.mins() < U.unlock) return; const lanes = c.lane === 'all' ? this.defs.map(d => d.slot) : [this.defs[c.lane]].filter(Boolean).map(d => d.slot); const n = Math.max(1, Math.min(10, c.n | 0 || 1)), cost = U.cost * lanes.length * n; if (!lanes.length || P.gold < cost) return; P.gold -= cost; P.spent += cost; for (const l of lanes) for (let i = 0; i < n; i++) { const pk = U.pack || 1, pid = pk > 1 ? ++this.packN : 0; for (let j = 0; j < pk; j++) { const at = Math.max(this.t, this.laneNext[l] || 0) + (j ? 0.07 : 0.1); this.laneNext[l] = at; this.spawnAt.push({ at, k: c.k, l, pk: pid }); } } P.sent += lanes.length * n; }
       else if (c.c === 'speed') { if (P !== this.atk || this.closed || P.speed >= RULES.speedMax) return; const cost = this.speedCost(); if (P.gold < cost) return; P.gold -= cost; P.spent += cost; P.speed++; }
       else if (c.c === 'invest') { const cost = this.investCost(); if (P.gold < cost) return; P.gold -= cost; P.spent += cost; P.invest++; P.income += RULES.investGain * this.N; }
       return;
@@ -176,12 +178,13 @@ class Sim {
   speedCost() { return Math.round(RULES.speedCost * this.N * Math.pow(1.6, this.atk.speed)); }
   investCost() { return Math.round(RULES.investCost * this.N * Math.pow(1.3, this.atk.invest)); }
   ev(e) { this.events.push(e); }
+  canSend() { return this.noPause ? this.t >= RULES.setup : sendPhase(this.t).open; }
   mins() { return Math.max(0, this.t - RULES.setup) / 60; }
   // ---- step ----
   step(dt) {
     if (this.over) return; this.t += dt; this.tick++;
     // steady income every second
-    const per = dt; this.atk.gold += this.atk.income * per; if (!this.closed) this.atk.income += RULES.atkGrowth * this.N * per / RULES.pulse; for (const d of this.defs) d.gold += d.income * per;
+    const per = dt; this.atk.gold += this.atk.income * per * (this.t >= RULES.setup && !this.canSend() ? (this.pauseInc ?? 1) : 1); if (!this.closed) this.atk.income += RULES.atkGrowth * this.N * per / RULES.pulse; for (const d of this.defs) d.gold += d.income * per;
     // after the time limit the attacker can't send any more; the match ends when the field is clear
     if (!this.closed && this.t >= RULES.setup + RULES.length) { this.closed = true; this.atk.queue = []; this.ev(['closed']); }
     if (this.spawnAt.length) { const due = this.spawnAt.filter(s => s.at <= this.t); if (due.length) { this.spawnAt = this.spawnAt.filter(s => s.at > this.t); due.forEach(s => this.spawn(s.k, s.l, s.pk ? { pk: s.pk } : null)); } }
@@ -349,6 +352,7 @@ class Sim {
     if (wantInv && A.gold >= this.investCost()) this.input(A.pid, { c: 'invest' });
     const need = wantSpd ? this.speedCost() : wantInv ? this.investCost() : 0;
     if (need && A.gold < need && A.gold + A.income * 25 >= need) return;
+    if (!this.canSend()) return; // pause: upgrades only
     const lanes = this.defs.length;
     const W = { grunt: 26, runner: 12, brute: 10, zombie: 12, skel: 14, gnoll: 10, naga: 10, sapper: 5, warg: 9, shield: 7, knight: 7, troll: 6, chief: 5, necro: 4, ent: 3, golem: 3, ram: 2, mammoth: 2 }, open = Object.keys(W).filter(k => this.mins() >= UNITS[k].unlock), tot = open.reduce((s2, k) => s2 + W[k], 0);
     if (this.mins() >= UNITS.tarrasque.unlock && !this.units.some(u => u.k === 'tarrasque')) { const c2 = UNITS.tarrasque.cost * lanes; if (A.gold >= c2) this.input(A.pid, { c: 'send', k: 'tarrasque', lane: 'all' }); else if (A.gold + A.income * 40 >= c2) return; }
@@ -407,6 +411,6 @@ class Sim {
   stats() { return { hp: this.hp, atk: { sent: this.atk.sent, leaked: this.atk.leaked, dmg: this.atk.dmg, spent: this.atk.spent, invest: this.atk.invest, speed: this.atk.speed }, defs: this.defs.map(d => ({ kills: d.kills, built: d.built, dmg: Math.round(d.dmg), shared: Math.round(d.shared) })) }; }
 }
 
-const API = { COLORS, RACES, MAPS, LANE, CELL, FOOT, STAGE_H, MAX_DEF, TOWERS, TOWER_IDS, LEVELS, PROMOTIONS, towerRange, towerDmg, towerVolley, UNITS, UNIT_IDS, SPELLS, SPELL_IDS, RULES, PRIORITIES, Sim, layout, footFree, mulberry32 };
+const API = { COLORS, RACES, MAPS, LANE, CELL, FOOT, STAGE_H, MAX_DEF, TOWERS, TOWER_IDS, LEVELS, PROMOTIONS, towerRange, towerDmg, towerVolley, sendPhase, UNITS, UNIT_IDS, SPELLS, SPELL_IDS, RULES, PRIORITIES, Sim, layout, footFree, mulberry32 };
 if (typeof module !== 'undefined') module.exports = API; else G.TD = API;
 })(typeof window !== 'undefined' ? window : globalThis);
