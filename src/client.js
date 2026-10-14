@@ -1195,12 +1195,50 @@ function drawCamp(L, i) {
 // ---------- deaths & gore ----------
 function particle(kind, px, py, pz, vx, vy, vz, life, col, size) { const o = (V.pool && V.pool.pop()) || {}; Object.assign(o, { p: 1, kind, x: px, y: py, z: pz, vx, vy, vz, life: 0, max: life, col, size, rot: Math.random() * 6, vr: (Math.random() - .5) * 12, gib: 0, rest: 0, baked: 0, shape: null }); V.parts.push(o); return o; }
 function bleed(px, py, dirx, diry, n, force, col) { for (let i = 0; i < n; i++) { const a = Math.atan2(diry, dirx) + rr(-0.9, 0.9), s = rr(20, 90) * force; particle('blood', px, py, rr(2, 8), Math.cos(a) * s, Math.sin(a) * s * 0.7, rr(30, 140) * force, 2, col || null, rr(0.8, 2)); } }
+// ---------- big-unit deaths: frozen flesh chunks, charred skeletons, a melted golem ----------
+const BIGK = { brute: 1, chief: 1, troll: 1, ent: 1, golem: 1, ram: 1, mammoth: 1, tarrasque: 1 };
+const FLESH = { brute: OGRE_SKIN, chief: OGRE_SKIN, troll: '#5a8a8a', mammoth: FUR, tarrasque: HIDE, ent: '#6a4a2a', golem: '#6a6f78', ram: '#6a4a2a' };
+// lying charred bones baked into the ground (they fade like the blood does); four-legged bodies get a long spine
+function charSkel(g, x, y, r, rot, quad, tusks) {
+  const R2 = (a, b) => a + Math.random() * (b - a), ash = '#bdb4a2', bone2 = '#9a9282', char = '#241812', meat = '#4a1c12';
+  g.save(); g.translate(x, y); g.rotate(rot);
+  g.globalAlpha = 0.45; g.fillStyle = '#1a1612'; g.beginPath(); g.ellipse(0, 0, r * (quad ? 2.2 : 1.3), r * (quad ? 1.1 : 1.7), 0, 0, 7); g.fill(); g.globalAlpha = 1;
+  const boneL = (x1, y1, x2, y2, w) => { g.strokeStyle = ash; g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); g.fillStyle = bone2; for (const [px, py] of [[x1, y1], [x2, y2]]) { g.beginPath(); g.arc(px, py, w * 0.75, 0, 7); g.fill(); } };
+  const scrap = (px, py, sz) => { g.fillStyle = Math.random() < 0.6 ? char : meat; g.beginPath(); const n = 5; for (let i = 0; i < n; i++) { const a = i / n * 6.283, d = sz * R2(0.5, 1.1); g.lineTo(px + Math.cos(a) * d, py + Math.sin(a) * d * 0.8); } g.closePath(); g.fill(); if (Math.random() < 0.5) { g.strokeStyle = char; g.lineWidth = sz * 0.3; g.beginPath(); g.moveTo(px, py); g.lineTo(px + R2(-1, 1) * sz * 0.4, py + sz * R2(1.2, 2)); g.stroke(); } };
+  if (!quad) {
+    const sx = r * 0.11;
+    boneL(0, -r * 0.75, 0, r * 0.65, sx * 1.4); // spine
+    for (let i = 0; i < 4; i++) { const yy = -r * 0.55 + i * r * 0.22, w = r * (0.55 - i * 0.05); g.strokeStyle = ash; g.lineWidth = sx; g.beginPath(); g.moveTo(0, yy); g.quadraticCurveTo(-w, yy - r * 0.05, -w * 0.9, yy + r * 0.18); g.moveTo(0, yy); g.quadraticCurveTo(w, yy - r * 0.05, w * 0.9, yy + r * 0.18); g.stroke(); }
+    g.fillStyle = ash; g.beginPath(); g.ellipse(0, r * 0.72, r * 0.36, r * 0.18, 0, 0, 7); g.fill(); // pelvis
+    for (const side of [-1, 1]) { const a1 = R2(-0.5, 0.9), a2 = R2(-0.4, 0.4); const ex = side * r * 0.5 + Math.sin(a1) * side * r * 0.55, ey = -r * 0.5 + Math.cos(a1) * r * 0.55; boneL(side * r * 0.5, -r * 0.55, ex, ey, sx); boneL(ex, ey, ex + side * Math.sin(a1 + a2) * r * 0.5, ey + Math.cos(a1 + a2) * r * 0.5, sx * 0.85);
+      const lx = side * r * 0.22 + R2(-0.1, 0.25) * side * r, ly = r * 0.72 + r * 0.7; boneL(side * r * 0.22, r * 0.78, lx, ly, sx * 1.1); boneL(lx, ly, lx + R2(-0.15, 0.15) * r, ly + r * 0.62, sx); }
+    g.fillStyle = ash; g.beginPath(); g.arc(0, -r * 1.1, r * 0.42, 0, 7); g.fill(); g.fillStyle = char; for (const ex of [-1, 1]) { g.beginPath(); g.arc(ex * r * 0.15, -r * 1.12, r * 0.1, 0, 7); g.fill(); } g.fillRect(-r * 0.15, -r * 0.88, r * 0.3, r * 0.06);
+    if (tusks) { g.strokeStyle = '#efe6cf'; g.lineWidth = sx; for (const ex of [-1, 1]) { g.beginPath(); g.moveTo(ex * r * 0.25, -r * 1.25); g.lineTo(ex * r * 0.45, -r * 1.65); g.stroke(); } }
+    for (let i = 0; i < 7; i++) scrap(R2(-0.5, 0.5) * r, R2(-0.7, 1.4) * r, r * R2(0.09, 0.18));
+  } else {
+    const sx = r * 0.09, L2 = r * 1.7;
+    boneL(-L2, 0, L2 * 0.85, 0, sx * 1.6); // spine, head end at -x
+    for (let i = 0; i < 7; i++) { const xx = -L2 * 0.45 + i * r * 0.32; g.strokeStyle = ash; g.lineWidth = sx; g.beginPath(); g.moveTo(xx, 0); g.quadraticCurveTo(xx + r * 0.05, -r * 0.7, xx + r * 0.25, -r * 0.85); g.moveTo(xx, 0); g.quadraticCurveTo(xx + r * 0.05, r * 0.7, xx + r * 0.25, r * 0.85); g.stroke(); }
+    for (const [hx, side] of [[-L2 * 0.4, -1], [-L2 * 0.4, 1], [L2 * 0.55, -1], [L2 * 0.55, 1]]) { const kx = hx + R2(-0.3, 0.3) * r, ky = side * r * 1.1; boneL(hx, side * r * 0.2, kx, ky, sx * 1.2); boneL(kx, ky, kx + R2(-0.3, 0.3) * r, ky + side * r * 0.8, sx); }
+    g.fillStyle = ash; g.beginPath(); g.ellipse(-L2 - r * 0.35, 0, r * 0.55, r * 0.42, 0, 0, 7); g.fill(); g.fillStyle = char; g.beginPath(); g.arc(-L2 - r * 0.45, -r * 0.18, r * 0.1, 0, 7); g.arc(-L2 - r * 0.45, r * 0.18, r * 0.1, 0, 7); g.fill();
+    if (tusks) { g.strokeStyle = '#efe6cf'; g.lineWidth = sx * 1.4; for (const s2 of [-1, 1]) { g.beginPath(); g.moveTo(-L2 - r * 0.7, s2 * r * 0.2); g.quadraticCurveTo(-L2 - r * 1.5, s2 * r * 0.6, -L2 - r * 1.3, s2 * r * 1.0); g.stroke(); } }
+    for (let i = 0; i < 12; i++) scrap(R2(-L2, L2), R2(-0.8, 0.8) * r, r * R2(0.08, 0.16));
+  }
+  g.restore();
+}
+// a golem's shell slumps into a cooling iron puddle with a glowing core
+function meltPool(g, x, y, r) { g.save(); g.translate(x, y); g.fillStyle = '#2e2e32'; g.beginPath(); for (let i = 0; i < 9; i++) { const a = i / 9 * 6.283, d = r * (1.1 + Math.random() * 0.5); g.lineTo(Math.cos(a) * d, Math.sin(a) * d * 0.55); } g.closePath(); g.fill(); g.fillStyle = '#4a4a50'; g.beginPath(); g.ellipse(-r * 0.2, -r * 0.1, r * 0.8, r * 0.35, 0, 0, 7); g.fill(); g.strokeStyle = '#c85a1a'; g.lineWidth = r * 0.08; for (let i = 0; i < 4; i++) { g.beginPath(); g.moveTo((Math.random() - 0.5) * r, (Math.random() - 0.5) * r * 0.4); g.lineTo((Math.random() - 0.5) * r * 1.2, (Math.random() - 0.5) * r * 0.5); g.stroke(); } g.restore(); }
+function frozenChunks(c) { // pieces of the unit in its own colours with a frost rim; they fly, land and fade with the gore
+  const col = FLESH[c.k] || SKIN, bl = c.k === 'golem' || c.k === 'ram' ? 'none' : c.k === 'ent' ? 'sap' : 'red', n = c.r >= 15 ? 10 : 7;
+  for (let i = 0; i < n; i++) { const a = rr(0, 6.28), sp = rr(50, 140); piece({ kind: 'chunk', col: mix(col, '#d8f2ff', rr(0.15, 0.35)), r: c.r * rr(0.32, 0.55), blood: bl, frost: 1 }, c.x + rr(-c.r, c.r) * 0.5, c.y + rr(-c.r, c.r) * 0.3, rr(4, c.r * 1.8), Math.cos(a) * sp, Math.sin(a) * sp * 0.6, rr(90, 220), c.r * 0.5, bl === 'red', false); }
+}
 function die(u, type, sx, sy) {
   const U = TD.UNITS[u.k], B = U.body, X = u.x, Y = u.y, face = Math.cos(u.a) >= 0 ? 1 : -1, dx = X - sx, dy = Y - sy, l = Math.hypot(dx, dy) || 1, nx = dx / l, ny = dy / l, dist = l;
   const base = { x: X, y: Y, r: u.r, k: u.k, face, t: 0 };
   (V.deadBars || (V.deadBars = [])).push({ x: X, y: Y, r: u.r, t: V.clock || 0 });
+  if (type === 'fire' && BIGK[u.k] && u.k !== 'ent' && u.k !== 'ram') { V.corpses.push(Object.assign(base, { kind: u.k === 'golem' ? 'melt' : 'char', quad: B === 'beast' || B === 'mammoth', tusks: u.k === 'mammoth' || u.k === 'brute' || u.k === 'chief', rot: rr(-0.6, 0.6) + (B === 'beast' || B === 'mammoth' ? (face > 0 ? Math.PI : 0) : 0) })); return; }
   if (type === 'fire') { V.corpses.push(Object.assign(base, { kind: 'ash' })); stain(X, Y + u.r * 0.6, u.r * 1.6, '#1e1a16', 0.5); return; }
-  if (type === 'ice') { V.corpses.push(Object.assign(base, { kind: 'freeze' })); stain(X, Y + u.r * 0.6, u.r * 2, '#d8f2ff', 0.35); return; }
+  if (type === 'ice') { V.corpses.push(Object.assign(base, { kind: 'freeze', big: !!BIGK[u.k] })); stain(X, Y + u.r * 0.6, u.r * 2, '#d8f2ff', 0.35); return; }
   const bl = BLOODS[B === 'skel' || B === 'ram' ? 'none' : B === 'naga' ? 'naga' : B === 'ent' ? 'sap' : HUM[u.k] && HUM[u.k].blood ? HUM[u.k].blood : 'red'];
   // how violent was it? arrows topple, shells and the meteor throw (and tear), the meteor's center blows apart
   let push, vz, tear = 0, gib = false, twitch = 0, hold = 0;
@@ -1319,11 +1357,14 @@ function stepFx(dt) {
     if (c.kind === 'flop' && !c.rest) { c.vz -= 900 * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.z += c.vz * dt; c.rot += c.vr * dt; if (c.z <= 0) { c.z = 0; if (c.vz < -70 && c.bounces < (c.maxB || 3)) { c.bounces++; c.vz = -c.vz * 0.38; c.vx *= 0.5; c.vy *= 0.5; c.vr = c.vr * -0.35 + c.dir * rr(2, 5); stain(c.x, c.y + c.r * 0.5, c.r * 0.9, BLOOD[2], 0.5); } else { c.vz = 0; c.vx *= 0.82; c.vy *= 0.82; const lie = c.dir * Math.PI / 2, d = lie - c.rot; c.rot += Math.atan2(Math.sin(d), Math.cos(d)) * Math.min(1, dt * 10); if (Math.abs(c.vx) + Math.abs(c.vy) < 4) { c.rest = 1; c.rot = lie; stain(c.x, c.y + c.r * 0.4, c.r * 1.8, BLOOD[0], 0.55); } } } }
     if (c.burning && !c.rest && Math.random() < 0.8) { particle('flame', c.x + rr(-3, 3), c.y, c.z + c.r, rr(-10, 10), rr(-6, 6), rr(10, 40), rr(0.25, 0.45), '#ff9a2a'); if (Math.random() < 0.3) particle('smoke', c.x, c.y, c.z + c.r, rr(-8, 8), rr(-5, 5), rr(20, 40), rr(0.6, 1.1), '#2a2420', rr(2, 4)); }
     if (c.kind === 'ash' && c.t > 0.35 && c.t < 1.2 && Math.random() < 0.6) particle('ash', c.x + rr(-c.r, c.r) * 0.7, c.y, rr(0, c.r * 2.2) * (1 - (c.t - 0.35) / 0.85), rr(-15, 15), rr(-8, 8), rr(25, 60), rr(0.8, 1.5), Math.random() < 0.25 ? '#ff8a2a' : '#3a3530', rr(1, 2.2));
-    if (c.kind === 'freeze' && c.t > 0.45 && !c.shattered) { c.shattered = 1; for (let i = 0; i < 7; i++) { const a = rr(0, 6.28), s = rr(40, 110); V.parts.push({ shape: 'shard', x: c.x, y: c.y, z: rr(2, c.r * 2), vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: rr(80, 200), rot: rr(0, 6), vr: rr(-12, 12), life: 0, size: rr(2, 4) * c.r / 6 }); } }
+    if (c.kind === 'freeze' && c.t > 0.45 && !c.shattered) { c.shattered = 1; if (c.big) frozenChunks(c); for (let i = 0; i < (c.big ? 12 : 7); i++) { const a = rr(0, 6.28), s = rr(40, 110); V.parts.push({ shape: 'shard', x: c.x, y: c.y, z: rr(2, c.r * 2), vx: Math.cos(a) * s, vy: Math.sin(a) * s * 0.6, vz: rr(80, 200), rot: rr(0, 6), vr: rr(-12, 12), life: 0, size: rr(2, 4) * c.r / 6, inner: c.big && c.k !== 'golem' && c.k !== 'ram' && c.k !== 'ent' && Math.random() < 0.45 }); } }
+    if ((c.kind === 'char' || c.kind === 'melt') && c.t < 0.9 && Math.random() < 0.9) particle('flame', c.x + rr(-c.r, c.r) * 0.8, c.y, rr(2, c.r * 2), rr(-10, 10), rr(-6, 6), rr(25, 60), rr(0.3, 0.6), '#ff9a2a');
+    if ((c.kind === 'char' || c.kind === 'melt') && !c.bakedSk) { c.bakedSk = 1; const m = c.r * 4; onGround(c.x - m, c.y - m, c.x + m, c.y + m, g => c.kind === 'melt' ? meltPool(g, c.x, c.y, c.r) : charSkel(g, c.x, c.y, c.r, c.rot, c.quad, c.tusks)); }
+    if ((c.kind === 'char' || c.kind === 'melt') && c.t > 0.6 && Math.random() < 0.5) particle('smoke', c.x + rr(-c.r, c.r) * 0.6, c.y, rr(2, 6), rr(-6, 6), rr(-4, 4), rr(15, 35), rr(1, 1.8), '#3a3430', rr(c.r * 0.3, c.r * 0.6));
   }
   for (const c of V.corpses) if (!c.baked && c.kind === 'rag' && c.done) { c.baked = 1; const m = c.r * 4; onGround(c.x - m, c.y - m, c.x + m, c.y + m, g => drawRag(g, c)); }
   for (const c of V.corpses) if (!c.baked && ((c.kind === 'flop' && c.rest && c.t > 0.3) || (c.kind === 'shock' && c.t > 0.9))) { c.baked = 1; const m = c.r * 3; onGround(c.x - m, c.y - m, c.x + m, c.y + m, g => drawSprite(sprite(c.k, 'dead', c.face, -1, V.atkCol), c.x, c.y + c.r * 0.3, c.kind === 'flop' ? c.rot : c.dir * Math.PI / 2, g)); }
-  V.corpses = V.corpses.filter(c => !c.baked && (c.kind === 'rag' || c.t < (c.kind === 'ash' ? 1.3 : c.kind === 'freeze' ? 0.5 : 6)));
+  V.corpses = V.corpses.filter(c => !c.baked && (c.kind === 'rag' || c.t < (c.kind === 'ash' ? 1.3 : c.kind === 'freeze' ? 0.5 : c.kind === 'char' || c.kind === 'melt' ? 4 : 6)));
   if (V.corpses.length > 300) V.corpses.splice(0, V.corpses.length - 300);
   if (!V.fadeQ || !V.fadeQ.length) V.fadeQ = [...V.tiles.values()];
   for (let n = 0; n < 2 && V.fadeQ.length; n++) { const t = V.fadeQ.pop(), el = V.clock - t.faded; if (el < 1) continue; t.faded = V.clock; t.g.setTransform(1, 0, 0, 1, 0, 0); t.g.globalCompositeOperation = 'destination-out'; t.g.fillStyle = `rgba(0,0,0,${Math.min(0.5, 0.025 * el)})`; t.g.fillRect(0, 0, t.c.width, t.c.height); t.g.globalCompositeOperation = 'source-over'; }
@@ -1404,6 +1445,7 @@ function drawCorpse(c) {
   const r = c.r; x.globalAlpha = Math.max(0, Math.min(1, 6 - c.t));
   if (c.kind === 'flop') drawSprite(sprite(c.k, 'dead', c.face, -1, V.atkCol), c.x, c.y + r * 0.3 - c.z, c.rot);
   else if (c.kind === 'shock') { const tt = Math.max(0, c.t - 0.4), fall = Math.min(1, tt / 0.28); if (c.t < 0.4) drawSprite(sprite(c.k, Math.floor(c.t * 30) % 2 ? 'flash' : 'slow', c.face, -1, V.atkCol), c.x + rr(-1, 1), c.y, 0); else drawSprite(sprite(c.k, 'dead', c.face, -1, V.atkCol), c.x, c.y + r * 0.3, c.dir * Math.PI / 2 * fall * fall); }
+  else if (c.kind === 'char' || c.kind === 'melt') { const k2 = Math.min(1, c.t / 0.5), fade = 1 - Math.max(0, Math.min(1, (c.t - 0.45) / 0.55)); if (fade > 0) { x.save(); x.translate(c.x, c.y); x.globalAlpha = fade; if (c.kind === 'melt') { x.scale(1 + k2 * 0.25, 1 - k2 * 0.55); soldier(x, c.k, r, 0, mix('#6a6f78', '#ff6a1a', k2 * 0.8), c.face); } else soldier(x, c.k, r, 0, mix(V.atkCol, '#1a1410', k2), c.face); x.restore(); } }
   else if (c.kind === 'ash') { const charT = Math.min(1, c.t / 0.35), crumble = Math.max(0, (c.t - 0.35) / 0.85); x.save(); x.translate(c.x, c.y); x.beginPath(); x.rect(-r * 2, -r * 2.2 + crumble * r * 3.2, r * 4, r * 4); x.clip(); soldier(x, c.k, r, 0, mix(V.atkCol, '#1a1614', charT), c.face); x.restore(); }
   else if (c.kind === 'freeze') { x.save(); x.translate(c.x, c.y); soldier(x, c.k, r, 0, mix(V.atkCol, '#bfe8ff', Math.min(1, c.t / 0.15)), c.face); x.globalAlpha = 0.5; x.fillStyle = '#e8f8ff'; x.beginPath(); x.moveTo(-r, r); x.lineTo(-r * 1.1, -r * 0.6); x.lineTo(-r * 0.2, -r * 1.9); x.lineTo(r * 0.9, -r * 0.9); x.lineTo(r, r); x.closePath(); x.fill(); x.restore(); }
   x.globalAlpha = 1;
@@ -1416,7 +1458,7 @@ function drawGib(p, c = X0) {
   else if (p.shape === 'head') { c.fillStyle = p.k === 'brute' ? '#9ab06a' : '#e8c39a'; c.beginPath(); c.arc(0, 0, r * 0.5, 0, 7); c.fill(); c.fillStyle = BLOOD[0]; c.fillRect(-r * 0.3, r * 0.35, r * 0.6, r * 0.2); }
   else if (p.shape === 'leg') { c.strokeStyle = '#2a1e16'; c.lineWidth = r * 0.35; c.lineCap = 'round'; c.beginPath(); c.moveTo(0, -r * 0.35); c.lineTo(0, r * 0.35); c.stroke(); c.fillStyle = BLOOD[1]; c.beginPath(); c.arc(0, -r * 0.4, r * 0.2, 0, 7); c.fill(); }
   else if (p.shape === 'weapon') { c.fillStyle = p.k === 'brute' ? '#9a9aa4' : '#c8c8d0'; c.fillRect(-r * 0.14, -r * 0.65, r * 0.28, r * 1.3); }
-  else if (p.shape === 'shard') { c.fillStyle = '#d8f4ff'; c.beginPath(); c.moveTo(0, -p.size); c.lineTo(p.size * 0.6, p.size * 0.4); c.lineTo(-p.size * 0.5, p.size * 0.6); c.closePath(); c.fill(); }
+  else if (p.shape === 'shard') { c.fillStyle = '#d8f4ff'; c.beginPath(); c.moveTo(0, -p.size); c.lineTo(p.size * 0.6, p.size * 0.4); c.lineTo(-p.size * 0.5, p.size * 0.6); c.closePath(); c.fill(); if (p.inner) { c.fillStyle = 'rgba(142,20,20,.75)'; c.beginPath(); c.moveTo(0, -p.size * 0.45); c.lineTo(p.size * 0.28, p.size * 0.2); c.lineTo(-p.size * 0.22, p.size * 0.28); c.closePath(); c.fill(); } }
   c.restore(); c.globalAlpha = 1;
 }
 
