@@ -77,7 +77,7 @@ const TOWERS = {
   archer: { n: 'Archer Post', cost: 30, r: 190, cd: 1, dmg: 20, volley: 1, dt: 'phys', d: 'A wooden watch post with one archer. Level it up for more archers, harder arrows and more range.', tip: 'One archer, one arrow a second. Level up for up to 5 archers.' },
   cannon: { n: 'Bombard', cost: 100, r: 175, cd: 1.6, dmg: 52, splash: 46, dt: 'blast', d: 'A heavy gun on a stone column. Shells hit everything nearby.', tip: 'Shells hit everything nearby. Best vs crowds.' },
   frost: { n: 'Frost Obelisk', cost: 90, r: 160, cd: 1.0, dmg: 30, slow: 1.6, dt: 'ice', d: 'An ice shard that chills its target, slowing it by half.', tip: 'Chills its target to half speed for 1.6s.' },
-  flame: { n: 'Firebreather', cost: 100, r: 140, cone: 0.3, dps: 60, burn: 5, burnPct: 0.12, dt: 'fire', d: 'A tribal fire-dancer. Breathes a cone of flame through his crossed torches: it burns everything inside and sets them alight for 5s.', tip: 'Cone of fire: hits whole clumps and sets them burning for 5s.' },
+  flame: { n: 'Firebreather', cost: 100, r: 140, cone: 0.3, dps: 60, burn: 5, burnPct: 0.12, fuel: 4.5, reload: 1.8, refill: 2.5, dt: 'fire', d: 'A tribal fire-dancer. Breathes a cone of flame through his crossed torches: it burns everything inside and sets them alight for 5s. After 4.5s of breathing his torches go out and he relights them in the fire (1.8s); they top up while he dances.', tip: 'Cone of fire: hits whole clumps and sets them burning for 5s. Relights after 4.5s of fire.' },
   storm: { n: 'Tesla Coil', cost: 140, r: 175, cd: 1.3, dmg: 40, chain: 5, dt: 'shock', d: 'Lightning that arcs to up to 5 enemies.', tip: 'Lightning arcs to up to 5 enemies.' },
 };
 const TOWER_IDS = Object.keys(TOWERS);
@@ -131,7 +131,7 @@ const UNIT_IDS = Object.keys(UNITS);
 // base damage on a leak scales with the unit's share of its send cost (min 1); descriptions follow
 function setLeakRate(r) { RULES.leakRate = r; for (const k of UNIT_IDS) { const U = UNITS[k]; if (U.fixedDmg) continue; U.dmg = Math.max(1, Math.round(U.cost / (U.pack || 1) * r)); U.d = U.d.replace(/\d+ damage/, U.dmg + ' damage'); } }
 // gold is per second; kill gold is shared: every defender gets bounty / number of defenders
-const RULES = { setup: 10, refundWindow: 10, sendOn: 30, sendOff: 15, hoardRate: 0.01, hoardMax: 0.65, hoardBank: 60, swarmIncome: 1.5, swarmBounty: 0.5, hordeMax: 200, hordeArmor: 0.15, unitSpeed: 0.95, pulse: 15, length: 20 * 60, hpPer: 300, leakRate: 0.5, buildTime: 3, levelTime: 1.5, defGold: 230, defIncome: 1, atkGoldPer: 30, atkIncomePer: 2, sendIncome: 0.0021, leakBounty: 0.5, investCost: 80, investGain: 0.8, speedCost: 90, speedStep: 0.05, speedMax: 5, sell: 0.7, hpPerMin: 0.05 };
+const RULES = { setup: 10, refundWindow: 10, sendOn: 30, sendOff: 15, hoardRate: 0.01, hoardMax: 0.65, hoardBank: 60, swarmIncome: 1.5, swarmBounty: 0.5, hordeMax: 200, hordeArmor: 0.15, unitSpeed: 0.95, pulse: 15, length: 20 * 60, hpPer: 300, leakRate: 0.5, buildTime: 3, levelTime: 1.5, defGold: 230, defIncome: 1, atkGoldPer: 30, atkIncomePer: 2, sendIncome: 0.0021, leakBounty: 0.5, shellLead: 14, investCost: 80, investGain: 0.8, speedCost: 90, speedStep: 0.05, speedMax: 5, sell: 0.7, hpPerMin: 0.05 };
 setLeakRate(RULES.leakRate);
 // attack rhythm: after setup, sends open for sendOn seconds, then a sendOff-second pause, repeating
 function sendPhase(t) { if (t < RULES.setup) return { open: false, left: RULES.setup - t, setup: true }; const cyc = RULES.sendOn + RULES.sendOff, p = (t - RULES.setup) % cyc; return p < RULES.sendOn ? { open: true, left: RULES.sendOn - p } : { open: false, left: cyc - p }; }
@@ -239,14 +239,17 @@ class Sim {
     for (const t of this.towers) {
       if (t.ready > this.t || t.off > this.t) continue;
       const T = TOWERS[t.k]; t.cd -= dt;
+      if (t.rl > this.t) continue; // Firebreather relighting his torches
       let best = null, score = -Infinity, alive = null, aScore = -Infinity;
       near(t.x, t.y, towerRange(t.k, t.lvl), u => { const s = t.prio === 'first' ? u.d / this.L.lanes[u.l].total : t.prio === 'last' ? -u.d : t.prio === 'strong' ? u.hp : -((u.x - t.x) ** 2 + (u.y - t.y) ** 2); if (s > score) { score = s; best = u; } if (T.volley && (u.inc || 0) < u.hp && s > aScore) { aScore = s; alive = u; } });
       if (T.volley && alive) best = alive;
+      if (T.fuel) { if (t.fuel === undefined) t.fuel = T.fuel; if (!best) t.fuel = Math.min(T.fuel, t.fuel + dt * T.fuel / T.refill); }
       if (!best) continue;
       t.aim = Math.atan2(best.y - t.y, best.x - t.x);
       if (T.cone) { // Firebreather: everything inside the cone burns, and keeps burning for T.burn seconds
         this.beams.push(t.id, best.id); const half = towerCone(t.k, t.lvl), dps = towerDps(t.k, t.lvl), bd = dps * T.burnPct;
         near(t.x, t.y, towerRange(t.k, t.lvl), u => { let da = Math.atan2(u.y - t.y, u.x - t.x) - t.aim; while (da > Math.PI) da -= Math.PI * 2; while (da < -Math.PI) da += Math.PI * 2; if (Math.abs(da) > half && (u.x - t.x) ** 2 + (u.y - t.y) ** 2 > 400) return; this.hurt(u, dps * dt, 'fire', t); u.burn = T.burn; if (!(u.bd > bd)) { u.bd = bd; u.bsrc = t; } });
+        t.fuel -= dt; if (t.fuel <= 0) { t.fuel = T.fuel; t.rl = this.t + T.reload; this.ev(['rl', t.id, Math.round(T.reload * 100)]); }
         continue; }
       if (T.dps) { this.beams.push(t.id, best.id); best.burn = 0.3; this.hurt(best, T.dps * dt, 'fire', t); continue; }
       if (T.volley && t.shots) { for (let i = 0; i < t.shots.length; i++) if (t.shots[i] >= 0 && this.t >= t.shots[i]) { t.shots[i] = -1; this.loose(t, best, i); } }
@@ -262,13 +265,21 @@ class Sim {
         for (let i = 1; i < T.chain; i++) { let nb = null, nd = 1e9; near(cur.x, cur.y, 70, u => { if (hit.includes(u)) return; const d = (u.x - cur.x) ** 2 + (u.y - cur.y) ** 2; if (d < nd) { nd = d; nb = u; } }); if (!nb) break; hit.push(nb); cur = nb; }
         this.ev(['z', t.id, hit.map(u => u.id)]); hit.forEach(u => this.hurt(u, T.dmg, 'shock', t)); continue;
       }
-      const fly = Math.hypot(best.x - t.x, best.y - t.y) / (t.k === 'cannon' ? 340 : t.k === 'archer' ? 560 : 420);
+      if (T.splash) { // Bombard: the shell lands on a fixed spot, led only a short way ahead of the target, never past max range
+        const fly0 = Math.hypot(best.x - t.x, best.y - t.y) / 340, lead = Math.max(0, Math.min(RULES.shellLead, (best.v || 0) * fly0));
+        let ax = best.x, ay = best.y; if (!best.run && lead > 0) { const q = this.L.lanes[best.l].at(Math.min(this.L.lanes[best.l].total, best.d + lead)); ax = q[0] + Math.cos(q[2] + Math.PI / 2) * best.off; ay = q[1] + Math.sin(q[2] + Math.PI / 2) * best.off; }
+        const R = towerRange(t.k, t.lvl), dd = Math.hypot(ax - t.x, ay - t.y); if (dd > R) { ax = t.x + (ax - t.x) * R / dd; ay = t.y + (ay - t.y) * R / dd; }
+        const fly = Math.hypot(ax - t.x, ay - t.y) / 340;
+        this.ev(['s', t.id, best.id, Math.round(fly * 100), -1, Math.round(ax), Math.round(ay)]);
+        this.pending.push({ at: this.t + fly, t, u: best, x: ax, y: ay, fixed: 1 }); continue;
+      }
+      const fly = Math.hypot(best.x - t.x, best.y - t.y) / (t.k === 'archer' ? 560 : 420);
       this.ev(['s', t.id, best.id, Math.round(fly * 100)]);
       this.pending.push({ at: this.t + fly, t, u: best, x: best.x, y: best.y });
     }
     if (this.pending.length) {
       const due = this.pending.filter(p => p.at <= this.t); this.pending = this.pending.filter(p => p.at > this.t);
-      for (const p of due) { if (p.dmg) p.u.inc = Math.max(0, (p.u.inc || 0) - p.dmg); const T = TOWERS[p.t.k], x = p.u.hp > 0 ? p.u.x : p.x, y = p.u.hp > 0 ? p.u.y : p.y; if (T.splash) near(x, y, T.splash, u => this.hurt(u, T.dmg, 'blast', p.t, x, y)); else if (p.u.hp > 0) { if (T.slow) p.u.slowU = this.t + T.slow; this.hurt(p.u, p.dmg || T.dmg, T.dt, p.t); } }
+      for (const p of due) { if (p.dmg) p.u.inc = Math.max(0, (p.u.inc || 0) - p.dmg); const T = TOWERS[p.t.k], x = p.u.hp > 0 && !p.fixed ? p.u.x : p.x, y = p.u.hp > 0 && !p.fixed ? p.u.y : p.y; if (T.splash) near(x, y, T.splash, u => this.hurt(u, T.dmg, 'blast', p.t, x, y)); else if (p.u.hp > 0) { if (T.slow) p.u.slowU = this.t + T.slow; this.hurt(p.u, p.dmg || T.dmg, T.dt, p.t); } }
     }
     this.units = this.units.filter(u => u.hp > 0);
     if (this.hp <= 0) this.finish('atk');
