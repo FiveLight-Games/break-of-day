@@ -871,10 +871,10 @@ function pal(L) {
   };
 }
 // a flickering flame: layered teardrops, base at (fx, fy)
-function flame(c, fx0, fy0, h, w, t, P, seed, hot) {
+function flame(c, fx0, fy0, h, w, t, P, seed, hot, noHalo) {
   const fl = k => Math.sin(t * (9 + k) + seed * 3.1 + k) * 0.5 + Math.sin(t * (14 + k * 2) + seed) * 0.5;
-  c.save(); c.globalCompositeOperation = 'lighter';
-  const g = c.createRadialGradient(fx0, fy0 - h * 0.35, 0, fx0, fy0 - h * 0.35, h * 1.3); g.addColorStop(0, 'rgba(255,150,40,.35)'); g.addColorStop(1, 'rgba(255,90,20,0)'); c.fillStyle = g; c.beginPath(); c.arc(fx0, fy0 - h * 0.35, h * 1.3, 0, 7); c.fill(); c.restore();
+  if (!noHalo) { c.save(); c.globalCompositeOperation = 'lighter';
+  const g = c.createRadialGradient(fx0, fy0 - h * 0.35, 0, fx0, fy0 - h * 0.35, h * 1.3); g.addColorStop(0, 'rgba(255,150,40,.35)'); g.addColorStop(1, 'rgba(255,90,20,0)'); c.fillStyle = g; c.beginPath(); c.arc(fx0, fy0 - h * 0.35, h * 1.3, 0, 7); c.fill(); c.restore(); }
   const tongue = (hh, ww, col, k) => { const sway = fl(k) * ww * 0.5, hgt = hh * (0.85 + 0.15 * fl(k + 3)); c.fillStyle = col; c.beginPath(); c.moveTo(fx0 - ww, fy0); c.bezierCurveTo(fx0 - ww * 1.05, fy0 - hgt * 0.45, fx0 + sway - ww * 0.25, fy0 - hgt * 0.7, fx0 + sway, fy0 - hgt); c.bezierCurveTo(fx0 + sway + ww * 0.25, fy0 - hgt * 0.7, fx0 + ww * 1.05, fy0 - hgt * 0.45, fx0 + ww, fy0); c.quadraticCurveTo(fx0, fy0 + ww * 0.45, fx0 - ww, fy0); c.fill(); };
   tongue(h, w, P.outer, 0); tongue(h * 0.55, w * 0.5, P.outer, 5); tongue(h * 0.78, w * 0.72, P.mid, 1); tongue(h * 0.5, w * 0.45, P.core, 2);
   const wt = Math.max(P.white, hot || 0);
@@ -891,12 +891,31 @@ function stone(c, s) {
   c.restore();
 }
 function shade(h, k) { const p = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); return '#' + p.map(v => Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k))).toString(16).padStart(2, '0')).join(''); }
-function firePit(c, L, t, P) {
+let PIT = [0, -1, 9];
+  // the fire's warm glow, drawn under everything; the dancer gets his own masked copy that fades in while he's behind the fire
+  function glow(c, a) { const [fx0, fy0, h] = PIT; c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = a; const g = c.createRadialGradient(fx0, fy0 - h * 0.35, 0, fx0, fy0 - h * 0.35, h * 1.3); g.addColorStop(0, 'rgba(255,150,40,.35)'); g.addColorStop(1, 'rgba(255,90,20,0)'); c.fillStyle = g; c.beginPath(); c.arc(fx0, fy0 - h * 0.35, h * 1.3, 0, 7); c.fill(); c.restore(); }
+  function litMan(c, T, dx, dy, sc, t, P, L) {
+    const lit = T.lit || 0;
+    if (lit < 0.001) { c.save(); c.translate(dx, dy); const m = man(c, sc, T.ph || 0, T.att || 0, T.aimS !== undefined ? T.aimS : Math.PI / 2, t, P, L); c.restore(); return m; }
+    const M = c.getTransform(), k = Math.hypot(M.a, M.b), BW = 84, BH = 84, OX = 42, OY = 70, w = Math.ceil(BW * k), h = Math.ceil(BH * k);
+    if (!T.mc) { T.mc = document.createElement('canvas'); T.gc = document.createElement('canvas'); }
+    for (const cv of [T.mc, T.gc]) if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+    const mc = T.mc.getContext('2d'); mc.setTransform(1, 0, 0, 1, 0, 0); mc.clearRect(0, 0, w, h); mc.setTransform(k, 0, 0, k, OX * k, OY * k);
+    const m = man(mc, sc, T.ph || 0, T.att || 0, T.aimS !== undefined ? T.aimS : Math.PI / 2, t, P, L);
+    const px = M.a * dx + M.c * dy + M.e, py = M.b * dx + M.d * dy + M.f, ga = c.globalAlpha;
+    c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(T.mc, px - OX * k, py - OY * k);
+    const g = T.gc.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, w, h); g.setTransform(k, 0, 0, k, OX * k, OY * k);
+    const [fx0, fy0, fh] = PIT, gx = fx0 - dx, gy = fy0 - fh * 0.35 - dy, gr = g.createRadialGradient(gx, gy, 0, gx, gy, fh * 1.3); gr.addColorStop(0, 'rgba(255,150,40,.35)'); gr.addColorStop(1, 'rgba(255,90,20,0)');
+    g.fillStyle = gr; g.fillRect(-OX, -OY, BW, BH); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'destination-in'; g.drawImage(T.mc, 0, 0);
+    c.globalCompositeOperation = 'lighter'; c.globalAlpha = lit * ga; c.drawImage(T.gc, px - OX * k, py - OY * k);
+    c.restore(); return m;
+  }
+  function firePit(c, L, t, P) {
   if (L <= 2) {
     // small campfire: ash ring + two crossed logs
     c.fillStyle = '#3b3029'; c.beginPath(); c.ellipse(0, 0, 6, 2.6, 0, 0, 7); c.fill(); c.fillStyle = '#5a2d16'; c.beginPath(); c.ellipse(0, -0.3, 4, 1.6, 0, 0, 7); c.fill();
     log(c, -4.5, 1, 4.5, -1.2, 1.3); log(c, -4, -1.2, 4.2, 1, 1.3);
-    flame(c, 0, -1, 9, 3.3, t, P, 1);
+    flame(c, 0, -1, 9, 3.3, t, P, 1, 0, true);
   } else {
     // pyre: a log crib, taller at level 5
     const layers = L >= 5 ? 5 : 3, lw = L >= 5 ? 1.6 : 1.5;
@@ -904,7 +923,7 @@ function firePit(c, L, t, P) {
     for (let i = 0; i < layers; i++) { const y = -i * 1.9, wd = 6.2 - i * 0.35; if (i % 2 === 0) { log(c, -wd, y + 1.2, wd, y + 1.2, lw); log(c, -wd, y - 1.0, wd, y - 1.0, lw); } else { log(c, -wd * 0.6, y + 2, -wd * 0.6, y - 1.8, lw); log(c, wd * 0.6, y + 2, wd * 0.6, y - 1.8, lw); } }
     const top = -layers * 1.9 + 1;
     { const gy = top + layers * 0.95, g = c.createRadialGradient(0, gy, 0, 0, gy, 6); g.addColorStop(0, 'rgba(255,190,80,.55)'); g.addColorStop(1, 'rgba(255,120,30,0)'); c.fillStyle = g; c.beginPath(); c.ellipse(0, gy, 6, layers * 1.1, 0, 0, 7); c.fill(); }
-    flame(c, 0, top + 2, L >= 5 ? 22 : 15, L >= 5 ? 6.5 : 5.5, t, P, 2);
+    flame(c, 0, top + 2, L >= 5 ? 22 : 15, L >= 5 ? 6.5 : 5.5, t, P, 2, 0, true);
   }
 }
 function log(c, x1, y1, x2, y2, w) { c.strokeStyle = '#5b3a1f'; c.lineWidth = w; c.lineCap = 'round'; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.strokeStyle = '#7a5130'; c.lineWidth = w * 0.4; c.beginPath(); c.moveTo(x1, y1 - w * 0.2); c.lineTo(x2, y2 - w * 0.2); c.stroke(); c.lineCap = 'butt'; }
@@ -1039,11 +1058,12 @@ function drawBreath(c, T, t) {
     const torches = L >= 4 ? [0, 1, 2, 3, 4].map(p => { const a = p / 5 * Math.PI * 2 + 0.35 + 0.42; return { a, x: Math.cos(a) * 25, y: Math.sin(a) * 10.5 }; }) : [];
     const pos = T.pos || 0, ph = T.ph || 0, att = T.att || 0, aim = T.aimS !== undefined ? T.aimS : Math.PI / 2;
     const dx = Math.cos(pos) * 11, dy = Math.sin(pos) * 4.4, items = [];
+    PIT = [0, L <= 2 ? -1 : -(L >= 5 ? 5 : 3) * 1.9 + 3, L <= 2 ? 9 : L >= 5 ? 22 : 15]; glow(c, 1);
     stones.forEach(s => items.push([s.y + s.z * 0.01, () => stone(c, s)]));
     torches.forEach((q, i) => items.push([q.y, () => { c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(q.x + 0.8, q.y + 0.6, 1.8, 0.8, 0, 0, 7); c.fill(); c.strokeStyle = '#5b3a1f'; c.lineWidth = 1.3; c.beginPath(); c.moveTo(q.x, q.y); c.lineTo(q.x, q.y - 9); c.stroke(); c.fillStyle = '#2b2018'; c.beginPath(); c.ellipse(q.x, q.y - 9.5, 1.2, 1.5, 0, 0, 7); c.fill(); flame(c, q.x, q.y - 9.6, 5.5, 1.7, t, P, 10 + i, L >= 5 ? 1 : 0); }]));
     items.push([0, () => firePit(c, L, t, P)]);
     let m = null;
-    items.push([dy + 0.1, () => { c.save(); c.translate(dx, dy); m = man(c, 1 + (L - 1) * 0.07, ph, att, aim, t, P, L); c.restore(); }]);
+    items.push([dy + 0.1, () => { m = litMan(c, T, dx, dy, 1 + (L - 1) * 0.07, t, P, L); }]);
     items.sort((a, b) => a[0] - b[0]).forEach(i => i[1]());
     c.restore();
     if (m && T.x !== undefined) T.mouthW = [T.x + dx + m.conv[0], T.y + 4 + dy + m.conv[1]];
@@ -1056,6 +1076,7 @@ function drawBreath(c, T, t) {
     if (tgt) { const want = Math.atan2(tgt.y - (tgt.r || 6) - my, tgt.x - mx); let d = want - T.aimS; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; T.aimS += d * Math.min(1, dt * 6); T.att = Math.min(1, T.att + dt * 5); T.cone = T.att >= 0.8 ? Math.min(1, T.cone + dt * 4) : 0; }
     else { T.att = Math.max(0, T.att - dt * 3); T.cone = Math.max(0, T.cone - dt * 6); }
     if (T.att < 0.05) { T.pos += dt * 1.1; T.ph += dt * 4.2; }
+    { const behind = Math.sin(T.pos) * 4.4 + 0.1 < 0 ? 1 : 0, st = dt / 0.45; T.lit = (T.lit || 0) + Math.max(-st, Math.min(st, behind - (T.lit || 0))); } // firelight on him fades over 0.45s
     T.aim = T.aimS;
     if (visible && T.mouthW) emitBreath(T, dt); else if (!visible) T.fp = null;
     stepBreath(T, dt);
@@ -1476,28 +1497,25 @@ function renderAtk() {
       <span style="margin-left:auto" class="chip" data-gold></span></div>
       <div class="cards atkCards">${TD.UNIT_IDS.map(k => { const U = TD.UNITS[k], lock = mt < U.unlock * 60; return `<button class="card ${lock ? 'locked' : ''}" data-unit="${k}" title="${esc(U.d)}"><span data-uprev="${k}"></span><b>${U.n}${U.pack ? ' ×' + U.pack : ''}</b><span class="cost">${lock ? '🔒 ' + fmtT(U.unlock * 60) : U.cost * lanes * atkUI.qty + 'g'}</span>${lock ? '' : `<small class="inc">+${fmtInc(U.cost * lanes * atkUI.qty * TD.RULES.sendIncome)}/s</small>`}</button>`; }).join('')}</div>
       <div class="row"><div class="prios">${[1, 5, 10].map(n => `<button data-qty="${n}" class="${atkUI.qty === n ? 'on' : ''}">×${n}</button>`).join('')}</div>
-        <button class="btn sm" data-speed style="margin-left:auto" title="Units you send from now on move ${Math.round(TD.RULES.speedStep * 100)}% faster"></button>
-        <button class="btn sm" data-invest></button></div><div class="qrow" data-setup></div>`;
+        <button class="btn sm" data-speed style="margin-left:auto" title="Units you send from now on move ${Math.round(TD.RULES.speedStep * 100)}% faster"></button></div><div class="qrow" data-setup></div>`;
     P.querySelectorAll('[data-uprev]').forEach(s => s.replaceWith(previewCanvas(g => { const S = sprite(s.dataset.uprev, 'n', 1, 0, V.atkCol), sz = Math.min(64, 100 * S.size / (TD.UNITS.brute.r * 4.4)); g.drawImage(S.c, 42 - sz / 2, 66 - sz * 0.72, sz, sz); })));
     P.querySelectorAll('[data-tg]').forEach(b => b.onclick = () => { atkUI.target = b.dataset.tg === 'all' ? 'all' : +b.dataset.tg; if (atkUI.target !== 'all') lookAtLane(atkUI.target); renderAtk(); });
     P.querySelectorAll('[data-qty]').forEach(b => b.onclick = () => { atkUI.qty = +b.dataset.qty; renderAtk(); });
     P.querySelectorAll('[data-unit]').forEach(b => b.onclick = () => { if (b.classList.contains('off')) return; send({ c: 'send', k: b.dataset.unit, lane: atkUI.target, n: atkUI.qty }); b.classList.remove('sent'); void b.offsetWidth; b.classList.add('sent'); });
     P.querySelector('[data-speed]').onclick = () => send({ c: 'speed' });
-    P.querySelector('[data-invest]').onclick = () => send({ c: 'invest' });
     const row = P.querySelector('.cards'); row.scrollLeft = sl;
     row.addEventListener('wheel', e => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { row.scrollLeft += e.deltaY; e.preventDefault(); } }, { passive: false });
     P.dataset.key = '';
   }
   if (V.closed) return;
   const key = JSON.stringify([A.gold, A.income, A.investCost, A.speed, A.speedCost, Math.ceil(ph.left), shut]); if (P.dataset.key === key) return; P.dataset.key = key;
-  P.querySelector('[data-gold]').innerHTML = `💰 ${A.gold}<small>+${A.income}/s</small>`;
+  { const hm = V.t >= TD.RULES.setup ? TD.hoardMulOf(A.gold, A.income) : 1, eff = Math.round(A.income * hm * 10) / 10; P.querySelector('[data-gold]').innerHTML = `💰 ${A.gold}<small>+${eff}/s</small>` + (hm < 0.995 ? `<small class="hoard" title="Holding more than ${TD.RULES.hoardFree}s of income cuts your income (down to half at ${TD.RULES.hoardFull}s). Spend to lift it.">−${Math.round((1 - hm) * 100)}% hoarding</small>` : ''); }
   P.querySelectorAll('[data-unit]').forEach(b => { const U = TD.UNITS[b.dataset.unit], lock = mt < U.unlock * 60; b.classList.toggle('off', shut || lock || A.gold < U.cost * lanes * atkUI.qty); });
   const su = P.querySelector('[data-setup]'); if (su) { su.classList.toggle('hold', shut); su.textContent = setup ? `Setup: you can send units in ${Math.ceil(ph.left)}s` : shut ? `⏸ Pause: sending reopens in ${Math.ceil(ph.left)}s` : `⚔ Sending open: ${Math.ceil(ph.left)}s left, then a ${TD.RULES.sendOff}s pause. Every unit you send raises your income.`; }
   const spb = P.querySelector('[data-speed]'), maxed = A.speed >= TD.RULES.speedMax; spb.disabled = maxed || A.gold < A.speedCost; spb.innerHTML = maxed ? '👢 Speed maxed' : `👢 Speed ${A.speed + 1}/${TD.RULES.speedMax} · ${A.speedCost}g`;
-  const iv = P.querySelector('[data-invest]'); iv.disabled = A.gold < A.investCost; iv.innerHTML = `Invest ${A.investCost}g<small style="font-weight:600">&nbsp;+${Math.round(TD.RULES.investGain * V.defs.length * 10) / 10}/s</small>`;
 }
 
-$('menuBtn').onclick = () => openModal(`<h2>Menu</h2><p class="muted">One finger drags the map, two fingers pinch to zoom.${V && V.myDef ? ' Tap Build, then drag a tower from the tray onto the grid (white cells = it fits). Tap a tower to set its target or sell it. Drag a spell from its button onto the map to cast it (or tap the button, then tap the map).' : ''}${V && V.isAtk ? ' Pick a lane and tap a unit: it marches out right away. Sending runs ' + TD.RULES.sendOn + 's on, ' + TD.RULES.sendOff + 's paused. Every unit you send raises your income.' : ''}</p><div class="row" style="margin-bottom:10px"><button class="btn" id="mMus">🎵 Music: ${AU.musOn ? 'On' : 'Off'}</button><button class="btn" id="mSfx">🔊 Sound: ${AU.sfxOn ? 'On' : 'Off'}</button></div><div class="row"><button class="btn" id="mResume">Resume</button><button class="btn danger" id="mQuit">Leave match</button></div>`, () => { $('mResume').onclick = closeModal; $('mMus').onclick = () => { setMusic(!AU.musOn); $('mMus').textContent = '🎵 Music: ' + (AU.musOn ? 'On' : 'Off'); }; $('mSfx').onclick = () => { setSfx(!AU.sfxOn); $('mSfx').textContent = '🔊 Sound: ' + (AU.sfxOn ? 'On' : 'Off'); }; $('mQuit').onclick = () => { closeModal(); quitGame(); }; });
+$('menuBtn').onclick = () => openModal(`<h2>Menu</h2><p class="muted">One finger drags the map, two fingers pinch to zoom.${V && V.myDef ? ' Tap Build, then drag a tower from the tray onto the grid (white cells = it fits). Tap a tower to set its target or sell it. Drag a spell from its button onto the map to cast it (or tap the button, then tap the map).' : ''}${V && V.isAtk ? ' Pick a lane and tap a unit: it marches out right away. Sending runs ' + TD.RULES.sendOn + 's on, ' + TD.RULES.sendOff + 's paused. Every unit you send raises your income; sitting on a big bank lowers it.' : ''}</p><div class="row" style="margin-bottom:10px"><button class="btn" id="mMus">🎵 Music: ${AU.musOn ? 'On' : 'Off'}</button><button class="btn" id="mSfx">🔊 Sound: ${AU.sfxOn ? 'On' : 'Off'}</button></div><div class="row"><button class="btn" id="mResume">Resume</button><button class="btn danger" id="mQuit">Leave match</button></div>`, () => { $('mResume').onclick = closeModal; $('mMus').onclick = () => { setMusic(!AU.musOn); $('mMus').textContent = '🎵 Music: ' + (AU.musOn ? 'On' : 'Off'); }; $('mSfx').onclick = () => { setSfx(!AU.sfxOn); $('mSfx').textContent = '🔊 Sound: ' + (AU.sfxOn ? 'On' : 'Off'); }; $('mQuit').onclick = () => { closeModal(); quitGame(); }; });
 function quitGame() { endGame(); V = null; $('atkPanel').classList.add('hidden'); if (L.mode === 'solo') { L.mode = null; show('menu'); renderMenu(); } else leaveLobby(); }
 function showEnd() {
   if (!V || !V.over) return; const atkWin = V.over.winner === 'atk', won = V.isAtk ? atkWin : (V.me && !atkWin), st = V.stats;
