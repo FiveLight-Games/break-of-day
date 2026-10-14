@@ -456,7 +456,7 @@ function marks(c, Ro, L) {
   if (L >= 5) { c.globalAlpha = 0.9; c.beginPath(); c.moveTo(-0.6 * s, (2.2 - 8.6) * s); c.lineTo(0.6 * s, (2.2 - 9.6) * s); c.lineTo(1.8 * s, (2.2 - 8.6) * s); c.lineTo(0.6 * s, (2.2 - 7.6) * s); c.closePath(); c.fill(); c.globalAlpha = 1; }
   c.restore();
 }
-function boulder(c, px, py, rot, s) { c.save(); c.translate(px, py); c.rotate(rot); c.scale(s, s); c.fillStyle = '#6f675b'; c.beginPath(); c.moveTo(-1.4, -0.5); c.lineTo(-0.5, -1.3); c.lineTo(1, -1); c.lineTo(1.5, 0.3); c.lineTo(0.6, 1.2); c.lineTo(-1.1, 1); c.closePath(); c.fill(); c.fillStyle = '#9b9283'; c.beginPath(); c.moveTo(-1, -0.4); c.lineTo(-0.3, -1); c.lineTo(0.9, -0.7); c.lineTo(0.3, 0); c.closePath(); c.fill(); c.restore(); }
+function boulder(c, px, py, rot, s, ol) { c.save(); c.translate(px, py); c.rotate(rot); c.scale(s, s); c.fillStyle = '#6f675b'; c.beginPath(); c.moveTo(-1.4, -0.5); c.lineTo(-0.5, -1.3); c.lineTo(1, -1); c.lineTo(1.5, 0.3); c.lineTo(0.6, 1.2); c.lineTo(-1.1, 1); c.closePath(); if (ol) { c.strokeStyle = '#1c1610'; c.lineWidth = 0.4; c.lineJoin = 'round'; c.stroke(); } c.fill(); c.fillStyle = '#9b9283'; c.beginPath(); c.moveTo(-1, -0.4); c.lineTo(-0.3, -1); c.lineTo(0.9, -0.7); c.lineTo(0.3, 0); c.closePath(); c.fill(); c.restore(); }
 function nest(c, Ro, L, t, back) { // back half drawn behind the bird, front half in front
   const s = Ro.ns, ny = -Ro.nestZ, rx = 4.6 * s + 0.6, ry = 1.9 * s + 0.3;
   if (back) { c.fillStyle = '#3d2a17'; c.beginPath(); c.ellipse(0, ny, rx, ry, 0, 0, 7); c.fill(); c.fillStyle = '#2a1c10'; c.beginPath(); c.ellipse(0, ny + 0.2, rx * 0.7, ry * 0.6, 0, 0, 7); c.fill();
@@ -505,7 +505,7 @@ function ptero(c, P, L, t) {
     if (L >= 2) { c.strokeStyle = MK; c.lineWidth = 0.4; c.beginPath(); c.moveTo(-0.4, -0.6); c.lineTo(0.6, -1.6); c.stroke(); }
   }
   if (spread > 0.05) wing(true);
-  if (P.carry) { c.strokeStyle = SKD; c.lineWidth = 0.45; c.beginPath(); c.moveTo(-0.6, 1); c.lineTo(-0.3, 2.4); c.moveTo(0.4, 1); c.lineTo(0.7, 2.4); c.stroke(); boulder(c, 0.2, 2.6 + LV[L].bs * BS / s * 0.9, Math.sin(t * 3) * 0.2, LV[L].bs * BS / s); }
+  if (P.carry) { c.strokeStyle = SKD; c.lineWidth = 0.45; c.beginPath(); c.moveTo(-0.6, 1); c.lineTo(-0.3, 2.4); c.moveTo(0.4, 1); c.lineTo(0.7, 2.4); c.stroke(); boulder(c, 0.2, 2.6 + LV[L].bs * BS / s * 0.9, Math.sin(t * 3) * 0.2, LV[L].bs * BS / s, true); }
   // neck + head: long beak forward, crest swept back (painted in the owner's colour)
   c.strokeStyle = SKN; c.lineWidth = 1.1; c.beginPath(); c.moveTo(2.4, -0.6); c.quadraticCurveTo(head[0] - 0.6, (head[1] - 0.6) * 0.5, head[0], head[1]); c.stroke();
   c.save(); c.translate(head[0], head[1]); c.rotate(look * 0.5 + (fly > 0.5 ? 0.12 : 0) - preen * 2.4);
@@ -609,7 +609,7 @@ function drawAir(c, t, inView) {
     const k = Math.max(0.25, 1 - P.z / 80); c.fillStyle = `rgba(0,0,0,${0.22 * k})`; c.beginPath(); c.ellipse(P.x, P.y + 0.5, 4.5 * LV[L].ps * (1 + P.fly * 0.6), 1.6 * LV[L].ps, 0, 0, 7); c.fill();
     COL = T.col || COL; c.save(); c.translate(P.x, P.y - P.z); ptero(c, P, L, t); c.restore();
   }
-  for (const b of drops) boulder(c, b.x, b.y - b.z, b.rot, LV[b.L].bs * BS);
+  for (const b of drops) boulder(c, b.x, b.y - b.z, b.rot, LV[b.L].bs * BS, true);
 }
 return { draw, update, launch, step, drawAir };
 })();
