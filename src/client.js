@@ -833,16 +833,7 @@ function towerBody(c, k, col, aim, now, kick, seed, lvl) {
     c.fillStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.moveTo(0, -22); c.lineTo(-2.5, -6); c.lineTo(-1, 6); c.lineTo(0.5, -6); c.closePath(); c.fill();
     for (let i = 0; i < 3; i++) { const a = now * 1.4 + i * 2.094, sx = Math.cos(a) * 12, sy = -8 + Math.sin(a) * 4; c.fillStyle = Math.sin(a) > 0 ? '#d8f4ff' : '#9ad0ec'; c.beginPath(); c.moveTo(sx, sy - 4); c.lineTo(sx + 1.8, sy); c.lineTo(sx, sy + 4); c.lineTo(sx - 1.8, sy); c.closePath(); c.fill(); }
   } else if (k === 'flame') {
-    // fire brazier: iron tripod, slim pole, fire bowl with hanging colored cloths
-    c.strokeStyle = '#2a2622'; c.lineWidth = 2.6; c.lineCap = 'round';
-    c.beginPath(); c.moveTo(-15, 15); c.lineTo(0, -2); c.moveTo(15, 15); c.lineTo(0, -2); c.moveTo(0, 11); c.lineTo(0, -2); c.stroke();
-    c.fillStyle = '#3a3430'; c.beginPath(); c.ellipse(0, 13, 6, 2.4, 0, 0, 7); c.fill();
-    c.fillStyle = '#3a3430'; c.fillRect(-1.6, -12, 3.2, 12);
-    c.fillStyle = col; c.beginPath(); c.moveTo(-9, -12); c.lineTo(-7, 0); c.lineTo(-5, -12); c.fill(); c.beginPath(); c.moveTo(5, -12); c.lineTo(7, -1); c.lineTo(9, -12); c.fill();
-    c.fillStyle = '#4a423c'; c.beginPath(); c.moveTo(-11, -15); c.lineTo(11, -15); c.lineTo(7, -10); c.lineTo(-7, -10); c.closePath(); c.fill(); c.fillStyle = '#2a2420'; c.beginPath(); c.ellipse(0, -15, 11, 3, 0, 0, 7); c.fill();
-    const f = 0.8 + 0.2 * Math.sin(now * 17 + seed);
-    c.fillStyle = '#ff6a1a'; c.beginPath(); c.moveTo(-8, -15); c.quadraticCurveTo(-3, -26 * f, 0, -24 * f - 1); c.quadraticCurveTo(4, -27 * f, 8, -15); c.fill();
-    c.fillStyle = '#ffd36a'; c.beginPath(); c.moveTo(-4, -15); c.quadraticCurveTo(0, -22 * f, 4, -15); c.fill();
+    FB.draw(c, { lvl: lvl || 1, col, ph: now * 4.2 + seed, pos: now * 1.1 + seed, att: 0 }, now);
   } else {
     // tesla coil: dark octagonal base, lattice stem, stacked coils, big conductor sphere
     c.fillStyle = '#2e3238'; c.beginPath(); for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283 + 0.39; c.lineTo(Math.cos(a) * 17, 12 + Math.sin(a) * 6); } c.closePath(); c.fill();
@@ -855,12 +846,231 @@ function towerBody(c, k, col, aim, now, kick, seed, lvl) {
     if (hot || Math.sin(now * 7 + seed * 3) > 0.92) { c.strokeStyle = '#bfe6ff'; c.lineWidth = 1; c.beginPath(); let px = 0, py = -17; for (let i = 0; i < 4; i++) { px += rr(-4, 4); py += rr(-3, 2); c.lineTo(px, py); } c.stroke(); }
   }
 }
+// ===== Firebreather (ported from the approved demo; flat vector, drawn in the tower's local space) =====
+const FB = (() => {
+  let COL = '#3a7bd5'; const SC = 1.45; // flame licks a bit bigger than the demo: game ranges are longer
+  let capK = 1; // thins every flame stream when lots of Firebreathers fire at once
+function srand(s) { return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+function makeStones(L, seed) {
+  const R = srand(seed), out = [], sh = ['#8e8a82', '#a29e95', '#77736b', '#968b7b', '#6d6a64'];
+  const poly = sz => { const n = 5 + Math.floor(R() * 3), v = []; for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + R() * 0.5; v.push([Math.cos(a) * sz * (0.75 + R() * 0.4), Math.sin(a) * sz * 0.62 * (0.75 + R() * 0.4)]); } return v; };
+  if (L < 4) {
+    const n = 12; for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2 + (R() - 0.5) * 0.25, sz = 2.2 + R() * 2.4; out.push({ a, x: Math.cos(a) * 20, y: Math.sin(a) * 8, z: 0, v: poly(sz), c: i % 3 === 1 ? COL : sh[Math.floor(R() * sh.length)], h: 1.6 + R() * 2 }); }
+  } else {
+    // five stacked piles with gaps between them
+    for (let p = 0; p < 5; p++) { const a = p / 5 * Math.PI * 2 + 0.35, n = 3 + (R() < 0.5 ? 1 : 0); let z = 0; for (let j = 0; j < n; j++) { const sz = (4.2 - j * 0.9) * (0.85 + R() * 0.3); out.push({ a, x: Math.cos(a) * 20 + (R() - 0.5) * 1.5, y: Math.sin(a) * 8, z, v: poly(sz), c: j === Math.floor((n - 1) / 2) ? COL : sh[Math.floor(R() * sh.length)], h: 1.8 + R() * 0.8 }); z += sz * 0.55 + 0.6; } }
+  }
+  return out;
+}
+// ---------- palette per level ----------
+function pal(L) {
+  return {
+    outer: '#d9431e', mid: '#f2891c', core: L >= 3 ? '#ffe680' : '#ffd23f',
+    white: [0, 0, 0.45, 0.75, 1][L - 1],   // white tinge at the base of fire
+    blue: L >= 5 ? 1 : 0,
+  };
+}
+// a flickering flame: layered teardrops, base at (fx, fy)
+function flame(c, fx0, fy0, h, w, t, P, seed, hot) {
+  const fl = k => Math.sin(t * (9 + k) + seed * 3.1 + k) * 0.5 + Math.sin(t * (14 + k * 2) + seed) * 0.5;
+  c.save(); c.globalCompositeOperation = 'lighter';
+  const g = c.createRadialGradient(fx0, fy0 - h * 0.35, 0, fx0, fy0 - h * 0.35, h * 1.3); g.addColorStop(0, 'rgba(255,150,40,.35)'); g.addColorStop(1, 'rgba(255,90,20,0)'); c.fillStyle = g; c.beginPath(); c.arc(fx0, fy0 - h * 0.35, h * 1.3, 0, 7); c.fill(); c.restore();
+  const tongue = (hh, ww, col, k) => { const sway = fl(k) * ww * 0.5, hgt = hh * (0.85 + 0.15 * fl(k + 3)); c.fillStyle = col; c.beginPath(); c.moveTo(fx0 - ww, fy0); c.bezierCurveTo(fx0 - ww * 1.05, fy0 - hgt * 0.45, fx0 + sway - ww * 0.25, fy0 - hgt * 0.7, fx0 + sway, fy0 - hgt); c.bezierCurveTo(fx0 + sway + ww * 0.25, fy0 - hgt * 0.7, fx0 + ww * 1.05, fy0 - hgt * 0.45, fx0 + ww, fy0); c.quadraticCurveTo(fx0, fy0 + ww * 0.45, fx0 - ww, fy0); c.fill(); };
+  tongue(h, w, P.outer, 0); tongue(h * 0.55, w * 0.5, P.outer, 5); tongue(h * 0.78, w * 0.72, P.mid, 1); tongue(h * 0.5, w * 0.45, P.core, 2);
+  const wt = Math.max(P.white, hot || 0);
+  if (wt > 0) tongue(h * (0.18 + wt * 0.2), w * (0.22 + wt * 0.16), `rgba(255,253,244,${0.55 + wt * 0.45})`, 4);
+  if (P.blue) { tongue(h * 0.12, w * 0.5, 'rgba(110,180,255,.85)', 6); tongue(h * 0.08, w * 0.26, 'rgba(225,242,255,.95)', 7); }
+}
+function stone(c, s) {
+  c.save(); c.translate(s.x, s.y - s.z);
+  c.fillStyle = 'rgba(0,0,0,.25)'; if (!s.z) { c.beginPath(); c.ellipse(0.8, 0.8, 4, 1.6, 0, 0, 7); c.fill(); }
+  // side (darker) then top face
+  c.fillStyle = shade(s.c, -0.3); c.beginPath(); s.v.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); c.fill();
+  c.translate(0, -s.h); c.fillStyle = s.c; c.beginPath(); s.v.forEach((p, i) => i ? c.lineTo(p[0] * 0.92, p[1] * 0.92) : c.moveTo(p[0] * 0.92, p[1] * 0.92)); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(255,255,255,.18)'; c.beginPath(); c.ellipse(-s.v[0][0] * 0.2, -1, 1.4, 0.7, 0, 0, 7); c.fill();
+  c.restore();
+}
+function shade(h, k) { const p = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); return '#' + p.map(v => Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k))).toString(16).padStart(2, '0')).join(''); }
+function firePit(c, L, t, P) {
+  if (L <= 2) {
+    // small campfire: ash ring + two crossed logs
+    c.fillStyle = '#3b3029'; c.beginPath(); c.ellipse(0, 0, 6, 2.6, 0, 0, 7); c.fill(); c.fillStyle = '#5a2d16'; c.beginPath(); c.ellipse(0, -0.3, 4, 1.6, 0, 0, 7); c.fill();
+    log(c, -4.5, 1, 4.5, -1.2, 1.3); log(c, -4, -1.2, 4.2, 1, 1.3);
+    flame(c, 0, -1, 9, 3.3, t, P, 1);
+  } else {
+    // pyre: a log crib, taller at level 5
+    const layers = L >= 5 ? 5 : 3, lw = L >= 5 ? 1.6 : 1.5;
+    c.fillStyle = '#3b3029'; c.beginPath(); c.ellipse(0, 0.5, 8.5, 3.4, 0, 0, 7); c.fill();
+    for (let i = 0; i < layers; i++) { const y = -i * 1.9, wd = 6.2 - i * 0.35; if (i % 2 === 0) { log(c, -wd, y + 1.2, wd, y + 1.2, lw); log(c, -wd, y - 1.0, wd, y - 1.0, lw); } else { log(c, -wd * 0.6, y + 2, -wd * 0.6, y - 1.8, lw); log(c, wd * 0.6, y + 2, wd * 0.6, y - 1.8, lw); } }
+    const top = -layers * 1.9 + 1;
+    { const gy = top + layers * 0.95, g = c.createRadialGradient(0, gy, 0, 0, gy, 6); g.addColorStop(0, 'rgba(255,190,80,.55)'); g.addColorStop(1, 'rgba(255,120,30,0)'); c.fillStyle = g; c.beginPath(); c.ellipse(0, gy, 6, layers * 1.1, 0, 0, 7); c.fill(); }
+    flame(c, 0, top + 2, L >= 5 ? 22 : 15, L >= 5 ? 6.5 : 5.5, t, P, 2);
+  }
+}
+function log(c, x1, y1, x2, y2, w) { c.strokeStyle = '#5b3a1f'; c.lineWidth = w; c.lineCap = 'round'; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.strokeStyle = '#7a5130'; c.lineWidth = w * 0.4; c.beginPath(); c.moveTo(x1, y1 - w * 0.2); c.lineTo(x2, y2 - w * 0.2); c.stroke(); c.lineCap = 'butt'; }
+function torchTo(c, hx, hy, ex, ey, t, P, seed, L, big) {
+  const a = Math.atan2(ey - hy, ex - hx);
+  c.strokeStyle = '#5b3a1f'; c.lineWidth = 1.1; c.beginPath(); c.moveTo(hx - Math.cos(a) * 1.5, hy - Math.sin(a) * 1.5); c.lineTo(ex, ey); c.stroke();
+  c.fillStyle = '#2b2018'; c.beginPath(); c.ellipse(ex, ey, 1.1, 1.3, a, 0, 7); c.fill();
+  if (big < 0.85) flame(c, ex, ey, 5.2 * (1 - big), 1.6 * (1 - big * 0.6), t, P, seed, L >= 5 ? 1 : 0);
+  else { c.fillStyle = '#ff7a2a'; c.beginPath(); c.arc(ex, ey, 0.6, 0, 7); c.fill(); } // just embers on the wraps
+}
+// headdress by level: none at 1, three feathers at 2, a full fan at 3, gold band at 4, ornate gold crown at 5
+const GOLD = '#e8b923', GOLD_D = '#a87a12', GOLD_L = '#fff0a0';
+function feather(c, x0, y0, ang, len, col, tip) {
+  const ex = x0 + Math.cos(ang) * len, ey = y0 + Math.sin(ang) * len, nx = -Math.sin(ang), ny = Math.cos(ang);
+  c.fillStyle = col; c.beginPath(); c.moveTo(x0, y0); c.quadraticCurveTo((x0 + ex) / 2 + nx * 0.9, (y0 + ey) / 2 + ny * 0.9, ex, ey); c.quadraticCurveTo((x0 + ex) / 2 - nx * 0.9, (y0 + ey) / 2 - ny * 0.9, x0, y0); c.fill();
+  if (tip) { c.fillStyle = tip; c.beginPath(); c.arc(ex - Math.cos(ang) * 0.5, ey - Math.sin(ang) * 0.5, 0.55, 0, 7); c.fill(); }
+  c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 0.2; c.beginPath(); c.moveTo(x0, y0); c.lineTo(ex, ey); c.stroke();
+}
+function headdress(c, hx, hy, f, L, t) {
+  if (L <= 1) return;
+  const by = hy - 1.6, sway = Math.sin(t * 3) * 0.04, cols = [COL, '#f2ead8', '#d98a2b'];
+  // feathers fan up and slightly back from the band
+  const n = [0, 0, 3, 6, 6, 9][L], spread = [0, 0, 0.5, 1.2, 1.1, 1.9][L], len = [0, 0, 4.4, 4.8, 4.6, 5.6][L];
+  for (let i = 0; i < n; i++) {
+    const k = n === 1 ? 0 : i / (n - 1) - 0.5, ang = -Math.PI / 2 - f * 0.35 + k * spread + sway, ln = len * (1 - Math.abs(k) * 0.45);
+    const col = L >= 5 ? (i % 2 ? '#f6efe0' : COL) : cols[i % 3], tip = L >= 5 ? GOLD : L >= 4 && i % 2 === 0 ? GOLD : null;
+    const base = L === 2 ? 0.6 : 2.2; // level 2's three feathers share one root on his head
+    feather(c, hx + k * base, by + Math.abs(k) * (L === 2 ? 0.2 : 0.8), ang, ln, col, tip);
+  }
+  if (L >= 4) {
+    // gold headband; level 5 adds a raised crest, a gem in the owner's colour and hanging gold strands
+    c.fillStyle = GOLD_D; c.beginPath(); c.ellipse(hx, by + 0.4, 2.35, 0.8, 0, 0, 7); c.fill();
+    c.fillStyle = GOLD; c.beginPath(); c.ellipse(hx, by + 0.15, 2.3, 0.6, 0, 0, 7); c.fill();
+    if (L >= 5) {
+      c.fillStyle = GOLD; c.beginPath(); c.moveTo(hx - 1.8, by); c.lineTo(hx - 1.2, by - 1.6); c.lineTo(hx - 0.6, by - 0.6); c.lineTo(hx, by - 2.2); c.lineTo(hx + 0.6, by - 0.6); c.lineTo(hx + 1.2, by - 1.6); c.lineTo(hx + 1.8, by); c.closePath(); c.fill();
+      c.fillStyle = GOLD_L; for (const dx of [-1.2, 0, 1.2]) { c.beginPath(); c.arc(hx + dx, by - (dx ? 1.6 : 2.2), 0.3, 0, 7); c.fill(); }
+      c.fillStyle = COL; c.beginPath(); c.ellipse(hx + f * 0.3, by + 0.05, 0.55, 0.45, 0, 0, 7); c.fill(); c.fillStyle = 'rgba(255,255,255,.6)'; c.beginPath(); c.arc(hx + f * 0.15, by - 0.1, 0.15, 0, 7); c.fill();
+      c.strokeStyle = GOLD; c.lineWidth = 0.35; for (const sx of [-1, 1]) { c.beginPath(); c.moveTo(hx + sx * 2.1, by + 0.4); c.quadraticCurveTo(hx + sx * 2.5, by + 2, hx + sx * 2.2, by + 3.4 + Math.sin(t * 4 + sx) * 0.2); c.stroke(); c.fillStyle = GOLD_L; c.beginPath(); c.arc(hx + sx * 2.2, by + 3.6 + Math.sin(t * 4 + sx) * 0.2, 0.35, 0, 7); c.fill(); }
+    } else {
+      c.fillStyle = GOLD_L; c.beginPath(); c.arc(hx + f * 0.4, by + 0.1, 0.35, 0, 7); c.fill();
+    }
+  }
+}
+
+// the firebreather: feet at (0,0); dance = phase, att = 0..1 blend into the breathing pose, aim = world angle
+function man(c, s, dance, att, aim, t, P, L) {
+  c.save(); c.scale(s, s);
+  const ax = Math.cos(aim), ay = Math.sin(aim) * 0.6, px = -ay, py = ax; // aim on screen (squashed for the 3/4 view) and its perpendicular
+  const faceIdle = Math.cos(dance + Math.PI / 2) >= 0 ? 1 : -1, f = att > 0.5 ? (ax >= 0 ? 1 : -1) : faceIdle;
+  const bob = (1 - att) * Math.abs(Math.sin(dance * 2)) * 1.6, hipY = -6 - bob + att * 0.9; // knees bend when he braces
+  const SK = '#a5653c', SKD = '#7f4a2a', PAINT = '#d9552a';
+  const lx = ax * 2.4 * att, ly = (ay * 1.4 + 1.8) * att; // the hunch: upper body leans toward the target and drops
+  const sh = hipY - 5.2, hx = lx * 1.35, hy = sh - 2.2 + ly * 1.3;
+  const mouth = [hx + f * 1.9 * (1 - att * 0.4) + ax * 1.3 * att, hy + 0.7 + ay * 1.1 * att];
+  const conv = [mouth[0] + ax * 3.4, mouth[1] + ay * 3.4 + 0.3 * att]; // the torch tips cross here, just in front of the mouth
+  const two = L >= 2, lift = [0, 1.4];
+  // torch grips: idle (waving overhead) and breathing (crossed in front of the mouth)
+  const idleH = two ? [[-3.6 + Math.sin(dance * 2) * 1.2, sh - 4.5 - Math.cos(dance * 2) * 1.5], [3.6 - Math.sin(dance * 2) * 1.2, sh - 4.5 + Math.cos(dance * 2) * 1.5]] : [[f * 3.4 + Math.sin(dance * 2) * 1.5, sh - 5 - Math.abs(Math.cos(dance * 2)) * 1.2], [-f * 4, sh + 2.5 + Math.cos(dance * 2) * 1.2]];
+  const idleT = idleH.map((h, i) => { const a = -Math.PI / 2 + (i ? 0.28 : -0.28) * (two ? 1 : f) + Math.sin(dance * 2 + i) * 0.2; return [h[0] + Math.cos(a) * 6.5, h[1] + Math.sin(a) * 6.5]; });
+  const attH = two ? [[conv[0] + px * 3.8 - ax * 5 + lift[0], conv[1] + py * 3.8 - ay * 5 + lift[1]], [conv[0] - px * 3.8 - ax * 5 + lift[0], conv[1] - py * 3.8 - ay * 5 + lift[1]]] : [[conv[0] + px * 2.4 - ax * 5.5, conv[1] + py * 2.4 - ay * 5.5 + lift[1]], [-f * 2.6 + lx, sh + 3.6]];
+  const attT = two ? [[conv[0] - px * 1.1, conv[1] - py * 1.1], [conv[0] + px * 1.1, conv[1] + py * 1.1]] : [conv, null];
+  const L2 = (a, b) => [a[0] + (b[0] - a[0]) * att, a[1] + (b[1] - a[1]) * att];
+  const hands = idleH.map((h, i) => L2(h, attH[i])), tips = idleT.map((p, i) => attT[i] ? L2(p, attT[i]) : null);
+  const shL = [-2.4 + lx, sh + 0.8 + ly], shR = [2.4 + lx, sh + 0.8 + ly];
+  const arm = (shp, hand) => { c.strokeStyle = SK; c.lineWidth = 1.3; c.lineCap = 'round'; c.beginPath(); c.moveTo(shp[0], shp[1]); c.quadraticCurveTo((shp[0] + hand[0]) / 2 + (hand[0] > shp[0] ? -0.6 : 0.6), (shp[1] + hand[1]) / 2 + 1, hand[0], hand[1]); c.stroke(); };
+  const torches = () => { for (let i = 0; i < (two ? 2 : 1); i++) torchTo(c, hands[i][0], hands[i][1], tips[i][0], tips[i][1], t, P, i + 3, L, att); };
+  const arms = () => { const lh = hands[0][0] <= hands[1][0] ? hands[0] : hands[1], rh = lh === hands[0] ? hands[1] : hands[0]; arm(shL, lh); arm(shR, rh); }; // each shoulder takes the hand on its own side, so the arms never cross
+  const back = ay < -0.05 && att > 0.5; // aiming up the screen: torches go behind him
+  c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(lx * 0.3, 0.4, 4 + att, 1.4, 0, 0, 7); c.fill();
+  if (back) { torches(); arms(); }
+  // legs: hopping dance or a wide, bent, braced stance
+  const lk = Math.sin(dance * 2) * (1 - att), lf = [-2.2 - att * 1.2 + lk * 1.2, -Math.max(0, lk) * 2.4], rf = [2.2 + att * 1.2 + lk * 1.2, -Math.max(0, -lk) * 2.4];
+  c.strokeStyle = SKD; c.lineWidth = 1.5; c.lineCap = 'round';
+  c.beginPath(); c.moveTo(-1, hipY); c.quadraticCurveTo(-2.4 - att, hipY + 2.4, lf[0], lf[1]); c.moveTo(1, hipY); c.quadraticCurveTo(2.4 + att, hipY + 2.4, rf[0], rf[1]); c.stroke();
+  // torso (leaning), war paint, bone necklace
+  c.fillStyle = SK; c.beginPath(); c.moveTo(-2, hipY); c.lineTo(-2.6 + lx, sh + 0.6 + ly); c.quadraticCurveTo(lx, sh - 0.8 + ly, 2.6 + lx, sh + 0.6 + ly); c.lineTo(2, hipY); c.closePath(); c.fill();
+  c.strokeStyle = PAINT; c.lineWidth = 0.6; c.beginPath(); c.moveTo(-1.6 + lx * 0.3, hipY - 1.6 + ly * 0.3); c.lineTo(1.6 + lx * 0.3, hipY - 2.4 + ly * 0.3); c.moveTo(-1.8 + lx * 0.55, hipY - 3 + ly * 0.55); c.lineTo(1.8 + lx * 0.55, hipY - 3.8 + ly * 0.55); c.stroke();
+  c.fillStyle = '#efe6cf'; for (let i = -2; i <= 2; i++) { c.beginPath(); c.arc(i * 0.9 + lx * 0.9, sh + 1.6 - Math.abs(i) * 0.25 + ly * 0.9, 0.38, 0, 7); c.fill(); }
+  c.fillStyle = COL; c.beginPath(); c.moveTo(-2.3, hipY - 0.6); c.lineTo(2.3, hipY - 0.6); c.lineTo(1.5, hipY + 2.6); c.lineTo(-1.5, hipY + 2.6); c.closePath(); c.fill();
+  c.fillStyle = '#6b4a2a'; c.fillRect(-2.4, hipY - 1, 4.8, 0.8);
+  // head, pushed forward and down when he blows; cheeks puff out
+  c.fillStyle = SK; c.beginPath(); c.arc(hx, hy, 2.1, 0, 7); c.fill();
+  c.fillStyle = '#21140c'; c.beginPath(); c.arc(hx, hy - 0.4, 2.2, Math.PI * 1.02, Math.PI * 1.98); c.fill(); c.beginPath(); c.arc(hx - f * 0.6, hy - 2.4, 0.9, 0, 7); c.fill();
+  c.strokeStyle = PAINT; c.lineWidth = 0.5; c.beginPath(); c.moveTo(hx + f * 0.5, hy - 0.2); c.lineTo(hx + f * 1.8, hy - 0.2); c.stroke();
+  headdress(c, hx, hy, f, L, t);
+  c.fillStyle = SKD; c.beginPath(); c.arc(hx + f * 1.9, hy + 0.3, 0.55 + att * 0.35, 0, 7); c.fill();
+  if (!back) { arms(); torches(); }
+  c.restore();
+  return { conv: [conv[0] * s, conv[1] * s] };
+}
+// flame breath: a stream of burning puffs that leave the crossed torch tips, swell, cool and turn to smoke
+const BREATH = {
+  1: [[0, '#ffbe3a'], [0.22, '#f7861e'], [0.55, '#de4a1a'], [0.85, '#a82814']],                                   // deep orange-red
+  2: [[0, '#fff27a'], [0.3, '#ffc63a'], [0.62, '#f5741c'], [0.88, '#c93618']],                                    // bright yellow-orange
+  3: [[0, '#ffffff'], [0.22, '#fff3b0'], [0.45, '#ffc93a'], [0.72, '#f5741c'], [0.92, '#c93618']],                // white core
+  4: [[0, '#ffffff'], [0.42, '#fffbea'], [0.6, '#ffe070'], [0.8, '#f5841c'], [0.95, '#c93618']],                  // mostly white
+  5: [[0, '#3f8cff'], [0.18, '#8cc4ff'], [0.36, '#e8f4ff'], [0.55, '#ffffff'], [0.75, '#ffd24a'], [0.92, '#f0641c']], // blue into white-hot
+};
+const LEN = [0, 1, 1.1, 1.2, 1.3, 1.4]; // flame length (and reach), by level
+const COUNT = [0, 1, 1.1, 1.2, 1.3, 1.4 * 1.4]; // flame licks in the stream, by level
+const WIDE = [0, 1, 1.1, 1.2, 1.3, 1.4]; // cone width by level
+const SPEED = [0, 0.5, 0.675, 0.85, 1.025, 1.2]; // how fast the breath moves, by level (range stays the same)
+function breathCol(L, u) { const st = BREATH[L]; let i = 0; while (i < st.length - 1 && st[i + 1][0] <= u) i++; if (i === st.length - 1) return st[i][1]; const [u0, a] = st[i], [u1, b] = st[i + 1]; return mixC(a, b, (u - u0) / (u1 - u0)); }
+function mixC(a, b, k) { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); const A = p(a), B = p(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * k).toString(16).padStart(2, '0')).join(''); }
+function emitBreath(T, dt) {
+  T.fp = T.fp || []; if (T.cone < 0.3) return;
+  const m = SPEED[T.lvl]; T.emit = (T.emit || 0) + dt * 150 * m * COUNT[T.lvl] * LEN[T.lvl] * capK; // longer flames get proportionally more licks, so density only ever goes up
+  while (T.emit >= 1) { T.emit--; const a = T.aim + (Math.random() - 0.5) * 2 * T.half * 0.85, sp = T.reach / 0.5 * m * (0.85 + Math.random() * 0.25); T.fp.push({ x: T.mouthW[0], y: T.mouthW[1], vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: (0.42 + Math.random() * 0.14) / m, sd: Math.random() * 6 }); }
+}
+function stepBreath(T, dt) { if (!T.fp) return; const m = SPEED[T.lvl]; for (const p of T.fp) { p.life += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 0.6 * m; p.vy *= 1 - dt * 0.6 * m; p.vy -= 6 * dt * m * m; } T.fp = T.fp.filter(p => p.life < p.max + 0.35 / m); }
+function drawBreath(c, T, t) {
+  if (!T.fp || !T.fp.length) return;
+  // smoke trails off the far end
+  for (const p of T.fp) { const u = p.life / p.max; if (u < 0.85) continue; const k = Math.min(1, (u - 0.85) / 0.75); c.fillStyle = `rgba(55,45,40,${0.13 * (1 - k)})`; c.beginPath(); c.arc(p.x, p.y - k * 4, (2.5 + k * 3) * SC, 0, 7); c.fill(); }
+  // burning tongues: stretched along their flight, hottest colour at the torch tips
+  const list = T.fp.filter(p => p.life < p.max).sort((a, b) => b.life / b.max - a.life / a.max);
+  for (const p of list) {
+    const u = p.life / p.max, r = (1.1 + u * 3.8) * SC + Math.sin(t * 30 * SPEED[T.lvl] + p.sd) * 0.3, al = (u < 0.06 ? u / 0.06 : 1) * Math.pow(1 - u, 0.5) * 0.97 * 0.75, a = Math.atan2(p.vy, p.vx);
+    c.globalAlpha = al; c.fillStyle = breathCol(T.lvl, u); c.beginPath(); c.ellipse(p.x, p.y, r * (1.9 - u * 0.7), r * 0.8, a, 0, 7); c.fill();
+  }
+  c.globalAlpha = 1;
+  if (T.cone > 0.3) { const P = BREATH[T.lvl][0][1]; c.globalAlpha = 0.9; c.fillStyle = P; c.beginPath(); c.ellipse(T.mouthW[0], T.mouthW[1], 2.6, 1.9, T.aim, 0, 7); c.fill(); c.globalAlpha = 1; }
+}
+
+  const STONES = new Map();
+  function draw(c, T, t) {
+    const L = Math.max(1, Math.min(5, T.lvl || 1)), P = pal(L); COL = T.col || COL;
+    const key = L + '|' + COL; let stones = STONES.get(key); if (!stones) STONES.set(key, stones = makeStones(L, 7 + L * 31));
+    c.save(); c.translate(0, 4);
+    c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse(1.5, 2, 25, 10, 0, 0, 7); c.fill();
+    c.fillStyle = '#7d6446'; c.beginPath(); c.ellipse(0, 0, 21, 8.5, 0, 0, 7); c.fill(); c.fillStyle = '#6d5539'; c.beginPath(); c.ellipse(0, 0.5, 15, 5.8, 0, 0, 7); c.fill();
+    const torches = L >= 4 ? [0, 1, 2, 3, 4].map(p => { const a = p / 5 * Math.PI * 2 + 0.35 + 0.42; return { a, x: Math.cos(a) * 25, y: Math.sin(a) * 10.5 }; }) : [];
+    const pos = T.pos || 0, ph = T.ph || 0, att = T.att || 0, aim = T.aimS !== undefined ? T.aimS : Math.PI / 2;
+    const dx = Math.cos(pos) * 11, dy = Math.sin(pos) * 4.4, items = [];
+    stones.forEach(s => items.push([s.y + s.z * 0.01, () => stone(c, s)]));
+    torches.forEach((q, i) => items.push([q.y, () => { c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(q.x + 0.8, q.y + 0.6, 1.8, 0.8, 0, 0, 7); c.fill(); c.strokeStyle = '#5b3a1f'; c.lineWidth = 1.3; c.beginPath(); c.moveTo(q.x, q.y); c.lineTo(q.x, q.y - 9); c.stroke(); c.fillStyle = '#2b2018'; c.beginPath(); c.ellipse(q.x, q.y - 9.5, 1.2, 1.5, 0, 0, 7); c.fill(); flame(c, q.x, q.y - 9.6, 5.5, 1.7, t, P, 10 + i, L >= 5 ? 1 : 0); }]));
+    items.push([0, () => firePit(c, L, t, P)]);
+    let m = null;
+    items.push([dy + 0.1, () => { c.save(); c.translate(dx, dy); m = man(c, 1 + (L - 1) * 0.07, ph, att, aim, t, P, L); c.restore(); }]);
+    items.sort((a, b) => a[0] - b[0]).forEach(i => i[1]());
+    c.restore();
+    if (m && T.x !== undefined) T.mouthW = [T.x + dx + m.conv[0], T.y + 4 + dy + m.conv[1]];
+  }
+  // per-frame state: aim at the target the host says we're burning, dance when idle, breathe when firing
+  function update(T, dt, tgt, visible) {
+    T.lvl = T.lvl || 1; if (T.aimS === undefined) { T.aimS = Math.PI / 2; T.pos = (T.id || 0) * 1.7; T.ph = T.pos; T.att = 0; T.cone = 0; }
+    T.reach = TD.towerRange('flame', T.lvl); T.half = TD.towerCone('flame', T.lvl);
+    const mx = T.mouthW ? T.mouthW[0] : T.x, my = T.mouthW ? T.mouthW[1] : T.y - 12;
+    if (tgt) { const want = Math.atan2(tgt.y - (tgt.r || 6) - my, tgt.x - mx); let d = want - T.aimS; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; T.aimS += d * Math.min(1, dt * 6); T.att = Math.min(1, T.att + dt * 5); T.cone = T.att >= 0.8 ? Math.min(1, T.cone + dt * 4) : 0; }
+    else { T.att = Math.max(0, T.att - dt * 3); T.cone = Math.max(0, T.cone - dt * 6); }
+    if (T.att < 0.05) { T.pos += dt * 1.1; T.ph += dt * 4.2; }
+    T.aim = T.aimS;
+    if (visible && T.mouthW) emitBreath(T, dt); else if (!visible) T.fp = null;
+    stepBreath(T, dt);
+  }
+  // keep the total number of flame licks on screen in check
+  function budget(towers) { let n = 0; for (const T of towers) if (T.fp) n += T.fp.length; capK = n > 2600 ? Math.max(0.3, capK * 0.9) : Math.min(1, capK * 1.02 + 0.001); }
+  return { draw, update, drawBreath, budget };
+})();
 function drawTower(t, now, c = X0) {
   const building = t.readyAt && t.readyAt > now;
   c.save(); c.translate(t.x, t.y);
   if (building && t.k === 'archer') archerBuild(c, { lvl: t.lvl || 1, x: 0, y: 0, archers: t.arch || archerSlots(), build: t.readyAt - now }, now, t.col);
   else if (building) drawConstruction(c, t, 1 - (t.readyAt - now) / ((t.lvl || 1) > 1 ? TD.RULES.levelTime : TD.RULES.buildTime), now);
   else if (t.k === 'archer') towerBody(c, t.k, t.col, t.arch || archerSlots(), now, 0, t.id || 0, t.lvl);
+  else if (t.k === 'flame') FB.draw(c, t, now);
   else towerBody(c, t.k, t.col, t.aim, now, t.kick || 0, t.id || 0);
   if (t.offAt > now) { const left = t.offAt - now, tot = TD.UNITS.sapper.sapper.stun; c.fillStyle = 'rgba(15,15,15,.45)'; c.beginPath(); c.ellipse(0, -2, 20, 24, 0, 0, 7); c.fill(); c.strokeStyle = 'rgba(0,0,0,.6)'; c.lineWidth = 3; c.beginPath(); c.arc(0, -30, 7, 0, 7); c.stroke(); c.strokeStyle = '#ffcc40'; c.beginPath(); c.arc(0, -30, 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left / tot); c.stroke(); if (Math.random() < 0.5) { c.strokeStyle = '#bfe6ff'; c.lineWidth = 1.2; c.beginPath(); const a = rr(0, 6.28); c.moveTo(Math.cos(a) * 6, -10 + Math.sin(a) * 6); c.lineTo(Math.cos(a) * 14 + rr(-3, 3), -10 + Math.sin(a) * 14); c.stroke(); } }
   c.restore();
@@ -997,9 +1207,10 @@ function stepRag(b, dt) {
       if (Math.abs(b.vx) + Math.abs(b.vy) < 4) { b.settled = 1; if (bl) stain(b.x, b.y + b.r * 0.3, b.r * (b.bigPool ? 3.2 : b.bleed.length ? 2.6 : 1.8), bl[0], 0.55); } } }
 }
 function stepFx(dt) {
-  for (const u of V.units.values()) { const k = Math.min(1, dt * 5), pushed = u.mvAt !== undefined && V.clock - u.mvAt < 0.35; u.dr += (pushed ? u.vel : u.sp * ((u.f & 1) ? 0.5 : 1) * ((u.f & 8) ? 0 : 1)) * dt + u.err * k; u.err -= u.err * k; if (u.offT !== undefined) u.off += (u.offT - u.off) * Math.min(1, dt * 10); if ((u.f & 8) && !u.hop && !(u.z > 0)) { u.hop = 1; u.vz = 170; u.z = 0.1; } if (!(u.f & 8)) u.hop = 0; if (u.z > 0) { u.vz -= 900 * dt; u.z = Math.max(0, u.z + u.vz * dt); } if (u.frAt !== undefined && V.clock - u.frAt < 0.45) { const ddx = u.tx - u.x, ddy = u.ty - u.y; u.x += ddx * Math.min(1, dt * 8); u.y += ddy * Math.min(1, dt * 8); if (Math.abs(ddx) + Math.abs(ddy) > 0.5) u.a = Math.atan2(ddy, ddx); if (Math.random() < 0.3 && onScreen(u.x, u.y, 30)) particle('dust', u.x, u.y + u.r * 0.8, 1, rr(-20, 20), rr(-10, 10), rr(10, 30), rr(0.3, 0.5), '#9a8a6a', rr(1, 2)); } else unitXY(u); if ((u.f & 2) && Math.random() < 0.25 && onScreen(u.x, u.y, 40)) particle('flame', u.x + rr(-u.r, u.r) * 0.6, u.y, rr(3, u.r * 1.6), rr(-8, 8), rr(-5, 5), rr(25, 50), rr(0.3, 0.5), '#ff9a2a', 0); }
+  for (const u of V.units.values()) { const k = Math.min(1, dt * 5), pushed = u.mvAt !== undefined && V.clock - u.mvAt < 0.35; u.dr += (pushed ? u.vel : u.sp * ((u.f & 1) ? 0.5 : 1) * ((u.f & 8) ? 0 : 1)) * dt * (u.dr > 0 ? V.L.lanes[u.l].pace(u.dr, u.off) : 1) + u.err * k; u.err -= u.err * k; if (u.offT !== undefined) u.off += (u.offT - u.off) * Math.min(1, dt * 10); if ((u.f & 8) && !u.hop && !(u.z > 0)) { u.hop = 1; u.vz = 170; u.z = 0.1; } if (!(u.f & 8)) u.hop = 0; if (u.z > 0) { u.vz -= 900 * dt; u.z = Math.max(0, u.z + u.vz * dt); } if (u.frAt !== undefined && V.clock - u.frAt < 0.45) { const ddx = u.tx - u.x, ddy = u.ty - u.y; u.x += ddx * Math.min(1, dt * 8); u.y += ddy * Math.min(1, dt * 8); if (Math.abs(ddx) + Math.abs(ddy) > 0.5) u.a = Math.atan2(ddy, ddx); if (Math.random() < 0.3 && onScreen(u.x, u.y, 30)) particle('dust', u.x, u.y + u.r * 0.8, 1, rr(-20, 20), rr(-10, 10), rr(10, 30), rr(0.3, 0.5), '#9a8a6a', rr(1, 2)); } else unitXY(u); if ((u.f & 2) && Math.random() < 0.25 && onScreen(u.x, u.y, 40)) particle('flame', u.x + rr(-u.r, u.r) * 0.6, u.y, rr(3, u.r * 1.6), rr(-8, 8), rr(-5, 5), rr(25, 50), rr(0.3, 0.5), '#ff9a2a', 0); }
   for (const t of V.towers) { if (t.offAt > V.clock && Math.random() < 0.25 && onScreen(t.x, t.y, 40)) particle('smoke', t.x + rr(-8, 8), t.y - 10, 20, rr(-6, 6), rr(-4, 4), rr(20, 40), rr(0.8, 1.4), '#2a2622', rr(4, 7)); t.kick = Math.max(0, (t.kick || 0) - dt * 4); if (t.arch) for (const q of t.arch) if (q.kick) q.kick = Math.max(0, q.kick - dt * 4); if (t.readyAt && t.readyAt <= V.clock && !t.doneFx) { t.doneFx = 1; if (V.clock - t.readyAt < 1 && onScreen(t.x, t.y, 60)) sfx('done', t.x, t.y), V.fx.push({ k: 'build', x: t.x, y: t.y + 10, t0: V.clock, col: t.col }); } }
-  for (let i = 0; i < V.beams.length; i += 2) { const t = V.towerMap.get(V.beams[i]), u = V.units.get(V.beams[i + 1]); if (t && u) t.aim = Math.atan2(u.y - t.y, u.x - t.x); }
+  { const fire = new Map(); for (let i = 0; i < V.beams.length; i += 2) { const t = V.towerMap.get(V.beams[i]), u = V.units.get(V.beams[i + 1]); if (t && u) { t.aim = Math.atan2(u.y - t.y, u.x - t.x); fire.set(t.id, u); } }
+    const fbs = V.towers.filter(t => t.k === 'flame'); for (const t of fbs) FB.update(t, dt, !(t.readyAt > V.clock) && !(t.offAt > V.clock) ? fire.get(t.id) : null, onScreen(t.x, t.y, 260)); FB.budget(fbs); }
   for (const s of V.shots) {
     s.age += dt; if (s.u && V.units.has(s.u.id)) { s.tx = s.u.x; s.ty = s.u.y; }
     const f = Math.min(1, s.age / Math.max(0.05, s.T)); s.x = s.sx + (s.tx - s.sx) * f; s.y = s.sy + 16 + (s.ty - s.sy - 16) * f; s.a = Math.atan2(s.ty - s.sy - 16, s.tx - s.sx); s.h = s.k === 'cannon' ? 22 + Math.sin(f * Math.PI) * 30 - f * 22 : 22 * (1 - f) + 6 * f;
@@ -1186,7 +1397,7 @@ function setBuild(on) {
 // keep Done just above the tray, whatever height the tray ends up
 function placeBuildBtn() { if (!build.on) return; const T = $('buildTray').getBoundingClientRect(); $('buildBtn').style.bottom = (innerHeight - T.top + 8) + 'px'; }
 addEventListener('resize', () => requestAnimationFrame(placeBuildBtn));
-function towerStats(k) { const T = TD.TOWERS[k]; if (TD.LEVELS[k]) return [TD.towerDmg(k, 1) + ' dmg × ' + TD.towerVolley(k, 1), 'every ' + T.cd + 's', 'range ' + T.r + ' · 5 levels']; return [T.dps ? T.dps + '/s dmg' : T.volley ? T.dmg + '×' + T.volley + ' dmg' : T.dmg + ' dmg', T.dps ? 'constant beam' : 'every ' + T.cd + 's', 'range ' + T.r]; }
+function towerStats(k) { const T = TD.TOWERS[k]; if (T.cone) return [T.dps + ' dmg/s cone', 'burns ' + T.burn + 's', 'range ' + T.r + ' · 5 levels']; if (TD.LEVELS[k]) return [TD.towerDmg(k, 1) + ' dmg × ' + TD.towerVolley(k, 1), 'every ' + T.cd + 's', 'range ' + T.r + ' · 5 levels']; return [T.dps ? T.dps + '/s dmg' : T.volley ? T.dmg + '×' + T.volley + ' dmg' : T.dmg + ' dmg', T.dps ? 'constant beam' : 'every ' + T.cd + 's', 'range ' + T.r]; }
 function updateStrip() { const T = $('buildTray'), k = build.sel, S = T.querySelector('.strip'); T.querySelectorAll('[data-tw]').forEach(b => b.classList.toggle('sel', b.dataset.tw === k)); if (!S) return; const st = towerStats(k); S.innerHTML = `<b>${TD.TOWERS[k].n}</b> — ${esc(TD.TOWERS[k].tip)}<div class="st"><span>⚔ ${st[0]}</span><span>⏱ ${st[1]}</span><span>◎ ${st[2]}</span></div>`; }
 $('buildBtn').onclick = () => setBuild(!build.on);
 function renderTray(force) {
@@ -1218,10 +1429,11 @@ function previewCanvas(draw) { const c = document.createElement('canvas'); c.wid
 function levelBlock(t, mine) {
   const T = TD.TOWERS[t.k], Lv = TD.LEVELS[t.k], lvl = t.lvl || 1, n = TD.towerVolley(t.k, lvl), dmg = TD.towerDmg(t.k, lvl), rng = Math.round(TD.towerRange(t.k, lvl));
   if (!Lv) return `<p class="muted small" style="margin:0 0 8px">${esc(T.d)} Range ${T.r}. <i>Levels coming soon.</i></p>`;
-  const stat = `${n} archer${n > 1 ? 's' : ''} · ${dmg} dmg each · ${n * dmg} dmg/s · range ${rng}`, busy = t.readyAt > V.clock;
+  const cone = !!T.cone, wide = l => Math.round((TD.LEVELS[t.k].wide ? TD.LEVELS[t.k].wide[l - 1] : 1) * 100 - 100);
+  const stat = cone ? `${TD.towerDps(t.k, lvl)} dmg/s to everything in the cone · burns ${T.burn}s · range ${rng}` : `${n} archer${n > 1 ? 's' : ''} · ${dmg} dmg each · ${n * dmg} dmg/s · range ${rng}`, busy = t.readyAt > V.clock;
   let up = '';
   if (lvl < 5) { const cost = Lv.cost[lvl], nn = TD.towerVolley(t.k, lvl + 1), nd = TD.towerDmg(t.k, lvl + 1), nr = Math.round(TD.towerRange(t.k, lvl + 1));
-    up = `<div class="lvUp"><div><b>Level ${lvl + 1} · ${Lv.names[lvl]}</b><small>${nn} archers · ${nd} dmg each${nr > rng ? ' · range ' + nr : ''}</small></div>${mine ? `<button class="btn sm primary" data-level ${busy || V.myDef.gold < cost ? 'disabled' : ''}>⬆ ${cost}g</button>` : ''}</div>`; }
+    up = `<div class="lvUp"><div><b>Level ${lvl + 1} · ${Lv.names[lvl]}</b><small>${cone ? `${TD.towerDps(t.k, lvl + 1)} dmg/s · cone +${wide(lvl + 1)}% wider` : `${nn} archers · ${nd} dmg each`}${nr > rng ? ' · range ' + nr : ''}</small></div>${mine ? `<button class="btn sm primary" data-level ${busy || V.myDef.gold < cost ? 'disabled' : ''}>⬆ ${cost}g</button>` : ''}</div>`; }
   else up = `<div class="lvUp"><div><b>Max level</b><small>Promotions will take it further.</small></div></div>`;
   const promos = (TD.PROMOTIONS[t.k] || []).map(q => `<div class="promo"><span>🔒</span><div><b>${q.n}</b><small>Requires Level ${q.need} · coming soon</small></div></div>`).join('');
   return `<div class="lvRow"><span class="lvPips">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= lvl ? 'on' : ''}"></i>`).join('')}</span><b>Level ${lvl} · ${Lv.names[lvl - 1]}</b>${busy ? '<span class="tag">Building…</span>' : ''}</div><p class="muted small" style="margin:2px 0 8px">${stat}</p>${up}${promos ? `<div class="promos">${promos}</div>` : ''}`;
@@ -1339,7 +1551,8 @@ function frame(ms) {
   if (d && !d.overTray && d.c !== undefined) { x.globalAlpha = 0.75; x.save(); x.translate((d.c + 1) * CELL, (d.r + 1) * CELL); towerBody(x, d.k, colHex(V.myDef.color), -Math.PI / 2, V.clock, 0, 1); x.restore(); x.globalAlpha = 1; }
   if (z > 0.5) { x.fillStyle = '#000a'; for (const u of V.units.values()) if (u.hp < 100 && inView(u.x, u.y, 20)) x.fillRect(u.x - u.r * 1.3 - 0.5, u.y - u.r * 2.3 - 0.5, u.r * 2.6 + 1, 3); for (const u of V.units.values()) if (u.hp < 100 && inView(u.x, u.y, 20)) { x.fillStyle = u.hp > 40 ? '#6ae06a' : '#e0503a'; x.fillRect(u.x - u.r * 1.3, u.y - u.r * 2.3, u.r * 2.6 * u.hp / 100, 2); }
     if (V.deadBars && V.deadBars.length) { for (const b of V.deadBars) if (inView(b.x, b.y, 20)) { x.fillStyle = '#000'; x.fillRect(b.x - b.r * 1.3 - 0.5, b.y - b.r * 2.3 - 0.5, b.r * 2.6 + 1, 3); x.fillStyle = '#5a1a14'; x.fillRect(b.x - b.r * 1.3, b.y - b.r * 2.3, b.r * 2.6, 2); } } }
-  for (let i = 0; i < V.beams.length; i += 2) { const t = V.towerMap.get(V.beams[i]), b = V.units.get(V.beams[i + 1]); if (!t || !b || !inView(t.x, t.y, 200)) continue; const fl = 0.7 + 0.3 * Math.sin(V.clock * 40); x.strokeStyle = `rgba(255,90,40,${0.45 * fl})`; x.lineWidth = 6; x.lineCap = 'round'; x.beginPath(); x.moveTo(t.x, t.y - 20); x.lineTo(b.x, b.y - b.r); x.stroke(); x.strokeStyle = '#fff0c0'; x.lineWidth = 2; x.stroke(); }
+  for (const t of V.towers) if (t.k === 'flame' && t.fp && t.fp.length && inView(t.x, t.y, 260)) FB.drawBreath(x, t, V.clock);
+  for (let i = 0; i < V.beams.length; i += 2) { const t = V.towerMap.get(V.beams[i]), b = V.units.get(V.beams[i + 1]); if (!t || t.k === 'flame' || !b || !inView(t.x, t.y, 200)) continue; const fl = 0.7 + 0.3 * Math.sin(V.clock * 40); x.strokeStyle = `rgba(255,90,40,${0.45 * fl})`; x.lineWidth = 6; x.lineCap = 'round'; x.beginPath(); x.moveTo(t.x, t.y - 20); x.lineTo(b.x, b.y - b.r); x.stroke(); x.strokeStyle = '#fff0c0'; x.lineWidth = 2; x.stroke(); }
   for (const s of V.shots) { if (!inView(s.x, s.y, 20)) continue; if (s.k === 'cannon') { x.fillStyle = '#1e1e22'; x.beginPath(); x.arc(s.x, s.y - s.h + 6, 4.5, 0, 7); x.fill(); continue; } x.save(); x.translate(s.x, s.y - s.h + 16); x.rotate(s.a || 0); if (s.k === 'archer') { x.strokeStyle = '#3a2a1a'; x.lineWidth = 1.6; x.beginPath(); x.moveTo(-8, 0); x.lineTo(6, 0); x.stroke(); x.fillStyle = '#ccc'; x.fillRect(5, -1.5, 3, 3); } else { x.fillStyle = '#c8f0ff'; x.beginPath(); x.moveTo(7, 0); x.lineTo(0, -3.5); x.lineTo(-5, 0); x.lineTo(0, 3.5); x.fill(); } x.restore(); }
   for (const p of V.parts) { if (!p.p || !inView(p.x, p.y, 20)) continue; const q = p.life / p.max; x.globalAlpha = 1 - q * q;
     if (p.kind === 'blood') { x.fillStyle = p.col || BLOOD[1]; x.fillRect(p.x - p.size / 2, p.y - p.z - p.size / 2, p.size, p.size); }

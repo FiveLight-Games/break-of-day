@@ -40,9 +40,16 @@ function buildLane(C) {
   const seg = []; let total = 0;
   for (let i = 0; i < P.length - 1; i++) { const a = P[i], b = P[i + 1], l = Math.hypot(b[0] - a[0], b[1] - a[1]); if (l < 0.01) continue; seg.push({ a, b, l, s: total }); total += l; }
   const LUT = []; { let si = 0; for (let d = 0; d <= total + 4; d += 4) { while (si < seg.length - 1 && d > seg[si].s + seg[si].l) si++; const s = seg[si], t = Math.min(1, Math.max(0, (d - s.s) / s.l)); LUT.push([s.a[0] + (s.b[0] - s.a[0]) * t, s.a[1] + (s.b[1] - s.a[1]) * t, Math.atan2(s.b[1] - s.a[1], s.b[0] - s.a[0])]); } }
+  // smooth the heading over ~48px so units offset from the centre line turn gradually instead of jumping at each joint
+  { const n = LUT.length, W = 6, ang = LUT.map((_, i) => { const A = LUT[Math.max(0, i - W)], B = LUT[Math.min(n - 1, i + W)]; return Math.hypot(B[0] - A[0], B[1] - A[1]) > 0.01 ? Math.atan2(B[1] - A[1], B[0] - A[0]) : LUT[i][2]; }); ang.forEach((a, i) => LUT[i][2] = a); }
+  // curvature (radians per px) for speed compensation: units on the inside of a bend walk a shorter line
+  const curv = d => { const f = Math.max(1, Math.min(LUT.length - 2, Math.round(d / 4))); let da = LUT[f + 1][2] - LUT[f - 1][2]; da = Math.atan2(Math.sin(da), Math.cos(da)); return da / 8; };
+  // how much centre-line distance a unit at lateral offset `off` covers per px it actually walks
+  const offAt = (d, off) => { const q = at(d); return [q[0] - Math.sin(q[2]) * off, q[1] + Math.cos(q[2]) * off]; };
+  const pace = (d, off) => { if (!off) return 1; const A = offAt(d - 3, off), B = offAt(d + 3, off), w = Math.hypot(B[0] - A[0], B[1] - A[1]); return Math.max(0.5, Math.min(2, 6 / Math.max(0.01, w))); };
   const at = d => { const f = Math.max(0, Math.min(LUT.length - 1.001, d / 4)), i = f | 0, t = f - i, A = LUT[i], B = LUT[i + 1]; let da = B[2] - A[2]; da = Math.atan2(Math.sin(da), Math.cos(da)); return [A[0] + (B[0] - A[0]) * t, A[1] + (B[1] - A[1]) * t, A[2] + da * t]; };
   const dist = (px, py) => { let m = 1e9; for (const s of seg) { const vx = s.b[0] - s.a[0], vy = s.b[1] - s.a[1], t = Math.max(0, Math.min(1, ((px - s.a[0]) * vx + (py - s.a[1]) * vy) / (s.l * s.l))); m = Math.min(m, Math.hypot(px - s.a[0] - vx * t, py - s.a[1] - vy * t)); } return m; };
-  return { P, seg, total, at, dist, gate: C[0] };
+  return { P, seg, total, at, dist, curv, pace, gate: C[0] };
 }
 // everything static about a map for a given defender count: lanes, build grid, trees
 const LAYOUTS = {};
@@ -70,12 +77,13 @@ const TOWERS = {
   archer: { n: 'Archer Post', cost: 30, r: 190, cd: 1, dmg: 20, volley: 1, dt: 'phys', d: 'A wooden watch post with one archer. Level it up for more archers, harder arrows and more range.', tip: 'One archer, one arrow a second. Level up for up to 5 archers.' },
   cannon: { n: 'Bombard', cost: 100, r: 175, cd: 1.6, dmg: 52, splash: 46, dt: 'blast', d: 'A heavy gun on a stone column. Shells hit everything nearby.', tip: 'Shells hit everything nearby. Best vs crowds.' },
   frost: { n: 'Frost Obelisk', cost: 90, r: 160, cd: 1.0, dmg: 30, slow: 1.6, dt: 'ice', d: 'An ice shard that chills its target, slowing it by half.', tip: 'Chills its target to half speed for 1.6s.' },
-  flame: { n: 'Fire Brazier', cost: 120, r: 165, dps: 62, dt: 'fire', d: 'A burning beam from a raised fire bowl. Melts one target.', tip: 'Constant beam on one target. Melts Ogres.' },
+  flame: { n: 'Firebreather', cost: 100, r: 140, cone: 0.3, dps: 60, burn: 5, burnPct: 0.12, dt: 'fire', d: 'A tribal fire-dancer. Breathes a cone of flame through his crossed torches: it burns everything inside and sets them alight for 5s.', tip: 'Cone of fire: hits whole clumps and sets them burning for 5s.' },
   storm: { n: 'Tesla Coil', cost: 140, r: 175, cd: 1.3, dmg: 40, chain: 5, dt: 'shock', d: 'Lightning that arcs to up to 5 enemies.', tip: 'Lightning arcs to up to 5 enemies.' },
 };
 const TOWER_IDS = Object.keys(TOWERS);
 // levels 1-5: each level-up rebuilds the tower (3s) with a new look and stats. Only the Archer Post has levels so far.
 const LEVELS = {
+  flame: { cost: [0, 70, 100, 140, 190], dps: [60, 72, 86, 102, 120], range: [1, 1.1, 1.2, 1.3, 1.4], wide: [1, 1.1, 1.2, 1.3, 1.4], names: ['Campfire', 'Twin torches', 'Pyre', 'Stone circle', 'White-hot pyre'] },
   archer: { cost: [0, 35, 55, 80, 110], volley: [1, 2, 3, 4, 5], dmg: [20, 23, 26, 29, 32], range: [1, 1, 1.15, 1.30, 1.45], names: ['Watch post', 'Watch post', 'Timber tower', 'Rough stone tower', 'Stone keep'] },
 };
 // promotions change a tower completely; slots exist with their level requirement but are all locked for now
@@ -83,6 +91,8 @@ const PROMOTIONS = { archer: [{ n: 'Promotion I', need: 3 }, { n: 'Promotion II'
 const lvlStat = (k, lvl, key) => { const L = LEVELS[k]; return L ? L[key][Math.max(1, Math.min(5, lvl || 1)) - 1] : null; };
 const towerRange = (k, lvl) => TOWERS[k].r * (lvlStat(k, lvl, 'range') || 1);
 const towerDmg = (k, lvl) => lvlStat(k, lvl, 'dmg') || TOWERS[k].dmg;
+const towerDps = (k, lvl) => lvlStat(k, lvl, 'dps') || TOWERS[k].dps;
+const towerCone = (k, lvl) => (TOWERS[k].cone || 0) * (lvlStat(k, lvl, 'wide') || 1);
 const towerVolley = (k, lvl) => lvlStat(k, lvl, 'volley') || TOWERS[k].volley || 1;
 // ---------------- defender spells (free for now) ----------------
 const SPELLS = {
@@ -194,13 +204,14 @@ class Sim {
     // units walk their lane into the shared base
     for (const u of this.units) {
       if (u.hp <= 0) continue;
+      if (u.bd) { if (u.burn > 0) { this.hurt(u, u.bd * dt, 'fire', u.bsrc); if (u.hp <= 0) continue; } else u.bd = 0; }
       const lane = this.L.lanes[u.l], air = u.air > 0;
       const U = UNITS[u.k], slow = u.slowU > this.t && !U.unstoppable ? 1 - 0.5 * (1 - (U.slowRes || 0)) : 1;
       if (u.run) { this.stepSapper(u, dt); continue; }
       let spd = u.sp * slow; if (U.packRage && u.pk) spd *= 1 + U.packRage * Math.min(3, this.packDead[u.pk] || 0); if (u.chargeUntil > this.t) spd *= U.charge.mul;
       if (U.regen && u.hp < u.max && !(u.burnLock > this.t)) u.hp = Math.min(u.max, u.hp + u.max * U.regen * dt);
       if ((U.charge && !u.charged || U.sapper) && (this.tick + u.id) % 5 === 0) this.scan(u, U);
-      u.v = spd * (air ? 0 : 1) + (u.kb || 0); u.d = Math.max(-30, u.d + u.v * dt); u.burn = Math.max(0, u.burn - dt);
+      u.v = spd * (air ? 0 : 1) + (u.kb || 0); u.d = Math.max(-30, u.d + u.v * dt * (u.d > 0 ? lane.pace(u.d, u.off) : 1)); u.burn = Math.max(0, u.burn - dt);
       if (u.kb || u.lv) { u.kb *= Math.exp(-3.2 * dt); u.off = Math.max(-LANE + 6, Math.min(LANE - 6, u.off + (u.lv || 0) * dt)); u.lv *= Math.exp(-4 * dt); if (Math.abs(u.kb) < 1) u.kb = 0; if (Math.abs(u.lv) < 1) u.lv = 0; u.mvT = this.t; }
       if (air) u.air -= dt;
       if (u.free) { u.free = 0; const q = lane.at(u.d); u.x = q[0]; u.y = q[1]; } // back on the lane
@@ -222,6 +233,10 @@ class Sim {
       if (T.volley && alive) best = alive;
       if (!best) continue;
       t.aim = Math.atan2(best.y - t.y, best.x - t.x);
+      if (T.cone) { // Firebreather: everything inside the cone burns, and keeps burning for T.burn seconds
+        this.beams.push(t.id, best.id); const half = towerCone(t.k, t.lvl), dps = towerDps(t.k, t.lvl), bd = dps * T.burnPct;
+        near(t.x, t.y, towerRange(t.k, t.lvl), u => { let da = Math.atan2(u.y - t.y, u.x - t.x) - t.aim; while (da > Math.PI) da -= Math.PI * 2; while (da < -Math.PI) da += Math.PI * 2; if (Math.abs(da) > half && (u.x - t.x) ** 2 + (u.y - t.y) ** 2 > 400) return; this.hurt(u, dps * dt, 'fire', t); u.burn = T.burn; if (!(u.bd > bd)) { u.bd = bd; u.bsrc = t; } });
+        continue; }
       if (T.dps) { this.beams.push(t.id, best.id); best.burn = 0.3; this.hurt(best, T.dps * dt, 'fire', t); continue; }
       if (T.volley && t.shots) { for (let i = 0; i < t.shots.length; i++) if (t.shots[i] >= 0 && this.t >= t.shots[i]) { t.shots[i] = -1; this.loose(t, best, i); } }
       if (t.cd > 0) continue; t.cd = T.cd;
@@ -365,19 +380,20 @@ class Sim {
     if ((this.tick + D.slot * 5) % 20) return;
     const lane = this.L.lanes[D.slot];
     if (!this.botSpots) this.botSpots = {};
-    if (!this.botSpots[D.slot]) { const s = []; for (let r = 0; r < this.L.rows; r += 2) for (let c = 0; c < this.L.cols; c += 2) { const x = (c + 1) * CELL, y = (r + 1) * CELL, d = lane.dist(x, y); if (d > LANE + 90 || d < LANE + 10) continue; let cov = 0; for (let q = 0; q < lane.total; q += 40) { const p = lane.at(q); if ((p[0] - x) ** 2 + (p[1] - y) ** 2 < 175 * 175) cov++; } s.push([c, r, cov - y * 0.002]); } s.sort((a, b) => b[2] - a[2]); this.botSpots[D.slot] = s; }
+    if (!this.botSpots[D.slot]) { const s = []; for (let r = 0; r < this.L.rows; r += 2) for (let c = 0; c < this.L.cols; c += 2) { const x = (c + 1) * CELL, y = (r + 1) * CELL, d = lane.dist(x, y); if (d > LANE + 90 || d < LANE + 10) continue; let cov = 0; for (let q = 0; q < lane.total; q += 40) { const p = lane.at(q); if ((p[0] - x) ** 2 + (p[1] - y) ** 2 < 175 * 175) cov++; } s.push([c, r, cov - y * 0.002, d]); } s.sort((a, b) => b[2] - a[2]); this.botSpots[D.slot] = s; }
     if (this.botCast(D, lane)) return;
     // pick a tower that answers what is walking down this lane
     const mine = this.towers.filter(t => t.owner === D.pid), seen = { swarm: 0, armor: 0, big: 0, golem: 0, ent: 0, ram: 0, n: 0 };
     for (const u of this.units) { if (u.l !== D.slot) continue; const U = UNITS[u.k]; seen.n++; if (U.pack) seen.swarm++; if (U.armor) seen.armor++; if (U.r >= 8) seen.big++; if (u.k === 'golem') seen.golem++; if (u.k === 'ent') seen.ent++; if (u.k === 'ram') seen.ram++; }
     let k;
     if (mine.length < 2) k = 'archer';
-    else if (seen.n) { const w = { archer: 3, cannon: 1 + seen.swarm * 0.6, storm: 0.5 + seen.swarm * 0.4 - seen.golem * 3, frost: 1 + seen.big * 0.5 + seen.golem * 2, flame: 1 + seen.armor * 0.8 + seen.big * 0.5 + seen.ent * 2 - seen.ram * 3 }; k = Object.keys(w).sort((a, b) => w[b] - w[a])[mine.length % 3 === 2 ? 1 : 0]; }
+    else if (seen.n) { const w = { archer: 3, cannon: 1 + seen.swarm * 0.6, storm: 0.5 + seen.swarm * 0.4 - seen.golem * 3, frost: 1 + seen.big * 0.5 + seen.golem * 2, flame: 1 + seen.swarm * 0.7 + seen.ent * 2 - seen.ram * 3 }; k = Object.keys(w).sort((a, b) => w[b] - w[a])[mine.length % 3 === 2 ? 1 : 0]; }
     else k = ['archer', 'archer', 'cannon', 'frost', 'archer', 'flame', 'storm', 'cannon'][mine.length % 8];
     const up = mine.length >= 4 && mine.filter(o => LEVELS[o.k] && o.lvl < 5 && o.ready <= this.t).sort((a, b) => a.lvl - b.lvl)[0];
     if (up && D.gold >= LEVELS[up.k].cost[up.lvl] && (mine.length >= 10 || this.R() < 0.45)) return this.input(D.pid, { c: 'level', id: up.id });
     if (D.gold < TOWERS[k].cost) return;
-    const spot = this.botSpots[D.slot].find(([c, r]) => footFree(this.L, c, r, this.occ)); if (spot) this.input(D.pid, { c: 'build', k, c2: spot[0], r: spot[1] });
+    // short-range towers hug the lane
+    const near = TOWERS[k].r < 150, spot = (near && this.botSpots[D.slot].find(([c, r, , d]) => d < LANE + 36 && footFree(this.L, c, r, this.occ))) || this.botSpots[D.slot].find(([c, r]) => footFree(this.L, c, r, this.occ));; if (spot) this.input(D.pid, { c: 'build', k, c2: spot[0], r: spot[1] });
   }
   // bots cast too: a Meteor on the thickest clump (aimed where it will be), the Water Jet when the lane is being overrun
   botCast(D, lane) {
@@ -414,6 +430,6 @@ class Sim {
   stats() { return { hp: this.hp, atk: { sent: this.atk.sent, leaked: this.atk.leaked, dmg: this.atk.dmg, spent: this.atk.spent, invest: this.atk.invest, speed: this.atk.speed }, defs: this.defs.map(d => ({ kills: d.kills, built: d.built, dmg: Math.round(d.dmg), shared: Math.round(d.shared) })) }; }
 }
 
-const API = { COLORS, RACES, MAPS, LANE, CELL, FOOT, STAGE_H, MAX_DEF, TOWERS, TOWER_IDS, LEVELS, PROMOTIONS, towerRange, towerDmg, towerVolley, sendPhase, setLeakRate, UNITS, UNIT_IDS, SPELLS, SPELL_IDS, RULES, PRIORITIES, Sim, layout, footFree, mulberry32 };
+const API = { COLORS, RACES, MAPS, LANE, CELL, FOOT, STAGE_H, MAX_DEF, TOWERS, TOWER_IDS, LEVELS, PROMOTIONS, towerRange, towerDmg, towerDps, towerCone, towerVolley, sendPhase, setLeakRate, UNITS, UNIT_IDS, SPELLS, SPELL_IDS, RULES, PRIORITIES, Sim, layout, footFree, mulberry32 };
 if (typeof module !== 'undefined') module.exports = API; else G.TD = API;
 })(typeof window !== 'undefined' ? window : globalThis);
