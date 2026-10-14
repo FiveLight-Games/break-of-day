@@ -778,7 +778,7 @@ function bWorker(c, wx, wy, f, tool, swing) { // tiny labourer: tunic, cap, and 
 // stateless flying bits: chips, dust or sawdust thrown up at a point, timed to the tool strikes
 function bBits(c, px, py, t, rate, col, n, spread) { for (let k = 0; k < n; k++) { const ph = (t * rate + k / n) % 1, dir = ((k * 7919) % 13) / 13 - 0.5; c.globalAlpha = 1 - ph; c.fillStyle = col; c.fillRect(px + dir * spread * ph * 2, py - Math.sin(ph * Math.PI) * spread * 0.7 + ph * 3, 1.1, 1.1); } c.globalAlpha = 1; }
 function archerBuild(c, T, t, COL) {
-  const L = T.lvl, p = Math.max(0, Math.min(1, 1 - T.build / TD.RULES.buildTime)), top = ARCHER_TOPS[L], cutY = 15 + (top - 15) * p, solid = { ...T, build: 0 };
+  const L = T.lvl, p = Math.max(0, Math.min(1, 1 - T.build / (L > 1 ? TD.RULES.levelTime : TD.RULES.buildTime))), top = ARCHER_TOPS[L], cutY = 15 + (top - 15) * p, solid = { ...T, build: 0 };
   c.save(); c.globalAlpha = 0.16; archerLvl(c, solid, t, COL); c.restore();
   c.save(); c.beginPath(); c.rect(T.x - 45, T.y + cutY, 90, 15 - cutY + 6); c.clip(); archerLvl(c, solid, t, COL); c.restore();
   c.save(); c.translate(T.x, T.y);
@@ -859,7 +859,7 @@ function drawTower(t, now, c = X0) {
   const building = t.readyAt && t.readyAt > now;
   c.save(); c.translate(t.x, t.y);
   if (building && t.k === 'archer') archerBuild(c, { lvl: t.lvl || 1, x: 0, y: 0, archers: t.arch || archerSlots(), build: t.readyAt - now }, now, t.col);
-  else if (building) drawConstruction(c, t, 1 - (t.readyAt - now) / TD.RULES.buildTime, now);
+  else if (building) drawConstruction(c, t, 1 - (t.readyAt - now) / ((t.lvl || 1) > 1 ? TD.RULES.levelTime : TD.RULES.buildTime), now);
   else if (t.k === 'archer') towerBody(c, t.k, t.col, t.arch || archerSlots(), now, 0, t.id || 0, t.lvl);
   else towerBody(c, t.k, t.col, t.aim, now, t.kick || 0, t.id || 0);
   if (t.offAt > now) { const left = t.offAt - now, tot = TD.UNITS.sapper.sapper.stun; c.fillStyle = 'rgba(15,15,15,.45)'; c.beginPath(); c.ellipse(0, -2, 20, 24, 0, 0, 7); c.fill(); c.strokeStyle = 'rgba(0,0,0,.6)'; c.lineWidth = 3; c.beginPath(); c.arc(0, -30, 7, 0, 7); c.stroke(); c.strokeStyle = '#ffcc40'; c.beginPath(); c.arc(0, -30, 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left / tot); c.stroke(); if (Math.random() < 0.5) { c.strokeStyle = '#bfe6ff'; c.lineWidth = 1.2; c.beginPath(); const a = rr(0, 6.28); c.moveTo(Math.cos(a) * 6, -10 + Math.sin(a) * 6); c.lineTo(Math.cos(a) * 14 + rr(-3, 3), -10 + Math.sin(a) * 14); c.stroke(); } }
