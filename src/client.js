@@ -1424,7 +1424,7 @@ function stopDragListeners() { window.removeEventListener('pointermove', moveDra
 const atkUI = { target: 'all', qty: 1 };
 let sheetKind = null;
 function sellLabel(t) { return t.refundAt > V.clock ? `Refund ${t.spent}g · ${Math.ceil(t.refundAt - V.clock)}s` : `Sell +${Math.floor(t.spent * TD.RULES.sell)}g`; }
-function hideSheet() { $('sheet').classList.add('hidden'); sheetKind = null; if (V) V.sel = null; if (V && V.myDef && !V.over) $('buildBtn').classList.remove('hidden'); }
+function hideSheet() { $('sheet').classList.add('hidden'); document.body.classList.remove('sheetOpen'); sheetKind = null; if (V) V.sel = null; if (V && V.myDef && !V.over) $('buildBtn').classList.remove('hidden'); }
 function previewCanvas(draw) { const c = document.createElement('canvas'); c.width = 168; c.height = 124; const g = c.getContext('2d'); g.scale(2, 2); draw(g); return c; }
 function levelBlock(t, mine) {
   const T = TD.TOWERS[t.k], Lv = TD.LEVELS[t.k], lvl = t.lvl || 1, n = TD.towerVolley(t.k, lvl), dmg = TD.towerDmg(t.k, lvl), rng = Math.round(TD.towerRange(t.k, lvl));
@@ -1440,7 +1440,7 @@ function levelBlock(t, mine) {
 }
 function showTowerSheet(t) {
   sheetKind = 'tower'; const sh = $('sheet'), mine = t.owner === myPid, T = TD.TOWERS[t.k], owner = V.defs[t.slot] || V.defs[0];
-  sh.classList.remove('hidden'); $('buildBtn').classList.add('hidden');
+  sh.classList.remove('hidden'); document.body.classList.add('sheetOpen'); $('buildBtn').classList.add('hidden');
   sh.innerHTML = `<div class="sheetHead"><b>${T.n}</b><span class="muted small">${esc(owner.name)} · ${t.kills} kills</span><button class="btn ghost sm x" data-close>✕</button></div>
     ${levelBlock(t, mine)}
     ${mine ? `<div class="row"><span class="small muted">Target</span><div class="prios">${TD.PRIORITIES.map(p => `<button data-prio="${p}" class="${t.prio === p ? 'on' : ''}">${p[0].toUpperCase() + p.slice(1)}</button>`).join('')}</div><button class="btn sm danger" data-sell style="margin-left:auto">${sellLabel(t)}</button></div>` : ''}`;

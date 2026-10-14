@@ -118,6 +118,8 @@ input.textin{width:100%;background:#0f0d0b;border:1px solid var(--line);border-r
 body.dragging #dragCancel{transform:translate(-50%,0);pointer-events:auto}
 body.dragging #buildTray{transform:translateY(130%);opacity:0;pointer-events:none}
 body.dragging #buildBtn,body.dragging #spellBar{opacity:0;pointer-events:none}
+body.sheetOpen #spellBar{opacity:0;pointer-events:none}
+#sheet{z-index:30}
 #buildTray{transition:transform .15s ease-out,opacity .15s}
 .lvRow{display:flex;align-items:center;gap:8px;margin:2px 0 0}
 .lvPips{display:flex;gap:3px}.lvPips i{width:9px;height:9px;border-radius:2px;background:#3a332a;display:block}.lvPips i.on{background:var(--gold)}

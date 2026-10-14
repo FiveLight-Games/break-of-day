@@ -88,7 +88,7 @@ const LEVELS = {
 };
 // promotions change a tower completely; slots exist with their level requirement but are all locked for now
 const PROMOTIONS = { archer: [{ n: 'Promotion I', need: 3 }, { n: 'Promotion II', need: 5 }] };
-const lvlStat = (k, lvl, key) => { const L = LEVELS[k]; return L ? L[key][Math.max(1, Math.min(5, lvl || 1)) - 1] : null; };
+const lvlStat = (k, lvl, key) => { const L = LEVELS[k]; return L && L[key] ? L[key][Math.max(1, Math.min(5, lvl || 1)) - 1] : null; }; // towers only list the stats their levels change
 const towerRange = (k, lvl) => TOWERS[k].r * (lvlStat(k, lvl, 'range') || 1);
 const towerDmg = (k, lvl) => lvlStat(k, lvl, 'dmg') || TOWERS[k].dmg;
 const towerDps = (k, lvl) => lvlStat(k, lvl, 'dps') || TOWERS[k].dps;
@@ -191,13 +191,15 @@ class Sim {
   speedCost() { return Math.round(RULES.speedCost * this.N * Math.pow(1.6, this.atk.speed)); }
   investCost() { return Math.round(RULES.investCost * this.N * Math.pow(1.3, this.atk.invest)); }
   ev(e) { this.events.push(e); }
+  // hoarding tax (test flag `hoardTax`): a bank bigger than `free` seconds of income cuts income, down to 50% at `full` seconds
+  hoardMul() { const H = this.hoardTax; if (!H || this.t < RULES.setup) return 1; const A = this.atk, inc = Math.max(0.1, A.income), x = (A.gold / inc - H.free) / (H.full - H.free); return 1 - 0.5 * Math.max(0, Math.min(1, x)); }
   canSend() { return this.noPause ? this.t >= RULES.setup : sendPhase(this.t).open; }
   mins() { return Math.max(0, this.t - RULES.setup) / 60; }
   // ---- step ----
   step(dt) {
     if (this.over) return; this.t += dt; this.tick++;
     // steady income every second
-    const per = dt; this.atk.gold += this.atk.income * per; for (const d of this.defs) d.gold += d.income * per;
+    const per = dt; this.atk.gold += this.atk.income * per * this.hoardMul(); for (const d of this.defs) d.gold += d.income * per;
     // after the time limit the attacker can't send any more; the match ends when the field is clear
     if (!this.closed && this.t >= RULES.setup + RULES.length) { this.closed = true; this.atk.queue = []; this.ev(['closed']); }
     if (this.spawnAt.length) { const due = this.spawnAt.filter(s => s.at <= this.t); if (due.length) { this.spawnAt = this.spawnAt.filter(s => s.at > this.t); due.forEach(s => this.spawn(s.k, s.l, s.pk ? { pk: s.pk } : null)); } }
@@ -312,7 +314,7 @@ class Sim {
   spawn(k, l, o) {
     const U = UNITS[k]; if (!this.L.lanes[l]) return;
     const hp = Math.round(U.hp * (U.noScale ? 1 : 1 + RULES.hpPerMin * this.mins()));
-    const m = Math.max(10, U.r + 4), u = { id: this.nid++, k, l, d: -10 - this.R() * 20, off: Math.round(rr(this.R, -LANE + m, LANE - m)), sp: Math.round(U.sp * (1 + RULES.speedStep * this.atk.speed) * rr(this.R, 0.92, 1.08)), hp, max: hp, slowU: 0, burn: 0, x: 0, y: 0 };
+    const m = Math.max(10, U.r + 4), u = { id: this.nid++, k, l, d: -10 - this.R() * 20, off: Math.round(rr(this.R, -LANE + m, LANE - m)), sp: Math.round(U.sp * (this.spdMul || 1) * (1 + (this.spdStep ?? RULES.speedStep) * this.atk.speed) * rr(this.R, 0.92, 1.08)), hp, max: hp, slowU: 0, burn: 0, x: 0, y: 0 };
     if (o) { if (o.d !== undefined) u.d = o.d; if (o.off !== undefined) u.off = o.off; if (o.pk) u.pk = o.pk; }
     if (U.raise) this.necros = (this.necros || 0) + 1;
     this.units.push(u); this.ev(['u', u.id, UNIT_IDS.indexOf(k), l, u.off, u.sp, Math.round(u.d)]); return u;

@@ -20,5 +20,6 @@
   {"v": "0.19", "build": "cb77d6", "commit": "f156ab4", "date": "2026-10-13", "notes": "AI defenders: add AI to any defender seat; new Attack vs AI mode; smarter AI tower choices"},
   {"v": "0.20", "build": "8624b6", "commit": "789e20d", "date": "2026-10-13", "notes": "Archer Post levels 1-5 (30g base, staggered volleys, new looks), level-up panel with locked promotions, per-level build animations, recorded building sound"},
   {"v": "0.21", "build": "ee9b1f", "commit": "2872076", "date": "2026-10-13", "notes": "Attack rhythm: 30s sending, 15s pause. Attacker income now grows from sending. Leak damage scales with unit cost (min 1); leaks pay defenders half bounty. Base HP 300 per defender. Tarrasque 200g. Level-up rebuild 1.5s. Quieter water jet."},
-  {"v": "0.22", "build": "d3f92e", "commit": "", "date": "2026-10-13", "notes": "Firebreather replaces the Fire Brazier: dancing fire-breather, cone of flame through crossed torches, 5s burn, 5 levels with new looks. Units no longer rubber-band on the outside of bends."}
+  {"v": "0.22", "build": "d3f92e", "commit": "e3e1f1a", "date": "2026-10-13", "notes": "Firebreather replaces the Fire Brazier: dancing fire-breather, cone of flame through crossed torches, 5s burn, 5 levels with new looks. Units no longer rubber-band on the outside of bends."},
+  {"v": "0.23", "build": "8de11b", "commit": "", "date": "2026-10-13", "notes": "Fix: Firebreather tower menu (crashed and showed another tower's info, no upgrade button); spell buttons hide while a tower menu is open"}
 ]
