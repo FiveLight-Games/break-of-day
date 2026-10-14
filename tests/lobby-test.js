@@ -55,7 +55,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
     const cand = []; for (let r = 0; r < L.rows - 1; r++) for (let c = 0; c < L.cols - 1; c++) { const x = (c + 1) * 24, y = (r + 1) * 24, dd = Math.hypot(x - pt[0], y - pt[1]); if (dd < 260) cand.push([dd, c, r]); }
     cand.sort((a, b) => a[0] - b[0]); for (const [, c, r] of cand) { if (out.length >= n) break; if (TD.footFree(L, c, r, occ)) { out.push([c, r]); for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) occ[(r + j) * L.cols + c + i] = 1; } } return out; }, [n, d]);
   check(await A.evaluate(() => window.TDC.V.hp === 600 && window.TDC.V.hpMax === 600), 'shared base HP = 300 x 2 defenders');
-  check(await A.evaluate(() => document.getElementById('hpChip').textContent.includes('500')), 'HP chip shows 500');
+  check(await A.evaluate(() => document.getElementById('hpChip').textContent.includes('600')), 'HP chip shows 600');
   check(await B.evaluate(() => document.getElementById('buildBtn').classList.contains('hidden')), 'attacker has no Build button');
   // C: real drag from the tray onto the field (mouse pointer, so no finger offset)
   await C.click('#buildBtn'); await sleep(300);
@@ -206,7 +206,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(await D.evaluate(() => window.TDC.LS.seats[0] === 'ai'), 'vs AI: AI takes the attacker seat');
   await D.click('#btnReady'); await sleep(500);
   { const sp = await spots(D, 5, 400); await D.evaluate(sp => sp.forEach(([c, r]) => window.TDC.send({ c: 'build', k: 'archer', c2: c, r })), sp); }
-  check(await D.evaluate(() => window.TDC.V.hpMax) === 250, 'solo base HP = 250');
+  check(await D.evaluate(() => window.TDC.V.hpMax) === 300, 'solo base HP = 300');
   await sleep(20000);
   const sd = await D.evaluate(() => ({ units: window.TDC.V.units.size, towers: window.TDC.V.towers.length, hp: window.TDC.V.hp, t: window.TDC.V.t }));
   check(sd.t > 15 && sd.towers >= 3, 'vs AI match runs: ' + JSON.stringify(sd));
