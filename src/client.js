@@ -310,7 +310,7 @@ function clearTrees(t) { const x0 = t.c * CELL - 8, y0 = t.r * CELL - 8, x1 = (t
 function applySnap(s) {
   V.t = s.t; V.pulse = s.pu; V.wave = s.wv; V.closed = !!s.cl;
   if (s.hp < V.hp) V.baseFlash = V.clock || 0; V.hp = s.hp;
-  V.atk.gold = s.a[0]; V.atk.income = s.a[1]; V.atk.invest = s.a[2]; V.atk.investCost = s.a[3]; V.atk.queue = s.a[4]; V.atk.speed = s.a[5] || 0; V.atk.speedCost = s.a[6] || 0;
+  V.atk.gold = s.a[0]; V.atk.income = s.a[1]; V.atk.invest = s.a[2]; V.atk.investCost = s.a[3]; V.atk.queue = s.a[4]; V.atk.speed = s.a[5] || 0; V.atk.grant = s.a[7] || 0; V.atk.speedCost = s.a[6] || 0;
   s.df.forEach((d, i) => { const D = V.defs[i]; if (!D) return; D.gold = d[0]; D.income = d[1]; D.kills = d[2]; if (d[3]) { D.scdAt = D.scdAt || {}; TD.SPELL_IDS.forEach((k, j) => D.scdAt[k] = (V.clock || 0) + d[3][j] / 10); } });
   if (s.tw) {
     const old = new Map(V.towers.map(t => [t.id, t])); V.occ.fill(0);
@@ -1509,7 +1509,7 @@ function renderAtk() {
   }
   if (V.closed) return;
   const key = JSON.stringify([A.gold, A.income, A.investCost, A.speed, A.speedCost, Math.ceil(ph.left), shut]); if (P.dataset.key === key) return; P.dataset.key = key;
-  { const hm = V.t >= TD.RULES.setup ? TD.hoardMulOf(A.gold, A.income) : 1, eff = Math.round(A.income * hm * 10) / 10; P.querySelector('[data-gold]').innerHTML = `💰 ${A.gold}<small>+${eff}/s</small>` + (hm < 0.995 ? `<small class="hoard" title="Holding more than ${TD.RULES.hoardFree}s of income cuts your income (down to half at ${TD.RULES.hoardFull}s). Spend to lift it.">−${Math.round((1 - hm) * 100)}% hoarding</small>` : ''); }
+  { const hm = V.t >= TD.RULES.setup ? TD.hoardMulOf(Math.max(0, A.gold - Math.min(A.grant || 0, A.gold)), A.income) : 1, eff = Math.round(A.income * hm * 10) / 10; P.querySelector('[data-gold]').innerHTML = `💰 ${A.gold}<small>+${eff}/s</small>` + (hm < 0.995 ? `<small class="hoard" title="Holding more than ${TD.RULES.hoardFree}s of income cuts your income (down to half at ${TD.RULES.hoardFull}s). Spend to lift it.">−${Math.round((1 - hm) * 100)}% hoarding</small>` : ''); }
   P.querySelectorAll('[data-unit]').forEach(b => { const U = TD.UNITS[b.dataset.unit], lock = mt < U.unlock * 60; b.classList.toggle('off', shut || lock || A.gold < U.cost * lanes * atkUI.qty); });
   const su = P.querySelector('[data-setup]'); if (su) { su.classList.toggle('hold', shut); su.textContent = setup ? `Setup: you can send units in ${Math.ceil(ph.left)}s` : shut ? `⏸ Pause: sending reopens in ${Math.ceil(ph.left)}s` : `⚔ Sending open: ${Math.ceil(ph.left)}s left, then a ${TD.RULES.sendOff}s pause. Every unit you send raises your income.`; }
   const spb = P.querySelector('[data-speed]'), maxed = A.speed >= TD.RULES.speedMax; spb.disabled = maxed || A.gold < A.speedCost; spb.innerHTML = maxed ? '👢 Speed maxed' : `👢 Speed ${A.speed + 1}/${TD.RULES.speedMax} · ${A.speedCost}g`;

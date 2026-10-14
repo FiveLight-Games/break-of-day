@@ -142,7 +142,7 @@ class Sim {
     this.N = defs.length; this.L = layout(o.map, this.N); this.map = this.L.map;
     this.t = 0; this.tick = 0; this.nid = 1; this.over = null; this.events = []; this.towerVer = 1; this.hpMax = RULES.hpPer * this.N; this.hp = this.hpMax; this.closed = false;
     this.players = {};
-    this.atk = { pid: atk.pid, name: atk.name, color: atk.color, race: atk.race, bot: !!atk.bot, gold: RULES.atkGoldPer * this.N, income: RULES.atkIncomePer * this.N, invest: 0, speed: 0, queue: [], sent: 0, leaked: 0, spent: 0, dmg: 0 };
+    this.atk = { pid: atk.pid, name: atk.name, color: atk.color, race: atk.race, bot: !!atk.bot, gold: RULES.atkGoldPer * this.N, grant: RULES.atkGoldPer * this.N, income: RULES.atkIncomePer * this.N, invest: 0, speed: 0, queue: [], sent: 0, leaked: 0, spent: 0, dmg: 0 };
     this.players[atk.pid] = this.atk;
     this.defs = defs.map((p, i) => { const d = { pid: p.pid, name: p.name, color: p.color, race: p.race, bot: !!p.bot, slot: i, gold: RULES.defGold, income: RULES.defIncome, kills: 0, built: 0, dmg: 0, shared: 0, scd: { meteor: 0, jet: 0 } }; this.players[p.pid] = d; return d; });
     this.noBotSpells = true; // bot-vs-bot tests: casting bots end up weaker than ones that buy towers; revisit with upgrades
@@ -193,7 +193,7 @@ class Sim {
   investCost() { return Math.round(RULES.investCost * this.N * Math.pow(1.3, this.atk.invest)); }
   ev(e) { this.events.push(e); }
   // hoarding tax (test flag `hoardTax`): a bank bigger than `free` seconds of income cuts income, down to 50% at `full` seconds
-  hoardMul() { const H = this.hoardTax === undefined ? { free: RULES.hoardFree, full: RULES.hoardFull } : this.hoardTax; if (!H || this.t < RULES.setup) return 1; return hoardMulOf(this.atk.gold, this.atk.income, H.free, H.full); }
+  hoardMul() { const H = this.hoardTax === undefined ? { free: RULES.hoardFree, full: RULES.hoardFull } : this.hoardTax; if (!H || this.t < RULES.setup) return 1; const A = this.atk; A.grant = Math.min(A.grant || 0, A.gold); return hoardMulOf(A.gold - A.grant, A.income, H.free, H.full); } // the starting gold never counts as hoarding
   canSend() { return this.noPause ? this.t >= RULES.setup : sendPhase(this.t).open; }
   mins() { return Math.max(0, this.t - RULES.setup) / 60; }
   // ---- step ----
@@ -420,7 +420,7 @@ class Sim {
   // ---- network snapshot (compact) ----
   snapshot(full) {
     const s = { t: Math.round(this.t * 100) / 100, pu: Math.round(this.pulseT * 10) / 10, wv: this.wave, hp: this.hp, cl: this.closed ? 1 : 0,
-      a: [Math.floor(this.atk.gold), Math.round(this.atk.income * 100) / 100, this.atk.invest, this.investCost(), this.atk.queue.map(q => UNIT_IDS.indexOf(q[0]) * 10 + q[1]), this.atk.speed, this.speedCost()],
+      a: [Math.floor(this.atk.gold), Math.round(this.atk.income * 100) / 100, this.atk.invest, this.investCost(), this.atk.queue.map(q => UNIT_IDS.indexOf(q[0]) * 10 + q[1]), this.atk.speed, this.speedCost(), Math.floor(this.atk.grant || 0)],
       df: this.defs.map(d => [Math.floor(d.gold), Math.round(d.income * 10) / 10, d.kills, SPELL_IDS.map(k => Math.max(0, Math.round((d.scd[k] - this.t) * 10)))]),
       u: [], bm: this.beams || [], ev: this.events, over: this.over };
     for (const u of this.units) s.u.push(u.id, Math.round(u.d * 10) / 10, Math.round(u.hp / u.max * 100), (u.slowU > this.t ? 1 : 0) | (u.burn > 0 ? 2 : 0) | (u.wet > this.t ? 4 : 0) | (u.air > 0 ? 8 : 0));
