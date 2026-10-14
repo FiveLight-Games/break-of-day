@@ -956,14 +956,15 @@ let PIT = [0, -1, 9];
   function glow(c, a) { const [fx0, fy0, h] = PIT; c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = a; const g = c.createRadialGradient(fx0, fy0 - h * 0.35, 0, fx0, fy0 - h * 0.35, h * 1.3); g.addColorStop(0, 'rgba(255,150,40,.35)'); g.addColorStop(1, 'rgba(255,90,20,0)'); c.fillStyle = g; c.beginPath(); c.arc(fx0, fy0 - h * 0.35, h * 1.3, 0, 7); c.fill(); c.restore(); }
   function litMan(c, T, dx, dy, sc, t, P, L) {
     const lit = T.lit || 0;
-    if (lit < 0.001) { c.save(); c.translate(dx, dy); const m = man(c, sc, T.ph || 0, T.att || 0, T.aimS !== undefined ? T.aimS : Math.PI / 2, t, P, L); c.restore(); return m; }
+    c.save(); c.translate(dx, dy); const m = man(c, sc, T.ph || 0, T.att || 0, T.aimS !== undefined ? T.aimS : Math.PI / 2, t, P, L); c.restore();
+    if (lit < 0.001) return m;
     const M = c.getTransform(), k = Math.hypot(M.a, M.b), BW = 84, BH = 84, OX = 42, OY = 70, w = Math.ceil(BW * k), h = Math.ceil(BH * k);
     if (!T.mc) { T.mc = document.createElement('canvas'); T.gc = document.createElement('canvas'); }
     for (const cv of [T.mc, T.gc]) if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
     const mc = T.mc.getContext('2d'); mc.setTransform(1, 0, 0, 1, 0, 0); mc.clearRect(0, 0, w, h); mc.setTransform(k, 0, 0, k, OX * k, OY * k);
-    const m = man(mc, sc, T.ph || 0, T.att || 0, T.aimS !== undefined ? T.aimS : Math.PI / 2, t, P, L);
+    man(mc, sc, T.ph || 0, T.att || 0, T.aimS !== undefined ? T.aimS : Math.PI / 2, t, P, L);
     const px = M.a * dx + M.c * dy + M.e, py = M.b * dx + M.d * dy + M.f, ga = c.globalAlpha;
-    c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(T.mc, px - OX * k, py - OY * k);
+    c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
     const g = T.gc.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.clearRect(0, 0, w, h); g.setTransform(k, 0, 0, k, OX * k, OY * k);
     const [fx0, fy0, fh] = PIT, gx = fx0 - dx, gy = fy0 - fh * 0.35 - dy, gr = g.createRadialGradient(gx, gy, 0, gx, gy, fh * 1.3); gr.addColorStop(0, 'rgba(255,150,40,.35)'); gr.addColorStop(1, 'rgba(255,90,20,0)');
     g.fillStyle = gr; g.fillRect(-OX, -OY, BW, BH); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'destination-in'; g.drawImage(T.mc, 0, 0);
