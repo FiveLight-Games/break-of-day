@@ -119,7 +119,7 @@ let patch = null;
 function makePatch() {
   const S = 6, pw = 58, ph = 28; patch = document.createElement('canvas'); patch.width = pw * S; patch.height = ph * S;
   const g = patch.getContext('2d'); g.scale(S, S); g.translate(pw / 2, ph / 2); const R = srand(99);
-  g.fillStyle = 'rgba(0,0,0,.18)'; g.beginPath(); g.ellipse(1.5, 2, 24, 9.8, 0, 0, 7); g.fill();
+  
   g.fillStyle = '#86603d'; g.beginPath(); g.ellipse(0, 0, 21, 8.5, 0, 0, 7); g.fill();
   g.save(); g.beginPath(); g.ellipse(0, 0, 21, 8.5, 0, 0, 7); g.clip();
   g.fillStyle = '#7a5636'; for (let i = 0; i < 9; i++) { g.beginPath(); g.ellipse((R() - 0.5) * 34, (R() - 0.5) * 13, 3 + R() * 5, 1.4 + R() * 2, R() * 0.6, 0, 7); g.fill(); }
@@ -289,6 +289,7 @@ function draw(c, T, t) {
   if (!T.st || T.st.L !== L) init(T, L);
   const S = T.st, G = S.G;
   c.save(); c.translate(0, 4);
+  if (!NOSHADOW) { c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse(1.5, 2, 24, 9.8, 0, 0, 7); c.fill(); }
   c.drawImage(patch, -29, -14, 58, 28);
   const items = G.rocks.map(r => [r.y, () => rock(c, r, t)]).concat(G.bones.map(b => [b.y, () => groundBone(c, b)]), G.circle.map(st => [st.y, () => standing(c, st)]));
   if (L >= 5) items.push([SKULL.y, () => mammothSkull(c)]);
@@ -376,10 +377,10 @@ let COL = '#3a7bd5';
 const rr = (a, b) => a + Math.random() * (b - a), lerp = (a, b, k) => a + (b - a) * k;
 const CARRY = 0.6, CRUISE = 44, BS = 1.2; // CRUISE: flying height; BS: boulders drawn bigger than in the demo
 const LV = [null,
-  { rs: 0.56, ps: 0.62, bs: 1.15, dmg: 36, sp: 10, fly: 62, r: 92 },
-  { rs: 0.68, ps: 0.74, bs: 1.3, dmg: 44, sp: 11, fly: 66, r: 98 },
-  { rs: 0.8, ps: 0.86, bs: 1.45, dmg: 54, sp: 12, fly: 70, r: 104 },
-  { rs: 0.9, ps: 0.98, bs: 1.6, dmg: 66, sp: 13, fly: 74, r: 110 },
+  { rs: 0.56, ps: 0.85, bs: 1.15, dmg: 36, sp: 10, fly: 62, r: 92 },
+  { rs: 0.68, ps: 0.9, bs: 1.3, dmg: 44, sp: 11, fly: 66, r: 98 },
+  { rs: 0.8, ps: 0.95, bs: 1.45, dmg: 54, sp: 12, fly: 70, r: 104 },
+  { rs: 0.9, ps: 1.02, bs: 1.6, dmg: 66, sp: 13, fly: 74, r: 110 },
   { rs: 1.0, ps: 1.1, bs: 1.75, dmg: 80, sp: 14, fly: 78, r: 116 }];
 function srand(s) { return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
 function shade(h, k) { const p = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); return '#' + p.map(v => Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k))).toString(16).padStart(2, '0')).join(''); }
@@ -387,9 +388,9 @@ function poly(R, sz, sq = 0.62) { const n = 5 + Math.floor(R() * 3), v = []; for
 // ---------- the roost: a crag of stacked rock with a twig nest on top ----------
 // L1-2: a dead tree with the nest in its fork; L3: the tree grows out of a rock outcrop; L4: a rocky crag; L5: a rocky peak
 const ROOST = [null,
-  { kind: 'tree', s: 0.62, th: 11, tw: 1.5, pad: 6 },
-  { kind: 'tree', s: 0.74, th: 13.5, tw: 1.9, pad: 7.5 },
-  { kind: 'rocktree', s: 0.72, th: 10, tw: 2, base: 1, pad: 10 },
+  { kind: 'tree', s: 0.85, th: 16, tw: 2.2, pad: 9 },
+  { kind: 'tree', s: 0.9, th: 18, tw: 2.6, pad: 10 },
+  { kind: 'rocktree', s: 0.8, th: 13, tw: 2.5, base: 1, pad: 11 },
   { kind: 'crag', s: 0.95, hs: 1.35, pad: 13 },
   { kind: 'peak', s: 1.05, hs: 1.4, pad: 15 }];
 function makeRoost(L) {
@@ -407,12 +408,12 @@ function makeRoost(L) {
     const z0 = C.base ? 5.2 : 0;
     if (C.base) { add([[-6, 1, 4.2], [-1.5, 2.6, 4.4], [4, 1.8, 4], [3, -2, 4], [-3.5, -2.2, 4.2]], 0, 1); Ro.layers = [0]; }
     Ro.tree = { z0, th: C.th, tw: C.tw, br: [] };
-    const nb = L === 1 ? 3 : 5; for (let i = 0; i < nb; i++) { const side = i % 2 ? 1 : -1; Ro.tree.br.push({ h: 0.38 + i / nb * 0.5, side, len: (3 + R() * 2.5) * (1 + L * 0.1), a: -0.5 - R() * 0.5, twig: R() < 0.6 }); }
+    const nb = L === 1 ? 3 : 5; for (let i = 0; i < nb; i++) { const side = i % 2 ? 1 : -1; Ro.tree.br.push({ h: 0.38 + i / nb * 0.5, side, len: (3 + R() * 2.5) * (1 + L * 0.1) * C.th / 11, a: -0.5 - R() * 0.5, twig: R() < 0.6 }); }
     Ro.nestZ = z0 + C.th + 0.6;
   }
   Ro.pile = []; for (let i = 0; i < 1 + L; i++) Ro.pile.push({ x: 1.6 + (i % 3) * 1.2 - 1.2, y: -0.1 + Math.floor(i / 3) * 0.6, rot: R() * 6 });
   Ro.twigs = []; for (let i = 0; i < 18 + L * 4; i++) { const a = R() * Math.PI * 2; Ro.twigs.push([a, 0.8 + R() * 0.5, R() * 0.8 - 0.4]); }
-  Ro.ns = [0, 0.62, 0.72, 0.8, 0.92, 1.02][L];
+  Ro.ns = [0, 0.85, 0.9, 0.92, 0.96, 1.02][L];
   return Ro;
 }
 // a dead tree: crooked grey trunk, bare branches, roots, and paint bands in the owner's colour
@@ -546,7 +547,7 @@ function nestPos(T, B) { return [T.x, T.y + 3.6, B.Ro.nestZ + 0.2]; }
 function draw(c, T, t) {
   COL = T.col || COL; const B = bird(T), Ro = B.Ro, L = B.L, P = B.P, pad = Ro.pad;
   c.save(); c.translate(0, 4);
-  c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(1.5, 1.8, pad + 1.2, pad * 0.42 + 0.6, 0, 0, 7); c.fill();
+  if (!NOSHADOW) { c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(1.5, 1.8, pad + 1.2, pad * 0.42 + 0.6, 0, 0, 7); c.fill(); }
   c.fillStyle = '#7d6446'; c.beginPath(); c.ellipse(0, 0.5, pad, pad * 0.42, 0, 0, 7); c.fill();
   if (Ro.layers) for (const z of Ro.layers) { const list = Ro.rocks.filter(r => r.z === z).sort((a, b) => a.y - b.y); for (const r of list) rockPoly(c, r, 0, 0); if (Ro.tree ? z === 0 : z === Ro.layers[1]) marks(c, Ro, L); }
   if (Ro.tree) deadTree(c, Ro, L, t);
@@ -611,16 +612,22 @@ function land(b) {
   sfx('boom', b.x, b.y); stain(b.x, b.y, sp * 0.5, '#2a2218', 0.3);
   for (let i = 0; i < 12; i++) { const a = rr(0, 6.28); dust.push({ x: b.x + Math.cos(a) * 3, y: b.y + Math.sin(a) * 1.2, vx: Math.cos(a) * rr(30, 70), vy: Math.sin(a) * rr(10, 24), r: rr(2, 3.6) * V2.bs, t: 0, max: rr(0.5, 0.9) }); }
   rings.push({ x: b.x, y: b.y, t: 0, r: sp });
-  craters.push({ x: b.x, y: b.y, t: 0, r: (2.2 + V2.bs * 1.6) * 1.8 });
+  craters.push({ x: b.x, y: b.y, t: 0, r: sp * 0.5 });
   if (bits.length < 140) { const ns = 5 + Math.floor(Math.random() * 2); for (let i = 0; i < ns; i++) { const a = i / ns * Math.PI * 2 + rr(-0.3, 0.3), sp = rr(28, 52) * (0.8 + V2.bs * 0.3), k = rr(0.35, 0.6), v = [[-0.9 * k, -0.5 * k], [rr(0.4, 1) * k, -rr(0.7, 1.1) * k], [rr(0.8, 1.3) * k, rr(0.2, 0.6) * k], [-rr(0.1, 0.5) * k, rr(0.6, 1) * k]];
     bits.push({ x: b.x, y: b.y, z: 4, vx: Math.cos(a) * sp + b.vx * 0.2, vy: Math.sin(a) * sp * 0.45, vz: rr(30, 50), rot: rr(0, 6), spin: rr(-12, 12), t: 0, rest: 0, s: V2.bs * BS, v }); }
     for (let i = 0; i < 8; i++) { const a = rr(0, 6.28); bits.push({ x: b.x, y: b.y, z: 2, vx: Math.cos(a) * rr(20, 60), vy: Math.sin(a) * rr(8, 24), vz: rr(16, 36), rot: 0, spin: 0, t: 0, rest: 0, grit: 1 }); } }
 }
-function drawAir(c, t, inView) {
-  for (const r of rings) { const k = r.t / 0.4; c.strokeStyle = `rgba(230,210,170,${0.6 * (1 - k)})`; c.lineWidth = 2; c.beginPath(); c.ellipse(r.x, r.y, r.r * (0.3 + k * 0.8), r.r * 0.45 * (0.3 + k * 0.8), 0, 0, 7); c.stroke(); }
-  for (const k of craters) { if (!inView(k.x, k.y, 20)) continue; c.globalAlpha = Math.max(0, Math.min(1, (2.5 - k.t) / 0.8)); c.fillStyle = '#3a2c1e'; c.beginPath(); c.ellipse(k.x, k.y, k.r * 1.25, k.r * 0.55, 0, 0, 7); c.fill(); c.fillStyle = '#5c4630'; c.beginPath(); c.ellipse(k.x, k.y + 0.4, k.r * 0.85, k.r * 0.36, 0, 0, 7); c.fill(); c.strokeStyle = 'rgba(160,130,95,.7)'; c.lineWidth = 1; c.beginPath(); c.ellipse(k.x, k.y - 0.3, k.r * 1.3, k.r * 0.58, 0, Math.PI * 1.05, Math.PI * 1.95); c.stroke(); }
+// craters and settled shards lie on the ground, under the units
+function drawGround(c, inView) {
+  for (const k of craters) { if (!inView(k.x, k.y, 20)) continue; c.globalAlpha = Math.max(0, Math.min(1, (2.5 - k.t) / 0.8)); c.fillStyle = '#3a2c1e'; c.beginPath(); c.ellipse(k.x, k.y, k.r * 1.1, k.r * 0.8, 0, 0, 7); c.fill(); c.fillStyle = '#5c4630'; c.beginPath(); c.ellipse(k.x, k.y + 0.4, k.r * 0.75, k.r * 0.52, 0, 0, 7); c.fill(); c.strokeStyle = 'rgba(160,130,95,.7)'; c.lineWidth = 1; c.beginPath(); c.ellipse(k.x, k.y - 0.3, k.r * 1.15, k.r * 0.84, 0, Math.PI * 1.05, Math.PI * 1.95); c.stroke(); }
   c.globalAlpha = 1;
-  for (const b of bits) { if (!inView(b.x, b.y, 10)) continue; c.globalAlpha = b.rest ? Math.max(0, 1 - (b.t - b.rest) / 1.6) : 1; if (b.grit) { c.fillStyle = '#6a7078'; c.fillRect(b.x - 0.6, b.y - 1 - b.z - 0.6, 1.2, 1.2); } else shard(c, b.x, b.y - 1 - b.z, b.rot, b.s, b.v); }
+  for (const b of bits) { if (!b.rest || !inView(b.x, b.y, 10)) continue; c.globalAlpha = Math.max(0, 1 - (b.t - b.rest) / 1.6); if (b.grit) { c.fillStyle = '#6a7078'; c.fillRect(b.x - 0.6, b.y - 1.6, 1.2, 1.2); } else shard(c, b.x, b.y - 1, b.rot, b.s, b.v); }
+  c.globalAlpha = 1;
+}
+function drawAir(c, t, inView) {
+  for (const r of rings) { const k = r.t / 0.4; c.strokeStyle = `rgba(230,210,170,${0.6 * (1 - k)})`; c.lineWidth = 2; c.beginPath(); c.ellipse(r.x, r.y, r.r * (0.3 + k * 0.75), r.r * 0.8 * (0.3 + k * 0.75), 0, 0, 7); c.stroke(); }
+  c.globalAlpha = 1;
+  for (const b of bits) { if (b.rest || !inView(b.x, b.y, 10)) continue; if (b.grit) { c.fillStyle = '#6a7078'; c.fillRect(b.x - 0.6, b.y - 1 - b.z - 0.6, 1.2, 1.2); } else shard(c, b.x, b.y - 1 - b.z, b.rot, b.s, b.v); }
   c.globalAlpha = 1;
   for (const p of dust) { const k = p.t / p.max; c.fillStyle = `rgba(150,120,85,${0.55 * (1 - k)})`; c.beginPath(); c.arc(p.x, p.y - k * 5, p.r * (1 + k * 1.6), 0, 7); c.fill(); }
   for (const b of drops) { const k = Math.max(0.3, 1 - b.z / 60), s = LV[b.L].bs * BS; c.fillStyle = `rgba(0,0,0,${0.3 * k})`; c.beginPath(); c.ellipse(b.x, b.y + 0.5, 1.6 * s * (1.4 - k * 0.4), 0.7 * s, 0, 0, 7); c.fill(); }
@@ -631,5 +638,5 @@ function drawAir(c, t, inView) {
   }
   for (const b of drops) boulder(c, b.x + Math.sin(b.wob) * 0.8, b.y - b.z, b.rot, LV[b.L].bs * BS, true);
 }
-return { draw, update, launch, step, drawAir };
+return { draw, update, launch, step, drawAir, drawGround };
 })();

@@ -876,10 +876,11 @@ function archerBuild(c, T, t, COL) {
 }
 
 const archerSlots = () => [0, 1, 2, 3, 4].map(() => ({ aim: 1.1, kick: 0 }));
+let NOSHADOW = false; // tray previews draw towers without their ground shadow
 function towerBody(c, k, col, aim, now, kick, seed, lvl) {
   if (k === 'archer') { archerLvl(c, { lvl: lvl || 1, x: 0, y: 0, archers: Array.isArray(aim) ? aim : archerSlots().map(a => (a.aim = aim, a)) }, now, col); return; }
   const dark = mix(col, '#000000', 0.35), light = mix(col, '#ffffff', 0.25);
-  c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(3, 16, 22, 7, 0, 0, 7); c.fill();
+  if (!NOSHADOW) { c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(3, 16, 22, 7, 0, 0, 7); c.fill(); }
   if (k === 'cannon') {
     // bombard: wide round plinth, slim stone column, swivel gun on top
     c.fillStyle = '#6e6b64'; c.beginPath(); c.ellipse(0, 13, 20, 7, 0, 0, 7); c.fill(); c.fillStyle = '#8f8c84'; c.fillRect(-20, 8, 40, 5); c.beginPath(); c.ellipse(0, 8, 20, 7, 0, 0, 7); c.fill();
@@ -1136,7 +1137,7 @@ function drawBreath(c, T, t) {
     const L = Math.max(1, Math.min(5, T.lvl || 1)), P = pal(L); COL = T.col || COL;
     const key = L + '|' + COL; let stones = STONES.get(key); if (!stones) STONES.set(key, stones = makeStones(L, 7 + L * 31));
     c.save(); c.translate(0, 4);
-    c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse(1.5, 2, 25, 10, 0, 0, 7); c.fill();
+    if (!NOSHADOW) { c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse(1.5, 2, 25, 10, 0, 0, 7); c.fill(); }
     c.fillStyle = '#7d6446'; c.beginPath(); c.ellipse(0, 0, 21, 8.5, 0, 0, 7); c.fill(); c.fillStyle = '#6d5539'; c.beginPath(); c.ellipse(0, 0.5, 15, 5.8, 0, 0, 7); c.fill();
     const torches = L >= 4 ? [0, 1, 2, 3, 4].map(p => { const a = p / 5 * Math.PI * 2 + 0.35 + 0.42; return { a, x: Math.cos(a) * 25, y: Math.sin(a) * 10.5 }; }) : [];
     const pos = T.pos || 0, ph = T.ph || 0, att = T.att || 0, aim = T.aimS !== undefined ? T.aimS : Math.PI / 2;
@@ -1623,7 +1624,7 @@ function renderTray(force) {
   if (!force && T.dataset.key === key) return; T.dataset.key = key;
   T.innerHTML = `<div class="sheetHead"><b>Drag a tower onto the field</b><span class="muted small">Drop it back here to cancel</span></div><div class="cards">${TD.BUILD_IDS.map(k => `<button class="card ${D.gold < TD.TOWERS[k].cost ? 'off' : ''}" data-tw="${k}" title="${esc(TD.TOWERS[k].d)}"><span data-prev="${k}"></span><b>${TD.TOWERS[k].n}</b><span class="cost">${TD.TOWERS[k].cost}g</span></button>`).join('')}</div><div class="strip"></div>`;
   updateStrip(); requestAnimationFrame(placeBuildBtn);
-  T.querySelectorAll('[data-prev]').forEach(s => s.replaceWith(previewCanvas(g => { g.translate(42, 33); g.scale(1.15, 1.15); towerBody(g, s.dataset.prev, colHex(D.color), 0.6, V.clock || 0, 0, 1); })));
+  T.querySelectorAll('[data-prev]').forEach(s => s.replaceWith(towerPreview(s.dataset.prev, colHex(D.color))));
   T.querySelectorAll('[data-tw]').forEach(b => b.onpointerdown = e => { e.preventDefault(); build.sel = b.dataset.tw; updateStrip(); if (!b.classList.contains('off')) startDrag(b.dataset.tw, e); else toast('Not enough gold'); });
 }
 function startDrag(k, e) {
@@ -1643,6 +1644,15 @@ const atkUI = { target: 'all', qty: 1 };
 let sheetKind = null;
 function sellLabel(t) { return t.refundAt > V.clock ? `Refund ${t.spent}g · ${Math.ceil(t.refundAt - V.clock)}s` : `Sell +${Math.floor(t.spent * TD.RULES.sell + 1e-6)}g`; }
 function hideSheet() { $('sheet').classList.add('hidden'); document.body.classList.remove('sheetOpen'); sheetKind = null; if (V) V.sel = null; if (V && V.myDef && !V.over) $('buildBtn').classList.remove('hidden'); }
+function towerPreview(k, col) {
+  const S = 4, N = 130, tmp = document.createElement('canvas'); tmp.width = tmp.height = N * S; const g = tmp.getContext('2d'); g.scale(S, S); g.translate(N / 2, N * 0.62);
+  NOSHADOW = true; try { towerBody(g, k, col, 0.6, 0, 0, 1, 1); } finally { NOSHADOW = false; }
+  const d = g.getImageData(0, 0, tmp.width, tmp.height).data; let x0 = tmp.width, y0 = tmp.height, x1 = 0, y1 = 0;
+  for (let y = 0; y < tmp.height; y++) for (let x = 0; x < tmp.width; x++) if (d[(y * tmp.width + x) * 4 + 3] > 10) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  const out = document.createElement('canvas'); out.width = 168; out.height = 124; if (x1 <= x0) return out;
+  const w = x1 - x0 + 1, h = y1 - y0 + 1, f = Math.min(136 / w, 104 / h), o = out.getContext('2d');
+  o.drawImage(tmp, x0, y0, w, h, (168 - w * f) / 2, (124 - h * f) / 2, w * f, h * f); return out;
+}
 function previewCanvas(draw) { const c = document.createElement('canvas'); c.width = 168; c.height = 124; const g = c.getContext('2d'); g.scale(2, 2); draw(g); return c; }
 function levelBlock(t, mine) {
   const T = TD.TOWERS[t.k], Lv = TD.LEVELS[t.k], lvl = t.lvl || 1, n = TD.towerVolley(t.k, lvl), dmg = TD.towerDmg(t.k, lvl), rng = Math.round(TD.towerRange(t.k, lvl));
@@ -1753,6 +1763,7 @@ function frame(ms) {
   for (const t of V.tiles.values()) if (t.x < vx1 && t.x + TILE > vx0 && t.y < vy1 && t.y + TILE > vy0) x.drawImage(t.c, t.x, t.y, TILE, TILE);
   if (build.on && ex > sx && ey > Math.max(0, sy)) { const y0 = Math.max(0, sy); x.drawImage(gridBg, sx * 0.5, y0 * 0.5, (ex - sx) * 0.5, (ey - y0) * 0.5, sx, y0, ex - sx, ey - y0); }
   for (const f of V.fields) if (inView(f.x, f.y, f.r + 20)) drawFieldGlow(f);
+  PT.drawGround(x, inView);
   V.L.lanes.forEach((L2, i) => { if (inView(L2.gate[0], -150, 300)) drawCamp(L2, i); });
   drawSpellAim();
   if (V.sel && V.sel.tower) { const t = V.towerMap.get(V.sel.tower); if (t) { x.fillStyle = 'rgba(255,224,138,.08)'; x.strokeStyle = 'rgba(255,224,138,.6)'; x.lineWidth = 2; x.beginPath(); x.arc(t.x, t.y, TD.towerRange(t.k, t.lvl), 0, 7); x.fill(); x.stroke(); } }

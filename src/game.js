@@ -75,7 +75,7 @@ const footFree = (L, c, r, occ) => { for (let j = 0; j < FOOT; j++) for (let i =
 // ---------------- Human race ----------------
 const TOWERS = {
   stone: { n: 'Stone Thrower', cost: 30, r: 185, cd: 1, dmg: 23, volley: 1, throws: 1, dt: 'phys', d: 'A caveman on a patch of rocky ground who hurls rocks at one enemy. Level it up for more cavemen, bones, slings and a chieftain. Promotes into the Archer Post.', tip: 'One caveman, a rock every second. Level up for more throwers.' },
-  ptero: { n: 'Pterodactyl Roost', cost: 90, r: 170, dmg: 95, splash: 30, fly: 230, bird: 1, dt: 'crush', d: 'A pterodactyl that flies out, drops a boulder on one enemy and everything around it, then flies home for another. The closer the lane, the faster it comes back. Promotes into the Bombard.', tip: 'Boulders that splash. Faster round trips near the lane.' },
+  ptero: { n: 'Pterodactyl Roost', cost: 90, r: 170, dmg: 140, splash: 20, fly: 230, bird: 1, dt: 'crush', d: 'A pterodactyl that flies out, drops a boulder on one enemy and everything around it, then flies home for another. The closer the lane, the faster it comes back. Promotes into the Bombard.', tip: 'Boulders that splash. Faster round trips near the lane.' },
   archer: { n: 'Archer Post', promo: 'stone', cost: 30, r: 190, cd: 1, dmg: 20, volley: 1, dt: 'phys', d: 'A wooden watch post full of archers, promoted from a Stone Thrower (it keeps its level). More archers, harder arrows and more range each level.', tip: 'A volley of arrows from 3 to 5 archers, with more range.' },
   cannon: { n: 'Bombard', promo: 'ptero', cost: 100, r: 200, cd: 1.2, dmg: 120, splash: 40, dt: 'blast', d: 'A heavy gun on a stone column. Shells hit everything nearby.', tip: 'Shells hit everything nearby. Best vs crowds.' },
   frost: { n: 'Frost Obelisk', cost: 90, r: 160, cd: 1.0, dmg: 30, slow: 1.6, dt: 'ice', d: 'An ice shard that chills its target, slowing it by half.', tip: 'Chills its target to half speed for 1.6s.' },
@@ -86,7 +86,7 @@ const TOWER_IDS = Object.keys(TOWERS), BUILD_IDS = TOWER_IDS.filter(k => !TOWERS
 // levels 1-5: each level-up rebuilds the tower with a new look and stats
 const LEVELS = {
   stone: { cost: [0, 35, 55, 80, 110], volley: [1, 2, 2, 2, 3], dmg: [23, 24, 33, 46, 43], cd: [1, 1, 0.8, 0.8, 0.8], range: [1, 1, 1.15, 1.3, 1.45], names: ['Stone Thrower', 'Two Throwers', 'Bone Yard', 'Slingers', "Chieftain's Circle"] },
-  ptero: { cost: [0, 55, 80, 110, 150], dmg: [95, 130, 170, 215, 265], splash: [30, 33, 36, 39, 42], range: [1, 1.06, 1.12, 1.18, 1.24], fly: [230, 245, 260, 275, 290], names: ['Dead tree', 'Old snag', 'Rock snag', 'Crag', 'Peak'] },
+  ptero: { cost: [0, 55, 80, 110, 150], dmg: [140, 190, 248, 312, 385], splash: [20, 22, 24, 26, 28], range: [1, 1.06, 1.12, 1.18, 1.24], fly: [230, 245, 260, 275, 290], names: ['Dead tree', 'Old snag', 'Rock snag', 'Crag', 'Peak'] },
   flame: { cost: [0, 70, 100, 140, 190], dps: [60, 72, 86, 102, 120], range: [1, 1.1, 1.2, 1.3, 1.4], wide: [1, 1.1, 1.2, 1.3, 1.4], names: ['Campfire', 'Twin torches', 'Pyre', 'Stone circle', 'White-hot pyre'] },
   archer: { cost: [0, 80, 110, 145, 190], volley: [1, 2, 3, 4, 5], dmg: [52, 40, 37, 37, 38], cd: [0.45, 0.5, 0.55, 0.6, 0.6], range: [1, 1, 1.15, 1.30, 1.45], names: ['Watch post', 'Watch post', 'Timber tower', 'Rough stone tower', 'Stone keep'] },
 };
