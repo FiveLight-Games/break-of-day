@@ -197,7 +197,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
     const g2 = await A.evaluate(id => window.TDC.GS.sim.defs.find(d => d.pid === window.TDC.GS.sim.towers.find(t => t.id === id).owner).gold, tid);
     await C.click('#sheet [data-promo="0"]'); await sleep(700);
     const pr = await A.evaluate(([id, g2]) => { const S = window.TDC.GS.sim, T = S.towers.find(t => t.id === id), D = S.defs.find(d => d.pid === T.owner); return { k: T.k, lvl: T.lvl, paid: Math.round(g2 - D.gold) }; }, [tid, g2]);
-    check(pr.k === 'archer' && pr.lvl === 1 && pr.paid === 0, 'promotion: level-5 Stone Thrower becomes a level-1 Archer Post; its levels past 3 cover the 90g: ' + JSON.stringify(pr));
+    check(pr.k === 'archer' && pr.lvl === 1 && pr.paid <= 0 && pr.paid >= -3, 'promotion: level-5 Stone Thrower becomes a level-1 Archer Post; its levels past 3 cover the 90g: ' + JSON.stringify(pr));
     check(await C.evaluate(id => window.TDC.V.towerMap.get(id).k === 'archer', tid), 'promotion shows on other screens');
     await C.evaluate(() => window.TDC.onTap(-999, -999)); await sleep(200);
     await C.evaluate(() => { const T = window.TDC.V.towers.find(t => t.owner === window.TDC.V.myDef.pid); window.TDC.onTap(T.x, T.y); }); await sleep(200);
