@@ -221,7 +221,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   await E.click('#btnReady'); await sleep(800);
   check(await E.evaluate(() => window.TDC.V.isAtk && window.TDC.V.defs.length === 2 && window.TDC.V.defs.every(d => d.bot)), 'match starts with you attacking two AI defenders');
   await E.waitForFunction(() => window.TDC.V.t >= 10.5, null, { timeout: 15000 });
-  await E.evaluate(() => window.TDC.send({ c: 'send', k: 'grunt', lane: 'all', n: 10 })); await sleep(7000);
+  await E.evaluate(() => window.TDC.send({ c: 'send', k: 'runner', lane: 'all', n: 10 })); await sleep(7000);
   const ea = await E.evaluate(() => ({ towers: window.TDC.V.towers.length, kills: window.TDC.V.defs.map(d => d.kills) }));
   check(ea.towers >= 4 && ea.kills.some(k => k > 0), 'AI defenders build and kill: ' + JSON.stringify(ea));
   await E.screenshot({ path: OUT + '/game-atk-ai.png' });

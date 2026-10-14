@@ -103,11 +103,11 @@ const SPELLS = {
 const SPELL_IDS = Object.keys(SPELLS);
 const UNITS = {
   // unlock: minute the attacker can first send it. pack: units per send. armor: less damage from arrows and shells.
-  grunt: { n: 'Footman', hp: 150, sp: 46, r: 5.5, cost: 3, bounty: 1, dmg: 3, body: 'human', unlock: 0, d: 'Cheap and sturdy. 3 damage to the base.' },
-  runner: { n: 'Scout', hp: 85, sp: 70, r: 4.5, cost: 3, bounty: 1, dmg: 1, body: 'human', unlock: 0, d: 'Fast and fragile. 1 damage to the base.' },
+  grunt: { n: 'Footman', hp: 175, sp: 46, r: 5.5, cost: 5, bounty: 1.6, dmg: 3, body: 'human', unlock: 0, d: 'Cheap and sturdy. 3 damage to the base.' },
+  runner: { n: 'Scout', hp: 85, sp: 70, r: 4.5, cost: 2, bounty: 0.7, dmg: 1, body: 'human', unlock: 0, d: 'Fast and fragile. 1 damage to the base.' },
   footknight: { n: 'Knight', hp: 420, sp: 42, r: 6.5, cost: 8, bounty: 2.5, dmg: 4, body: 'human', armor: 0.15, unlock: 0, d: 'An armoured foot knight: tougher than a Footman, lighter than an Ogre. Arrows and shells do 15% less. 4 damage.' },
-  troop: { n: 'Scout Troop', swarm: 1, hp: 85, sp: 70, r: 4.5, cost: 15, pack: 6, bounty: 0.6, dmg: 1, body: 'human', unlock: 1, d: 'Six fast scouts per send. A horde: extra income, little bounty. 1 damage each.' },
-  warband: { n: 'Footman Warband', swarm: 1, hp: 150, sp: 46, r: 5.5, cost: 15, pack: 6, bounty: 0.6, dmg: 1, body: 'human', unlock: 2, d: 'Six footmen per send. A horde: extra income, little bounty. 1 damage each.' },
+  troop: { n: 'Scout Troop', swarm: 1, hp: 85, sp: 70, r: 4.5, cost: 10, pack: 6, bounty: 0.55, dmg: 1, body: 'human', unlock: 1, d: 'Six fast scouts per send. A horde: extra income, little bounty. 1 damage each.' },
+  warband: { n: 'Footman Warband', swarm: 1, hp: 175, sp: 46, r: 5.5, cost: 25, pack: 6, bounty: 1.4, dmg: 1, body: 'human', unlock: 2, d: 'Six footmen per send. A horde: extra income, little bounty. 1 damage each.' },
   brute: { n: 'Ogre', hp: 650, sp: 40, r: 8.5, cost: 12, bounty: 4, dmg: 12, body: 'ogre', unlock: 2, d: 'Huge and slow. 12 damage to the base.' },
   zombie: { n: 'Zombie Horde', swarm: 1, hp: 70, sp: 24, r: 5, cost: 11, pack: 10, bounty: 0.2, dmg: 1, body: 'hum', unlock: 2, d: 'Ten shambling, hard-to-kill zombies per send. Slow, but they pile up. 1 damage each.' },
   skel: { n: 'Skeleton Horde', swarm: 1, hp: 32, sp: 50, r: 4.2, cost: 5, pack: 6, bounty: 0.25, dmg: 1, body: 'skel', unlock: 2, d: 'Six brittle skeletons per send. They swamp single-target towers. 1 damage each.' },
@@ -131,7 +131,7 @@ const UNIT_IDS = Object.keys(UNITS);
 // base damage on a leak scales with the unit's share of its send cost (min 1); descriptions follow
 function setLeakRate(r) { RULES.leakRate = r; for (const k of UNIT_IDS) { const U = UNITS[k]; if (U.fixedDmg) continue; U.dmg = Math.max(1, Math.round(U.cost / (U.pack || 1) * r)); U.d = U.d.replace(/\d+ damage/, U.dmg + ' damage'); } }
 // gold is per second; kill gold is shared: every defender gets bounty / number of defenders
-const RULES = { setup: 10, refundWindow: 10, sendOn: 30, sendOff: 15, hoardRate: 0.01, hoardMax: 0.65, hoardGrace: 10, swarmIncome: 1.5, swarmBounty: 0.5, hordeMax: 200, hordeArmor: 0.15, unitSpeed: 0.95, pulse: 15, length: 20 * 60, hpPer: 300, leakRate: 0.5, buildTime: 3, levelTime: 1.5, defGold: 230, defIncome: 1, atkGoldPer: 30, atkIncomePer: 2, sendIncome: 0.0021, leakBounty: 0.5, investCost: 80, investGain: 0.8, speedCost: 90, speedStep: 0.05, speedMax: 5, sell: 0.7, hpPerMin: 0.05 };
+const RULES = { setup: 10, refundWindow: 10, sendOn: 30, sendOff: 15, hoardRate: 0.01, hoardMax: 0.65, hoardBank: 60, swarmIncome: 1.5, swarmBounty: 0.5, hordeMax: 200, hordeArmor: 0.15, unitSpeed: 0.95, pulse: 15, length: 20 * 60, hpPer: 300, leakRate: 0.5, buildTime: 3, levelTime: 1.5, defGold: 230, defIncome: 1, atkGoldPer: 30, atkIncomePer: 2, sendIncome: 0.0021, leakBounty: 0.5, investCost: 80, investGain: 0.8, speedCost: 90, speedStep: 0.05, speedMax: 5, sell: 0.7, hpPerMin: 0.05 };
 setLeakRate(RULES.leakRate);
 // attack rhythm: after setup, sends open for sendOn seconds, then a sendOff-second pause, repeating
 function sendPhase(t) { if (t < RULES.setup) return { open: false, left: RULES.setup - t, setup: true }; const cyc = RULES.sendOn + RULES.sendOff, p = (t - RULES.setup) % cyc; return p < RULES.sendOn ? { open: true, left: RULES.sendOn - p } : { open: false, left: cyc - p }; }
@@ -196,10 +196,10 @@ class Sim {
   investCost() { return Math.round(RULES.investCost * this.N * Math.pow(1.3, this.atk.invest)); }
   ev(e) { this.events.push(e); }
   // hoarding tax (test flag `hoardTax`): a bank bigger than `free` seconds of income cuts income, down to 50% at `full` seconds
-  // hoarding counter: +1%/s (max 65%) once he's gone 10s of open sending time without spending; spending x% of his bank cuts it by x%
+  // hoarding counter: +1%/s (max 65%) while his bank is over 60g during open sending; spending x% of his bank cuts it by x%
   hoardMul() { return this.hoardTax === false ? 1 : 1 - this.atk.hoard; }
-  stepHoard(dt) { const A = this.atk, open = this.canSend(); if (open && !this.wasOpen) A.idle = 0; this.wasOpen = open; if (this.hoardTax === false || this.t < RULES.setup || this.closed || !open) return; A.idle += dt; if (A.idle > RULES.hoardGrace) A.hoard = Math.min(RULES.hoardMax, A.hoard + RULES.hoardRate * dt); }
-  atkSpend(cost) { const A = this.atk, before = A.gold; A.gold -= cost; A.spent += cost; A.hoard *= before > 0 ? Math.max(0, A.gold) / before : 0; A.idle = 0; }
+  stepHoard(dt) { const A = this.atk; if (this.hoardTax === false || this.t < RULES.setup || this.closed || !this.canSend()) return; if (A.gold > RULES.hoardBank) A.hoard = Math.min(RULES.hoardMax, A.hoard + RULES.hoardRate * dt); }
+  atkSpend(cost) { const A = this.atk, before = A.gold; A.gold -= cost; A.spent += cost; A.hoard *= before > 0 ? Math.max(0, A.gold) / before : 0; }
   hordeArmor(l) { return RULES.hordeArmor * Math.min(1, ((this.hordeN && this.hordeN[l]) || 0) / RULES.hordeMax); }
   canSend() { return this.noPause ? this.t >= RULES.setup : sendPhase(this.t).open; }
   mins() { return Math.max(0, this.t - RULES.setup) / 60; }
@@ -380,13 +380,13 @@ class Sim {
     const wantSpd = A.speed < RULES.speedMax && A.speed < Math.floor(this.mins() / 3), wantInv = false; // Invest was removed: income only grows by sending
     if (wantSpd && A.gold >= this.speedCost()) this.input(A.pid, { c: 'speed' });
     const need = wantSpd ? this.speedCost() : wantInv ? this.investCost() : 0;
-    if (need && A.gold < need && A.gold + A.income * 25 >= need) return;
+    if (need && A.gold < need && A.gold + A.income * 8 >= need) return;
     if (!this.canSend() || (this.botHold && this.botHold())) return; // pause (or a test bot that chooses to hold its gold): upgrades only
     const lanes = this.defs.length;
     const W = { grunt: 22, runner: 12, footknight: 12, troop: 7, warband: 7, brute: 10, zombie: 12, skel: 14, gnoll: 10, naga: 10, sapper: 5, warg: 9, shield: 7, knight: 7, troll: 6, chief: 5, necro: 4, ent: 3, golem: 3, ram: 2, mammoth: 2 }, open = Object.keys(W).filter(k => this.mins() >= UNITS[k].unlock), tot = open.reduce((s2, k) => s2 + W[k], 0);
     if (this.mins() >= UNITS.tarrasque.unlock && !this.units.some(u => u.k === 'tarrasque')) { const c2 = UNITS.tarrasque.cost * lanes; if (A.gold >= c2) this.input(A.pid, { c: 'send', k: 'tarrasque', lane: 'all' }); else if (A.gold + A.income * 40 >= c2) return; }
     // test flag botMix: commit to each rolled unit and save for it, instead of re-rolling until something cheap comes up
-    let guard = 40; while (guard-- > 0) { let k = this.botMix && A.want; if (!k) { let roll = this.R() * tot; k = open[0]; for (const o of open) { roll -= W[o]; if (roll <= 0) { k = o; break; } } } const cost = UNITS[k].cost * lanes; if (A.gold < cost + A.income * 3) { if (this.botMix) A.want = k; break; } A.want = null; this.input(A.pid, { c: 'send', k, lane: 'all' }); }
+    let guard = 40; while (guard-- > 0) { let k = this.botMix && A.want; if (!k) { let roll = this.R() * tot; k = open[0]; for (const o of open) { roll -= W[o]; if (roll <= 0) { k = o; break; } } } const cost = UNITS[k].cost * lanes; if (A.gold < cost + Math.min(A.income * 3, RULES.hoardBank * 0.5)) { if (this.botMix) A.want = k; break; } A.want = null; this.input(A.pid, { c: 'send', k, lane: 'all' }); }
   }
   botDefend(D) {
     if ((this.tick + D.slot * 5) % 20) return;
