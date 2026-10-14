@@ -74,7 +74,7 @@ const footFree = (L, c, r, occ) => { for (let j = 0; j < FOOT; j++) for (let i =
 
 // ---------------- Human race ----------------
 const TOWERS = {
-  stone: { n: 'Stone Thrower', cost: 30, r: 185, cd: 1, dmg: 22, volley: 1, throws: 1, dt: 'phys', d: 'A caveman on a patch of rocky ground who hurls rocks at one enemy. Level it up for more cavemen, bones, slings and a chieftain. Promotes into the Archer Post.', tip: 'One caveman, a rock every second. Level up for more throwers.' },
+  stone: { n: 'Stone Thrower', cost: 30, r: 185, cd: 1, dmg: 23, volley: 1, throws: 1, dt: 'phys', d: 'A caveman on a patch of rocky ground who hurls rocks at one enemy. Level it up for more cavemen, bones, slings and a chieftain. Promotes into the Archer Post.', tip: 'One caveman, a rock every second. Level up for more throwers.' },
   ptero: { n: 'Pterodactyl Roost', cost: 90, r: 170, dmg: 95, splash: 30, fly: 230, bird: 1, dt: 'blast', d: 'A pterodactyl that flies out, drops a boulder on one enemy and everything around it, then flies home for another. The closer the lane, the faster it comes back. Promotes into the Bombard.', tip: 'Boulders that splash. Faster round trips near the lane.' },
   archer: { n: 'Archer Post', promo: 'stone', cost: 30, r: 190, cd: 1, dmg: 20, volley: 1, dt: 'phys', d: 'A wooden watch post full of archers, promoted from a Stone Thrower (it keeps its level). More archers, harder arrows and more range each level.', tip: 'A volley of arrows from 3 to 5 archers, with more range.' },
   cannon: { n: 'Bombard', promo: 'ptero', cost: 100, r: 200, cd: 1.2, dmg: 120, splash: 40, dt: 'blast', d: 'A heavy gun on a stone column. Shells hit everything nearby.', tip: 'Shells hit everything nearby. Best vs crowds.' },
@@ -85,16 +85,16 @@ const TOWERS = {
 const TOWER_IDS = Object.keys(TOWERS), BUILD_IDS = TOWER_IDS.filter(k => !TOWERS[k].promo);
 // levels 1-5: each level-up rebuilds the tower with a new look and stats
 const LEVELS = {
-  stone: { cost: [0, 35, 55, 80, 110], volley: [1, 2, 2, 2, 3], dmg: [22, 23, 31, 46, 43], cd: [1, 1, 0.8, 0.8, 0.8], range: [1, 1, 1.15, 1.3, 1.45], names: ['Stone Thrower', 'Two Throwers', 'Bone Yard', 'Slingers', "Chieftain's Circle"] },
+  stone: { cost: [0, 35, 55, 80, 110], volley: [1, 2, 2, 2, 3], dmg: [23, 24, 33, 46, 43], cd: [1, 1, 0.8, 0.8, 0.8], range: [1, 1, 1.15, 1.3, 1.45], names: ['Stone Thrower', 'Two Throwers', 'Bone Yard', 'Slingers', "Chieftain's Circle"] },
   ptero: { cost: [0, 55, 80, 110, 150], dmg: [95, 130, 170, 215, 265], splash: [30, 33, 36, 39, 42], range: [1, 1.06, 1.12, 1.18, 1.24], fly: [230, 245, 260, 275, 290], names: ['Dead tree', 'Old snag', 'Rock snag', 'Crag', 'Peak'] },
   flame: { cost: [0, 70, 100, 140, 190], dps: [60, 72, 86, 102, 120], range: [1, 1.1, 1.2, 1.3, 1.4], wide: [1, 1.1, 1.2, 1.3, 1.4], names: ['Campfire', 'Twin torches', 'Pyre', 'Stone circle', 'White-hot pyre'] },
-  archer: { cost: [0, 35, 55, 80, 110], volley: [1, 2, 3, 4, 5], dmg: [20, 23, 32, 37, 41], range: [1, 1, 1.15, 1.30, 1.45], names: ['Watch post', 'Watch post', 'Timber tower', 'Rough stone tower', 'Stone keep'] },
+  archer: { cost: [0, 80, 110, 145, 190], volley: [1, 2, 3, 4, 5], dmg: [52, 40, 37, 37, 38], cd: [0.45, 0.5, 0.55, 0.6, 0.6], range: [1, 1, 1.15, 1.30, 1.45], names: ['Watch post', 'Watch post', 'Timber tower', 'Rough stone tower', 'Stone keep'] },
 };
 // promotions change a tower into another one (slots without `to` are still locked); keepLvl carries the level over
 const PROMOTIONS = {
-  stone: [{ n: 'Archer Post', to: 'archer', need: 3, cost: 90, keepLvl: 1 }, { n: 'Promotion II', need: 5 }],
+  stone: [{ n: 'Archer Post', to: 'archer', need: 3, cost: 90 }, { n: 'Promotion II', need: 5 }],
   ptero: [{ n: 'Promotion I', need: 3 }, { n: 'Promotion II', need: 5 }, { n: 'Bombard', to: 'cannon', need: 3, cost: 120 }],
-  archer: [{ n: 'Promotion I', need: 4 }, { n: 'Promotion II', need: 5 }],
+  archer: [{ n: 'Promotion I', need: 3 }, { n: 'Promotion II', need: 5 }],
 };
 const lvlStat = (k, lvl, key) => { const L = LEVELS[k]; return L && L[key] ? L[key][Math.max(1, Math.min(5, lvl || 1)) - 1] : null; }; // towers only list the stats their levels change
 const towerRange = (k, lvl) => TOWERS[k].r * (lvlStat(k, lvl, 'range') || 1);
@@ -106,7 +106,9 @@ const towerVolley = (k, lvl) => lvlStat(k, lvl, 'volley') || TOWERS[k].volley ||
 const towerCd = (k, lvl) => lvlStat(k, lvl, 'cd') || TOWERS[k].cd;
 const towerSplash = (k, lvl) => lvlStat(k, lvl, 'splash') || TOWERS[k].splash || 0;
 const towerFly = (k, lvl) => lvlStat(k, lvl, 'fly') || TOWERS[k].fly || 0;
-const BIRD = { grab: 0.3, fall: 0.5 }; // pterodactyl: dip for a boulder, then the boulder's fall time
+const BIRD = { grab: 0.3, fall: 0.5 };
+// a promotion starts the new tower at level 1, so levels bought past the requirement are credited at the sell rate (70%)
+const promoCost = (q, lvl, k) => { const L = LEVELS[k]; let paid = 0; if (L) for (let l = q.need + 1; l <= (lvl || 1); l++) paid += L.cost[l - 1] || 0; return Math.max(0, Math.round(q.cost - paid * RULES.sell)); }; // pterodactyl: dip for a boulder, then the boulder's fall time
 // ---------------- defender spells (free for now) ----------------
 const SPELLS = {
   meteor: { n: 'Meteor', cost: 125, cd: 20, fall: 0.75, core: 45, edge: 165, fireR: 90, fireDur: 6, fireDps: 110, tip: 'Crushes everything at the center, blasts the edge back and leaves the ground burning.' },
@@ -201,8 +203,8 @@ class Sim {
     }
     else if (c.c === 'promote') {
       const t = this.towers.find(o => o.id === c.id && o.owner === pid), q = t && (PROMOTIONS[t.k] || [])[c.i | 0];
-      if (!q || !q.to || (t.lvl || 1) < q.need || t.ready > this.t || P.gold < q.cost) return;
-      P.gold -= q.cost; t.spent += q.cost; t.k = q.to; if (!q.keepLvl) t.lvl = 1; t.ready = this.t + RULES.buildTime; t.shots = null; t.cd = 0; t.covLvl = -1; this.towerVer++; this.ev(['pr', t.id, TOWER_IDS.indexOf(q.to)]);
+      const pc = q && promoCost(q, t.lvl, t.k); if (!q || !q.to || (t.lvl || 1) < q.need || t.ready > this.t || P.gold < pc) return;
+      P.gold -= pc; t.spent += pc; t.k = q.to; t.lvl = 1; t.ready = this.t + RULES.buildTime; t.shots = null; t.cd = 0; t.covLvl = -1; this.towerVer++; this.ev(['pr', t.id, TOWER_IDS.indexOf(q.to)]);
     }
     else if (c.c === 'prio') { const t = this.towers.find(t => t.id === c.id && t.owner === pid); if (t && PRIORITIES.includes(c.p)) { t.prio = c.p; this.towerVer++; } }
   }
@@ -313,7 +315,7 @@ class Sim {
   }
   loose(t, u, who) { // one archer's arrow, or one caveman's rock (he winds up first; slings throw harder)
     const dmg = towerDmg(t.k, t.lvl), d = Math.hypot(u.x - t.x, u.y - t.y);
-    if (TOWERS[t.k].throws) { const sling = t.lvl >= 4, wind = sling ? 0.28 : 0.3, fly = sling ? 0.08 + d / 600 : 0.12 + d / 450;
+    if (TOWERS[t.k].throws) { const sling = t.lvl >= 4, wind = sling ? 0.28 : 0.3, fly = sling ? 0.12 + d / 450 : 0.35 + d / 300;
       this.ev(['th', t.id, u.id, who, Math.round(wind * 100), Math.round(fly * 100)]); u.inc = (u.inc || 0) + dmg;
       this.pending.push({ at: this.t + wind + fly, t, u, x: u.x, y: u.y, dmg }); return; }
     const fly = d / 560;
@@ -445,8 +447,8 @@ class Sim {
     else if (seen.n) { const w = { stone: 3, ptero: 1 + seen.swarm * 0.6, storm: 0.5 + seen.swarm * 0.4 - seen.golem * 3, frost: 1 + seen.big * 0.5 + seen.golem * 2, flame: 1 + seen.swarm * 0.7 + seen.ent * 2 - seen.ram * 3 }; k = Object.keys(w).sort((a, b) => w[b] - w[a])[mine.length % 3 === 2 ? 1 : 0]; }
     else k = ['stone', 'stone', 'ptero', 'stone', 'stone', 'flame', 'frost', 'ptero'][mine.length % 8];
     // promote a maxed-out Stone Thrower into an Archer Post once the field is well built
-    const pro = !this.noPromote && mine.length >= 8 && mine.find(o => o.k === 'stone' && o.lvl >= 5 && o.ready <= this.t);
-    if (pro && this.R() < 0.5) { const i = PROMOTIONS.stone.findIndex(q => q.to === 'archer'); if (D.gold - reserve >= PROMOTIONS.stone[i].cost + 30) return this.input(D.pid, { c: 'promote', id: pro.id, i }); }
+    const pro = !this.noPromote && mine.length >= 6 && mine.find(o => o.k === 'stone' && o.lvl === 3 && o.ready <= this.t);
+    if (pro && this.R() < 0.4) { const i = PROMOTIONS.stone.findIndex(q => q.to === 'archer'); if (D.gold - reserve >= promoCost(PROMOTIONS.stone[i], pro.lvl, pro.k) + 30) return this.input(D.pid, { c: 'promote', id: pro.id, i }); }
     const up = mine.length >= 4 && mine.filter(o => LEVELS[o.k] && o.lvl < 5 && o.ready <= this.t).sort((a, b) => a.lvl - b.lvl)[0];
     if (up && D.gold - reserve >= LEVELS[up.k].cost[up.lvl] && (mine.length >= 10 || this.R() < 0.45)) return this.input(D.pid, { c: 'level', id: up.id });
     if (D.gold - reserve < TOWERS[k].cost) return;
@@ -490,6 +492,6 @@ class Sim {
   stats() { return { hp: this.hp, atk: { sent: this.atk.sent, leaked: this.atk.leaked, dmg: this.atk.dmg, spent: this.atk.spent, invest: this.atk.invest, speed: this.atk.speed }, defs: this.defs.map(d => ({ kills: d.kills, built: d.built, dmg: Math.round(d.dmg), shared: Math.round(d.shared) })) }; }
 }
 
-const API = { COLORS, RACES, MAPS, LANE, CELL, FOOT, STAGE_H, MAX_DEF, TOWERS, TOWER_IDS, BUILD_IDS, LEVELS, PROMOTIONS, BIRD, towerRange, towerDmg, towerDps, towerCone, towerVolley, towerCd, towerSplash, towerFly, hordeArmorOf, sendPhase, setLeakRate, UNITS, UNIT_IDS, SPELLS, SPELL_IDS, RULES, PRIORITIES, Sim, layout, footFree, mulberry32 };
+const API = { COLORS, RACES, MAPS, LANE, CELL, FOOT, STAGE_H, MAX_DEF, TOWERS, TOWER_IDS, BUILD_IDS, LEVELS, PROMOTIONS, BIRD, promoCost, towerRange, towerDmg, towerDps, towerCone, towerVolley, towerCd, towerSplash, towerFly, hordeArmorOf, sendPhase, setLeakRate, UNITS, UNIT_IDS, SPELLS, SPELL_IDS, RULES, PRIORITIES, Sim, layout, footFree, mulberry32 };
 if (typeof module !== 'undefined') module.exports = API; else G.TD = API;
 })(typeof window !== 'undefined' ? window : globalThis);

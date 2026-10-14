@@ -259,7 +259,7 @@ function man(c, M, T, t) {
   c.restore();
   return [relPt[0] * M.sc, relPt[1] * M.sc];
 }
-function drawThrown(c, px, py, rot, s, kind) { c.save(); c.translate(px, py); c.rotate(rot); c.scale(s, s); if (kind === 'bone') { boneShape(c, 2.6, 0.62); c.restore(); return; } c.fillStyle = '#6f665a'; c.beginPath(); c.moveTo(-1.3, -0.5); c.lineTo(-0.4, -1.2); c.lineTo(1, -0.9); c.lineTo(1.4, 0.3); c.lineTo(0.5, 1.1); c.lineTo(-1, 0.9); c.closePath(); c.fill(); c.fillStyle = '#9b9182'; c.beginPath(); c.moveTo(-0.9, -0.4); c.lineTo(-0.3, -0.9); c.lineTo(0.8, -0.6); c.lineTo(0.3, 0); c.closePath(); c.fill(); c.restore(); }
+function drawThrown(c, px, py, rot, s, kind, ol) { c.save(); c.translate(px, py); c.rotate(rot); c.scale(s, s); if (kind === 'bone') { if (ol) { c.fillStyle = '#1c1610'; c.fillRect(-1.6, -0.62, 3.2, 1.24); for (const e of [-1.3, 1.3]) for (const o of [-0.34, 0.34]) { c.beginPath(); c.arc(e, o, 0.62, 0, 7); c.fill(); } } boneShape(c, 2.6, 0.62); c.restore(); return; } c.fillStyle = '#6f665a'; c.beginPath(); c.moveTo(-1.3, -0.5); c.lineTo(-0.4, -1.2); c.lineTo(1, -0.9); c.lineTo(1.4, 0.3); c.lineTo(0.5, 1.1); c.lineTo(-1, 0.9); c.closePath(); if (ol) { c.strokeStyle = '#1c1610'; c.lineWidth = 0.55; c.lineJoin = 'round'; c.stroke(); } c.fill(); c.fillStyle = '#9b9182'; c.beginPath(); c.moveTo(-0.9, -0.4); c.lineTo(-0.3, -0.9); c.lineTo(0.8, -0.6); c.lineTo(0.3, 0); c.closePath(); c.fill(); c.restore(); }
 const GEO = {};
 function geo(L) {
   if (GEO[L]) return GEO[L];
@@ -363,7 +363,7 @@ function drawAir(c, inView) {
     if (!inView(px, py, 20)) continue;
     c.fillStyle = `rgba(0,0,0,${0.12 + 0.14 * u})`; c.beginPath(); c.ellipse(gx, gy, 1.4 * ps, 0.6 * ps, 0, 0, 7); c.fill();
     if (s.sling) { const u2 = Math.max(0, u - 0.12), qx = lerp(s.x0, s.tx, u2), qy = lerp(s.y0, s.ty - 5, u2) - s.arc * 4 * u2 * (1 - u2); const g = c.createLinearGradient(qx, qy, px, py); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, 'rgba(255,255,255,.45)'); c.strokeStyle = g; c.lineWidth = 1.6; c.lineCap = 'round'; c.beginPath(); c.moveTo(qx, qy); c.lineTo(px, py); c.stroke(); c.lineCap = 'butt'; }
-    drawThrown(c, px, py, s.t * s.spin * (s.sling ? 1.6 : 1), 0.95 * ps, s.kind);
+    drawThrown(c, px, py, s.t * s.spin * (s.sling ? 1.6 : 1), 0.95 * ps, s.kind, true);
   }
 }
 return { draw, update, throwEv, step, drawAir };
