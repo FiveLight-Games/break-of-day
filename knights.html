@@ -200,6 +200,23 @@ function abilityBody() {
   else { // falling: tipped 45° toward the landing, blade back over his head, legs trailing with soft knees; uprights right at the slam
     const out = q > 0.8 ? sm((q - 0.8) / 0.2) : 0; K.flipA = Math.PI * 4 + Math.PI / 4 * (1 - out); K.fallLeg = 1 - out; }
 }
+// when a move ends early to chain, it lets go cleanly; the next move fades in from the pose he was in
+function canChain(kind) {
+  if (K.preGlow && K.spin < 0) return false;
+  if (K.ab === 'dash') return K.abT >= DT_PREP + DT_GO;
+  if (K.ab === 'leap') return K.abT >= LT_CR + LT_AIR + LT_LAND * 0.3;
+  if (K.spin >= 0) return kind !== 'spin' && spinSwept() >= Math.PI * 2;
+  if (K.swing >= 0) return K.swing / SWING >= 0.45;
+  return true;
+}
+function xfade() { if (K.lastG) { K.xfG = K.lastG; K.xfA = K.lastA; K.xfA8 = K.lastA8; K.xfT = 0.16; } }
+function chainOut() {
+  xfade();
+  if (K.ab === 'dash' && K.slice && K.slice.length > 1) FX.push({ k: 'slice', pts: K.slice, t: 0, max: 0.3 });
+  if (K.spin >= 0) { K.spinCd = SPIN_CD; K.sec = -1; walkers.forEach(w => w.spun = 0); }
+  Object.assign(K, { ab: null, slice: null, spin: -1, preGlow: 0, post: 0, swing: -1, z: 0, flipA: 0, tuck: 0, fallLeg: 0 });
+}
+function startSpin() { K.preGlow = 1; K.pre = PRE_T; K.spinA0 = K.f > 0 ? 0 : Math.PI; K.spinDir = K.f; }
 function startDash(v) {
   const l = Math.hypot(v[0], v[1]) || 1, d = [v[0] / l, v[1] / l]; Object.assign(K, { dvx: d[0], dvy: d[1], slice: [], ab: 'dash', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: cl(K.x + d[0] * DASH_D, 8, W - 8), ay1: cl(K.y + d[1] * DASH_D * 0.8, 16, H - 4), dashCd: DASH_CD + DT_PREP + DT_GO + DT_REC });
   if (Math.abs(d[0]) > 0.2) K.f = d[0] > 0 ? 1 : -1;
@@ -336,6 +353,9 @@ function pose(t) {
     else { const q = (kp - PW) / (1 - PW), m = 0.7; ps = (m - 2) * q * q * q + (3 - m) * q * q; A = WIND.map((v, j) => j ? lerp(v, START[j], ps) : 0); } }
   if (K.ab) { const AB = abilityPose(); if (AB) A = AB; }
   let [, cr, lean, tw, hx, hy, a, stepA] = A;
+  const xk = K.xfT > 0 ? sm(K.xfT / 0.16) : 0;
+  if (xk && K.xfA8) { const X = K.xfA8; cr = lerp(cr, X[1], xk); lean = lerp(lean, X[2], xk); tw = lerp(tw, X[3], xk); hx = lerp(hx, X[4], xk); hy = lerp(hy, X[5], xk); stepA = lerp(stepA, X[7], xk); }
+  P.A8 = [0, cr, lean, tw, hx, hy, a, stepA];
   // directional swing: the whole strike tilts by the aim's elevation (up = negative)
   let elw = 0;
   if (K.swing >= 0 && K.el) { const u = K.swing / SWING; elw = (u < 0.42 ? sm(u / 0.42) : u < 0.62 ? 1 : 1 - sm((u - 0.62) / 0.38)) * K.el;
@@ -398,6 +418,7 @@ function pose(t) {
   if (K.ab === 'leap' && g && K.sx != null) { const q = (K.abT - LT_CR) / LT_AIR, r = (K.abT - LT_CR - LT_AIR) / LT_LAND, wS = q < 0.82 ? 0 : q < 1 ? sm((q - 0.82) / 0.18) : r < 0.45 ? 1 : 1 - sm((r - 0.45) / 0.4);
     if (wS > 0) { const A2 = f > 0 ? 0.42 : Math.PI - 0.42, d2 = [Math.cos(A2), Math.sin(A2)], tip = [(K.sx - K.x) / KS, (K.sy - K.y) / KS + 1.4], g2 = [tip[0] - d2[0] * 12.1, tip[1] - d2[1] * 12.1];
       const T2 = Math.PI * 2, A3 = f > 0 ? A2 + T2 * Math.ceil((sa - A2) / T2 - 1e-6) : A2 - T2 * Math.ceil((A2 - sa) / T2 - 1e-6); g = L2(g, g2, wS); sa = lerp(sa, A3, wS); if (q >= 1) P.bury = (K.sy - K.y) / KS; } }
+  if (xk && g && K.xfG) { g = L2(g, K.xfG, xk); let xa = K.xfA; xa += Math.PI * 2 * Math.round((sa - xa) / (Math.PI * 2)); sa = lerp(sa, xa, xk); }
   if (g) { const d = [Math.cos(sa), Math.sin(sa)]; hands = [g, [g[0] + d[0] * 0.9, g[1] + d[1] * 0.9]]; }
   if (!hands) { const rk = add(C, [f * 1.0, 4.4]); hands = [rk, [rk[0] - f * 0.6, rk[1] + 0.2]]; }
   // ---- kneeling pose, blended over everything ----
@@ -736,12 +757,14 @@ function step(dt, t) {
   netTick(dt, t);
 }
 function knightStep(dt, t) {
-  if (K.ab === 'dash' && K.abT > DT_PREP - 0.04 && K.abT < DT_PREP + DT_GO + 0.06) { const P = pose(t); if (P.g) { const d = [Math.cos(P.a), Math.sin(P.a)], w2 = v => [K.x + v[0] * KS, K.y + v[1] * KS], grow = cl((K.abT - DT_PREP) / DT_GO, 0, 1);
+  if (K.ab === 'dash' && K.abT >= DT_PREP && K.abT < DT_PREP + DT_GO + 0.06) { const P = pose(t); if (P.g) { const d = [Math.cos(P.a), Math.sin(P.a)], w2 = v => [K.x + v[0] * KS, K.y + v[1] * KS], grow = cl((K.abT - DT_PREP) / DT_GO, 0, 1);
     (K.slice = K.slice || []).push({ b: w2([P.g[0] + d[0] * 2, P.g[1] + d[1] * 2]), e: w2([P.g[0] + d[0] * (11 + 9 * grow), P.g[1] + d[1] * (11 + 9 * grow)]), g: grow }); if (K.slice.length > 40) K.slice.shift(); } }
   if (K.spin >= 0 || (K.preGlow && K.glow > 0.3)) { const P = pose(t); if (P.g) { const L = 10.5 * (P.th != null ? (P.blade || 1) : 1) * 1.85, d = [Math.cos(P.a), Math.sin(P.a)], w2 = v => [K.x + v[0] * KS, K.y + v[1] * KS]; (K.trail = K.trail || []).push({ t, b: w2([P.g[0] + d[0] * 1.5, P.g[1] + d[1] * 1.5]), e: w2([P.g[0] + d[0] * (1 + L), P.g[1] + d[1] * (1 + L)]) }); if (K.trail.length > 30) K.trail.shift(); } }
   else if (K.trail && K.trail.length) { if (t - K.trail[K.trail.length - 1].t > 0.2) K.trail = []; }
   K.post = Math.max(0, (K.post || 0) - dt);
+  if (K.xfT > 0) K.xfT -= dt;
   const ox0 = K.x, oy0 = K.y; stepK(dt, t); const md = Math.hypot(K.x - ox0, K.y - oy0); K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.62;
+  if (K.hold && K.st !== 'pull' && K.st !== 'sheathe') { const P2 = pose(t); if (P2.g) { K.lastG = P2.g; K.lastA = P2.a; K.lastA8 = P2.A8; } }
 }
 // input: move vector, aim vector (null when the right stick / mouse is released), spin button
 
@@ -767,9 +790,17 @@ function stepK(dt, t) {
     K.kn = ap(K.kn, 0, dt * 5);
     if (K.dashCd > 0) K.dashCd -= dt;
     if (K.leapCd > 0) K.leapCd -= dt;
-    const mayStart = K.spin < 0 && !K.preGlow && !K.ab, mine = AUTH() || K.i === ME;
-    if (mine && IN.dashN !== K.dashSeen) { const fresh = K.dashSeen !== undefined; K.dashSeen = IN.dashN; if (fresh && mayStart && !(K.dashCd > 0) && IN.dashD) startDash(IN.dashD); }
-    if (mine && IN.leapN !== K.leapSeen) { const fresh = K.leapSeen !== undefined; K.leapSeen = IN.leapN; if (fresh && mayStart && !(K.leapCd > 0) && IN.leapT) startLeap(IN.leapT); }
+    // specials are buffered for a moment and chain out of each other's recovery (or a swing after its hit, or the spin once it's cutting)
+    const mine = AUTH() || K.i === ME;
+    if (mine && IN.dashN !== K.dashSeen) { const fresh = K.dashSeen !== undefined; K.dashSeen = IN.dashN; if (fresh && IN.dashD) K.qDash = { v: IN.dashD, t: 0.5 }; }
+    if (mine && IN.leapN !== K.leapSeen) { const fresh = K.leapSeen !== undefined; K.leapSeen = IN.leapN; if (fresh && IN.leapT) K.qLeap = { v: IN.leapT, t: 0.6 }; }
+    if (mine && IN.spin) K.qSpin = 0.4;
+    for (const q of ['qDash', 'qLeap']) if (K[q] && (K[q].t -= dt) <= 0) K[q] = null;
+    if (K.qSpin > 0) K.qSpin -= dt;
+    if (K.qDash && !(K.dashCd > 0) && canChain('dash')) { const v = K.qDash.v; K.qDash = null; chainOut(); startDash(v); }
+    else if (K.qLeap && !(K.leapCd > 0) && canChain('leap')) { const v = K.qLeap.v; K.qLeap = null; chainOut(); startLeap(v); }
+    else if (K.qSpin > 0 && K.spinCd <= 0 && (K.ab || K.swing >= 0) && canChain('spin')) { K.qSpin = 0; chainOut(); startSpin(); }
+    if (K.ab === 'dash' && K.abT >= DT_PREP + DT_GO && mvL > 0.12) chainOut(); // the stick takes over as soon as the dash has landed
     if (K.ab) { K.vx = K.vy = 0; stepAbility(dt); abilityBody(); K.st = 'fight'; return; }
     abilityBody();
     // movement: full speed, slower mid-swing, a bit slower while spinning
@@ -791,7 +822,7 @@ function stepK(dt, t) {
     } else {
       // facing: the swing stick wins, otherwise the way he walks
       if (K.swing < 0 && !K.preGlow) { if (IN.aim && Math.abs(IN.aim[0]) > 0.15) K.f = IN.aim[0] > 0 ? 1 : -1; else if (!IN.aim && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1; }
-      if (IN.spin && K.spinCd <= 0 && K.swing < 0 && !K.preGlow) { K.preGlow = 1; K.pre = PRE_T; K.spinA0 = K.f > 0 ? 0 : Math.PI; K.spinDir = K.f; }
+      if (K.qSpin > 0 && K.spinCd <= 0 && K.swing < 0 && !K.preGlow) { K.qSpin = 0; xfade(); startSpin(); }
       if (K.preGlow) { K.pre -= dt; if (K.pre <= 0) { K.spin = -K.pre; } }
       else if (IN.aim && K.swing < 0 && !(K.post > 0)) { K.swing = 0; K.hitDone = 0; K.aimA = Math.atan2(IN.aim[1], IN.aim[0]); K.el = cl(Math.atan2(IN.aim[1], Math.abs(IN.aim[0])), -1.15, 1.15); }
     }
