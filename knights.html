@@ -1251,7 +1251,7 @@ const FIRE = { R: 54, HALF: 0.4, DPS: 240, BURN: 5, BURN_DPS: 14, RUN: 0.92, ATK
 // Plume (the dash stick): he blasts fire at the ground, rides it into the air for 3s and is pushed away from where he aims it
 // Coals (the leap circle): lay a rectangle of hot coals along the aim, then sprint down it throwing flames out past both sides
 // Lava (the button): refills the breath charge in gold; that one charge breathes a tight lava beam, full breath length, x3 damage, slower to turn
-// the beam stays tight for the first half of the lava window, then opens slowly and faster and faster into a 60-degree cone (HALF 30 degrees), full only for the last 0.5s
+// the beam stays tight for the first half of the lava window, then opens slowly and faster and faster into a 60-degree cone (HALF 30 degrees), full only for the last 0.2s
 const LAVA = { HALF: Math.PI / 6, T: 5, CD: 20, DMG: 3, LEN: 1.25, W: 5, TURN: 5, KB: 60 };
 // Volcano (his ult, 250 kills): a volcano rises under him and lifts him out of reach; tap to belch a molten rock (max 3, 8s), then it sinks
 const V = { RISE: 1.5, CRACK: 0.25, T: 12, SINK: 0.7, H: 42, BASE: 40, LIP: 11, SHOTS: 5, BELCH: 0.5, FLY: 1.0, R: 60, DMG: 650, KB: 280, FT: 4.5, FDPS: 45, FR: 24, MAXD: 320, RING: 14, RDPS: 60 };
@@ -1426,7 +1426,7 @@ function fireStep(dt, t) {
   else if (K.brOn) { if (K.lava) K.lvQ = 0.5; K.brOn = 0; K.brH = 0; }
   if (K.lava && K.lvW > 0) { K.lvW = Math.max(0, K.lvW - dt); K.lvC = K.lvW; if (K.lvW <= 0) { K.lava = 0; K.lvCd = LAVA.CD; if (K.brOn) { K.brLock = 1; K.lvQ = 0.5; } K.brOn = 0; K.brH = 0; } }
   if (!K.brOn || K.lava) K.brC = Math.min(FIRE.BR_T, K.brC + dt * FIRE.BR_REGEN);
-  K.lvOn = K.lava && K.brOn ? 1 : 0; K.lvG = K.lava && K.lvW > 0 ? Math.pow(cl((1 - K.lvW / LAVA.T - 0.5) / 0.4, 0, 1), 2.6) : 0;
+  K.lvOn = K.lava && K.brOn ? 1 : 0; K.lvG = K.lava && K.lvW > 0 ? Math.pow(cl((1 - K.lvW / LAVA.T - 0.5) / 0.46, 0, 1), 2.6) : 0;
   K.heat = K.brOn && !K.lvOn ? Math.min(1, (K.brH || 0) / FIRE.BR_HEAT) : undefined;
   K.spinHeld = IN.spin;
   if (!(K.plT >= 0) && K.plCd > 0) K.plCd -= dt; if (K.landT > 0) K.landT -= dt;
@@ -1632,7 +1632,7 @@ function drawLava(c, kn, t) { const dtv = Math.min(0.1, Math.max(0, t - (kn.lvT0
   // on: the stream grows out of his mouth. When it stops, the last stream breaks off at the mouth and carries on outward where it was, the tail sliding out after the tip,
   // thinning, cooling to dark crust and fading over OUT seconds, instead of vanishing
   const on = kn.lvOn && (kn.cone || 0) > 0.3, OUT = 0.65; if (!kn.mouthW) return;
-  if (on) { kn.lvV = Math.min(1, (kn.lvV || 0) + dtv * 6); kn.lvOut = 0; kn.lvM0 = kn.mouthW.slice(); kn.lvA0 = kn.aimS || 0; kn.lvG0 = kn.lava && kn.lvW > 0 ? Math.pow(cl((1 - kn.lvW / LAVA.T - 0.5) / 0.4, 0, 1), 2.6) : 0; kn.lvL0 = sm(kn.lvV); }
+  if (on) { kn.lvV = Math.min(1, (kn.lvV || 0) + dtv * 6); kn.lvOut = 0; kn.lvM0 = kn.mouthW.slice(); kn.lvA0 = kn.aimS || 0; kn.lvG0 = kn.lava && kn.lvW > 0 ? Math.pow(cl((1 - kn.lvW / LAVA.T - 0.5) / 0.46, 0, 1), 2.6) : 0; kn.lvL0 = sm(kn.lvV); }
   else { if (!(kn.lvV > 0)) return; kn.lvOut = (kn.lvOut || 0) + dtv; if (kn.lvOut >= OUT) { kn.lvV = 0; return; } }
   const O = on ? 0 : kn.lvOut / OUT, full = FIRE.R * FIRE.BR_LEN * LAVA.LEN, len = full * (kn.lvL0 ?? 1) + O * 14, s0 = len * 0.9 * sm(Math.min(1, O * 1.25)), wf = 1 - 0.5 * O;
   const al = 0.86 * (1 - O * O), a = on ? kn.aimS || 0 : kn.lvA0, [mx, my] = on ? kn.mouthW : kn.lvM0, ca = Math.cos(a), sa = Math.sin(a), HW = 4.3 * wf, G = kn.lvG0 || 0, tg = Math.tan(LAVA.HALF * G) * wf, WMAX = HW + len * tg;
@@ -2218,7 +2218,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR === 'fire'); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '0dbd1b';
+const KBUILD = '49fc76';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
