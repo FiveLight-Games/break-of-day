@@ -165,12 +165,12 @@ const PRE = [0, 1.3, 0.25, -1.0, -1.6, 4.0, 2.75, 0.6];
 // ---------------- abilities: dashing slice (8-way pad) and leap slam (aimed circle) ----------------
 const DASH_D = 52, DASH_CD = 1.2, DASH_DMG = 200, DASH_R = 11, LEAP_R = 78, LEAP_CD = 3, SLAM_R = 26, SLAM_DMG = 320;
 const DIR8 = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]].map(([a, b]) => { const l = Math.hypot(a, b); return [a / l, b / l]; });
-const DT_PREP = 0.2, DT_GO = 0.26, DT_REC = 0.24, LT_CR = 0.28, LT_AIR = 0.85, LT_LAND = 0.4;
+const DT_PREP = 0.1, DT_GO = 0.26, DT_REC = 0.24, LT_CR = 0.28, LT_AIR = 0.85, LT_LAND = 0.4;
 const lerpA = (A, B, k) => A.map((v, j) => j ? lerp(v, B[j], k) : 0);
 // [u, crouch, lean, twist, hand x, hand y, sword angle, step]
 const DP_PREP = [0, 1.5, 0.35, 0.5, 2.2, 4.4, 1.25, 1.2], DP_GO = [0, 0.6, 0.55, -0.9, 2.6, -2.6, -2.3, 1.6];
-const LP_CR = [0, 1.9, 0.4, 0.2, 1.8, 4.6, 1.3, 0.6], LP_TUCK = [0, 1.6, 0.25, 0, 1.2, 1.0, 0.7, 0], LP_FALL = [0, -0.3, -0.15, 0, 0.6, -6.0, -2.0, 0], LP_LAND = [0, 1.8, 0.6, 0, 3.2, 4.6, 1.2, 1.0];
-const LAND_IN = 7; // he lands this far short of the slam centre, so the blade comes down on it
+const LP_CR = [0, 1.9, 0.4, 0.2, 1.8, 4.6, 1.3, 0.6], LP_TUCK = [0, 1.6, 0.25, 0, 1.2, 1.0, 0.7, 0], LP_FALL = [0, -0.3, -0.15, 0, 0.6, -6.0, -2.0, 0], LP_LAND = [0, 2.1, 0.75, 0, 3.2, 4.6, 1.2, 1.0];
+const LAND_IN = 14; // he lands this far short of the slam centre, so the blade comes down on it
 let FX = [], shake = 0, LEAPAIM = null, DASHAIM = null;
 function abilityPose() {
   const t = K.abT;
@@ -395,7 +395,7 @@ function pose(t) {
     const gD = add(C, [Math.cos(tipA) * 2.6, Math.sin(tipA) * 1.7 + 1.2]); let saD = tipA; saD += Math.PI * 2 * Math.round((sa - saD) / (Math.PI * 2));
     g = L2(g, gD, wD); sa = lerp(sa, saD, wD); }
   if (K.ab === 'leap' && g && K.sx != null) { const q = (K.abT - LT_CR) / LT_AIR, r = (K.abT - LT_CR - LT_AIR) / LT_LAND, wS = q < 0.9 ? 0 : q < 1 ? sm((q - 0.9) / 0.1) : r < 0.45 ? 1 : 1 - sm((r - 0.45) / 0.4);
-    if (wS > 0) { const A2 = f > 0 ? 1.42 : Math.PI - 1.42, d2 = [Math.cos(A2), Math.sin(A2)], tip = [(K.sx - K.x) / KS, (K.sy - K.y) / KS + 1.8], g2 = [tip[0] - d2[0] * 12.1, tip[1] - d2[1] * 12.1];
+    if (wS > 0) { const A2 = f > 0 ? 0.42 : Math.PI - 0.42, d2 = [Math.cos(A2), Math.sin(A2)], tip = [(K.sx - K.x) / KS, (K.sy - K.y) / KS + 1.4], g2 = [tip[0] - d2[0] * 12.1, tip[1] - d2[1] * 12.1];
       g = L2(g, g2, wS); sa = lerp(sa, A2 + Math.PI * 2 * Math.round((sa - A2) / (Math.PI * 2)), wS); if (q >= 1) P.bury = (K.sy - K.y) / KS; } }
   if (g) { const d = [Math.cos(sa), Math.sin(sa)]; hands = [g, [g[0] + d[0] * 0.9, g[1] + d[1] * 0.9]]; }
   if (!hands) { const rk = add(C, [f * 1.0, 4.4]); hands = [rk, [rk[0] - f * 0.6, rk[1] + 0.2]]; }
@@ -769,11 +769,14 @@ function stepK(dt, t) {
     const mayStart = K.spin < 0 && !K.preGlow && !K.ab, mine = AUTH() || K.i === ME;
     if (mine && IN.dashN !== K.dashSeen) { const fresh = K.dashSeen !== undefined; K.dashSeen = IN.dashN; if (fresh && mayStart && !(K.dashCd > 0) && IN.dashD) startDash(IN.dashD); }
     if (mine && IN.leapN !== K.leapSeen) { const fresh = K.leapSeen !== undefined; K.leapSeen = IN.leapN; if (fresh && mayStart && !(K.leapCd > 0) && IN.leapT) startLeap(IN.leapT); }
-    if (K.ab) { stepAbility(dt); abilityBody(); K.st = 'fight'; return; }
+    if (K.ab) { K.vx = K.vy = 0; stepAbility(dt); abilityBody(); K.st = 'fight'; return; }
     abilityBody();
     // movement: full speed, slower mid-swing, a bit slower while spinning
     const v = RUN * (K.spin >= 0 ? 0.6 : K.swing >= 0 ? 0.55 : K.preGlow ? 0.3 : 1);
-    if (mvL > 0.12) { const k = Math.min(1, mvL); K.x += IN.mv[0] / mvL * k * v * dt; K.y += IN.mv[1] / mvL * k * v * dt; if (K.spd > RUN * 0.6 && Math.random() < dt * 10) dust.push({ x: K.x - K.f * 1.5, y: K.y, vx: -K.f * rr(4, 10), vy: rr(-2, 1), r: rr(0.7, 1.3), t: 0, max: rr(0.3, 0.6) }); }
+    // stick held: move at full speed; released: carry on a few pixels, sliding to a stop
+    if (mvL > 0.12) { const k = Math.min(1, mvL); K.vx = IN.mv[0] / mvL * k * v; K.vy = IN.mv[1] / mvL * k * v; } else { const dmp = Math.exp(-dt * 13); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
+    K.x += (K.vx || 0) * dt; K.y += (K.vy || 0) * dt;
+    if (mvL > 0.12) { if (K.spd > RUN * 0.6 && Math.random() < dt * 10) dust.push({ x: K.x - K.f * 1.5, y: K.y, vx: -K.f * rr(4, 10), vy: rr(-2, 1), r: rr(0.7, 1.3), t: 0, max: rr(0.3, 0.6) }); }
     K.x = cl(K.x, 8, W - 8); K.y = cl(K.y, 16, H - 4);
     if (K.spin >= 0) {
       K.spin += dt;
