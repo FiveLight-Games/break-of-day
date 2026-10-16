@@ -1932,8 +1932,10 @@ function penStep(dt, t, IN, mine, smP) {
   const P = WP.PEN; K.pT += dt; K.vx = K.vy = 0; K.spd = 0; K.st = 'fight';
   if (AUTH()) penAura(dt);
   if (K.pPh === 0) { const q = sm(cl(K.pT / P.RISE, 0, 1)); K.z = P.Z * q; K.hx = lerp(K.hrx, K.x + K.f * 2, q); K.hy = lerp(K.hry, K.y + 3, q); K.hz = 5 * q; if (K.pT >= P.RISE) { K.pPh = 1; K.pT = 0; } return; }
-  if (K.pPh === 2) { const q = sm(cl(K.pT / P.END, 0, 1)); K.z = P.Z * (1 - q); K.hz = Math.max(0, K.hz - dt * 14); const dmp = Math.exp(-dt * 4); K.hvx *= dmp; K.hvy *= dmp; K.hx += K.hvx * dt; K.hy = cl(K.hy + K.hvy * dt, 14, H - 4);
-    if (K.pT >= P.END) { K.pPh = -1; K.z = 0; K.hz = 0; K.ultBase = K.kills; K.hL = Math.max(WP.DRAG, gd(K.x, K.y, K.hx, K.hy)); } return; }
+  if (K.pPh === 2) { const q = sm(cl(K.pT / P.END, 0, 1)); K.z = P.Z * (1 - q);
+    if (K.smT >= 0) { const t0 = K.smT; K.smT += dt; K.hz = (K.hz0 ?? 5) * (1 - sm(cl(K.smT / P.DROP, 0, 1))); if (t0 < P.DROP && K.smT >= P.DROP) { penSmash(); K.smT = -1; } } else K.hz = 0;
+    const dmp = Math.exp(-dt * 4); K.hvx *= dmp; K.hvy *= dmp; K.hx += K.hvx * dt; K.hy = cl(K.hy + K.hvy * dt, 14, H - 4);
+    if (K.pT >= P.END) { K.pPh = -1; K.z = 0; K.hz = 0; K.smT = -1; K.ultBase = K.kills; K.hL = WP.MAXC; K.hRet = 0; K.hrx = K.hx; K.hry = K.hy; K.retN = (K.retN || 0) + 1; } return; }
   K.z = P.Z + Math.sin(t * 2.2) * 1.2; if (K.smCd > 0) K.smCd -= dt;
   const s = IN.pn, sl = s ? Math.hypot(s[0], s[1]) : 0; let ax, ay;
   if (sl > 0.15) { const k = Math.min(1, sl) * P.ACC; ax = s[0] / sl * k; ay = s[1] / sl * k; }
@@ -1948,7 +1950,8 @@ function penStep(dt, t, IN, mine, smP) {
   if (K.smT >= 0) { const t0 = K.smT; K.smT += dt; if (K.smT < P.DROP) K.hz = 5 * (1 - sm(K.smT / P.DROP)); else { if (t0 < P.DROP) penSmash(); K.hz = 5 * sm(cl((K.smT - P.DROP) / P.UP, 0, 1)); if (K.smT >= P.DROP + P.UP) K.smT = -1; } }
   else K.hz = 5 + Math.sin(t * 3) * 0.8;
   if (AUTH() && K.hz < 8) holyBurn(K.hx, K.hy, P.BURN, P.BDPS, dt);
-  if (K.pT >= P.T && K.smT < 0) { K.pPh = 2; K.pT = 0; }
+  // time's up: as he starts down the head smashes one last time (with whatever speed it has), and once he lands he hauls it home
+  if (K.pT >= P.T && K.smT < 0) { K.pPh = 2; K.pT = 0; K.smT = 0; K.smK = Math.min(1, Math.hypot(K.hvx, K.hvy) / P.MAXV); K.hz0 = K.hz; }
 }
 // Penance aura: small and medium enemies can't stand under him; they're pushed out to its edge and shoved away
 function penAura(dt) { const R = WP.PEN.AURA;
