@@ -2049,6 +2049,77 @@ function priestPose(t, dt) {
   const ek = 1 - Math.exp(-dt * 22); K.pHB = K.pHB ? L2(K.pHB, hB, ek) : hB; K.pHA = K.pHA ? L2(K.pHA, hA, ek) : hA;
   P.hB = K.pHB; P.hA = K.pHA; P.shB = shB; P.shA = shA; P.fly = fly; return P;
 }
+// ---- Warpriest look: gunmetal power armour with gold ("Sunburst Templar"): small two-lame pauldron on the flail arm, a big sunburst pauldron on the censer arm,
+// barrel chest, tassets, tabard, gold-grilled helm with a circlet. All parts hang off priestPose's points.
+const TPA = '#4a5058', TPD = '#33383e', TPL = '#6a727c', GDL = '#f6dc8a';
+function tpCross(c, x, y, s, col) { c.fillStyle = col; c.fillRect(x - 0.18 * s, y - 0.9 * s, 0.36 * s, 1.8 * s); c.fillRect(x - 0.65 * s, y - 0.45 * s, 1.3 * s, 0.36 * s); }
+function tpLeg(c, hip, knee, foot, f, far, kneelBack) {
+  const A = far ? TPD : TPA, D = shade(TPD, -0.2); c.lineCap = 'round';
+  c.strokeStyle = D; c.lineWidth = 2.5; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.lineTo(...foot); c.stroke();
+  c.strokeStyle = A; c.lineWidth = 2.05; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke(); c.lineWidth = 1.9; c.beginPath(); c.moveTo(...knee); c.lineTo(foot[0], foot[1] - 0.5); c.stroke();
+  const toe = kneelBack ? -f : f; c.fillStyle = TPD; c.beginPath(); c.ellipse(foot[0] + toe * 0.55, foot[1] - 0.35, 1.45, 0.62, 0, 0, 7); c.fill(); c.fillStyle = GOLDD; c.fillRect(foot[0] - 1.0, foot[1] - 1.05, 2.0, 0.28);
+  c.fillStyle = far ? shade(TPD, 0.1) : TPA; c.beginPath(); c.ellipse(knee[0] + f * 0.15, knee[1], 1.15, 0.95, 0, 0, 7); c.fill();
+  c.strokeStyle = GOLD; c.lineWidth = 0.25; c.beginPath(); c.ellipse(knee[0] + f * 0.15, knee[1], 1.15, 0.95, 0, Math.PI, 0); c.stroke(); tpCross(c, knee[0] + f * 0.15, knee[1] - 0.05, 0.4, GOLD);
+}
+function tpGauntlet(c, h, far) { const A = far ? TPD : TPA; c.fillStyle = shade(A, -0.15); c.beginPath(); c.ellipse(h[0], h[1], 0.95, 0.85, 0, 0, 7); c.fill(); c.fillStyle = shade(A, 0.2); c.beginPath(); c.ellipse(h[0] - 0.25, h[1] - 0.3, 0.4, 0.28, 0, 0, 7); c.fill(); }
+function tpArm(c, s, h, f, far, noGlove) {
+  const e1 = ik(s, h, 2.6, 2.6, 1), e2 = ik(s, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2, A = far ? TPD : TPA; c.lineCap = 'round';
+  c.strokeStyle = shade(TPD, -0.25); c.lineWidth = 2.1; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.lineTo(...h); c.stroke();
+  c.strokeStyle = A; c.lineWidth = 1.7; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke(); c.lineWidth = 1.6; c.beginPath(); c.moveTo(...el); c.lineTo(...h); c.stroke();
+  const wb = L2(el, h, 0.7); c.strokeStyle = far ? GOLDD : GOLD; c.lineWidth = 1.75; c.beginPath(); c.moveTo(...L2(el, h, 0.62)); c.lineTo(...wb); c.stroke();
+  c.fillStyle = shade(A, 0.18); c.beginPath(); c.arc(el[0], el[1], 0.55, 0, 7); c.fill();
+  if (!noGlove) tpGauntlet(c, h, far);
+}
+// the flail arm's small plate: two overlapping lames, only the lower one edged in gold
+function tpSmallPauldron(c, s, f) { c.save(); c.translate(s[0], s[1] + 0.2); c.scale(f * 0.75, 0.75); c.rotate(-0.28);
+  for (const [y, w, g] of [[0, 2.2, 0], [0.95, 2.5, 1]]) { c.fillStyle = y ? TPD : shade(TPD, 0.12); c.beginPath(); c.moveTo(-w, y + 0.5); c.quadraticCurveTo(-w, y - 1.6, 0, y - 1.7); c.quadraticCurveTo(w, y - 1.6, w, y + 0.5); c.quadraticCurveTo(0, y + 1.2, -w, y + 0.5); c.fill();
+    c.strokeStyle = g ? GOLD : shade(TPD, -0.3); c.lineWidth = g ? 0.35 : 0.2; c.beginPath(); c.moveTo(-w, y + 0.5); c.quadraticCurveTo(0, y + 1.2, w, y + 0.5); c.stroke(); }
+  c.fillStyle = shade(TPD, 0.3); c.beginPath(); c.ellipse(-0.6, -1.0, 0.9, 0.4, -0.2, 0, 7); c.fill(); c.restore(); }
+// the censer arm's big pauldron: a dome with a double gold rim, rivets, a raised gold sunburst with a cross at its heart and a laurel along the rim
+function tpBigPauldron(c, s, f, t) { c.save(); c.translate(s[0] + f * 0.3, s[1] + 0.3); c.scale(f * 0.74, 0.74); c.rotate(0.2);
+  const h = 3.6, w = 3.9;
+  c.fillStyle = TPA; c.beginPath(); c.moveTo(-w, 1.2); c.bezierCurveTo(-w - 0.1, -h * 0.7, -1.8, -h, 0, -h); c.bezierCurveTo(1.8, -h, w + 0.1, -h * 0.7, w, 1.2); c.quadraticCurveTo(0, 2.9, -w, 1.2); c.fill();
+  c.fillStyle = shade(TPA, 0.2); c.beginPath(); c.ellipse(-1.1, -h * 0.55, 1.9, 1.0, -0.3, 0, 7); c.fill();
+  c.lineCap = 'round'; c.strokeStyle = GOLDD; c.lineWidth = 0.9; c.beginPath(); c.moveTo(-w, 1.2); c.quadraticCurveTo(0, 2.9, w, 1.2); c.stroke(); c.strokeStyle = GOLD; c.lineWidth = 0.6; c.stroke();
+  c.lineWidth = 0.18; c.strokeStyle = GDL; c.beginPath(); c.moveTo(-w + 0.3, 0.3); c.quadraticCurveTo(0, 1.8, w - 0.3, 0.3); c.stroke();
+  c.strokeStyle = GOLD; c.lineWidth = 0.22; c.beginPath(); c.moveTo(-w + 0.1, 0.6); c.bezierCurveTo(-w, -h * 0.65, -1.7, -h + 0.25, 0, -h + 0.25); c.bezierCurveTo(1.7, -h + 0.25, w, -h * 0.65, w - 0.1, 0.6); c.stroke();
+  for (let i = 0; i < 6; i++) { const q = (i + 1) / 7; c.fillStyle = GDL; c.beginPath(); c.arc(-w + 2 * w * q, 1.2 + 3.4 * q * (1 - q) - 0.15, 0.17, 0, 7); c.fill(); }
+  const cy = -h * 0.42; for (let i = 0; i < 12; i++) { const a = i / 12 * 6.283, l = i % 2 ? 1.5 : 2.2; c.fillStyle = i % 2 ? GOLDD : GOLD; c.beginPath(); c.moveTo(Math.cos(a - 0.16) * 0.8, cy + Math.sin(a - 0.16) * 0.8); c.lineTo(Math.cos(a) * l, cy + Math.sin(a) * l); c.lineTo(Math.cos(a + 0.16) * 0.8, cy + Math.sin(a + 0.16) * 0.8); c.fill(); }
+  c.fillStyle = GDL; c.beginPath(); c.arc(0, cy, 0.95, 0, 7); c.fill(); tpCross(c, 0, cy, 0.6, '#8a6420');
+  for (let i = 0; i < 9; i++) { const q = (i + 0.5) / 9; c.fillStyle = i % 2 ? GOLD : GDL; c.beginPath(); c.ellipse(-w + 2 * w * q, 1.2 + 3.4 * q * (1 - q) - 0.75, 0.42, 0.18, (q - 0.5) * 0.9, 0, 7); c.fill(); }
+  c.restore(); }
+// barrel chest, belly bands, belt with a gold cross buckle, medallion on a chain
+function tpTorso(c, P, f) {
+  const [L0, R0] = P.sh, hp = P.pel, C = P.C;
+  const pts = [[L0[0] - 0.5, L0[1] - 0.1], [R0[0] + 0.5, R0[1] - 0.1], [R0[0] + 0.9, R0[1] + 2.4], [hp[0] + 2.4, hp[1] - 0.9], [hp[0] - 2.4, hp[1] - 0.9], [L0[0] - 0.9, L0[1] + 2.4]];
+  c.fillStyle = TPA; c.beginPath(); pts.forEach((q, i) => i ? c.lineTo(...q) : c.moveTo(...q)); c.closePath(); c.fill();
+  // the side turned away from the camera, in shadow
+  const sL = f > 0 ? [pts[0], pts[5], pts[4]] : [pts[1], pts[2], pts[3]], mid = [L2(L0, R0, f > 0 ? 0.38 : 0.62), [lerp(hp[0], C[0], 0.5) - f * 0.6, hp[1] - 0.9]];
+  c.fillStyle = TPD; c.beginPath(); c.moveTo(...sL[0]); c.lineTo(...sL[1]); c.lineTo(...sL[2]); c.lineTo(...mid[1]); c.lineTo(...mid[0]); c.closePath(); c.fill();
+  const kx = lerp(L0[0], R0[0], 0.5) + f * 0.3; c.strokeStyle = TPL; c.lineWidth = 0.25; c.beginPath(); c.moveTo(kx, L0[1] + 0.4); c.lineTo(kx, C[1] + 1.6); c.stroke();
+  c.strokeStyle = shade(TPA, -0.4); c.lineWidth = 0.16; c.beginPath(); c.moveTo(L0[0] + 0.3, C[1] + 1.0); c.quadraticCurveTo(kx - 1.3, C[1] + 2.0, kx, C[1] + 1.6); c.quadraticCurveTo(kx + 1.3, C[1] + 2.0, R0[0] - 0.3, C[1] + 1.0); c.stroke();
+  for (const y of [hp[1] - 2.4, hp[1] - 1.7]) { c.beginPath(); c.moveTo(hp[0] - 2.3, y); c.quadraticCurveTo(hp[0], y + 0.4, hp[0] + 2.3, y); c.stroke(); }
+  c.fillStyle = shade(TPA, 0.15); c.beginPath(); c.ellipse(kx + f * 1.5, L0[1] + 1.3, 1.1, 0.55, f * 0.2, 0, 7); c.fill();
+  c.fillStyle = '#2a2420'; c.fillRect(hp[0] - 2.5, hp[1] - 1.1, 5.0, 0.85); c.fillStyle = GOLD; c.beginPath(); c.arc(hp[0] + f * 0.2, hp[1] - 0.7, 0.75, 0, 7); c.fill(); c.fillStyle = TPD; c.beginPath(); c.arc(hp[0] + f * 0.2, hp[1] - 0.7, 0.5, 0, 7); c.fill(); tpCross(c, hp[0] + f * 0.2, hp[1] - 0.7, 0.32, GOLD);
+  c.strokeStyle = GOLD; c.lineWidth = 0.18; c.setLineDash([0.3, 0.22]); c.beginPath(); c.moveTo(L0[0] + 0.8, L0[1] + 0.2); c.quadraticCurveTo(kx, C[1] + 1.6, R0[0] - 0.8, R0[1] + 0.2); c.stroke(); c.setLineDash([]);
+  c.fillStyle = GOLDD; c.beginPath(); c.arc(kx, C[1] + 0.9, 0.6, 0, 7); c.fill(); tpCross(c, kx, C[1] + 0.9, 0.45, GDL);
+}
+// tassets over the thighs and the tabard between them
+function tpSkirt(c, P, f, sway) { const hp = P.pel, kk = (K.kn || 0) * 1.4;
+  c.fillStyle = '#e8dcc0'; c.beginPath(); c.moveTo(hp[0] - 1.5, hp[1] - 0.4); c.lineTo(hp[0] + 1.5, hp[1] - 0.4); c.lineTo(hp[0] + 1.7 + sway, hp[1] + 4.6 - kk); c.lineTo(hp[0] + sway, hp[1] + 5.0 - kk); c.lineTo(hp[0] - 1.7 + sway, hp[1] + 4.6 - kk); c.closePath(); c.fill();
+  c.strokeStyle = GOLD; c.lineWidth = 0.2; c.beginPath(); c.moveTo(hp[0] - 1.7 + sway, hp[1] + 4.6 - kk); c.lineTo(hp[0] + sway, hp[1] + 5.0 - kk); c.lineTo(hp[0] + 1.7 + sway, hp[1] + 4.6 - kk); c.stroke(); tpCross(c, hp[0] + sway * 0.5, hp[1] + 2.0 - kk * 0.4, 0.9, COL);
+  for (const k of [-1, 1]) { const x = hp[0] + k * 2.1; c.fillStyle = k === -f ? TPD : TPA; c.beginPath(); c.moveTo(x - 1.1, hp[1] - 0.6); c.lineTo(x + 1.1, hp[1] - 0.6); c.lineTo(x + 1.2 + k * 0.3, hp[1] + 1.7); c.lineTo(x - 1.0 + k * 0.3, hp[1] + 1.9); c.closePath(); c.fill(); c.strokeStyle = GOLD; c.lineWidth = 0.28; c.beginPath(); c.moveTo(x - 1.0 + k * 0.3, hp[1] + 1.9); c.lineTo(x + 1.2 + k * 0.3, hp[1] + 1.7); c.stroke(); } }
+// the helm: a tall barrel helm, sunk in a gold-rimmed gorget; the gold grille faceplate on his facing side with the red glow BEHIND the bars, a slim gold circlet
+function tpHelm(c, f, t) { c.save(); c.scale(f, 1);
+  c.fillStyle = TPD; c.beginPath(); c.ellipse(0, 1.9, 2.0, 0.75, 0, 0, 7); c.fill(); c.strokeStyle = GOLD; c.lineWidth = 0.25; c.beginPath(); c.ellipse(0, 1.9, 2.0, 0.75, 0, 0, Math.PI); c.stroke();
+  c.fillStyle = '#555c64'; c.beginPath(); c.moveTo(-1.5, -1.2); c.lineTo(1.6, -1.2); c.lineTo(1.8, 1.4); c.lineTo(0.1, 1.9); c.lineTo(-1.7, 1.4); c.closePath(); c.fill(); c.beginPath(); c.ellipse(0.05, -1.15, 1.58, 0.8, 0, Math.PI, 0); c.fill();
+  c.fillStyle = '#3e444b'; c.beginPath(); c.moveTo(-1.5, -1.2); c.lineTo(-0.2, -1.2); c.lineTo(-0.4, 1.7); c.lineTo(-1.7, 1.4); c.closePath(); c.fill();
+  // faceplate: dark slot, the glow, then the gold frame and bars over it
+  c.fillStyle = '#140c08'; c.fillRect(-0.45, -0.75, 2.1, 2.0); const gl = 0.65 + 0.35 * Math.sin(t * 3);
+  const rg = c.createLinearGradient(0, -0.5, 0, 0.1); rg.addColorStop(0, `rgba(255,70,40,0)`); rg.addColorStop(0.5, `rgba(255,70,40,${gl})`); rg.addColorStop(1, 'rgba(255,70,40,0)'); c.fillStyle = rg; c.fillRect(-0.4, -0.55, 2.0, 0.7);
+  c.strokeStyle = GOLD; c.lineWidth = 0.28; c.strokeRect(-0.45, -0.75, 2.1, 2.0); c.fillStyle = GOLD; for (let i = 0; i < 5; i++) c.fillRect(-0.3 + i * 0.42, -0.75, 0.17, 2.0);
+  c.strokeStyle = GOLD; c.lineWidth = 0.25; c.beginPath(); c.ellipse(0.05, -1.3, 1.6, 0.4, 0, 0, 7); c.stroke();
+  c.restore(); }
 function drawPriest(c, t) {
   const dt = Math.min(0.1, Math.max(0, t - (K.drT ?? t))); K.drT = t;
   const S = WP.S, z = K.z || 0, P = priestPose(t, dt), f = P.f, PL0 = PLATE; PLATE = 1;
@@ -2070,31 +2141,25 @@ function drawPriest(c, t) {
   const haftBack = hu[0] * f < -0.3 && (P.hB[0] - P.C[0]) * f < 0.5 && hu[1] < 0.6;
   const haft = () => { c.lineCap = 'round'; c.strokeStyle = '#3a2614'; c.lineWidth = 0.95; c.beginPath(); c.moveTo(P.hB[0] - hu[0] * 0.8, P.hB[1] - hu[1] * 0.8); c.lineTo(...he); c.stroke(); c.strokeStyle = '#6b4a2a'; c.lineWidth = 0.55; c.beginPath(); c.moveTo(P.hB[0] - hu[0] * 0.7, P.hB[1] - hu[1] * 0.7); c.lineTo(...he); c.stroke(); c.fillStyle = STEELD; c.beginPath(); c.arc(he[0], he[1], 0.55, 0, 7); c.fill(); };
   const censer = () => drawCenser(c, P.hA, cp, t);
-  const armA = () => arm(c, P.shA, P.hA, f, false), armB = () => arm(c, P.shB, P.hB, f, true, true);
+  const armA = () => { tpArm(c, P.shA, P.hA, f, false); tpBigPauldron(c, P.shA, f, t); }, armB = () => { tpArm(c, P.shB, P.hB, f, true, true); tpSmallPauldron(c, P.shB, f); };
   // cape behind everything
   const sway = -f * cl((K.spd || 0) / RUN, 0, 1) * 1.2 + Math.sin(t * 1.7) * 0.15;
-  c.fillStyle = shade(COL, -0.45); c.beginPath(); c.moveTo(P.sh[0][0] + 0.2, P.sh[0][1] + 0.2); c.lineTo(P.sh[1][0] - 0.2, P.sh[1][1] + 0.2); c.quadraticCurveTo(P.pel[0] + 2.4 + sway, P.pel[1] + 1, P.pel[0] + 2.2 + sway * 1.6, P.pel[1] + 4.2 - (K.kn || 0) * 1.5); c.lineTo(P.pel[0] - 2.2 + sway * 1.6, P.pel[1] + 4.2 - (K.kn || 0) * 1.5); c.quadraticCurveTo(P.pel[0] - 2.4 + sway, P.pel[1] + 1, P.sh[0][0] + 0.2, P.sh[0][1] + 0.2); c.fill();
+  { const g = c.createRadialGradient(P.head[0], P.head[1] - 0.5, 0, P.head[0], P.head[1] - 0.5, 6); g.addColorStop(0, `rgba(255,232,150,${0.28 + 0.12 * (P.fly || 0)})`); g.addColorStop(1, 'rgba(255,220,120,0)'); c.fillStyle = g; c.beginPath(); c.arc(P.head[0], P.head[1] - 0.5, 6, 0, 7); c.fill(); }
+  c.fillStyle = shade(COL, -0.3); c.beginPath(); c.moveTo(P.sh[0][0] + 0.2, P.sh[0][1] + 0.2); c.lineTo(P.sh[1][0] - 0.2, P.sh[1][1] + 0.2); c.quadraticCurveTo(P.pel[0] + 2.4 + sway, P.pel[1] + 1, P.pel[0] + 2.2 + sway * 1.6, P.pel[1] + 4.2 - (K.kn || 0) * 1.5); c.lineTo(P.pel[0] - 2.2 + sway * 1.6, P.pel[1] + 4.2 - (K.kn || 0) * 1.5); c.quadraticCurveTo(P.pel[0] - 2.4 + sway, P.pel[1] + 1, P.sh[0][0] + 0.2, P.sh[0][1] + 0.2); c.fill();
   if (cenBack) censer();
   if (haftBack) haft();
   if (aBehind) { armA(); if (!cenBack) censer(); }
   const far = f > 0 ? 0 : 1, near = 1 - far;
-  leg(c, P.hips[far], P.knees[far], P.feet[far], f, true, (K.kn || 0) > 0.5);
-  if ((K.kn || 0) <= 0.5) leg(c, P.hips[near], P.knees[near], P.feet[near], f, false, false);
-  // long robe skirt under the plate, in his colour, swinging with the stride
-  { const hp = P.pel, s2 = sway * 0.6, kk = (K.kn || 0) * 1.6; c.fillStyle = shade(COL, -0.15); c.beginPath(); c.moveTo(hp[0] - 2.1, hp[1] - 0.3); c.lineTo(hp[0] + 2.1, hp[1] - 0.3); c.lineTo(hp[0] + 2.5 + s2, hp[1] + 3.6 - kk); c.lineTo(hp[0] - 2.5 + s2, hp[1] + 3.6 - kk); c.closePath(); c.fill();
-    c.fillStyle = GOLD; c.fillRect(hp[0] - 2.5 + s2, hp[1] + 3.2 - kk, 5, 0.4); }
-  torso(c, P, f, false);
-  if ((K.kn || 0) > 0.5) leg(c, P.hips[near], P.knees[near], P.feet[near], f, false, false);
-  // prayer beads across the chest
-  c.strokeStyle = '#5a3a1c'; c.lineWidth = 0.18; c.beginPath(); c.moveTo(P.sh[0][0] + 0.6, P.sh[0][1] + 0.5); c.quadraticCurveTo(P.C[0], P.C[1] + 2.6, P.sh[1][0] - 0.6, P.sh[1][1] + 0.5); c.stroke();
-  c.fillStyle = '#d8c79a'; for (let i = 1; i < 8; i++) { const q = i / 8, bx = (1 - q) * (1 - q) * (P.sh[0][0] + 0.6) + 2 * q * (1 - q) * P.C[0] + q * q * (P.sh[1][0] - 0.6), by = (1 - q) * (1 - q) * (P.sh[0][1] + 0.5) + 2 * q * (1 - q) * (P.C[1] + 2.6) + q * q * (P.sh[1][1] + 0.5); c.beginPath(); c.arc(bx, by, 0.16, 0, 7); c.fill(); }
+  tpLeg(c, P.hips[far], P.knees[far], P.feet[far], f, true, (K.kn || 0) > 0.5);
+  if ((K.kn || 0) <= 0.5) tpLeg(c, P.hips[near], P.knees[near], P.feet[near], f, false, false);
+  tpTorso(c, P, f); tpSkirt(c, P, f, sway * 0.5);
+  if ((K.kn || 0) > 0.5) tpLeg(c, P.hips[near], P.knees[near], P.feet[near], f, false, false);
   if (!aBehind) { armA(); if (!cenBack) censer(); }
   // great helm (bigger than the knight's)
-  c.save(); c.translate(P.head[0], P.head[1]); c.rotate(f * (P.lean || 0) * 0.3 + f * (K.kn || 0) * 0.25); c.scale(1.15, 1.15); helm(c, f, false);
-  c.fillStyle = GOLD; c.beginPath(); c.moveTo(-1.5, -1.0); c.lineTo(1.5, -1.0); c.lineTo(1.45, -0.75); c.lineTo(-1.45, -0.75); c.fill(); c.restore();
+  c.save(); c.translate(P.head[0], P.head[1] + 0.3); c.rotate(f * (P.lean || 0) * 0.3 + f * (K.kn || 0) * 0.25); tpHelm(c, f, t); c.restore();
   if (K.pPh >= 0) { c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = `rgba(255,236,160,${0.75 * P.fly})`; c.lineWidth = 0.35; c.beginPath(); c.ellipse(P.head[0] - f * 0.3, P.head[1] - 2.6, 2.1, 0.7, 0, 0, 7); c.stroke(); c.restore(); }
   // B, nearest the camera: the whole arm over everything, the haft under its glove
-  armB(); if (!haftBack) haft(); glove(c, P.hB, true);
+  armB(); if (!haftBack) haft(); tpGauntlet(c, P.hB, true);
   K.handW = [K.x + he[0] * S * 1.1, K.y - z + he[1] * S]; K.cenW = [K.x + cp[0] * S * 1.1, K.y - z + cp[1] * S];
   if (window.__labelArms) { for (const [sh, h, txt, col] of [[P.shA, P.hA, 'A', '#ff3b30'], [P.shB, P.hB, 'B', '#1e90ff']]) { const m = L2(sh, h, 0.5); c.fillStyle = col; c.beginPath(); c.arc(m[0], m[1], 0.62, 0, 7); c.fill(); c.fillStyle = '#fff'; c.font = '700 0.85px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, m[0], m[1] + 0.05); } }
   PLATE = PL0; c.restore();
@@ -2765,7 +2830,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '319ab4';
+const KBUILD = '700a14';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
