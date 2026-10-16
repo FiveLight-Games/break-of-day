@@ -1122,9 +1122,9 @@ function man(c, s, dance, att, aim, t, P, L, rl = -1, pit = [0, -1], wk = null) 
   }
   const shL = [-2.4 + lx, sh + 0.8 + ly], shR = [2.4 + lx, sh + 0.8 + ly];
   // torch swing (wk.sw = {u, side}): the torch blends out of wherever the dance has it, round to straight behind him (9 o'clock on a 3 o'clock throw),
-  // sweeps up over the top to 1 o'clock, then blends back into the dance; angles and reach are interpolated, so nothing ever jumps
+  // then an upward stroke: down and under through 6, forward through the aim at 3 and up to 1 o'clock; blends back into the dance; angles and reach are interpolated, so nothing ever jumps
   if (wk && wk.sw && wk.sw.u >= 0) { const { u, side } = wk.sw, i = side, shp = i ? shR : shL, wr = a => Math.atan2(Math.sin(a), Math.cos(a));
-    const a0 = aim + Math.PI, a1 = a0 + f * Math.PI * 2 / 3, q = u < 0.25 ? 0 : u < 0.6 ? (u - 0.25) / 0.35 : 1, sweep = q < 0.5 ? 2 * q * q : 1 - 2 * (1 - q) * (1 - q);
+    const a0 = aim + Math.PI, a1 = a0 - f * Math.PI * 4 / 3, q = u < 0.25 ? 0 : u < 0.6 ? (u - 0.25) / 0.35 : 1, sweep = q < 0.5 ? 2 * q * q : 1 - 2 * (1 - q) * (1 - q);
     const w = sm(Math.min(1, u / 0.25)) * (1 - (u > 0.68 ? sm(Math.min(1, (u - 0.68) / 0.32)) : 0)), angS = a0 + (a1 - a0) * sweep;
     const hI = hands[i], tI = tips[i] || [hI[0], hI[1] - 6.5], angHI = Math.atan2(hI[1] - shp[1], hI[0] - shp[0]), rHI = Math.hypot(hI[0] - shp[0], hI[1] - shp[1]), angTI = Math.atan2(tI[1] - hI[1], tI[0] - hI[0]);
     const angH = angHI + wr(angS - angHI) * w, rH = rHI + (3.4 - rHI) * w, angT = angTI + wr(angS - angTI) * w;
@@ -1767,7 +1767,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 document.body.classList.toggle('fire', CHAR === 'fire'); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'a5f28a';
+const KBUILD = '2071fc';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || location.protocol === 'file:' || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
