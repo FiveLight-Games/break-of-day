@@ -622,7 +622,7 @@ const UK = {
 const UKEYS = Object.keys(UK);
 function mkWalker(k, x0, y0) { const U = UK[k]; return { id: 0, k, tk: 0, x: x0, y: y0, tx: x0, ty: y0, hp: U.hp, max: U.hp, ph: rr(0, 6), sp: rr(U.sp[0], U.sp[1]), hit: 0, kx: 0, ky: 0, atk: -1, cd: rr(0, 0.6) }; }
 let NOHP = false;
-function hpBar(c, w, top) { if (NOHP) { HPT = top; return; } const U = UK[w.k], bw = 8 * Math.max(1, U.sc * 0.8); c.fillStyle = '#000a'; c.fillRect(w.x - bw / 2, w.y - top, bw, 1.4); c.fillStyle = '#e04b3a'; c.fillRect(w.x - bw / 2, w.y - top, bw * Math.max(0, w.hp) / w.max, 1.4); }
+function hpBar(c, w, top) { if (NOHP) { HPT = top; return; } if (!(w.hp < w.max)) return; const U = UK[w.k], bw = 8 * Math.max(1, U.sc * 0.8); c.fillStyle = '#000a'; c.fillRect(w.x - bw / 2, w.y - top, bw, 1.4); c.fillStyle = '#e04b3a'; c.fillRect(w.x - bw / 2, w.y - top, bw * Math.max(0, w.hp) / w.max, 1.4); }
 // club raise (0..1) and the lean for an attack at u (0..1)
 const clubRaise = u => u < 0 ? 0 : u < 0.6 ? sm(u / 0.6) : u < 0.72 ? 1 - sm((u - 0.6) / 0.12) * 1.6 : -0.6 + sm((u - 0.72) / 0.28) * 0.6;
 const clubLean = u => u < 0 ? 0 : u < 0.6 ? -0.15 * sm(u / 0.6) : u < 0.8 ? 0.3 : 0.3 * (1 - sm((u - 0.8) / 0.2));
