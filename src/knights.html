@@ -15,6 +15,7 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 #lst{left:22px} #rst{right:10vw}
 .stick small{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:11px;color:#fffa}
 #spin{position:fixed;right:22px;top:calc(50% - 39px);width:78px;height:78px;border-radius:50%;padding:0;font:800 13px system-ui;background:#f0c41933;border:2px solid #f0c419;color:#f0c419;overflow:hidden}
+#bst{right:10px;top:calc(50% - 41px);bottom:auto;width:82px;height:82px;overflow:hidden;border-color:#f0a04a88;background:#f0a04a14}#bst .knob{width:32px;height:32px;margin:-16px 0 0 -16px;background:#f0a04a66;border-color:#f0a04a}#bst small{bottom:6px;color:#f0a04acc}#bst i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0;pointer-events:none}
 #spin i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0}
 #spin span{position:relative}
 #ult{position:fixed;right:29px;top:calc(50% - 112px);width:64px;height:64px;border-radius:50%;padding:0;font:800 13px system-ui;background:#2a2416cc;border:2px solid #8a7a50;color:#cbb98a;overflow:hidden}
@@ -33,7 +34,7 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 #lobbyUI a{color:#a59c88;font-size:12px}
 #note{position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#000b;border-radius:10px;padding:6px 12px;font-size:12px;display:none;pointer-events:none}
 #layEd{position:fixed;left:50%;top:max(58px,12vh);transform:translateX(-50%);transition:opacity .15s;z-index:15;background:#14120ff2;border:1px solid #3a332a;border-radius:14px;padding:12px 14px;display:none;flex-direction:column;gap:8px;width:min(320px,calc(100vw - 32px));font-size:13px;color:#efe7d6}#layEd b{font:700 15px system-ui;color:#f0c419}#layHint{color:#a59c88;font-size:12px}#layEd .lrow{display:flex;gap:8px;align-items:center}#layEd input{flex:1;accent-color:#f0c419}#layEd .lnum{font:600 12px ui-monospace,monospace;min-width:30px;text-align:right}#layWarn{color:#ff6a4d;font-size:12px}#layEd button{flex:1}#layEd .pri2{border-color:#f0c419;color:#f0c419}
-body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.editing #spin{cursor:move;outline:2px dashed #ffffff55;outline-offset:2px}body.editing .lsel{outline:2px dashed #f0c419 !important}@media (orientation:portrait){#layEd{top:26vh}}body.fire #aoe,body.fire #ult{display:none}body.dragging #layEd{opacity:.25;pointer-events:none}body.editing .lbad{box-shadow:0 0 0 3px #ff6a4d}
+body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.editing #spin{cursor:move;outline:2px dashed #ffffff55;outline-offset:2px}body.editing .lsel{outline:2px dashed #f0c419 !important}@media (orientation:portrait){#layEd{top:26vh}}body.fire #aoe,body.fire #spin,body:not(.fire) #bst,body.fire #ult{display:none}body.dragging #layEd{opacity:.25;pointer-events:none}body.editing .lbad{box-shadow:0 0 0 3px #ff6a4d}
 #exitQ{position:fixed;inset:0;z-index:20;background:#0008;display:none;align-items:center;justify-content:center}#exitQ.open{display:flex}#exitQ>div{background:#14120f;border:1px solid #3a332a;border-radius:14px;padding:18px 20px;text-align:center}#exitQ p{margin:0 0 14px;font:700 16px system-ui;color:#efe7d6}#exitQ .row{display:flex;gap:10px;justify-content:center}#exitQ button{padding:10px 18px;font-size:14px}#exitYes{border-color:#f0c419;color:#f0c419}
 #menuBtn{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;text-decoration:none}
 #dash{position:fixed;right:calc(10vw + 11px);bottom:172px;width:96px;height:96px;border-radius:50%;background:#9fd3ff14;border:2px solid #9fd3ff80;touch-action:none;overflow:hidden}
@@ -44,7 +45,7 @@ body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.ed
 #aoe .dot{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:#f0c41980;border:2px solid #f0c419}
 #aoe i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0}
 #aoe small{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;color:#f0c419c0}
-@media (orientation:portrait){#dash{right:calc(8vw + 6.5px);bottom:140px;width:84px;height:84px}#aoe{left:auto;right:calc(8vw + 118px);bottom:calc(150px - 8vw);width:84px;height:84px}#spin{bottom:276px !important;top:auto !important}#ult{right:12px;top:auto;bottom:356px;width:64px;height:64px}}
+@media (orientation:portrait){#dash{right:calc(8vw + 6.5px);bottom:140px;width:84px;height:84px}#aoe{left:auto;right:calc(8vw + 118px);bottom:calc(150px - 8vw);width:84px;height:84px}#spin{bottom:276px !important;top:auto !important}#ult{right:12px;top:auto;bottom:356px;width:64px;height:64px}#bst{right:12px;top:auto;bottom:262px;width:88px;height:88px}}
 .pnl{position:fixed;left:8px;top:54px;z-index:5;background:#14120fee;border:1px solid #3a332a;border-radius:12px;padding:10px;display:none;flex-direction:column;gap:8px;max-width:min(380px,calc(100vw - 16px));max-height:calc(100vh - 70px);overflow:auto}
 .pnl.open{display:flex}.pnl .hrow{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pnl b,.pnl span{font-size:12px;color:#a59c88;margin-right:4px}
 .pnl button{padding:6px 10px;font-size:12px}.pnl button.on{border-color:#f0c419;color:#f0c419}
@@ -65,6 +66,7 @@ button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
 <div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
 <button id="spin"><i></i><span>SPIN</span></button>
+<div class="stick" id="bst"><div class="knob"></div><small>breath</small><i></i></div>
 <button id="ult"><i></i><span>ULT</span><small></small></button>
 <div id="dash" class="aim"><i></i><div class="dot"></div><small>dash</small></div>
 <div id="aoe"><i></i><div class="dot"></div><small>leap</small></div>
@@ -1190,28 +1192,31 @@ function drawBreath(c, T, t) {
 })();
 
 // the Firebreather as a player: walks (and keeps walking while he breathes), right stick aims a cone of fire that burns everything in it
-const FIRE = { R: 54, HALF: 0.4, DPS: 240, BURN: 5, BURN_DPS: 28, RUN: 0.92, ATK: 0.8, BACK: 0.65, S: 1.0, TSW: 0.5, WAVE_DMG: 75, WAVE_T: 0.38, BR_T: 5, BR_CD: 6, BR_LEN: 1.65, BR_WIDE: 1.35, CORE: 7 };
+const FIRE = { R: 54, HALF: 0.4, DPS: 240, BURN: 5, BURN_DPS: 28, RUN: 0.92, ATK: 0.8, BACK: 0.65, S: 1.0, TSW: 0.5, WAVE_DMG: 75, WAVE_T: 0.38, BR_T: 5, BR_CD: 6, BR_KB: 190, BR_LEN: 1.65, BR_WIDE: 1.35, CORE: 7 };
 // Plume (the dash stick): he blasts fire at the ground, rides it into the air for 3s and is pushed away from where he aims it
 const PL = { T: 3, CD: 12, Z: 27, SPD: 60, R: 52, HALF: 0.44, DPS: 320, KB: 140 };
 let CHAR = 'knight'; try { CHAR = localStorage.getItem('kn_char') === 'fire' ? 'fire' : 'knight'; } catch (e) { }
-function makeFire(kn) { Object.assign(kn, { plT: -1, plCd: 0, tsw: -1, tswN: 0, brT: 0, brCd: 0, waves: [], kind: 'fire', st: 'fight', hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
+function makeFire(kn) { Object.assign(kn, { plT: -1, plCd: 0, tsw: -1, tswN: 0, brOn: 0, brUse: 0, brCd: 0, waves: [], kind: 'fire', st: 'fight', hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
 const mouthOf = kn => kn.mouthW || [kn.x + kn.f * 3, kn.y - 12];
 function fireStep(dt, t) {
   if (K.lvl !== 5) Object.assign(K, { lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: K.fp || [], st: 'fight', hold: 1, kn: 0 });
   const IN = K.in, mvL = Math.hypot(IN.mv[0], IN.mv[1]), mine = AUTH() || K.i === ME;
   if (IN.ch && IN.ch !== K.kind) { if (IN.ch === 'fire') makeFire(K); }
   // Breath (the Spin button): for 5s the right stick breathes a long, wide cone instead of swinging the torches
-  if (K.brT > 0) { K.brT -= dt; if (K.brT <= 0) { K.brT = 0; K.brCd = FIRE.BR_CD; } } else if (K.brCd > 0) K.brCd -= dt;
-  if (mine && IN.spin && !K.spinHeld && !(K.brT > 0) && !(K.brCd > 0)) { K.brT = FIRE.BR_T; K.tsw = -1; }
+  // Breath has its own stick: hold it to breathe that way, up to 5s; letting go (or running out) starts the cooldown
+  const brIn = IN.br || (IN.spin && IN.aim ? IN.aim : null);
+  if (!K.brOn && K.brCd > 0) K.brCd -= dt;
+  if (brIn && !(K.brCd > 0) && (K.brUse || 0) < FIRE.BR_T) { if (!K.brOn) K.tsw = -1; K.brOn = 1; K.brUse = (K.brUse || 0) + dt; }
+  else if (K.brOn) { K.brOn = 0; K.brUse = 0; K.brCd = FIRE.BR_CD; }
   K.spinHeld = IN.spin;
   if (!(K.plT >= 0) && K.plCd > 0) K.plCd -= dt;
   if (mine && IN.pl && !(K.plT >= 0) && !(K.plCd > 0)) startPlume();
   if (K.plT >= 0) { plumeStep(dt, IN); FBX.emitBreath(K, dt); FBX.stepBreath(K, dt); K.st = 'fight'; return; }
-  const breath = K.brT > 0; K.reach = FIRE.R * (breath ? FIRE.BR_LEN : 1); K.half = FIRE.HALF * (breath ? FIRE.BR_WIDE : 1);
-  if (breath && IN.aim) { const want = Math.atan2(IN.aim[1], IN.aim[0]); let d = want - K.aimS; d = Math.atan2(Math.sin(d), Math.cos(d)); K.aimS += d * Math.min(1, dt * (K.att > 0.5 ? 9 : 30)); K.att = Math.min(1, K.att + dt * 5); K.cone = K.att >= 0.8 ? Math.min(1, K.cone + dt * 4) : 0; }
+  const breath = !!K.brOn; K.reach = FIRE.R * (breath ? FIRE.BR_LEN : 1); K.half = FIRE.HALF * (breath ? FIRE.BR_WIDE : 1);
+  if (breath && brIn) { const want = Math.atan2(brIn[1], brIn[0]); let d = want - K.aimS; d = Math.atan2(Math.sin(d), Math.cos(d)); K.aimS += d * Math.min(1, dt * (K.att > 0.5 ? 9 : 30)); K.att = Math.min(1, K.att + dt * 5); K.cone = K.att >= 0.8 ? Math.min(1, K.cone + dt * 4) : 0; }
   else { K.att = Math.max(0, K.att - dt * 3); K.cone = Math.max(0, K.cone - dt * 6); }
   // torch swings: right, left, right... for as long as the stick is held; each one throws a wave of fire the size of his breath
-  if (!breath && (K.tsw ?? -1) < 0 && IN.aim) { K.tsw = 0; K.tswN = (K.tswN || 0) + 1; K.waveDone = 0; K.aimS = Math.atan2(IN.aim[1], IN.aim[0]); }
+  if (!breath && (K.tsw ?? -1) < 0 && IN.aim && !IN.spin) { K.tsw = 0; K.tswN = (K.tswN || 0) + 1; K.waveDone = 0; K.aimS = Math.atan2(IN.aim[1], IN.aim[0]); }
   if (K.tsw >= 0) { K.tsw += dt; if (IN.aim) { const want = Math.atan2(IN.aim[1], IN.aim[0]); let d = want - K.aimS; d = Math.atan2(Math.sin(d), Math.cos(d)); K.aimS += d * Math.min(1, dt * 12); }
     if (!K.waveDone && K.tsw >= FIRE.TSW * 0.47) { K.waveDone = 1; fireWave(); } if (K.tsw >= FIRE.TSW) K.tsw = -1; }
   K.aim = K.aimS;
@@ -1220,7 +1225,7 @@ function fireStep(dt, t) {
   const v = RUN * FIRE.RUN * (atk ? FIRE.ATK : 1) * (back ? FIRE.BACK : 1);
   if (mvL > 0.12) { const k = Math.min(1, mvL); K.vx = IN.mv[0] / mvL * k * v; K.vy = IN.mv[1] / mvL * k * v; } else { const dmp = Math.exp(-dt * 13); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
   const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy);
-  K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12));
+  K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.wph = (K.wph || 0) + md * 0.42;
   if (K.att < 0.5) K.dph += dt * 4.2; // he keeps his fire dance going while he walks
   K.f = K.att > 0.5 || K.tsw >= 0 ? (Math.cos(K.aimS) >= 0 ? 1 : -1) : (Math.cos(K.dph + Math.PI / 2) >= 0 ? 1 : -1);
   if (AUTH()) {
@@ -1229,7 +1234,7 @@ function fireStep(dt, t) {
       for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k], dx = w.x - m[0], dy = (w.y - 4 * U.sc) - m[1], d = Math.hypot(dx, dy); let hit = false;
         if (d <= K.reach + U.r) { let da = Math.atan2(dy, dx) - K.aimS; da = Math.atan2(Math.sin(da), Math.cos(da)); hit = Math.abs(da) <= K.half + U.r / Math.max(d, 4); }
         if (!hit) { const ex = w.x - K.x, ey = (w.y - K.y) * 1.3; hit = Math.hypot(ex, ey) < FIRE.CORE + U.r && ex * ad[0] + ey * ad[1] > 0; }
-        if (!hit) continue; w.bd = FIRE.BURN; w.bsrc = K.i; w.atk = -1; w.kx += ad[0] * 30 * dt; w.ky += ad[1] * 15 * dt; w.hp -= FIRE.DPS * dt * K.cone; if (w.hp <= 0) { K.kills++; burnFx(w); } } }
+        if (!hit) continue; w.bd = FIRE.BURN; w.bsrc = K.i; w.atk = -1; w.kx += ad[0] * FIRE.BR_KB * dt; w.ky += ad[1] * FIRE.BR_KB * 0.5 * dt; w.hp -= FIRE.DPS * dt * K.cone; if (w.hp <= 0) { K.kills++; burnFx(w); } } }
     // torch waves: a front that rolls out through the cone and hits each enemy once
     for (const wv of K.waves || []) { wv.t += dt; const r = K.reach * Math.min(1, wv.t / FIRE.WAVE_T);
       for (const w of walkers) { if (w.hp <= 0 || wv.hit.has(w.id)) continue; const U = UK[w.k], dx = w.x - wv.x, dy = (w.y - 4 * U.sc) - wv.y, d = Math.hypot(dx, dy); if (d > r + U.r) continue; let da = Math.atan2(dy, dx) - wv.a; da = Math.atan2(Math.sin(da), Math.cos(da)); if (Math.abs(da) > wv.half + U.r / Math.max(d, 4) && d > FIRE.CORE + U.r) continue;
@@ -1276,7 +1281,7 @@ function drawFire(c, t) {
   FBX.setCol(K.col); const mv = cl((K.spd || 0) / (RUN * FIRE.RUN * 0.6), 0, 1);
   const zz = K.z || 0; if (zz > 0.5) { const k = Math.max(0.35, 1 - zz / 40); c.fillStyle = `rgba(0,0,0,${0.3 * k})`; c.beginPath(); c.ellipse(K.x, K.y + 0.4, 4.5 * k, 1.5 * k, 0, 0, 7); c.fill(); }
   c.save(); c.translate(K.x, K.y - zz); const sp = Math.hypot(K.vx || 0, K.vy || 0), ln = sp > 2 ? [K.vx / (RUN * FIRE.RUN), K.vy / (RUN * FIRE.RUN)] : [0, 0];
-  const m = FBX.man(c, FIRE.S, K.dph || 0, K.att || 0, K.aimS || 0, t, FBX.pal(5), 5, -1, [0, -1], { ph: 0, mv: 0, f: K.f, z: zz > 0.5, lean: ln, sw: K.tsw >= 0 ? { u: K.tsw / FIRE.TSW, side: (K.tswN || 0) % 2 } : null }); c.restore();
+  const m = FBX.man(c, FIRE.S, K.dph || 0, K.att || 0, K.aimS || 0, t, FBX.pal(5), 5, -1, [0, -1], { ph: K.wph || 0, mv: (K.att || 0) > 0.3 && !(K.plT >= 0) ? mv * Math.min(1, K.att * 1.5) : 0, f: K.f, z: zz > 0.5, lean: ln, sw: K.tsw >= 0 ? { u: K.tsw / FIRE.TSW, side: (K.tswN || 0) % 2 } : null }); c.restore();
   K.mouthW = [K.x + m.conv[0], K.y - zz + m.conv[1]]; const tp = K.tsw >= 0 && m.tips[(K.tswN || 0) % 2]; if (tp) K.tipW = [K.x + tp[0], K.y - zz + tp[1]];
 }
 // ---------- sim ----------
@@ -1482,12 +1487,13 @@ function draw() {
     x.restore(); }
   if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
   ST.textContent = NP > 1 ? `Enemies ${walkers.length} · ` + KN.map(kn => `${kn.i === ME ? 'You' : (NET && NET.otherName) || 'P' + (kn.i + 1)} ${kn.kills}k/${kn.hits}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${K.hits}`;
-  const cdk = K.kind === 'fire' ? (K.brT > 0 ? 1 - K.brT / FIRE.BR_T : cl((K.brCd || 0) / FIRE.BR_CD, 0, 1)) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
+  const cdk = K.kind === 'fire' ? 0 : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
   { const live = K.ultPh >= 0, pr = cl((K.kills - (K.ultBase || 0)) / ULT_KILLS, 0, 1);
     ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live);
     const lab = live ? (K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (K.kills - (K.ultBase || 0)) + '/' + ULT_KILLS; if (ULS.textContent !== lab) ULS.textContent = lab;
     DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); }
-  { const fire = K.kind === 'fire'; if (document.body.classList.contains('fire') !== fire) { document.body.classList.toggle('fire', fire); document.querySelector('#rst small').textContent = fire ? 'torch' : 'swing'; document.querySelector('#spin span').textContent = fire ? 'BREATH' : 'SPIN'; document.querySelector('#dash small').textContent = fire ? 'plume' : 'dash'; } }
+  { const fire = K.kind === 'fire'; if (document.body.classList.contains('fire') !== fire) { document.body.classList.toggle('fire', fire); document.querySelector('#rst small').textContent = fire ? 'torch' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : 'dash'; } }
+  if (K.kind === 'fire') BSTI.style.height = (K.brOn ? 100 * (K.brUse / FIRE.BR_T) : cl((K.brCd || 0) / FIRE.BR_CD, 0, 1) * 100) + '%';
   if (K.kind === 'fire') DASHI.style.height = (K.plT >= 0 ? 100 * (1 - K.plT / PL.T) : cl((K.plCd || 0) / PL.CD, 0, 1) * 100) + '%'; else DASHI.style.height = (K.ab === 'dash' ? 100 : cl((K.dashCd || 0) / DASH_CD, 0, 1) * 100) + '%'; AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
 }
 function frame(ms) {
@@ -1549,10 +1555,11 @@ function stick(el, onMove, dynamic) {
   const end = e => { if (e.pointerId !== id) return; id = null; knob.style.transition = 'transform .12s'; knob.style.transform = ''; setTimeout(() => knob.style.transition = '', 130); onMove(null); };
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
 }
-let stickMv = [0, 0], stickAim = null, keyMv = [0, 0], mouseAim = null, keySpin = false, btnSpin = false;
-const syncIn = () => { const IN = KN[ME].in; IN.mv = Math.hypot(...stickMv) > 0.05 ? stickMv : keyMv; IN.aim = stickAim || mouseAim; IN.spin = keySpin || btnSpin; if (NET && NET.mode === 'guest') NET.inDirty = 1; };
+let stickBr = null, stickMv = [0, 0], stickAim = null, keyMv = [0, 0], mouseAim = null, keySpin = false, btnSpin = false;
+const syncIn = () => { const IN = KN[ME].in; IN.mv = Math.hypot(...stickMv) > 0.05 ? stickMv : keyMv; IN.aim = stickAim || mouseAim; IN.spin = keySpin || btnSpin; IN.br = stickBr; if (NET && NET.mode === 'guest') NET.inDirty = 1; };
 stick(document.getElementById('lst'), v => { stickMv = v || [0, 0]; syncIn(); });
 stick(document.getElementById('rst'), v => { stickAim = v && Math.hypot(...v) > 0.35 ? v : null; syncIn(); }, true);
+const BSTI = document.querySelector('#bst i'); stick(document.getElementById('bst'), v => { stickBr = v && Math.hypot(...v) > 0.3 ? v : null; syncIn(); }, true);
 const DASHE = document.getElementById('dash'), DASHI = DASHE.querySelector('i'), DASHD = DASHE.querySelector('.dot'), AOE = document.getElementById('aoe'), AOEI = AOE.querySelector('i'), AOED = AOE.querySelector('.dot');
 const markIn = () => { if (NET && NET.mode === 'guest') NET.inDirty = 1; };
 function doDash(v) { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.dashN = (IN.dashN || 0) + 1; IN.dashD = [Math.round(v[0] * 100) / 100, Math.round(v[1] * 100) / 100]; markIn(); }
@@ -1617,9 +1624,9 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brT', 'brCd', 'plT', 'plCd', 'pdx', 'pdy', 'z'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brUse', 'brCd', 'plT', 'plCd', 'pdx', 'pdy', 'z'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
-const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', pl: n.pl || null });
+const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', pl: n.pl || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in) });
 const packW = w => [w.id, UKEYS.indexOf(w.k), Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10, Math.round(w.hp), w.max, Math.round(w.atk * 100) / 100, w.hit > 0 ? 1 : 0, w.tk, w.bd > 0 ? 1 : 0];
 const LC = document.getElementById('lcard'), LUI = document.getElementById('lobbyUI'), NOTE = document.getElementById('note');
@@ -1635,7 +1642,7 @@ function lobby(screen, extra) {
     <button class="big" id="lSoloH">Start now (they can still join)</button><button id="lCancel">Cancel</button>`;
   else if (screen === 'joining') LC.innerHTML = `<h1>Knight Brawl</h1><p>Joining <b>${NET.code}</b>…</p><button id="lCancel">Cancel</button>`;
   const on = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
-  on('lHost', host); on('lLay', () => layOpen(true)); const pick = c => { CHAR = c; try { localStorage.setItem('kn_char', c); } catch (e) { } lobby('home'); }; on('cKnight', () => pick('knight')); on('cFire', () => pick('fire')); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
+  on('lHost', host); on('lLay', () => layOpen(true)); const pick = c => { CHAR = c; try { localStorage.setItem('kn_char', c); } catch (e) { } document.body.classList.toggle('fire', c === 'fire'); applyLayout(); lobby('home'); }; on('cKnight', () => pick('knight')); on('cFire', () => pick('fire')); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
   on('lJoin', () => { const c = (document.getElementById('lCode').value || '').toUpperCase().replace(/[^A-Z]/g, ''); if (c.length !== 4) return lobby('home', 'Enter the 4-letter code.'); join(c); });
   on('lCancel', () => { leave(); lobby('home'); });
   const ci = document.getElementById('lCode'); if (ci) ci.onkeydown = e => { if (e.key === 'Enter') document.getElementById('lJoin').click(); };
@@ -1695,11 +1702,11 @@ function applySnap(S) {
   walkers = walkers.filter(w => w.dead || seen.has(w.id));
 }
 // ---------- control layout: each player drags/resizes the touch controls, per character and orientation (saved on this device) ----------
-const CTLS = { move: ['lst', 'Move stick'], swing: ['rst', 'Swing stick'], dash: ['dash', 'Dash aim'], leap: ['aoe', 'Leap aim'], spin: ['spin', 'Spin button'], ult: ['ult', 'Ult button'] };
-const LAYCH = 'knight';
+const CTLS = { move: ['lst', 'Move stick'], swing: ['rst', 'Swing stick'], dash: ['dash', 'Dash aim'], leap: ['aoe', 'Leap aim'], spin: ['spin', 'Spin button'], ult: ['ult', 'Ult button'], breath: ['bst', 'Breath stick'] };
+const layCh = () => CHAR === 'fire' ? 'fire' : 'knight';
 let LAY = {}; try { LAY = JSON.parse(localStorage.getItem('kn_layout') || '{}') || {}; } catch (e) { }
 const orient = () => innerWidth > innerHeight ? 'landscape' : 'portrait';
-const layNow = () => (LAY[LAYCH] || {})[orient()];
+const layNow = () => (LAY[layCh()] || {})[orient()];
 const LPROPS = ['left', 'top', 'right', 'bottom', 'width', 'height'];
 function applyLayout() {
   const L = layNow();
@@ -1708,12 +1715,12 @@ function applyLayout() {
     const s = p.s, set = (q, v) => el.style.setProperty(q, v, 'important');
     set('left', p.x * innerWidth - s / 2 + 'px'); set('top', p.y * innerHeight - s / 2 + 'px'); set('right', 'auto'); set('bottom', 'auto'); set('width', s + 'px'); set('height', s + 'px'); el.style.boxSizing = 'border-box';
     if (k === 'spin') el.style.setProperty('font-size', Math.round(s / 6) + 'px');
-    if (kn) { const ks = Math.round(s * (k === 'move' || k === 'swing' ? 0.41 : 0.27)); kn.style.setProperty('width', ks + 'px'); kn.style.setProperty('height', ks + 'px'); kn.style.setProperty('margin', -ks / 2 + 'px 0 0 ' + -ks / 2 + 'px'); }
+    if (kn) { const ks = Math.round(s * (k === 'move' || k === 'swing' || k === 'breath' ? 0.4 : 0.27)); kn.style.setProperty('width', ks + 'px'); kn.style.setProperty('height', ks + 'px'); kn.style.setProperty('margin', -ks / 2 + 'px 0 0 ' + -ks / 2 + 'px'); }
   }
   if (EDIT) layMarks();
 }
 function ctlBox(k) { const r = document.getElementById(CTLS[k][0]).getBoundingClientRect(); return { x: (r.left + r.width / 2) / innerWidth, y: (r.top + r.height / 2) / innerHeight, s: Math.round(r.width) }; }
-function layEnsure() { const o = orient(); LAY[LAYCH] = LAY[LAYCH] || {}; if (!LAY[LAYCH][o]) { const L = {}; for (const k in CTLS) L[k] = ctlBox(k); LAY[LAYCH][o] = L; } return LAY[LAYCH][o]; }
+function layEnsure() { const o = orient(); LAY[layCh()] = LAY[layCh()] || {}; if (!LAY[layCh()][o]) { const L = {}; for (const k in CTLS) { const el = document.getElementById(CTLS[k][0]); if (el.offsetParent || getComputedStyle(el).position === 'fixed' && getComputedStyle(el).display !== 'none') L[k] = ctlBox(k); } LAY[layCh()][o] = L; } return LAY[layCh()][o]; }
 function laySave() { try { localStorage.setItem('kn_layout', JSON.stringify(LAY)); } catch (e) { } }
 let EDIT = null; // { sel, back } while editing
 const LE = document.getElementById('layEd');
@@ -1736,7 +1743,7 @@ function layPanel() {
 }
 LE.querySelector('#laySize').addEventListener('input', e => { const L = layEnsure(); L[EDIT.sel].s = +e.target.value; LE.querySelector('#laySizeV').textContent = e.target.value; applyLayout(); laySave(); });
 LE.querySelector('#layDone').onclick = () => layClose();
-LE.querySelector('#layReset').onclick = () => { if (LAY[LAYCH]) delete LAY[LAYCH][orient()]; laySave(); applyLayout(); layEnsure(); layPanel(); };
+LE.querySelector('#layReset').onclick = () => { if (LAY[layCh()]) delete LAY[layCh()][orient()]; laySave(); applyLayout(); layEnsure(); layPanel(); };
 document.getElementById('layBtn').onclick = () => layOpen(false);
 // while editing, touches on the controls move them (drag the middle) or resize them (drag the rim); the game never sees them
 let ldrag = null;
@@ -1757,7 +1764,7 @@ window.addEventListener('pointermove', e => {
 const lend = e => { if (!EDIT) return; if (!e.target.closest || !e.target.closest('#layEd, #top')) e.stopImmediatePropagation(); if (ldrag && e.pointerId === ldrag.id) { ldrag = null; document.body.classList.remove('dragging'); laySave(); } };
 window.addEventListener('pointerup', lend, true); window.addEventListener('pointercancel', lend, true);
 addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { layEnsure(); layPanel(); } }, 60));
-applyLayout();
+document.body.classList.toggle('fire', CHAR === 'fire'); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 const KBUILD = '__BUILD__';
