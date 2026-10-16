@@ -26,6 +26,7 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 #lobbyUI .code{font:800 40px system-ui;letter-spacing:10px;color:#efe7d6}#lobbyUI .err{color:#ff7b6b}
 #lobbyUI a{color:#a59c88;font-size:12px}
 #note{position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#000b;border-radius:10px;padding:6px 12px;font-size:12px;display:none;pointer-events:none}
+#exitQ{position:fixed;inset:0;z-index:20;background:#0008;display:none;align-items:center;justify-content:center}#exitQ.open{display:flex}#exitQ>div{background:#14120f;border:1px solid #3a332a;border-radius:14px;padding:18px 20px;text-align:center}#exitQ p{margin:0 0 14px;font:700 16px system-ui;color:#efe7d6}#exitQ .row{display:flex;gap:10px;justify-content:center}#exitQ button{padding:10px 18px;font-size:14px}#exitYes{border-color:#f0c419;color:#f0c419}
 #menuBtn{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;text-decoration:none}
 #dash{position:fixed;right:calc(10vw + 11px);bottom:172px;width:96px;height:96px;border-radius:50%;background:#9fd3ff14;border:2px solid #9fd3ff80;touch-action:none;overflow:hidden}
 #dash .dot{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:#9fd3ff80;border:2px solid #9fd3ff}
@@ -50,6 +51,7 @@ button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none
 
 <div id="horde" class="pnl"><div class="hrow"><b>Horde</b><button data-r="off" class="on">Off</button><button data-r="few">A few</button><button data-r="dozens">Dozens</button><button data-r="hundreds">Hundreds</button></div>
 <div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button><button data-n="50">+50</button></div></div>
+<div id="exitQ"><div><p>Exit to main menu?</p><div class="row"><button id="exitNo">Stay</button><button id="exitYes">Exit</button></div></div></div>
 <div id="top"><a id="menuBtn" href="./">&#8962; Menu</a><button id="hordeBtn">&#9776; Horde</button><button id="clear">Clear</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><button id="sound">Sound: on</button><div id="vol" title="Music volume"><span>&#9835;</span><input type="range" min="0" max="100" step="1"></div><div id="stats"></div></div>
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
 <div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
@@ -1132,6 +1134,11 @@ const doReset = () => { if (!AUTH()) return NET.ch.send({ type: 'broadcast', eve
 document.getElementById('clear').onclick = doClear;
 document.getElementById('reset').onclick = doReset;
 { const SB = document.getElementById('sound'), lab = () => SB.textContent = 'Sound: ' + (AU.on ? 'on' : 'off'); lab(); SB.onclick = () => { audioInit(); setSound(!AU.on); lab(); }; const VI = document.querySelector('#vol input'); VI.value = AU.vol; VI.addEventListener('input', () => { audioInit(); setVol(+VI.value); }); VI.addEventListener('change', () => VI.blur()); document.querySelector('#vol span').onclick = () => { audioInit(); const v = AU.vol > 0 ? 0 : (AU.lastVol || 44); if (AU.vol > 0) AU.lastVol = AU.vol; VI.value = v; setVol(v); }; }
+{ const Q = document.getElementById('exitQ'), MB2 = document.getElementById('menuBtn');
+  MB2.addEventListener('click', e => { e.preventDefault(); Q.classList.add('open'); });
+  document.getElementById('exitNo').onclick = () => Q.classList.remove('open');
+  Q.addEventListener('click', e => { if (e.target === Q) Q.classList.remove('open'); });
+  document.getElementById('exitYes').onclick = () => { location.href = MB2.getAttribute('href'); }; }
 let ZONES = false; document.getElementById('zones').onclick = e => { ZONES = !ZONES; e.target.textContent = 'Hit zones: ' + (ZONES ? 'on' : 'off'); };
 const SLB = document.getElementById('slow');
 function slowLabel() { SLB.textContent = 'Slow-mo: ' + (speed === 1 ? 'off' : 'on'); SLB.style.borderColor = speed === 1 ? '' : '#f0c419'; SLB.style.color = speed === 1 ? '' : '#f0c419'; }
