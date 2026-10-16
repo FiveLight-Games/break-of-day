@@ -1714,7 +1714,7 @@ const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
 function makePriest(kn, hard) {
   const st = kn.st === 'fight' ? 'fight' : 'kneel', px = kn.T.x - 1.5, py = kn.T.y + 1.5;
   const D = { kind: 'priest', st, u: 0, kn: st === 'fight' ? 0 : 1, hold: 1, hx: (st === 'fight' ? kn.x : px) - 15, hy: (st === 'fight' ? kn.y : py) + 2, hz: 0, hL: WP.DRAG, hOut: 0, hRet: -1, hrx: 0, hry: 0, retN: 0, cen: -1, cenN: 0, cenA: 0, ab: null, abT: 0, abId: kn.abId || 0,
-    swCd: 0, slCd: 0, hoT: 0, hoCd: 0, pPh: -1, pT: 0, hvx: 0, hvy: 0, smCd: 0, smT: -1, smK: 0, impN: 0, impX: 0, impY: 0, impR: 0, z: 0, gp: 0, f: 1, wq: null,
+    swCd: 0, slCd: 0, slWait: 0, hoT: 0, hoCd: 0, pPh: -1, pT: 0, hvx: 0, hvy: 0, smCd: 0, smT: -1, smK: 0, impN: 0, impX: 0, impY: 0, impR: 0, z: 0, gp: 0, f: 1, wq: null,
     dashSeen: kn.in.dashN || 0, leapSeen: kn.in.leapN || 0, ultSeen: kn.in.ultN || 0, lvSeen: kn.in.lvN || 0, smSeen: kn.in.smN || 0 };
   if (st === 'kneel') { kn.x = px; kn.y = py; }
   for (const k in D) if (hard || kn[k] === undefined || kn[k] === null) kn[k] = D[k];
@@ -1733,7 +1733,7 @@ function priestStep(dt, t) {
   const smP = (IN.smN || 0) !== (K.smSeen || 0); K.smSeen = IN.smN || 0;
   const biP = (IN.biN || 0) !== (K.biSeen ?? (IN.biN || 0)); K.biSeen = IN.biN || 0;
   // Bring in: the head comes home right away (the same trip it makes on its own when the hold runs out)
-  if (mine && biP && K.hOut > 0 && K.ab !== 'reel') { K.hOut = 0; K.hRet = 0; K.hrx = K.hx; K.hry = K.hy; K.retN = (K.retN || 0) + 1; }
+  if (mine && biP && K.hOut > 0 && K.ab !== 'reel') { K.hOut = 0; K.hRet = 0; K.hrx = K.hx; K.hry = K.hy; K.retN = (K.retN || 0) + 1; wpSlamCd(1); }
   // the start: he kneels in prayer on the flagstones, the flail lying behind him; any control and he rises
   if (K.st === 'kneel' || K.st === 'pull') { K.vx = K.vy = 0; K.spd = 0; K.z = 0;
     if (K.st === 'kneel') { K.kn = 1; if (mine && (mvL > 0.2 || IN.aim || dashP || leapP || lvP)) { K.st = 'pull'; K.u = 0; } }
@@ -1749,7 +1749,7 @@ function priestStep(dt, t) {
   if (mine && dashP && IN.dashD) K.wq = { k: 'sweep', v: IN.dashD, t: 0.6 };
   if (mine && leapP) K.wq = { k: K.hOut > 0 || K.hRet >= 0 ? 'reel' : 'slam', v: IN.leapT || [0, 0], t: 0.6 };
   if (K.wq && (K.wq.t -= dt) <= 0) K.wq = null;
-  if (K.wq && wpRec(K)) { const q = K.wq, ok = q.k === 'sweep' ? !(K.swCd > 0) : q.k === 'slam' ? !(K.slCd > 0) && !(K.hOut > 0) : K.hOut > 0 || K.hRet >= 0;
+  if (K.wq && wpRec(K)) { const q = K.wq, ok = q.k === 'sweep' ? !(K.swCd > 0) : q.k === 'slam' ? !(K.slCd > 0) && !(K.hOut > 0) && !K.slWait : K.hOut > 0 || K.hRet >= 0;
     if (ok) { K.wq = null; wpEndAb(); K.cen = -1; if (q.k === 'sweep') startSweep(q.v); else if (q.k === 'slam') startSlam(q.v); else startReel(); } }
   // the censer can also take over from a follow-through
   if (K.ab && IN.aim && wpRec(K) && K.ab !== 'reel') wpEndAb();
@@ -1799,7 +1799,7 @@ function flailRope(dt, t) {
   const d = gd(K.x, K.y, K.hx, K.hy);
   // while he pulls himself along the chain the head stays exactly where it is
   if (K.ab === 'reel') { K.hL = Math.max(K.hL, d); return; }
-  if (K.hOut > 0) { K.hOut -= dt; if (K.hOut <= 0) { K.hRet = 0; K.hrx = K.hx; K.hry = K.hy; K.retN = (K.retN || 0) + 1; } K.hL = WP.MAXC; }
+  if (K.hOut > 0) { K.hOut -= dt; if (K.hOut <= 0) { K.hRet = 0; K.hrx = K.hx; K.hry = K.hy; K.retN = (K.retN || 0) + 1; wpSlamCd(1); } K.hL = WP.MAXC; }
   else K.hL = Math.max(WP.DRAG, Math.min(K.hL, Math.max(d, WP.DRAG)) - WP.REEL * dt);
   if (d > K.hL) { const k = K.hL / d; K.hx = K.x + (K.hx - K.x) * k; K.hy = K.y + (K.hy - K.y) * k; }
   K.hy = cl(K.hy, 14, H - 4);
@@ -1851,7 +1851,10 @@ function startSlam(v) {
   if (Math.abs(tg[0] - K.x) > 2) K.f = tg[0] > K.x ? 1 : -1;
 }
 // with the head out past the chain's reach, the slam button hauls him along the chain to it
+// the slam's cooldown starts once the head-out window is over: in full after Bring in or a time-out, half after Go to
+function wpSlamCd(k) { if (K.slWait) { K.slWait = 0; K.slCd = WP.SL.CD * k; } else if (k < 1) K.slCd = Math.min(K.slCd || 0, WP.SL.CD * k); }
 function startReel() {
+  wpSlamCd(0.5);
   if (K.hRet >= 0) { K.hrx = K.hx; K.hry = K.hy; K.hRet = -1; K.hz = 0; }
   const dx = K.hx - K.x, dy = K.hy - K.y, d = Math.hypot(dx, dy) || 1, back = WP.HR + 6;
   Object.assign(K, { ab: 'reel', abT: 0, abId: (K.abId || 0) + 1, cen: -1, ax0: K.x, ay0: K.y, ax1: K.hx - dx / d * back, ay1: cl(K.hy - dy / d * back * 0.8, 16, H - 4), hOut: 0 });
@@ -1902,7 +1905,7 @@ const canImpale = w => { const U = UK[w.k]; return U.sc <= 1.05 && w.k !== 'warg
 // the slam: a shockwave that slows everyone round it; anyone right under the head takes it full, and the small and medium ones that live are chained to it
 function slamImpact() {
   const S = WP.SL; K.impN = (K.impN || 0) + 1; K.impX = K.hx; K.impY = K.hy; K.impR = S.WAVE;
-  const d0 = gd(K.x, K.y, K.hx, K.hy); if (d0 > WP.DRAG + 2) { K.hOut = S.HOLD; K.hL = WP.MAXC; } else K.hL = Math.max(WP.DRAG, d0);
+  const d0 = gd(K.x, K.y, K.hx, K.hy); if (d0 > WP.DRAG + 2) { K.hOut = S.HOLD; K.hL = WP.MAXC; K.slCd = 0; K.slWait = 1; } else { K.hL = Math.max(WP.DRAG, d0); K.slCd = S.CD; }
   if (!AUTH()) return;
   for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k], dx = w.x - K.hx, dy = w.y - K.hy, d = gd(K.hx, K.hy, w.x, w.y); if (d > S.WAVE + U.r) continue; const a = Math.atan2(dy, dx);
     w.atk = -1; w.sl = Math.max(w.sl || 0, S.SLOW);
@@ -1912,6 +1915,7 @@ function slamImpact() {
 }
 // ---- Penance (ult): he ascends in golden light and steers the burning flail head himself; Smash drives it into the ground, bigger the faster it was going ----
 function startPen() {
+  if (K.slWait) { K.slWait = 0; K.slCd = WP.SL.CD; }
   Object.assign(K, { pPh: 0, pT: 0, ultBase: K.kills, ab: null, cen: -1, hvx: 0, hvy: 0, smT: -1, smCd: 0, hrx: K.hx, hry: K.hy, hOut: 0, hRet: -1, wq: null });
   FX.push({ k: 'pillar', x: K.x, y: K.y, t: 0, max: 1.8 });
   for (let i = 0; i < 30; i++) sparks.push({ x: K.x + rr(-6, 6), y: K.y - rr(0, 24), vx: rr(-8, 8), vy: -rr(20, 60), t: 0, max: rr(0.6, 1.2) });
@@ -2549,7 +2553,7 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
 const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
