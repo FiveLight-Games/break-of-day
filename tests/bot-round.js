@@ -6,7 +6,7 @@ const { chromium } = require('playwright');
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto('http://localhost:8765/knights.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(400);
   await p.click(kind === 'fire' ? '#cFire' : '#cKnight'); await p.click('#lSolo'); await p.waitForTimeout(400);
-  await p.evaluate(() => { window.__stop(); window.__horde('hundreds'); });
+  await p.evaluate(RATE => { window.__stop(); window.__horde(RATE); }, process.argv[4] || 'hundreds');
   await p.evaluate(() => {
     const S = window.__BS = { uses: {}, t: 0 }; const use = k => S.uses[k] = (S.uses[k] || 0) + 1;
     const near = (K, W, R) => W.filter(w => w.hp > 0 && Math.hypot(w.x - K.x, (w.y - K.y) * 1.3) < R);
