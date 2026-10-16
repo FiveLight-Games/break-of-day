@@ -1,11 +1,11 @@
-// Knight Brawl bot round (solo, horde hundreds, bot uses every ability): node tests/bot-round.js knight|fire [seconds]; needs a server on :8765
+// Knight Brawl bot round (solo, horde hundreds, bot uses every ability): node tests/bot-round.js knight|fire|priest [seconds] [rate]; needs a server on :8765
 const { chromium } = require('playwright');
 (async () => {
   const kind = process.argv[2], SECS = +process.argv[3] || 300;
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 412, height: 760 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto('http://localhost:8765/knights.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(400);
-  await p.click(kind === 'fire' ? '#cFire' : '#cKnight'); await p.click('#lSolo'); await p.waitForTimeout(400);
+  await p.click(kind === 'fire' ? '#cFire' : kind === 'priest' ? '#cPriest' : '#cKnight'); await p.click('#lSolo'); await p.waitForTimeout(400);
   await p.evaluate(RATE => { window.__stop(); window.__horde(RATE); }, process.argv[4] || 'hundreds');
   await p.evaluate(() => {
     const S = window.__BS = { uses: {}, t: 0 }; const use = k => S.uses[k] = (S.uses[k] || 0) + 1;
@@ -19,7 +19,18 @@ const { chromium } = require('playwright');
       IN.mv = [0, 0]; IN.aim = null; IN.spin = false; IN.pl = null; IN.br = null;
       if (!nn) { IN.mv = [1, 0]; return; }
       const dir = (x, y) => { const dx = x - K.x, dy = y - K.y, l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; };
-      if (K.kind !== 'fire') {
+      if (K.kind === 'priest') {
+        const hn = (R, x, y) => W.filter(w => w.hp > 0 && Math.hypot(w.x - x, (w.y - y) * 1.25) < R).length;
+        if (!(K.pPh >= 0) && K.kills - (K.ultBase || 0) >= 450 && !K.ab) { IN.ultN = (IN.ultN || 0) + 1; use('penance'); }
+        IN.pn = null;
+        if (K.pPh >= 0) { const c = dense({ x: K.hx, y: K.hy }, W, 30, 160); if (c) { const dx = c.p[0] - K.hx, dy = c.p[1] - K.hy, d = Math.hypot(dx, dy) || 1; IN.pn = [dx / d, dy / d]; const sp = Math.hypot(K.hvx, K.hvy); if (d < 14 && sp > 50 && !(K.smCd > 0)) { IN.smN = (IN.smN || 0) + 1; use('smash'); } } return; }
+        if (!(K.hoT > 0) && !(K.hoCd > 0) && hn(18, K.hx, K.hy) >= 6) { IN.lvN = (IN.lvN || 0) + 1; use('holy'); }
+        const c = dense(K, W, 26, 80);
+        if (K.hOut > 0 && !K.ab && Math.hypot(K.hx - K.x, K.hy - K.y) > 50 && near(K, W, 20).length < 3) { window.__leap([0, 0]); use('reel'); }
+        else if (c && c.n >= 6 && !(K.slCd > 0) && !K.ab && !(K.hOut > 0)) { let v = [(c.p[0] - K.x) / 80, (c.p[1] - K.y) / 64]; const m = Math.hypot(...v); if (m > 1) v = v.map(q => q / m); window.__leap(v); use('slam'); }
+        else if (!(K.swCd > 0) && !K.ab && near(K, W, 42).length >= 4) { const c2 = dense(K, W, 16, 42); if (c2) { window.__dash(dir(c2.p[0], c2.p[1])); use('sweep'); } }
+        if (nd < 26) IN.aim = dir(nn.x, nn.y); if (nd > 18) IN.mv = dir(nn.x, nn.y);
+      } else if (K.kind !== 'fire') {
         if (!(K.ultPh >= 0) && K.kills - (K.ultBase || 0) >= 450) { window.__ult(); use('ult'); }
         const c = dense(K, W, 26, 80);
         // leap onto the densest group
@@ -47,8 +58,9 @@ const { chromium } = require('playwright');
         if (nd > 45) IN.mv = dir(nn.x, nn.y);
       }
     };
-    const prev = {}; let lk = 0; const watch = () => { const K = window.__KN()[0], U = S.real = S.real || {}; const dk = K.kills - lk; lk = K.kills; const ul = K.kind === 'fire' ? K.vPh >= 0 : K.ultPh >= 0; S.kb = S.kb || { ult: 0, other: 0, ultTime: 0 }; S.kb[ul ? 'ult' : 'other'] += dk; if (ul) S.kb.ultTime += 1 / 60; const tr = (key, val, start) => { if (start(val, prev[key])) U[key] = (U[key] || 0) + 1; prev[key] = val; };
-      if (K.kind !== 'fire') { tr('dash', K.ab, (v, o) => v === 'dash' && o !== 'dash'); tr('leap', K.ab, (v, o) => v === 'leap' && o !== 'leap'); tr('spin', K.spin >= 0, (v, o) => v && !o); tr('ult', K.ultPh >= 0, (v, o) => v && !o); }
+    const prev = {}; let lk = 0; const watch = () => { const K = window.__KN()[0], U = S.real = S.real || {}; const dk = K.kills - lk; lk = K.kills; const ul = K.kind === 'fire' ? K.vPh >= 0 : K.kind === 'priest' ? K.pPh >= 0 : K.ultPh >= 0; S.kb = S.kb || { ult: 0, other: 0, ultTime: 0 }; S.kb[ul ? 'ult' : 'other'] += dk; if (ul) S.kb.ultTime += 1 / 60; const tr = (key, val, start) => { if (start(val, prev[key])) U[key] = (U[key] || 0) + 1; prev[key] = val; };
+      if (K.kind === 'priest') { tr('sweep', K.ab, (v, o) => v === 'sweep' && o !== 'sweep'); tr('slam', K.ab, (v, o) => v === 'slam' && o !== 'slam'); tr('reel', K.ab, (v, o) => v === 'reel' && o !== 'reel'); tr('holy', K.hoT > 0, (v, o) => v && !o); tr('penance', K.pPh >= 0, (v, o) => v && !o); tr('smash', K.impN || 0, (v, o) => o !== undefined && v !== o && K.pPh >= 0); }
+      else if (K.kind !== 'fire') { tr('dash', K.ab, (v, o) => v === 'dash' && o !== 'dash'); tr('leap', K.ab, (v, o) => v === 'leap' && o !== 'leap'); tr('spin', K.spin >= 0, (v, o) => v && !o); tr('ult', K.ultPh >= 0, (v, o) => v && !o); }
       else { tr('coals', K.coId || 0, (v, o) => o !== undefined && v !== o); tr('plume', K.plT >= 0, (v, o) => v && !o); tr('lava', !!K.lava, (v, o) => v && !o); tr('volcano', K.vPh >= 0, (v, o) => v && !o); tr('rocks', K.vSN || 0, (v, o) => o !== undefined && v !== o); } };
     window.__botRun = n => { for (let i = 0; i < n; i++) { window.__botStep(); window.__step(1 / 60); watch(); } };
   });

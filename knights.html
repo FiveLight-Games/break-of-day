@@ -53,6 +53,7 @@ body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.ed
 .pnl .kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px}.pnl label{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0}.pnl input{width:18px;height:18px;accent-color:#f0c419}
 @media (orientation:portrait){.pnl{top:92px}.pnl .kgrid{grid-template-columns:repeat(2,1fr)}}
 button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none}
+#pst{display:none;right:10vw;border-color:#ffd34a99;background:#ffd34a1a}#pst .knob{background:#ffd34a66;border-color:#ffe28a}#pst small{color:#ffe28acc}#smash{display:none;position:fixed;left:22px;bottom:22px;width:140px;height:140px;border-radius:50%;padding:0;font:800 20px system-ui;letter-spacing:1px;background:#f0c41933;border:3px solid #ffd34a;color:#fff0b0;overflow:hidden;text-shadow:0 0 8px #ff9a00}#smash i{position:absolute;left:0;right:0;bottom:0;background:#ffd34a66;height:0}#smash span{position:relative}body.pen #pst,body.pen #smash{display:block}body.pen #lst,body.pen #rst,body.pen #dash,body.pen #aoe,body.pen #spin{display:none}body.priest #spin{background:#ffd34a26;border-color:#ffd34a;color:#ffe28a}body.priest #aoe.out{border-color:#fff3c4;box-shadow:0 0 12px #f0c419aa}@media (orientation:portrait){#smash{left:14px;bottom:18px;width:110px;height:110px;font-size:17px}#pst{right:8vw}}
 #help{position:fixed;left:50%;transform:translateX(-50%);bottom:6px;font-size:11px;color:#fff9;text-align:center;pointer-events:none}
 </style></head><body>
 <canvas id="c"></canvas>
@@ -67,6 +68,7 @@ button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
 <div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
 <div id="vtap"></div><button id="spin"><i></i><span>SPIN</span></button>
+<div class="stick" id="pst"><div class="knob"></div><small>flail</small></div><button id="smash"><i></i><span>SMASH</span></button>
 <div class="stick" id="bst"><div class="knob"></div><small>breath</small><i></i></div>
 <button id="ult"><i></i><span>ULT</span><small></small></button>
 <div id="dash" class="aim"><i></i><div class="dot"></div><small>dash</small></div>
@@ -167,7 +169,7 @@ function mkKnight(i, near) {
   return { i, on: 1, col: KCOLS[i], dashSeen: 0, leapSeen: 0, in: { mv: [0, 0], aim: null, spin: false, dashN: 0, leapN: 0, ultN: 0 }, ultSeen: 0, ultPh: -1, ult: 0, ultBase: 0, sz: 1, ultLeapt: 0, kills: 0, hits: 0, T, x: T.x + HOME.x, y: T.y + HOME.y, f: 1, st: 'kneel', u: 0, kn: 1, wk: 0, wp: 0, hold: 0, swing: -1, swN: 0, spinCd: 0, spin: -1, glow: 0, slotGlow: 0, look: 0, lookT: 3 + i, post: 0, spd: 0, gp: 0 };
 }
 function setup() {
-  KN = []; for (let i = 0; i < NP; i++) KN.push(mkKnight(i)); K = KN[ME]; K.in.ch = CHAR; if (CHAR === 'fire') makeFire(K);
+  KN = []; for (let i = 0; i < NP; i++) KN.push(mkKnight(i)); K = KN[ME]; K.in.ch = CHAR; if (CHAR === 'fire') makeFire(K); else if (CHAR === 'priest') makePriest(K, true); GOUGE = [];
   // the host keeps empty seats empty after a reset
   if (NET && NET.mode === 'host') { const held = new Set(Object.values(NET.seats)); KN.forEach((kn, i) => { if (i && !held.has(i)) kn.on = 0; }); }
   walkers = []; parts = []; blood = []; splats = []; dust = []; sparks = []; camX = K.x; camY = K.y - 6;
@@ -252,7 +254,7 @@ function startDash(v) {
   const l = Math.hypot(v[0], v[1]) || 1, d = [v[0] / l, v[1] / l]; Object.assign(K, { dvx: d[0], dvy: d[1], slice: [], ab: 'dash', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: K.x + d[0] * DASH_D, ay1: cl(K.y + d[1] * DASH_D * 0.8, 16, H - 4), dashCd: DASH_CD + DT_PREP + DT_GO + DT_REC });
   if (Math.abs(d[0]) > 0.2) K.f = d[0] > 0 ? 1 : -1;
 }
-function leapTarget(kn, v) { const R = LEAP_R * (kn.ultPh >= 0 ? ULT_LEAP : 1); return [kn.x + v[0] * R, cl(kn.y + v[1] * R * 0.8, 16, H - 4)]; }
+function leapTarget(kn, v) { if (kn.kind === 'priest') return slamTarget(kn, v); const R = LEAP_R * (kn.ultPh >= 0 ? ULT_LEAP : 1); return [kn.x + v[0] * R, cl(kn.y + v[1] * R * 0.8, 16, H - 4)]; }
 function startLeap(v) {
   const tg = leapTarget(K, v), dx = tg[0] - K.x, dy = tg[1] - K.y, d = Math.hypot(dx, dy), back = Math.min(LAND_IN * (K.sz || 1), d * 0.6), lx = tg[0] - (d ? dx / d : 0) * back, ly = tg[1] - (d ? dy / d : 0) * back * 0.6;
   if (K.ultPh >= 0) { K.ultLeapt = 1; FX.push({ k: 'charge', i: K.i, t: 0, max: ULT_CR }); }
@@ -402,7 +404,7 @@ function drawSlice(c, pts, fade) {
 }
 // dash aim preview: the path he'll cut
 function drawDashPreview(c, t) {
-  const kn = KN[ME]; if (!DASHAIM || !kn || kn.st === 'kneel') return;
+  const kn = KN[ME]; if (!DASHAIM || !kn || kn.st === 'kneel' || kn.kind === 'priest') return;
   const l = Math.hypot(...DASHAIM) || 1, d = [DASHAIM[0] / l, DASHAIM[1] / l], ex = kn.x + d[0] * DASH_D, ey = cl(kn.y + d[1] * DASH_D * 0.8, 16, H - 4), a = Math.atan2(ey - kn.y, ex - kn.x), len = Math.hypot(ex - kn.x, ey - kn.y);
   c.save(); c.translate(kn.x, kn.y); c.rotate(a);
   const g = c.createLinearGradient(0, 0, len, 0); g.addColorStop(0, 'rgba(255,220,120,.05)'); g.addColorStop(1, 'rgba(255,220,120,.35)'); c.fillStyle = g;
@@ -411,9 +413,11 @@ function drawDashPreview(c, t) {
 }
 function drawLeapPreview(c, t) {
   const kn = KN[ME]; if (!LEAPAIM || !kn || kn.st === 'kneel') return;
+  // a Warpriest with his flail out: the pull along the chain
+  if (kn.kind === 'priest' && kn.hOut > 0) { c.save(); c.strokeStyle = 'rgba(255,240,190,.85)'; c.lineWidth = 0.7; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 14; c.beginPath(); c.moveTo(kn.x, kn.y - 6); c.lineTo(kn.hx, kn.hy - 3); c.stroke(); c.restore(); return; }
   const [tx, ty] = leapTarget(kn, LEAPAIM), pul = 0.5 + 0.5 * Math.sin(t * 8);
   c.save();
-  c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 0.4; c.setLineDash([1.5, 1.5]); const LR = LEAP_R * (kn.ultPh >= 0 ? ULT_LEAP : 1), SR = kn.ultPh >= 0 ? ULT_SLAM_R : SLAM_R; c.beginPath(); c.ellipse(kn.x, kn.y, LR, LR * 0.8, 0, 0, 7); c.stroke();
+  c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 0.4; c.setLineDash([1.5, 1.5]); const WPK = kn.kind === 'priest', LR = WPK ? WP.SL.RANGE : LEAP_R * (kn.ultPh >= 0 ? ULT_LEAP : 1), SR = WPK ? WP.SL.WAVE : kn.ultPh >= 0 ? ULT_SLAM_R : SLAM_R; c.beginPath(); c.ellipse(kn.x, kn.y, LR, LR * 0.8, 0, 0, 7); c.stroke();
   const g = c.createRadialGradient(tx, ty, 0, tx, ty, SR); g.addColorStop(0, `rgba(255,220,120,${0.35 + 0.1 * pul})`); g.addColorStop(0.8, 'rgba(255,200,90,.18)'); g.addColorStop(1, 'rgba(255,200,90,0)');
   c.setLineDash([]); c.save(); c.translate(tx, ty); c.scale(1, 0.5); c.translate(-tx, -ty); c.fillStyle = g; c.beginPath(); c.arc(tx, ty, SR, 0, 7); c.fill();
   c.strokeStyle = `rgba(255,236,170,${0.7 + 0.3 * pul})`; c.lineWidth = 0.7; c.beginPath(); c.arc(tx, ty, SR, 0, 7); c.stroke(); c.restore();
@@ -805,6 +809,7 @@ function burnFlames(c, w, t) { const sc = UK[w.k].sc;
   for (let i = 0; i < 2; i++) { const fx = w.x + (i ? 1.4 : -1.2) * sc, fy = w.y - (i ? 3 : 5.5) * sc, h = (i ? 4.5 : 6) * sc * (0.85 + 0.15 * Math.sin(t * 11 + w.id + i * 2)), ww = (i ? 1.3 : 1.7) * sc, sw = Math.sin(t * 9 + w.id * 1.7 + i) * ww * 0.5;
     for (const [hk, wk, col] of [[1, 1, PB.outer], [0.55, 0.5, PB.core]]) { const hh = h * hk, w2 = ww * wk; c.fillStyle = col; c.beginPath(); c.moveTo(fx - w2, fy); c.quadraticCurveTo(fx - w2, fy - hh * 0.6, fx + sw * hk, fy - hh); c.quadraticCurveTo(fx + w2, fy - hh * 0.6, fx + w2, fy); c.closePath(); c.fill(); } } }
 function walker(c, w, t) {
+  if (w.sl > 0 || w.slF) slowMark(c, w);
   if (w.bd > 0) { walkerBody(c, w, t); burnFlames(c, w, t); return; }
   walkerBody(c, w, t);
 }
@@ -996,7 +1001,7 @@ function tone(type, f0, f1, t, a, dec, vol) { const c = AU.ctx, p = PF(), o = c.
 function noise(t, dur, vol, ftype, f0, f1, q, a) { const c = AU.ctx, p = PF(), s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); dur /= p; a = (a || 0.005) / p; s.buffer = AU.noise; s.loop = true; f.type = ftype; f.frequency.setValueAtTime(f0 * p, t); if (f1 && f1 !== f0) f.frequency.exponentialRampToValueAtTime(f1 * p, t + a + dur); f.Q.value = q || 1; aenv(g, t, a, vol, dur); s.connect(f); f.connect(g); g.connect(AU.out); s.start(t, Math.random()); s.stop(t + a + dur + 0.05); }
 // metal: a few inharmonic partials ringing out
 function ring(t, f, dur, vol) { for (const [m, v] of [[1, 1], [2.76, 0.5], [5.4, 0.25], [8.93, 0.12]]) tone('sine', f * m, f * m * 0.995, t, 0.002, dur / Math.sqrt(m), vol * v); }
-const SGAP = { roar: 0.1, fire: 0.11, gswing: 0.05, swing: 0.04, spin: 0.05, gore: 0.03, bones: 0.05, hit: 0.035, clank: 0.05, boom: 0.06, ouch: 0.08 };
+const SGAP = { chain: 0.13, censer: 0.08, roar: 0.1, fire: 0.11, gswing: 0.05, swing: 0.04, spin: 0.05, gore: 0.03, bones: 0.05, hit: 0.035, clank: 0.05, boom: 0.06, ouch: 0.08 };
 // v: 0..1 loudness from where it happened (louder near my knight, silent well off screen)
 function snd(k, wx, wy, big) {
   if (!AU.ctx || !AU.on || AU.ctx.state !== 'running') return;
@@ -1028,6 +1033,8 @@ function snd(k, wx, wy, big) {
     case 'plume': tone('sine', 80, 30, t, 0.005, 0.6, 0.7 * v); noise(t, 0.6, 0.45 * v, 'lowpass', 1400, 200, 0.7); noise(t, 0.5, 0.25 * v, 'bandpass', 300, 1200, 1, 0.05); break;
     case 'roar': noise(t, 0.2, 0.32 * v, 'bandpass', 220 * j, 520 * j, 0.8, 0.03); noise(t, 0.18, 0.18 * v, 'lowpass', 300, 160, 0.7, 0.03); for (let i = 0; i < 3; i++) noise(t + Math.random() * 0.12, 0.025, 0.08 * v, 'bandpass', 900 + Math.random() * 2400, 0, 4); break;
     case 'fire': noise(t, 0.2, 0.2 * v, 'bandpass', 380 * j, 700 * j, 0.9, 0.04); for (let i = 0; i < 3; i++) noise(t + Math.random() * 0.12, 0.025, 0.07 * v, 'bandpass', 900 + Math.random() * 2400, 0, 4); break;
+    case 'chain': for (let i = 0; i < 3; i++) tone('square', 1700 + Math.random() * 1600, 1100, t + i * 0.028 + Math.random() * 0.02, 0.001, 0.03, 0.018 * v); noise(t, 0.09, 0.06 * v, 'bandpass', 2600, 1500, 2); noise(t, 0.12, 0.08 * v, 'lowpass', 400, 200, 0.7); break;
+    case 'censer': noise(t, 0.26, 0.3 * v, 'bandpass', 320 * j, 1500 * j, 1.2, 0.07); ring(t + 0.05, 1500 * j, 0.25, 0.025 * v); break;
     case 'ouch': ring(t, 430 * j, 0.3, 0.09 * v); noise(t, 0.08, 0.28 * v, 'lowpass', 900, 300, 1); tone('sine', 120, 70, t, 0.002, 0.12, 0.25 * v); break;
   }
 }
@@ -1038,6 +1045,13 @@ function hitSnd(w) { snd(ARMOR[w.k] ? 'clank' : 'hit', w.x, w.y); }
 function sndWatch() {
   for (const kn of KN) {
     if (kn.kind === 'fire') { if (kn.st === 'pull' && !kn.sndLit) { kn.sndLit = 1; snd('pull', kn.x, kn.y); musGo(); } if (kn.plT >= 0 && !(kn.sndPl >= 0)) snd('plume', kn.x, kn.y); kn.sndPl = kn.plT; if (kn.cone > 0.3) snd(kn.plT >= 0 ? 'roar' : 'fire', kn.x, kn.y); if ((kn.tswN || 0) !== (kn.sndSw || 0)) { kn.sndSw = kn.tswN; snd('fwave', kn.x, kn.y); } if (kn.hits > (kn.snd ? kn.snd.hits : 0)) snd('ouch', kn.x, kn.y); kn.snd = { hits: kn.hits }; continue; }
+    if (kn.kind === 'priest') { const S = kn.snd && kn.snd.wp ? kn.snd : (kn.snd = { wp: 1, hits: kn.hits, cen: kn.cenN, ab: kn.abId, pp: kn.pPh });
+      if (kn.st === 'pull' && !S.lit) { S.lit = 1; snd('pull', kn.x, kn.y); musGo(); }
+      if ((kn.cenN || 0) !== (S.cen || 0)) { S.cen = kn.cenN; snd('censer', kn.x, kn.y); }
+      if (kn.ab && kn.abId !== S.ab) { S.ab = kn.abId; snd(kn.ab === 'sweep' ? 'gswing' : kn.ab === 'reel' ? 'dash' : 'spin', kn.x, kn.y); }
+      if (kn.hoT > 0 && !S.ho) { S.ho = 1; snd('glow', kn.x, kn.y); } else if (!(kn.hoT > 0)) S.ho = 0;
+      if (kn.pPh !== S.pp) { if (kn.pPh === 0) snd('ult', kn.x, kn.y); S.pp = kn.pPh; }
+      if (kn.hits > S.hits) snd('ouch', kn.x, kn.y); S.hits = kn.hits; continue; }
     const S = kn.snd || (kn.snd = { sw: 0, half: 0, glow: 0, ab: 0, abP: 0, pull: 0, hits: kn.hits }); K = kn;
     if (kn.swing >= 0) { if (!S.sw && kn.swing >= SWING * 0.28) { S.sw = 1; snd(kn.ultPh >= 0 ? 'gswing' : 'swing', kn.x, kn.y); } } else S.sw = 0;
     if (kn.preGlow && kn.spin < 0) { if (!S.glow) { S.glow = 1; snd('glow', kn.x, kn.y); } } else if (!kn.preGlow) S.glow = 0;
@@ -1409,7 +1423,7 @@ const CO = { FRONT: 220, SPD: 150, W: 28, SIDE: 24, L0: 40, L1: 75, DMG: 110, DP
 // shorter beds are wider: full length is CO.W wide, the shortest about 1.75x
 const coW = L => CO.W * Math.pow((CO.L0 + CO.L1) / Math.max(L, 1), 0.53);
 const PL = { T: 3, CD: 12, Z: 27, SPD: 90, R: 41.6, HALF: 0.35, OFF: [34, 16], DPS: 320, KB: 140, DOWN: 0.6 };
-let CHAR = 'knight'; try { CHAR = localStorage.getItem('kn_char') === 'fire' ? 'fire' : 'knight'; } catch (e) { }
+let CHAR = 'knight'; try { const c0 = localStorage.getItem('kn_char'); CHAR = c0 === 'fire' || c0 === 'priest' ? c0 : 'knight'; } catch (e) { }
 const pitOf = kn => [kn.T.x + STONE.x, kn.T.y + STONE.y + 1.5];
 function makeFire(kn) { Object.assign(kn, { fpos: kn.i * 2.5, brC: FIRE.BR_T, brH: 0, vPh: -1, vBel: -1, vSh: 0, ultSeen: kn.in.ultN || 0, vtSeen: kn.in.vtN || 0, lvSeen: kn.in.lvN || 0, lvC: 0, lvQ: 0, lava: 0, lvCd: 0, lvOn: 0, landT: 0, coSeen: kn.in.coN || 0, coT: -1, coCd: 0, plT: -1, plCd: 0, tsw: -1, tswN: 0, brOn: 0, brUse: 0, brCd: 0, waves: [], kind: 'fire', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
 const mouthOf = kn => kn.mouthW || [kn.x + kn.f * 3, kn.y - 12];
@@ -1680,6 +1694,358 @@ function drawLava(c, kn, t) { const dtv = Math.min(0.1, Math.max(0, t - (kn.lvT0
   for (let i = 0; i < 6; i++) { const u = 0.15 + ((i * 0.37 + 0.11) % 1) * 0.8, ph = (t * 1.7 + i * 0.29) % 1, px = mx + ca * len * u, py = my + sa * len * u + 3.6 + ph * ph * 10; c.fillStyle = `rgba(255,${(170 - ph * 120) | 0},40,${0.9 * (1 - ph)})`; c.beginPath(); c.ellipse(px, py, 0.45, 0.45 + 0.4 * (1 - ph), 0, 0, 7); c.fill(); }
   for (let i = 0; i < 4; i++) { const ph = (t * 0.9 + i / 4) % 1; c.fillStyle = `rgba(60,48,44,${0.28 * (1 - ph)})`; c.beginPath(); c.arc(ex + Math.sin(t * 2 + i * 1.7) * 2 * ph, ey - 3 - ph * 12, 1.2 + ph * 3.2, 0, 7); c.fill(); }
   c.restore(); }
+// ---------- Warpriest (playable): a big plate-armoured priest in a great helm, a censer in his left hand and a huge spiked flail dragged behind him on a chain ----------
+// the flail head lies where it was last dragged: walking toward it leaves it be; once he's further than the chain allows (hL, normally DRAG) it's dragged after him, gouging the ground
+const WP = { S: KS * 1.3, RUN: 0.82, ATK: 0.7, DRAG: 30, HR: 4.2, REEL: 45, MAXC: 120, SLOWK: 0.45, IMP: 0.4,
+  CEN: { T: 0.62, R: 24, ARC: 1.15, DMG: 70, KB: 230 },
+  SW: { PREP: 0.24, GO: 0.3, REC: 0.26, R: 42, HALF: Math.PI / 8, DMG: 90, HEAD: 180, SLOW: 2.5, CD: 6 },
+  SL: { WIND: 0.55, FLY: 0.22, REC: 0.3, RANGE: 80, WAVE: 32, DMG: 220, WDMG: 60, SLOW: 3, BIND: 3, BINDR: 9, HOLD: 3, RET: 0.5, CD: 9, REEL: 0.45 },
+  HO: { T: 6, CD: 15, R: 16, DPS: 70 },
+  PEN: { RISE: 1, T: 12, END: 0.8, Z: 18, ACC: 300, DRAG: 0.55, MAXV: 170, R: 110, SMR0: 12, SMR1: 52, DMG0: 150, DMG1: 650, DROP: 0.14, UP: 0.3, CD: 0.45, BURN: 9, BDPS: 40 } };
+const HOLYP = { outer: '#e8a020', mid: '#ffd34a', core: '#fff4b8', white: 0.8, blue: 0 };
+let GOUGE = [];
+// distance on the ground, with the depth squash the rest of the game uses
+const gd = (ax, ay, bx, by) => Math.hypot(bx - ax, (by - ay) * 1.25);
+function makePriest(kn, hard) {
+  const st = kn.st === 'fight' ? 'fight' : 'kneel', px = kn.T.x - 1.5, py = kn.T.y + 1.5;
+  const D = { kind: 'priest', st, u: 0, kn: st === 'fight' ? 0 : 1, hold: 1, hx: (st === 'fight' ? kn.x : px) - 12, hy: (st === 'fight' ? kn.y : py) + 1.5, hz: 0, hL: WP.DRAG, hOut: 0, hRet: -1, hrx: 0, hry: 0, cen: -1, cenN: 0, cenA: 0, ab: null, abT: 0, abId: kn.abId || 0,
+    swCd: 0, slCd: 0, hoT: 0, hoCd: 0, pPh: -1, pT: 0, hvx: 0, hvy: 0, smCd: 0, smT: -1, smK: 0, impN: 0, impX: 0, impY: 0, impR: 0, z: 0, gp: 0, f: 1,
+    dashSeen: kn.in.dashN || 0, leapSeen: kn.in.leapN || 0, ultSeen: kn.in.ultN || 0, lvSeen: kn.in.lvN || 0, smSeen: kn.in.smN || 0 };
+  if (st === 'kneel') { kn.x = px; kn.y = py; }
+  for (const k in D) if (hard || kn[k] === undefined || kn[k] === null) kn[k] = D[k];
+  if (!kn.stuck) kn.stuck = [];
+}
+function priestStep(dt, t) {
+  if (K.kind !== 'priest' || !(K.hL > 0)) makePriest(K, K.kind !== 'priest');
+  const IN = K.in, mvL = Math.hypot(IN.mv[0], IN.mv[1]), mine = AUTH() || K.i === ME;
+  const lvP = (IN.lvN || 0) !== (K.lvSeen || 0); K.lvSeen = IN.lvN || 0;
+  const dashP = (IN.dashN || 0) !== (K.dashSeen || 0); K.dashSeen = IN.dashN || 0;
+  const leapP = (IN.leapN || 0) !== (K.leapSeen || 0); K.leapSeen = IN.leapN || 0;
+  const ultP = (IN.ultN || 0) !== (K.ultSeen || 0); K.ultSeen = IN.ultN || 0;
+  const smP = (IN.smN || 0) !== (K.smSeen || 0); K.smSeen = IN.smN || 0;
+  // the start: he kneels in prayer on the flagstones, the flail lying behind him; any control and he rises
+  if (K.st === 'kneel' || K.st === 'pull') { K.vx = K.vy = 0; K.spd = 0; K.z = 0;
+    if (K.st === 'kneel') { K.kn = 1; if (mine && (mvL > 0.2 || IN.aim || dashP || leapP || lvP)) { K.st = 'pull'; K.u = 0; } }
+    else { K.u += dt; K.kn = 1 - sm(cl(K.u, 0, 1)); if (K.u >= 1) { K.st = 'fight'; K.kn = 0; } }
+    flailRope(dt); return; }
+  if (mine && ultP && !(K.pPh >= 0) && ultReady(K) && !K.ab) startPen();
+  if (K.pPh >= 0) { penStep(dt, t, IN, mine, smP); return; }
+  if (K.swCd > 0) K.swCd -= dt; if (K.slCd > 0) K.slCd -= dt; if (K.hoCd > 0 && !(K.hoT > 0)) K.hoCd -= dt;
+  // holy flame on the flail head, any time
+  if (mine && lvP && !(K.hoT > 0) && !(K.hoCd > 0)) { K.hoT = WP.HO.T; K.hoCd = WP.HO.CD; }
+  if (K.hoT > 0) { K.hoT -= dt; if (AUTH() && K.hz < 10) holyBurn(K.hx, K.hy, WP.HO.R, WP.HO.DPS, dt); }
+  if (mine && dashP && IN.dashD && !K.ab && !(K.swCd > 0)) startSweep(IN.dashD);
+  if (mine && leapP && !K.ab) { if (K.hOut > 0) startReel(); else if (IN.leapT && !(K.slCd > 0)) startSlam(IN.leapT); }
+  if (K.ab) { K.vx = K.vy = 0; const ox = K.x, oy = K.y; priestAb(dt); const md = Math.hypot(K.x - ox, K.y - oy); K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp += md * 0.5; K.st = 'fight'; flailRope(dt); return; }
+  // censer: an arc in front of him, alternating forehand and backhand while the stick is held
+  if (K.cen < 0 && IN.aim) { K.cen = 0; K.cenN = (K.cenN || 0) + 1; K.cenA = Math.atan2(IN.aim[1], IN.aim[0]); }
+  if (K.cen >= 0) { const u0 = K.cen / WP.CEN.T; K.cen += dt; const u1 = K.cen / WP.CEN.T; if (AUTH()) censerHit(u0, Math.min(1, u1)); if (u1 >= 1) K.cen = -1; }
+  const v = RUN * WP.RUN * (K.cen >= 0 ? WP.ATK : 1);
+  if (mvL > 0.12) { const k = Math.min(1, mvL); K.vx = IN.mv[0] / mvL * k * v; K.vy = IN.mv[1] / mvL * k * v; } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
+  const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy);
+  K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.5;
+  if (K.cen >= 0) K.f = Math.cos(K.cenA) >= 0 ? 1 : -1; else if (mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1;
+  flailRope(dt); K.st = 'fight';
+}
+// the censer's angle (world, round him) at swing progress u: wind back, sweep across, follow through
+const cenAng = (kn, u) => { const s = (kn.cenN || 0) % 2 ? 1 : -1; return kn.cenA - s * WP.CEN.ARC + s * 2 * WP.CEN.ARC * sm(cl((u - 0.15) / 0.5, 0, 1)); };
+function censerHit(u0, u1) {
+  if (u1 < 0.15 || u0 > 0.65) return; const a0 = cenAng(K, u0), a1 = cenAng(K, u1), s = (K.cenN || 0) % 2 ? 1 : -1, span = Math.abs(a1 - a0), id = K.i * 1e6 + K.cenN;
+  for (const w of walkers) { if (w.hp <= 0 || w.cenCut === id) continue; const U = UK[w.k], dx = w.x - K.x, dy = w.y - K.y, d = Math.hypot(dx, dy * 1.25); if (d > WP.CEN.R + U.r) continue;
+    let da = (Math.atan2(dy, dx) - a0) * s; da = Math.atan2(Math.sin(da), Math.cos(da)); if (d > 7 + U.r && (da < -0.12 - U.r / Math.max(d, 4) || da > span + 0.12 + U.r / Math.max(d, 4))) continue;
+    if (d <= 7 + U.r && Math.cos(Math.atan2(dy, dx) - K.cenA) < 0) continue;
+    w.cenCut = id; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; const a = Math.atan2(dy, dx); w.kx += Math.cos(a) * WP.CEN.KB; w.ky += Math.sin(a) * WP.CEN.KB * 0.55; hurt(w, WP.CEN.DMG, spinFx); }
+}
+function holyBurn(x, y, R, dps, dt) {
+  for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k]; if (gd(x, y, w.x, w.y) > R + U.r) continue; w.bd = FIRE.BURN; w.bsrc = K.i; w.hp -= dps * dt; if (w.hp <= 0) { K.kills++; burnFx(w); } }
+}
+// the head lies where it was left; past the chain's length it's dragged after him. An ability can pay the chain out further (hL): he hauls it back in.
+function flailRope(dt) {
+  if (K.ab === 'sweep' || K.ab === 'slam' || K.pPh >= 0) return;
+  if (K.hRet >= 0) { K.hRet += dt / WP.SL.RET; const q = sm(cl(K.hRet, 0, 1)), tx = K.x - K.f * 16, ty = K.y + 2; K.hx = lerp(K.hrx, tx, q); K.hy = lerp(K.hry, ty, q); K.hz = Math.sin(q * Math.PI) * 14; if (K.hRet >= 1) { K.hRet = -1; K.hz = 0; K.hL = WP.DRAG; } return; }
+  if (K.hz > 0) K.hz = Math.max(0, K.hz - dt * 50);
+  const d = gd(K.x, K.y, K.hx, K.hy);
+  if (K.hOut > 0) { K.hOut -= dt; if (K.hOut <= 0) { K.hRet = 0; K.hrx = K.hx; K.hry = K.hy; } K.hL = WP.MAXC; }
+  else K.hL = Math.max(WP.DRAG, Math.min(K.hL, Math.max(d, WP.DRAG)) - WP.REEL * dt);
+  if (d > K.hL) { const k = K.hL / d; K.hx = K.x + (K.hx - K.x) * k; K.hy = K.y + (K.hy - K.y) * k; }
+  K.hy = cl(K.hy, 14, H - 4);
+}
+// head position on a circle of ground radius r round (x, y) at angle a
+const ring2 = (x, y, a, r) => [x + Math.cos(a) * r, y + Math.sin(a) * r / 1.25];
+// ---- Ability 1: a 45-degree sweep of the flail; the chain slows, damages and drags whoever it catches ----
+function startSweep(v) {
+  const a = Math.atan2(v[1], v[0]), s = Math.cos(a) >= 0 ? 1 : -1;
+  Object.assign(K, { ab: 'sweep', abT: 0, abId: (K.abId || 0) + 1, cen: -1, sa0: a - s * WP.SW.HALF, sa1: a + s * WP.SW.HALF, ax0: K.hx, ay0: K.hy, az0: K.hz, swCd: WP.SW.CD + WP.SW.PREP + WP.SW.GO + WP.SW.REC, hOut: 0, hRet: -1 });
+  if (Math.abs(Math.cos(a)) > 0.2) K.f = Math.cos(a) > 0 ? 1 : -1;
+}
+// ---- Ability 2: he whirls the flail over his head and slams it down where aimed ----
+function slamTarget(kn, v) { return [kn.x + v[0] * WP.SL.RANGE, cl(kn.y + v[1] * WP.SL.RANGE * 0.8, 16, H - 4)]; }
+function startSlam(v) {
+  const tg = slamTarget(K, v); Object.assign(K, { ab: 'slam', abT: 0, abId: (K.abId || 0) + 1, cen: -1, sx: tg[0], sy: tg[1], ax0: K.hx, ay0: K.hy, az0: K.hz, slCd: WP.SL.CD + WP.SL.WIND + WP.SL.FLY, hRet: -1 });
+  if (Math.abs(tg[0] - K.x) > 2) K.f = tg[0] > K.x ? 1 : -1;
+}
+// with the head out past the chain's reach, the slam button hauls him along the chain to it
+function startReel() {
+  const dx = K.hx - K.x, dy = K.hy - K.y, d = Math.hypot(dx, dy) || 1, back = WP.HR + 6;
+  Object.assign(K, { ab: 'reel', abT: 0, abId: (K.abId || 0) + 1, cen: -1, ax0: K.x, ay0: K.y, ax1: K.hx - dx / d * back, ay1: cl(K.hy - dy / d * back * 0.8, 16, H - 4), hOut: 0 });
+  if (Math.abs(dx) > 2) K.f = dx > 0 ? 1 : -1;
+}
+const whirl = (kn, tt) => { const a = tt * 13 * (kn.f || 1); return [kn.x + Math.cos(a) * 9, kn.y + Math.sin(a) * 4.5, 19 + Math.sin(a) * 2]; };
+function priestAb(dt) {
+  const t0 = K.abT; K.abT += dt; const tt = K.abT;
+  if (K.ab === 'sweep') { const S = WP.SW, ang0 = Math.atan2((K.ay0 - K.y) * 1.25, K.ax0 - K.x), r0 = gd(K.x, K.y, K.ax0, K.ay0);
+    if (tt < S.PREP) { // swing the head round to the start of the arc
+      const q = sm(tt / S.PREP); let da = K.sa0 - ang0; da = Math.atan2(Math.sin(da), Math.cos(da)); const p = ring2(K.x, K.y, ang0 + da * q, lerp(r0, S.R, q)); K.hx = p[0]; K.hy = p[1]; K.hz = lerp(K.az0 || 0, 4, q); }
+    else if (tt < S.PREP + S.GO) { const qe = q => q < 0.5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2, qa = qe(cl((t0 - S.PREP) / S.GO, 0, 1)), qb = qe(cl((tt - S.PREP) / S.GO, 0, 1));
+      const a = lerp(K.sa0, K.sa1, qb), pa = ring2(K.x, K.y, lerp(K.sa0, K.sa1, qa), S.R), p = ring2(K.x, K.y, a, S.R); K.hx = p[0]; K.hy = p[1]; K.hz = 4;
+      if (AUTH()) sweepHit(pa, p, a, dt); }
+    else { const q = sm(cl((tt - S.PREP - S.GO) / S.REC, 0, 1)); K.hz = 4 * (1 - q); if (t0 < S.PREP + S.GO) sweepRelease(); }
+    if (tt >= S.PREP + S.GO + S.REC) { K.ab = null; K.hz = 0; K.hL = Math.max(WP.DRAG, gd(K.x, K.y, K.hx, K.hy)); } }
+  else if (K.ab === 'slam') { const S = WP.SL, hit = S.WIND + S.FLY;
+    if (tt < S.WIND) { const q = sm(cl(tt / 0.28, 0, 1)), w = whirl(K, tt); K.hx = lerp(K.ax0, w[0], q); K.hy = lerp(K.ay0, w[1], q); K.hz = lerp(K.az0 || 0, w[2], q); }
+    else if (tt < hit) { const q = (tt - S.WIND) / S.FLY, w = whirl(K, S.WIND); K.hx = lerp(w[0], K.sx, q); K.hy = lerp(w[1], K.sy, q); K.hz = lerp(w[2], 0, q) + Math.sin(q * Math.PI) * 10; }
+    else { if (t0 < hit) { K.hx = K.sx; K.hy = K.sy; K.hz = 0; slamImpact(); } }
+    if (tt >= hit + S.REC) K.ab = null; }
+  else if (K.ab === 'reel') { const q = cl(tt / WP.SL.REEL, 0, 1), e = q * q * (3 - 2 * q), px = K.x, py = K.y; K.x = lerp(K.ax0, K.ax1, e); K.y = lerp(K.ay0, K.ay1, e); K.z = Math.sin(q * Math.PI) * 5;
+    if (AUTH()) { const ang = Math.atan2(K.y - py, K.x - px); for (const w of walkers) { if (w.hp <= 0 || w.reeled === K.i * 1e6 + K.abId) continue; if (segDist(w.x, w.y, [px, py], [K.x, K.y]) < 6 + UK[w.k].r) { w.reeled = K.i * 1e6 + K.abId; w.atk = -1; const s = ((w.x - K.x) * -Math.sin(ang) + (w.y - K.y) * Math.cos(ang)) >= 0 ? 1 : -1; w.kx += -Math.sin(ang) * s * 110; w.ky += Math.cos(ang) * s * 60; hurt(w, 80, ww => dashFx(ww, ang)); } } }
+    if (q >= 1) { K.ab = null; K.z = 0; K.hL = WP.DRAG; } }
+}
+// what the chain catches it carries: hooked enemies ride along the chain (at the fraction of its length where they were caught) until the sweep ends
+function sweepHit(pa, p, a, dt) {
+  const id = K.i * 1e6 + K.abId, base = [K.x, K.y], tang = [-Math.sin(a) * Math.sign(K.sa1 - K.sa0), Math.cos(a) * Math.sign(K.sa1 - K.sa0)];
+  for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k];
+    if (w.hook === K.i && w.hId === id) { const r = w.hu * WP.SW.R, q = ring2(K.x, K.y, a, r); w.x = lerp(w.x, q[0], Math.min(1, dt * 30)); w.y = lerp(w.y, q[1], Math.min(1, dt * 30)); w.atk = -1; continue; }
+    if (w.swpd === id) continue; const pt = [w.x, w.y - 3 * U.sc];
+    const onHead = gd(p[0], p[1], w.x, w.y) < WP.HR + U.r + 1.5;
+    if (!onHead && !(inTri(pt, base, pa, p) || ptSeg(pt, base, p) < U.r + 1.2)) continue;
+    w.swpd = id; w.atk = -1; w.sl = Math.max(w.sl || 0, WP.SW.SLOW);
+    const dd = gd(K.x, K.y, w.x, w.y);
+    hurt(w, onHead ? WP.SW.HEAD : WP.SW.DMG, ww => onHead && canImpale(ww) && Math.random() < WP.IMP ? impaleFx(ww, Math.atan2(ww.y - K.hy, ww.x - K.hx)) : dashFx(ww, Math.atan2(tang[1], tang[0])));
+    if (w.hp > 0) { w.hook = K.i; w.hId = id; w.hu = onHead ? (WP.SW.R + WP.HR + U.r) / WP.SW.R : cl(dd / WP.SW.R, 0.3, 0.97); } }
+}
+function sweepRelease() {
+  const id = K.i * 1e6 + K.abId, s = Math.sign(K.sa1 - K.sa0), a = K.sa1, tang = [-Math.sin(a) * s, Math.cos(a) * s];
+  for (const w of walkers) if (w.hook === K.i && w.hId === id) { w.hook = null; w.kx += tang[0] * 110; w.ky += tang[1] * 60; }
+}
+const canImpale = w => { const U = UK[w.k]; return U.sc <= 1.05 && w.k !== 'warg' && w.k !== 'ogre'; };
+// the slam: a shockwave that slows everyone round it; anyone right under the head takes it full, and the small and medium ones that live are chained to it
+function slamImpact() {
+  const S = WP.SL; K.impN = (K.impN || 0) + 1; K.impX = K.hx; K.impY = K.hy; K.impR = S.WAVE;
+  const d0 = gd(K.x, K.y, K.hx, K.hy); if (d0 > WP.DRAG + 2) K.hOut = S.HOLD; else K.hL = Math.max(WP.DRAG, d0);
+  if (!AUTH()) return;
+  for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k], dx = w.x - K.hx, dy = w.y - K.hy, d = gd(K.hx, K.hy, w.x, w.y); if (d > S.WAVE + U.r) continue; const a = Math.atan2(dy, dx);
+    w.atk = -1; w.sl = Math.max(w.sl || 0, S.SLOW);
+    if (d < WP.HR + S.BINDR * 0.5 + U.r) { hurt(w, S.DMG, ww => canImpale(ww) && Math.random() < WP.IMP ? impaleFx(ww, a) : slamFx(ww, a));
+      if (w.hp > 0 && U.r <= 2.45 && w.k !== 'ogre') { const r = WP.HR + U.r * 0.8; w.bnd = K.i; w.bT = S.BIND; w.box = Math.cos(a) * r; w.boy = Math.sin(a) * r / 1.25; w.kx = w.ky = 0; } else { w.kx += Math.cos(a) * 160; w.ky += Math.sin(a) * 90; } }
+    else { const k = 1 - d / (S.WAVE + U.r); w.kx += Math.cos(a) * 140 * k; w.ky += Math.sin(a) * 80 * k; hurt(w, S.WDMG, ww => slamFx(ww, a)); } }
+}
+// ---- Penance (ult): he ascends in golden light and steers the burning flail head himself; Smash drives it into the ground, bigger the faster it was going ----
+function startPen() {
+  Object.assign(K, { pPh: 0, pT: 0, ultBase: K.kills, ab: null, cen: -1, hvx: 0, hvy: 0, smT: -1, smCd: 0, hrx: K.hx, hry: K.hy, hOut: 0, hRet: -1 });
+  FX.push({ k: 'pillar', x: K.x, y: K.y, t: 0, max: 1.8 });
+  for (let i = 0; i < 30; i++) sparks.push({ x: K.x + rr(-6, 6), y: K.y - rr(0, 24), vx: rr(-8, 8), vy: -rr(20, 60), t: 0, max: rr(0.6, 1.2) });
+}
+function penStep(dt, t, IN, mine, smP) {
+  const P = WP.PEN; K.pT += dt; K.vx = K.vy = 0; K.spd = 0; K.st = 'fight';
+  if (K.pPh === 0) { const q = sm(cl(K.pT / P.RISE, 0, 1)); K.z = P.Z * q; K.hx = lerp(K.hrx, K.x + K.f * 2, q); K.hy = lerp(K.hry, K.y + 3, q); K.hz = 5 * q; if (K.pT >= P.RISE) { K.pPh = 1; K.pT = 0; } return; }
+  if (K.pPh === 2) { const q = sm(cl(K.pT / P.END, 0, 1)); K.z = P.Z * (1 - q); K.hz = Math.max(0, K.hz - dt * 14); const dmp = Math.exp(-dt * 4); K.hvx *= dmp; K.hvy *= dmp; K.hx += K.hvx * dt; K.hy = cl(K.hy + K.hvy * dt, 14, H - 4);
+    if (K.pT >= P.END) { K.pPh = -1; K.z = 0; K.hz = 0; K.ultBase = K.kills; K.hL = Math.max(WP.DRAG, gd(K.x, K.y, K.hx, K.hy)); } return; }
+  K.z = P.Z + Math.sin(t * 2.2) * 1.2; if (K.smCd > 0) K.smCd -= dt;
+  const s = IN.pn, sl = s ? Math.hypot(s[0], s[1]) : 0; let ax, ay;
+  if (sl > 0.15) { const k = Math.min(1, sl) * P.ACC; ax = s[0] / sl * k; ay = s[1] / sl * k; }
+  else { ax = (K.x - K.hx) * 4 - K.hvx * 1.2; ay = (K.y + 3 - K.hy) * 4 - K.hvy * 1.2; }
+  K.hvx += ax * dt; K.hvy += ay * dt; const dmp = Math.exp(-P.DRAG * dt); K.hvx *= dmp; K.hvy *= dmp;
+  const sp = Math.hypot(K.hvx, K.hvy); if (sp > P.MAXV) { K.hvx *= P.MAXV / sp; K.hvy *= P.MAXV / sp; }
+  K.hx += K.hvx * dt; K.hy += K.hvy * dt; if (K.hy < 14 || K.hy > H - 4) { K.hy = cl(K.hy, 14, H - 4); K.hvy *= -0.4; }
+  // the chain is long but not endless: he floats along after the head
+  const d = gd(K.x, K.y, K.hx, K.hy); if (d > P.R) { const k = P.R / d; K.x = K.hx - (K.hx - K.x) * k; K.y = cl(K.hy - (K.hy - K.y) * k, 16, H - 4); }
+  K.f = K.hx >= K.x ? 1 : -1;
+  if (mine && smP && !(K.smCd > 0) && K.smT < 0) { K.smT = 0; K.smK = Math.min(1, sp / P.MAXV); }
+  if (K.smT >= 0) { const t0 = K.smT; K.smT += dt; if (K.smT < P.DROP) K.hz = 5 * (1 - sm(K.smT / P.DROP)); else { if (t0 < P.DROP) penSmash(); K.hz = 5 * sm(cl((K.smT - P.DROP) / P.UP, 0, 1)); if (K.smT >= P.DROP + P.UP) K.smT = -1; } }
+  else K.hz = 5 + Math.sin(t * 3) * 0.8;
+  if (AUTH() && K.hz < 8) holyBurn(K.hx, K.hy, P.BURN, P.BDPS, dt);
+  if (K.pT >= P.T && K.smT < 0) { K.pPh = 2; K.pT = 0; }
+}
+function penSmash() {
+  const P = WP.PEN, k = K.smK || 0, R = P.SMR0 + (P.SMR1 - P.SMR0) * Math.pow(k, 0.8), dmg = P.DMG0 + (P.DMG1 - P.DMG0) * k;
+  K.hz = 0; K.impN = (K.impN || 0) + 1; K.impX = K.hx; K.impY = K.hy; K.impR = R; K.hvx *= 0.15; K.hvy *= 0.15; K.smCd = P.CD;
+  if (!AUTH()) return;
+  for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k], d = gd(K.hx, K.hy, w.x, w.y); if (d > R + U.r) continue; const a = Math.atan2(w.y - K.hy, w.x - K.hx), q = 1 - d / (R + U.r);
+    w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; w.kx += Math.cos(a) * (120 + 200 * k) * q; w.ky += Math.sin(a) * (70 + 110 * k) * q;
+    const direct = d < WP.HR + 3 + U.r; hurt(w, dmg * (1 - 0.4 * d / R), ww => direct && canImpale(ww) && Math.random() < WP.IMP ? impaleFx(ww, a) : slamFx(ww, a)); }
+}
+// impaled: the body is stuck on the flail's spikes and rides along on it for a few seconds before sliding off
+const impaleFx = (w, a) => { EV.push([w.id, 6, Math.round(a * 100) / 100, K.i, r1(w.x), r1(w.y)]); impaleKill(w, a); };
+function impaleKill(w, a) {
+  killSnd(w); w.dead = 1; let b = Math.atan2(Math.sin(a + Math.PI / 2), Math.cos(a + Math.PI / 2)); b = cl(b, -1.25, 1.25);
+  const kn = K; (kn.stuck = kn.stuck || []).push({ uk: w.k, a: b - Math.PI / 2, t: 0, ph: Math.random() * 6, sd: b > 0.3 ? 1 : b < -0.3 ? -1 : Math.random() < 0.5 ? 1 : -1 });
+  spray(w.x, w.y, 6, Math.cos(a) >= 0 ? 1 : -1, 14, 1.1); if (kn.stuck.length > 6) stuckOff(kn, kn.stuck.shift());
+}
+function stuckOff(kn, s) { const bx = kn.hx + Math.cos(s.a) * WP.HR * 1.2, by = kn.hy, w = { k: s.uk, x: bx, y: by + 0.5 };
+  gib(w, 'torso', Math.cos(s.a) * 12, rr(-3, 3), 6, rr(-4, 4)); gib(w, 'legs', Math.cos(s.a) * 8, rr(-3, 3), 4, rr(-4, 4)); if (Math.random() < 0.6) gib(w, 'head', Math.cos(s.a) * 14, rr(-3, 3), 8, rr(-6, 6)); }
+// per frame on every screen: impact effects, ground gouges where the head drags, impaled bodies ageing
+function wpFx(dt, t) {
+  for (const kn of KN) { if (kn.kind !== 'priest' || kn.on === 0) continue;
+    if (kn.impSeen === undefined) kn.impSeen = kn.impN || 0;
+    if ((kn.impN || 0) !== kn.impSeen) { kn.impSeen = kn.impN || 0; const R = kn.impR || 20, cx = kn.impX, cy = kn.impY, B = R / (SLAM_R * 1.25);
+      FX.push({ k: 'ring', x: cx, y: cy, t: 0, max: 0.45 + R / 120, s: B }, { k: 'crater', x: cx, y: cy, t: 0, max: 6, seed: Math.random() * 1e4, s: Math.max(0.7, R / 22) });
+      for (let i = 0; i < 20 + R; i++) { const a = rr(0, 6.28), v = rr(18, 55) * (0.6 + R / 40); dust.push({ x: cx + Math.cos(a) * 3, y: cy + Math.sin(a) * 1.5, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1, 2.2) * (0.7 + R / 50), t: 0, max: rr(0.4, 0.9) }); }
+      for (let i = 0; i < 10; i++) { const a = rr(3.4, 6.0); sparks.push({ x: cx, y: cy - 2, vx: Math.cos(a) * rr(20, 60), vy: Math.sin(a) * rr(20, 60), t: 0, max: rr(0.3, 0.7) }); }
+      if (Math.abs(cx - camX) < 160) shake = Math.max(shake, 0.2 + R / 90); snd(R > 34 ? 'gslam' : 'slam', cx, cy); }
+    // gouges: the head furrows the ground wherever it's dragged
+    if (kn.hz < 0.8) { const L = kn.gL; if (!L) kn.gL = [kn.hx, kn.hy]; else { const m = Math.hypot(kn.hx - L[0], kn.hy - L[1]); if (m > 0.9) { if (m < 14) { GOUGE.push({ x0: L[0], y0: L[1], x1: kn.hx, y1: kn.hy, t }); if (kn.st === 'fight') snd('chain', kn.hx, kn.hy); } kn.gL = [kn.hx, kn.hy]; } } } else kn.gL = null;
+    for (const s of kn.stuck || []) { s.t += dt; if (Math.random() < dt * 5) blood.push({ x: kn.hx + Math.cos(s.a) * WP.HR * 1.6, y: kn.hy, z: (kn.hz || 0) + WP.HR * 1.6 + Math.sin(-s.a) * WP.HR, vx: rr(-2, 2), vy: rr(-1, 1), vz: rr(-2, 2), t: 0, drip: 1 }); }
+    if (kn.stuck && kn.stuck.length && kn.stuck[0].t > 5) stuckOff(kn, kn.stuck.shift());
+  }
+  if (GOUGE.length > 600) GOUGE.splice(0, GOUGE.length - 600); if (GOUGE.length && t - GOUGE[0].t > 8) GOUGE = GOUGE.filter(g => t - g.t < 8);
+}
+function drawGouges(c, t) {
+  if (!GOUGE.length) return; c.save(); c.lineCap = 'round';
+  // bucketed by age so a long trail costs a handful of strokes
+  for (let b = 0; b < 6; b++) { const a0 = b / 6 * 8, a1 = (b + 1) / 6 * 8, al = 1 - (b + 0.5) / 6, segs = GOUGE.filter(g => t - g.t >= a0 && t - g.t < a1); if (!segs.length) continue;
+    for (const [col, lw, oy, sh] of [['#2e2216', 0.55, 0, 1], ['#7a5f3e', 0.25, 0.4, 1]]) { c.globalAlpha = al * 0.85; c.strokeStyle = col; c.lineWidth = lw; c.beginPath();
+      for (const g of segs) { const dx = g.x1 - g.x0, dy = g.y1 - g.y0, l = Math.hypot(dx, dy) || 1, nx = -dy / l * 1.3, ny = dx / l * 0.7 * sh; for (const s of [-1, 0, 1]) { c.moveTo(g.x0 + nx * s, g.y0 + ny * s + oy); c.lineTo(g.x1 + nx * s, g.y1 + ny * s + oy); } } c.stroke(); } }
+  c.restore();
+}
+// ---------- Warpriest art ----------
+// body units like the knight's (feet at 0,0), drawn at WP.S; reuses the knight's plate (leg / torso / arm / helm with PLATE = 1)
+function priestPose(t, dt) {
+  const f = K.f || 1, kn = K.kn || 0, fly = K.pPh >= 0 ? cl((K.z || 0) / WP.PEN.Z, 0, 1) : 0, mv = cl((K.spd || 0) / 10, 0, 1) * (1 - fly), run = cl((K.spd || 0) / (RUN * WP.RUN), 0, 1) * (1 - fly), gp = K.gp || 0, br = Math.sin(t * 1.8);
+  const stride = lerp(1.7, 2.8, run), front = f > 0 ? 1 : 0;
+  const loco = [0, 1].map(i => { const ph = gp + i * Math.PI; return [(i ? 1 : -1) * 1.0 + f * Math.sin(ph) * stride * mv, -Math.max(0, Math.cos(ph)) * lerp(0.8, 1.4, run) * mv]; });
+  const stance = [0, 1].map(i => i === front ? [f * 1.7, 0] : [-f * 1.5, -0.3]);
+  let feet = [0, 1].map(i => L2(stance[i], loco[i], mv));
+  const hang = [[-0.6 - f * 0.3, -0.4], [0.7 + f * 0.5, 0.4]]; feet = feet.map((p, i) => L2(p, hang[i], fly));
+  // the body follows what he's doing: twist into the censer swing, haul on the flail, lean back under the whirl
+  let lean = run * 0.16, tw = Math.sin(gp) * 0.18 * mv, cr = 0.4 + 0.1 * br * (1 - mv);
+  if (K.cen >= 0) { const u = K.cen / WP.CEN.T, a = cenAng(K, u); tw += Math.sin(Math.min(1, u) * Math.PI) * 0.35 * Math.sin(a) * f; lean += 0.12 * Math.sin(Math.min(1, u) * Math.PI); cr += 0.25 * Math.sin(Math.min(1, u) * Math.PI); }
+  if (K.ab === 'sweep') { const k = Math.sin(cl(K.abT / (WP.SW.PREP + WP.SW.GO + WP.SW.REC), 0, 1) * Math.PI); cr += 0.5 * k; lean += 0.15 * k; }
+  if (K.ab === 'slam') { const S = WP.SL, tt = K.abT, k = tt < S.WIND ? sm(tt / S.WIND) : tt < S.WIND + S.FLY + 0.1 ? 1 - sm((tt - S.WIND) / (S.FLY + 0.1)) : 0, hit = tt > S.WIND ? Math.sin(cl((tt - S.WIND) / (S.FLY + S.REC), 0, 1) * Math.PI) : 0; lean += -0.2 * k + 0.4 * hit; cr += 0.2 * k + 0.9 * hit; }
+  if (K.ab === 'reel') { lean += 0.35; cr += 0.3; }
+  cr = lerp(cr, 0.2, fly); lean = lerp(lean, -0.08, fly);
+  const bob = mv * (Math.abs(Math.cos(gp)) * 0.5 - 0.25);
+  const pel = [f * run * 0.3, -5.9 + cr * 0.9 + bob];
+  const L = f * lean, C = add(add(pel, rot([0, -4.4], L)), [f * tw * 0.5, 0]);
+  const w = 2.4 * (1 - 0.18 * Math.abs(tw)), sd = [Math.cos(L * 0.8), Math.sin(L * 0.8)];
+  let sh = [[C[0] - sd[0] * w, C[1] - sd[1] * w + f * tw * 0.18], [C[0] + sd[0] * w, C[1] + sd[1] * w - f * tw * 0.18]];
+  let head = add(C, rot([f * 0.3, -2.45], L * 0.5));
+  // kneeling in prayer, blended over everything
+  const kHip = [-f * 0.3, -3.6 + br * 0.08], kC = [f * 0.5, -8.4 + br * 0.12], kFeet = f > 0 ? [[-3.3, -0.3], [2.5, 0]] : [[-2.5, 0], [3.3, -0.3]], kKnees = f > 0 ? [[-0.4, -0.5], [2.6, -3.7]] : [[-2.6, -3.7], [0.4, -0.5]];
+  const P = { f, tw, lean };
+  P.pel = L2(pel, kHip, kn); P.hips = [[P.pel[0] - 1.2, P.pel[1]], [P.pel[0] + 1.2, P.pel[1]]];
+  P.feet = feet.map((p, i) => L2(p, kFeet[i], kn)); P.knees = P.hips.map((h, i) => L2(ik(h, feet[i], 3.1, 3.1, f > 0 ? -1 : 1), kKnees[i], kn));
+  P.C = L2(C, kC, kn); P.sh = sh.map((s2, i) => L2(s2, [kC[0] + (i ? 2.3 : -2.3), kC[1]], kn)); P.head = L2(head, [kC[0] + f * 0.9, kC[1] - 1.9], kn);
+  // hands: flail hand reaches toward the chain (or holds it up while he flies); censer hand hangs in front or carries the swing; both eased so nothing snaps
+  const shB = P.sh[front ? 0 : 1], shF = P.sh[front], S = WP.S, z = K.z || 0;
+  const tgt = [(K.hx - K.x) / S - shB[0], (K.hy - (K.hz || 0) - WP.HR * 0.8 - K.y + z) / S - shB[1]], tl = Math.hypot(tgt[0], tgt[1]) || 1;
+  let dirB = [tgt[0] / tl, tgt[1] / tl + (fly ? 0 : 0.55)]; const dl = Math.hypot(dirB[0], dirB[1]) || 1; dirB = [dirB[0] / dl, dirB[1] / dl];
+  let hB = add(shB, [dirB[0] * 4.2, dirB[1] * 4.2]);
+  let hF = add(shF, [f * 1.3, 4.0 + br * 0.15]);
+  if (K.cen >= 0) { const u = K.cen / WP.CEN.T, a = cenAng(K, u); hF = add(shF, [Math.cos(a) * 3.9, Math.sin(a) * 1.7 + 0.6]); }
+  if (fly) hF = L2(hF, add(shF, [f * 2.8, -3.2]), fly);
+  const kHands = [add(P.C, [f * 1.5, 1.3]), add(P.C, [f * 1.1, 1.5])]; hB = L2(hB, kHands[0], kn); hF = L2(hF, kHands[1], kn);
+  const ek = 1 - Math.exp(-dt * 16); K.pHB = K.pHB ? L2(K.pHB, hB, ek) : hB; K.pHF = K.pHF ? L2(K.pHF, hF, ek) : hF;
+  P.hB = K.pHB; P.hF = K.pHF; P.shB = shB; P.shF = shF; P.fly = fly; return P;
+}
+function drawPriest(c, t) {
+  const dt = Math.min(0.1, Math.max(0, t - (K.drT ?? t))); K.drT = t;
+  const S = WP.S, z = K.z || 0, P = priestPose(t, dt), f = P.f, PL0 = PLATE; PLATE = 1;
+  // shadow (shrinks as he rises), penance light under and round him
+  const zs = Math.max(0.35, 1 - z / 50); c.fillStyle = `rgba(0,0,0,${0.32 * zs})`; c.beginPath(); c.ellipse(K.x, K.y + 0.4, 6.4 * zs, 2.1 * zs, 0, 0, 7); c.fill();
+  if (K.pPh >= 0) penLight(c, t);
+  c.save(); c.translate(K.x, K.y - z); c.scale(S * 1.1, S);
+  // cape behind him
+  const sway = -f * cl((K.spd || 0) / RUN, 0, 1) * 1.2 + Math.sin(t * 1.7) * 0.15;
+  c.fillStyle = shade(COL, -0.45); c.beginPath(); c.moveTo(P.sh[0][0] + 0.2, P.sh[0][1] + 0.2); c.lineTo(P.sh[1][0] - 0.2, P.sh[1][1] + 0.2); c.quadraticCurveTo(P.pel[0] + 2.4 + sway, P.pel[1] + 1, P.pel[0] + 2.2 + sway * 1.6, P.pel[1] + 4.2 - (K.kn || 0) * 1.5); c.lineTo(P.pel[0] - 2.2 + sway * 1.6, P.pel[1] + 4.2 - (K.kn || 0) * 1.5); c.quadraticCurveTo(P.pel[0] - 2.4 + sway, P.pel[1] + 1, P.sh[0][0] + 0.2, P.sh[0][1] + 0.2); c.fill();
+  // flail arm and its haft, behind the body
+  arm(c, P.shB, P.hB, f, true, true); const hd = [P.hB[0] - P.shB[0], P.hB[1] - P.shB[1]], hl = Math.hypot(...hd) || 1, hu = [hd[0] / hl, hd[1] / hl], he = add(P.hB, [hu[0] * 2.6, hu[1] * 2.6]);
+  c.lineCap = 'round'; c.strokeStyle = '#3a2614'; c.lineWidth = 0.95; c.beginPath(); c.moveTo(P.hB[0] - hu[0] * 0.8, P.hB[1] - hu[1] * 0.8); c.lineTo(...he); c.stroke(); c.strokeStyle = '#6b4a2a'; c.lineWidth = 0.55; c.beginPath(); c.moveTo(P.hB[0] - hu[0] * 0.7, P.hB[1] - hu[1] * 0.7); c.lineTo(...he); c.stroke();
+  c.fillStyle = STEELD; c.beginPath(); c.arc(he[0], he[1], 0.55, 0, 7); c.fill(); glove(c, P.hB, true);
+  K.handW = [K.x + he[0] * S * 1.1, K.y - z + he[1] * S];
+  const far = f > 0 ? 0 : 1, near = 1 - far;
+  leg(c, P.hips[far], P.knees[far], P.feet[far], f, true, (K.kn || 0) > 0.5);
+  if ((K.kn || 0) <= 0.5) leg(c, P.hips[near], P.knees[near], P.feet[near], f, false, false);
+  // long robe skirt under the plate, in his colour, swinging with the stride
+  { const hp = P.pel, s2 = sway * 0.6, kk = (K.kn || 0) * 1.6; c.fillStyle = shade(COL, -0.15); c.beginPath(); c.moveTo(hp[0] - 2.1, hp[1] - 0.3); c.lineTo(hp[0] + 2.1, hp[1] - 0.3); c.lineTo(hp[0] + 2.5 + s2, hp[1] + 3.6 - kk); c.lineTo(hp[0] - 2.5 + s2, hp[1] + 3.6 - kk); c.closePath(); c.fill();
+    c.fillStyle = GOLD; c.fillRect(hp[0] - 2.5 + s2, hp[1] + 3.2 - kk, 5, 0.4); }
+  torso(c, P, f, false);
+  if ((K.kn || 0) > 0.5) leg(c, P.hips[near], P.knees[near], P.feet[near], f, false, false);
+  // prayer beads across the chest, a heavy belt
+  c.strokeStyle = '#5a3a1c'; c.lineWidth = 0.18; c.beginPath(); c.moveTo(P.sh[0][0] + 0.6, P.sh[0][1] + 0.5); c.quadraticCurveTo(P.C[0], P.C[1] + 2.6, P.sh[1][0] - 0.6, P.sh[1][1] + 0.5); c.stroke();
+  c.fillStyle = '#d8c79a'; for (let i = 1; i < 8; i++) { const q = i / 8, bx = (1 - q) * (1 - q) * (P.sh[0][0] + 0.6) + 2 * q * (1 - q) * P.C[0] + q * q * (P.sh[1][0] - 0.6), by = (1 - q) * (1 - q) * (P.sh[0][1] + 0.5) + 2 * q * (1 - q) * (P.C[1] + 2.6) + q * q * (P.sh[1][1] + 0.5); c.beginPath(); c.arc(bx, by, 0.16, 0, 7); c.fill(); }
+  // great helm (bigger than the knight's)
+  c.save(); c.translate(P.head[0], P.head[1]); c.rotate(f * (P.lean || 0) * 0.3 + f * (K.kn || 0) * 0.25); c.scale(1.15, 1.15); helm(c, f, false);
+  c.fillStyle = GOLD; c.beginPath(); c.moveTo(-1.5, -1.0); c.lineTo(1.5, -1.0); c.lineTo(1.45, -0.75); c.lineTo(-1.45, -0.75); c.fill(); c.restore();
+  if (K.pPh >= 0) { c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = `rgba(255,236,160,${0.75 * P.fly})`; c.lineWidth = 0.35; c.beginPath(); c.ellipse(P.head[0] - f * 0.3, P.head[1] - 2.6, 2.1, 0.7, 0, 0, 7); c.stroke(); c.restore(); }
+  // censer arm in front, the censer swinging on its short chain
+  arm(c, P.shF, P.hF, f, false);
+  { const u = K.cen >= 0 ? K.cen / WP.CEN.T : -1, a = u >= 0 ? cenAng(K, u) : null; let cp = a !== null ? add(P.hF, [Math.cos(a) * 3.1, Math.sin(a) * 1.4 + 0.5]) : add(P.hF, [Math.sin(t * 2.3) * 0.5, 2.8]);
+    K.pCen = K.pCen ? L2(K.pCen, cp, 1 - Math.exp(-dt * (a !== null ? 30 : 10))) : cp; cp = K.pCen;
+    c.strokeStyle = GOLDD; c.lineWidth = 0.18; c.beginPath(); c.moveTo(P.hF[0], P.hF[1]); c.lineTo(cp[0], cp[1] - 0.9); c.stroke();
+    c.save(); c.translate(cp[0], cp[1]); c.scale(1.35, 1.35); c.translate(-cp[0], -cp[1]); c.fillStyle = '#8a6420'; c.beginPath(); c.arc(cp[0], cp[1], 1.0, 0, 7); c.fill(); c.fillStyle = GOLD; c.beginPath(); c.arc(cp[0] - 0.25, cp[1] - 0.3, 0.75, 0, 7); c.fill(); c.fillStyle = '#5a3c10'; c.fillRect(cp[0] - 0.7, cp[1] - 0.15, 1.4, 0.22);
+    c.fillStyle = `rgba(255,${(150 + Math.random() * 80) | 0},60,.95)`; for (const o of [-0.45, 0, 0.45]) { c.beginPath(); c.arc(cp[0] + o, cp[1] + 0.15, 0.14, 0, 7); c.fill(); }
+    c.fillStyle = GOLDD; c.beginPath(); c.moveTo(cp[0] - 0.5, cp[1] - 0.8); c.lineTo(cp[0], cp[1] - 1.5); c.lineTo(cp[0] + 0.5, cp[1] - 0.8); c.fill(); c.restore();
+    K.cenW = [K.x + cp[0] * S * 1.1, K.y - z + cp[1] * S];
+    if (Math.random() < dt * (u >= 0 ? 30 : 7)) dust.push({ x: K.cenW[0], y: K.cenW[1] - 1, vx: rr(-2, 2) - (u >= 0 ? Math.cos(a) * 8 : 0), vy: -rr(4, 9), r: rr(0.6, 1.1), t: 0, max: rr(0.8, 1.6) });
+    if (u >= 0 && u < 0.7 && Math.random() < dt * 40) sparks.push({ x: K.cenW[0], y: K.cenW[1], vx: rr(-6, 6), vy: -rr(4, 14), t: 0, max: rr(0.2, 0.45) }); }
+  PLATE = PL0; c.restore();
+  // the censer's arc: a smoky, glowing ribbon behind it while it swings
+  const ct = K.cTr || (K.cTr = []); if (K.cen >= 0 && K.cenW) ct.push([K.cenW[0], K.cenW[1], t]); while (ct.length && (t - ct[0][2] > 0.18 || ct.length > 24)) ct.shift();
+  if (ct.length > 2) { c.save(); c.lineCap = 'round'; for (let i = 1; i < ct.length; i++) { const q = i / ct.length; c.strokeStyle = `rgba(255,${(150 + 80 * q) | 0},70,${0.55 * q})`; c.lineWidth = 2.6 * q; c.beginPath(); c.moveTo(ct[i - 1][0], ct[i - 1][1]); c.lineTo(ct[i][0], ct[i][1]); c.stroke(); } c.restore(); }
+}
+// penance: a shaft of golden light from above, a glow round him, motes rising
+function penLight(c, t) { const k = K.pPh === 0 ? sm(cl(K.pT / WP.PEN.RISE, 0, 1)) : K.pPh === 2 ? 1 - sm(cl(K.pT / WP.PEN.END, 0, 1)) : 1, z = K.z || 0, cy = K.y - z - 12;
+  c.save();
+  const wd = 9 + Math.sin(t * 3) * 0.8, g = c.createLinearGradient(K.x - wd, 0, K.x + wd, 0); g.addColorStop(0, 'rgba(255,220,120,0)'); g.addColorStop(0.5, `rgba(255,232,160,${0.38 * k})`); g.addColorStop(1, 'rgba(255,220,120,0)'); c.fillStyle = g; c.fillRect(K.x - wd, cy - 300, wd * 2, 300 + z + 12);
+  const g2 = c.createRadialGradient(K.x, cy, 0, K.x, cy, 22); g2.addColorStop(0, `rgba(255,236,170,${0.5 * k})`); g2.addColorStop(1, 'rgba(255,210,110,0)'); c.fillStyle = g2; c.beginPath(); c.arc(K.x, cy, 22, 0, 7); c.fill();
+  const g3 = c.createRadialGradient(K.x, K.y, 0, K.x, K.y, 16); g3.addColorStop(0, `rgba(255,226,140,${0.45 * k})`); g3.addColorStop(1, 'rgba(255,210,110,0)'); c.save(); c.translate(K.x, K.y); c.scale(1, 0.4); c.translate(-K.x, -K.y); c.fillStyle = g3; c.beginPath(); c.arc(K.x, K.y, 16, 0, 7); c.fill(); c.restore();
+  c.restore();
+  if (Math.random() < 0.5) sparks.push({ x: K.x + rr(-8, 8), y: cy + rr(-6, 14), vx: rr(-3, 3), vy: -rr(8, 22), t: 0, max: rr(0.5, 1.1) }); }
+// the flail: chain from his haft to the head, the spiked iron ball, holy flame, anyone impaled on it, chains to anyone bound to it
+function drawFlail(c, kn, t) {
+  const S = WP.S, R = WP.HR, z = kn.hz || 0, bx = kn.hx, by = kn.hy - z - R * 0.9, k0 = K; K = kn;
+  const sk = Math.max(0.4, 1 - z / 40); c.fillStyle = `rgba(0,0,0,${0.3 * sk})`; c.beginPath(); c.ellipse(bx, kn.hy + 0.4, R * 1.15 * sk, R * 0.45 * sk, 0, 0, 7); c.fill();
+  // motion streak while it's flying fast
+  const tr = kn.hTr || (kn.hTr = []); tr.push([bx, by, t]); while (tr.length && t - tr[0][2] > 0.16) tr.shift();
+  if (tr.length > 2) { const sp = Math.hypot(tr[tr.length - 1][0] - tr[0][0], tr[tr.length - 1][1] - tr[0][1]) / Math.max(0.02, t - tr[0][2]); if (sp > 60) { c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; const hot = kn.hoT > 0 || kn.pPh >= 0;
+    for (let i = 1; i < tr.length; i++) { const q = i / tr.length; c.strokeStyle = hot ? `rgba(255,${(190 + 50 * q) | 0},90,${0.35 * q})` : `rgba(230,230,240,${0.16 * q})`; c.lineWidth = R * 1.6 * q; c.beginPath(); c.moveTo(tr[i - 1][0], tr[i - 1][1]); c.lineTo(tr[i][0], tr[i][1]); c.stroke(); } c.restore(); } }
+  // chain: from the haft, sagging toward the ground when slack, taut when the head's in the air
+  const hw = kn.handW || [kn.x - (kn.f || 1) * 4, kn.y - (kn.z || 0) - 8], ax = bx - (bx - hw[0]) * R * 0.75 / (Math.hypot(bx - hw[0], by - hw[1]) || 1), ay = by - R * 0.55;
+  const lift = cl(z / 6, 0, 1), gx = lerp(hw[0], ax, 0.3), gy = Math.max(hw[1], ay) + 2, mx = (hw[0] + ax) / 2, my = (hw[1] + ay) / 2 + 2, cx = lerp(gx, mx, lift), cy = lerp(lerp(gy, kn.y + 1, 0.7), my, lift);
+  c.lineCap = 'round'; c.strokeStyle = '#2c2f34'; c.lineWidth = 0.95; c.beginPath(); c.moveTo(hw[0], hw[1]); c.quadraticCurveTo(cx, cy, ax, ay); c.stroke();
+  c.strokeStyle = '#9aa2ad'; c.lineWidth = 0.5; c.setLineDash([0.7, 0.6]); c.lineDashOffset = 0; c.beginPath(); c.moveTo(hw[0], hw[1]); c.quadraticCurveTo(cx, cy, ax, ay); c.stroke(); c.setLineDash([]);
+  // chains to bound enemies
+  c.strokeStyle = 'rgba(70,74,82,.9)'; c.lineWidth = 0.4; c.beginPath(); for (const w of walkers) { if (w.hp <= 0) continue; const bnd = AUTH() ? w.bT > 0 && w.bnd === kn.i : w.bndF && gd(kn.hx, kn.hy, w.x, w.y) < R + 7; if (!bnd) continue; c.moveTo(bx, by + R * 0.3); c.lineTo(w.x, w.y - 4 * UK[w.k].sc); } c.stroke();
+  // impaled bodies behind the ball
+  const stuck = kn.stuck || [], drawStuck = s => { const U = UK[s.uk] || UK.foot, sp = 1 + Math.min(1, s.t * 4) * 0.08; c.save(); c.translate(bx + Math.cos(s.a) * R * 1.35, by + Math.sin(s.a) * R * 1.35); c.rotate(s.a + Math.PI / 2 + (s.sd || 1) * 1.2 + Math.sin(t * 2 + s.ph) * 0.06); c.translate(0, 4.6 * U.sc); c.scale(sp, sp);
+    walkerLive(c, { k: s.uk, x: 0, y: 0, hp: 1, max: 1, ph: s.ph, atk: -1, hit: 0, tk: kn.i, id: 0 }, 0, Math.cos(s.a) >= 0 ? -1 : 1, -1, false); c.fillStyle = '#7a1a12'; c.beginPath(); c.ellipse(0, -4.6 * U.sc, 1.2, 0.8, 0, 0, 7); c.fill(); c.restore(); };
+  stuck.filter(s => Math.sin(s.a) < -0.25 && Math.abs(Math.cos(s.a)) < 0.5).forEach(drawStuck);
+  // the head: dark iron ball, a band of rivets, spikes all round (side spikes on the silhouette, short ones facing us)
+  c.save(); c.translate(bx, by);
+  const SP = 11; c.fillStyle = '#4a4f57'; c.strokeStyle = '#1d2024'; c.lineWidth = 0.25;
+  for (let i = 0; i < SP; i++) { const a = i / SP * 6.283 + 0.2, ca = Math.cos(a), sa = Math.sin(a), n = [-sa, ca]; c.beginPath(); c.moveTo(ca * R * 0.8 + n[0] * 0.9, sa * R * 0.8 + n[1] * 0.9); c.lineTo(ca * R * 1.55, sa * R * 1.55); c.lineTo(ca * R * 0.8 - n[0] * 0.9, sa * R * 0.8 - n[1] * 0.9); c.closePath(); c.fill(); c.stroke(); }
+  const g = c.createRadialGradient(-R * 0.35, -R * 0.4, R * 0.1, 0, 0, R); g.addColorStop(0, '#8e959f'); g.addColorStop(0.45, '#4f555e'); g.addColorStop(1, '#22262b'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, R, 0, 7); c.fill(); c.strokeStyle = '#17191c'; c.lineWidth = 0.3; c.stroke();
+  c.strokeStyle = '#2b2f35'; c.lineWidth = 0.7; c.beginPath(); c.ellipse(0, 0, R * 0.98, R * 0.32, 0.25, 0, 7); c.stroke(); c.fillStyle = '#a7aeb8'; for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI + 0.1; c.beginPath(); c.arc(Math.cos(a) * R * 0.95 * Math.cos(0.25) - Math.sin(a) * R * 0.3 * Math.sin(0.25), Math.cos(a) * R * 0.95 * Math.sin(0.25) + Math.sin(a) * R * 0.3 * Math.cos(0.25), 0.18, 0, 7); c.fill(); }
+  for (const [px, py, l, a] of [[-1.6, -1.8, 1.6, -2.3], [1.3, -1.2, 1.7, -0.6], [-0.4, 0.6, 1.4, 1.9], [1.9, 1.5, 1.5, 0.7], [-2.3, 1.2, 1.5, 2.6]]) { const ca = Math.cos(a), sa = Math.sin(a); c.fillStyle = '#5b616b'; c.beginPath(); c.moveTo(px - sa * 0.55, py + ca * 0.55); c.lineTo(px + ca * l, py + sa * l); c.lineTo(px + sa * 0.55, py - ca * 0.55); c.closePath(); c.fill(); c.fillStyle = '#b9c0c9'; c.beginPath(); c.moveTo(px, py); c.lineTo(px + ca * l, py + sa * l); c.lineTo(px + sa * 0.4, py - ca * 0.4); c.closePath(); c.fill(); }
+  c.fillStyle = 'rgba(122,26,18,.55)'; if (stuck.length) { c.beginPath(); c.ellipse(-0.4, -R * 0.55, R * 0.5, R * 0.22, 0, 0, 7); c.fill(); }
+  // ring where the chain fixes on
+  c.strokeStyle = '#7f8893'; c.lineWidth = 0.4; c.beginPath(); c.arc((ax - bx) * 0.9, (ay - by) * 0.9 + 0.3, 0.6, 0, 7); c.stroke();
+  c.restore();
+  stuck.filter(s => !(Math.sin(s.a) < -0.25 && Math.abs(Math.cos(s.a)) < 0.5)).forEach(drawStuck);
+  // holy flame
+  const hot = kn.hoT > 0 ? Math.min(1, kn.hoT * 2, (WP.HO.T - kn.hoT) * 4 + 0.2) : kn.pPh >= 0 ? 1 : 0;
+  if (hot > 0) { c.save(); const gl = c.createRadialGradient(bx, by, 0, bx, by, R * 4); gl.addColorStop(0, `rgba(255,226,140,${0.5 * hot})`); gl.addColorStop(0.5, `rgba(255,200,90,${0.18 * hot})`); gl.addColorStop(1, 'rgba(255,190,80,0)'); c.fillStyle = gl; c.beginPath(); c.arc(bx, by, R * 4, 0, 7); c.fill(); c.restore();
+    c.save(); c.globalAlpha = hot; for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + (i - 2) * 0.55; FBX.flame(c, bx + Math.cos(a) * R * 0.75, by + Math.sin(a) * R * 0.6 + 0.6, (4.5 + 2.2 * Math.sin(i * 1.7 + 1)) * (kn.pPh >= 0 ? 1.3 : 1), 1.3, t, HOLYP, i + kn.i * 7, 1, true); } c.restore();
+    if (Math.random() < 0.6) sparks.push({ x: bx + rr(-R, R), y: by - rr(0, R), vx: rr(-5, 5), vy: -rr(10, 30), t: 0, max: rr(0.3, 0.7) });
+    if (kn.hoT > 0 && kn.hz < 10) { c.save(); c.globalAlpha = 0.18 * hot; c.strokeStyle = '#ffd34a'; c.lineWidth = 0.6; c.setLineDash([1.5, 1.2]); c.lineDashOffset = -t * 6; c.beginPath(); c.ellipse(kn.hx, kn.hy, WP.HO.R, WP.HO.R / 1.25, 0, 0, 7); c.stroke(); c.restore(); } }
+  K = k0;
+}
+// aim previews: the sweep's 45-degree wedge; the slam's landing ring (or the pull, when the head is out)
+function drawSweepPreview(c, t) { const kn = KN[ME]; if (!DASHAIM || !kn || kn.kind !== 'priest' || kn.st === 'kneel') return; const a = Math.atan2(DASHAIM[1], DASHAIM[0]), R = WP.SW.R;
+  c.save(); c.beginPath(); c.moveTo(kn.x, kn.y); for (let i = 0; i <= 16; i++) { const p = ring2(kn.x, kn.y, a - WP.SW.HALF + 2 * WP.SW.HALF * i / 16, R); c.lineTo(p[0], p[1]); } c.closePath();
+  c.fillStyle = 'rgba(255,220,120,.16)'; c.fill(); c.strokeStyle = 'rgba(255,240,190,.8)'; c.lineWidth = 0.5; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 10; c.stroke(); c.restore(); }
+// guest-side flags for chained / slowed enemies; host keeps the real timers
+function slowMark(c, w) { if (!(w.sl > 0 || w.slF) || w.hp <= 0) return; const U = UK[w.k]; c.strokeStyle = 'rgba(235,215,150,.6)'; c.lineWidth = 0.35; c.beginPath(); c.ellipse(w.x, w.y + 0.3, 2.6 * U.sc, 0.9 * U.sc, 0, 0, 7); c.stroke(); }
 // ---------- sim ----------
 let spawnT = 0;
 // kills are logged so the guest can play the same dismemberment
@@ -1689,9 +2055,9 @@ const cleaveFx = (w, dir) => { EV.push([w.id, 0, dir, K.i, Math.round(w.x * 10) 
 const spinFx = w => { EV.push([w.id, 1, 0, K.i, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10]); spinKill(w); };
 function step(dt, t) {
   worldStep(dt, t);
-  for (const kn of KN) { if (kn.on === 0) continue; K = kn; if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else knightStep(dt, t); }
+  for (const kn of KN) { if (kn.on === 0) continue; K = kn; if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else if (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) priestStep(dt, t); else knightStep(dt, t); }
   K = KN[ME];
-  volcFx(dt, t);
+  volcFx(dt, t); wpFx(dt, t);
   if (K.hits > lastHits) { hurtT = 0.12; } lastHits = K.hits; hurtT = Math.max(0, hurtT - dt);
   netTick(dt, t);
 }
@@ -1801,14 +2167,16 @@ function worldStep(dt, t) {
     const minX = Math.min(...LIVE().map(k2 => k2.x)); walkers = walkers.filter(w => w.x > minX - 420);
   // enemies run at the knight, crowd round him and club him
   for (const w of walkers) {
-    w.hit = Math.max(0, w.hit - dt); w.cd -= dt;
+    w.hit = Math.max(0, w.hit - dt); w.cd -= dt; if (w.sl > 0) w.sl -= dt;
     if (w.bd > 0) { w.bd -= dt; w.hp -= FIRE.BURN_DPS * dt; if (w.hp <= 0 && !w.dead) { const k0 = K; K = KN[w.bsrc] || KN[0]; K.kills++; burnFx(w); K = k0; continue; } }
+    // chained to a Warpriest's flail head: carried with it, can't fight
+    if (w.bT > 0) { w.bT -= dt; const P = KN[w.bnd]; if (P && P.on !== 0) { w.x = P.hx + w.box; w.y = P.hy + w.boy; } w.atk = -1; w.kx = w.ky = 0; if (w.bT <= 0) w.bnd = null; continue; }
     // run at the nearest knight
     if (w.atk < 0) { let bd = 1e9; KN.forEach((kn, i) => { if (kn.on === 0) return; const dd = Math.hypot(kn.x - w.x, kn.y - w.y); if (dd < bd) { bd = dd; w.tk = i; } }); }
     const T2 = (KN[w.tk] && KN[w.tk].on !== 0 ? KN[w.tk] : LIVE()[0]) || KN[0], dx = T2.x - w.x, dy = (T2.y - w.y), d = Math.hypot(dx, dy * 1.3) || 1;
-    const U = UK[w.k], reach = 4.4 + U.r + ((T2.sz || 1) - 1) * 3.5;
+    const U = UK[w.k], reach = 4.4 + U.r + ((T2.sz || 1) - 1) * 3.5 + (T2.kind === 'priest' ? 1.6 : 0);
     if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5 && !((T2.z || 0) > 4)) { T2.hits += (w.k === 'sapper' ? 3 : 1) * (T2.kind !== 'fire' && T2.ultPh >= 0 ? 1 - GIANT_DR : 1); if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
-    else if (d > reach) { w.x += dx / d * w.sp * dt; w.y += dy / d * w.sp * dt; }
+    else if (d > reach) { const sp = w.sp * (w.sl > 0 ? WP.SLOWK : 1); w.x += dx / d * sp * dt; w.y += dy / d * sp * dt; }
     else if (w.cd <= 0 && T2.st !== 'kneel') w.atk = 0;
     w.x += w.kx * UK[w.k].kb * dt; w.y += w.ky * UK[w.k].kb * dt; w.kx *= 1 - dt * 6; w.ky *= 1 - dt * 6;
   }
@@ -1816,7 +2184,9 @@ function worldStep(dt, t) {
   { const G2 = new Map(), CS = 10; for (const w of walkers) { const k = Math.floor(w.x / CS) * 4096 + Math.floor(w.y / CS); let a = G2.get(k); if (!a) G2.set(k, a = []); a.push(w); }
     for (const A of walkers) { const cx = Math.floor(A.x / CS), cy = Math.floor(A.y / CS); for (let ox = -1; ox <= 1; ox++) for (let oy = -1; oy <= 1; oy++) { const L = G2.get((cx + ox) * 4096 + cy + oy); if (!L) continue;
       for (const B of L) { if (B === A || B.id < A.id) continue; const dx = B.x - A.x, dy = (B.y - A.y) * 1.3, d = Math.hypot(dx, dy), R2 = UK[A.k].r + UK[B.k].r; if (d < R2 && d > 0.01) { const p = (R2 - d) * 0.5 * Math.min(1, dt * 12), nx = dx / d, ny = dy / d; A.x -= nx * p; A.y -= ny * p / 1.3; B.x += nx * p; B.y += ny * p / 1.3; } } } } }
-  for (const w of walkers) w.y = cl(w.y, 12, H - 4);
+  // a Warpriest's flail head is solid: nobody walks through it; anyone chained to it stays pinned to it
+  for (const kn of LIVE()) if (kn.kind === 'priest' && (kn.hz || 0) < 3) for (const w of walkers) { if (w.bT > 0) continue; const dx = w.x - kn.hx, dy = (w.y - kn.hy) * 1.3, d = Math.hypot(dx, dy), R = WP.HR + UK[w.k].r * 0.9; if (d < R && d > 0.01) { w.x += dx / d * (R - d); w.y += dy / d * (R - d) / 1.3; } }
+  for (const w of walkers) { if (w.bT > 0) { const P = KN[w.bnd]; if (P) { w.x = P.hx + w.box; w.y = P.hy + w.boy; } } w.y = cl(w.y, 12, H - 4); }
   } else { // guest: walkers glide to the host's positions; their club swings tick locally
     for (const w of walkers) { w.hit = Math.max(0, w.hit - dt); if (w.atk >= 0) w.atk = Math.min(UK[w.k].atkT, w.atk + dt); const k = Math.min(1, dt * 14); w.x += (w.tx - w.x) * k; w.y += (w.ty - w.y) * k; }
   }
@@ -1854,21 +2224,23 @@ let last = performance.now(), t = 0;
 function draw() {
   // while any Firebreather is on his volcano everyone pulls back far enough to see a full-range shot across the screen
   const volcOn = LIVE().some(kn => kn.kind === 'fire' && kn.vPh >= 0), hw1 = cv.width / 2 / (viewScale() / ultZoom);
-  const uzT = volcOn ? Math.min(0.775, hw1 / (V.MAXD + 20)) : 1 / (1 + (((KN[ME] && KN[ME].sz) || 1) - 1) * 0.33); ultZoom = lerp(ultZoom, uzT, volcOn ? 0.035 : 0.06); ZBUSY = Math.abs(ultZoom - uzT) > uzT * 0.01; // pull the camera back while he's a giant
-  const sc = viewScale(); camX = lerp(camX, K.x, 0.12); camY = lerp(camY, K.y - 6 * (K.sz || 1) - (K.z || 0) * 0.5, 0.12); const shx = shake ? rr(-1, 1) * shake * 5 : 0, shy = shake ? rr(-1, 1) * shake * 5 : 0;
+  const penOn = KN[ME] && KN[ME].kind === 'priest' && KN[ME].pPh >= 0, uzT = volcOn ? Math.min(0.775, hw1 / (V.MAXD + 20)) : penOn ? 0.7 : 1 / (1 + (((KN[ME] && KN[ME].sz) || 1) - 1) * 0.33); ultZoom = lerp(ultZoom, uzT, volcOn || penOn ? 0.035 : 0.06); ZBUSY = Math.abs(ultZoom - uzT) > uzT * 0.01; // pull the camera back while he's a giant
+  const sc = viewScale(), pc = K.kind === 'priest' && K.pPh >= 0 ? 0.5 : 0; camX = lerp(camX, lerp(K.x, K.hx, pc), 0.12); camY = lerp(camY, lerp(K.y - 6 * (K.sz || 1) - (K.z || 0) * 0.5, K.hy - 6, pc), 0.12); const shx = shake ? rr(-1, 1) * shake * 5 : 0, shy = shake ? rr(-1, 1) * shake * 5 : 0;
   x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#000'; x.fillRect(0, 0, cv.width, cv.height);
   x.setTransform(sc, 0, 0, sc, cv.width / 2 - (camX + shx) * sc, cv.height / 2 - (camY + shy) * sc); CAM.s = sc; CAM.e = cv.width / 2 - (camX + shx) * sc; CAM.f = cv.height / 2 - (camY + shy) * sc; sprFrame(sc); { const hw = cv.width / 2 / sc + 10, x0 = Math.floor((camX - hw) / W), x1 = Math.floor((camX + hw) / W); const hh = cv.height / 2 / sc + 10, y0 = Math.floor((camY - hh) / H), y1 = Math.floor((camY + hh) / H); for (let gi = x0; gi <= x1; gi++) for (let gj = y0; gj <= y1; gj++) x.drawImage(gj === 0 ? ground : grassT, gi * W, gj * H, W + 0.5, H + 0.5); }
   const VL = camX - cv.width / 2 / sc - 30, VR = camX + cv.width / 2 / sc + 30, inV = q => q.x > VL && q.x < VR;
   for (const sp of splats) { if (sp.x < VL || sp.x > VR) continue; x.globalAlpha = Math.max(0, 1 - sp.t / 5) * 0.85; x.fillStyle = sp.ash ? '#26201c' : '#6a1610'; x.beginPath(); x.ellipse(sp.x, sp.y, sp.r, sp.r * 0.5, 0, 0, 7); x.fill(); } x.globalAlpha = 1;
   for (const kn of LIVE()) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
-  drawFxGround(x); drawVolcFloor(x, t); drawLeapPreview(x, t); drawDashPreview(x, t); drawCoalPreview(x);
+  drawFxGround(x); drawGouges(x, t); drawVolcFloor(x, t); drawLeapPreview(x, t); drawDashPreview(x, t); drawSweepPreview(x, t); drawCoalPreview(x);
   for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = Math.max(0, 1 - (p.t - p.rest) / PFADE); drawPartFast(x, p); } x.globalAlpha = 1;
-  const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).sort((a, b) => a[0] - b[0]);
+  const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).sort((a, b) => a[0] - b[0]);
   for (const [, k, o] of list) {
     if (k < 2) { K = o; COL = o.col; }
+    if (k === 4) { COL = o.col; drawFlail(x, o, t); K = KN[ME]; continue; }
+    if (k === 0 && K.kind === 'priest') continue;
     if (k === 0 && K.kind === 'fire') { const pt = pitOf(K); x.save(); x.translate(pt[0], pt[1]); FBX.firePit(x, 5, t, FBX.pal(5)); x.restore(); continue; }
     if (k === 0) { x.save(); x.translate(K.T.x, K.T.y); boulder(x, t, !(K.st === 'kneel' || (K.st === 'pull' && !K.hold) || (K.st === 'sheathe' && !K.hold)), K.slotGlow); if (!K.hold) { x.translate(STONE.x, STONE.y); x.scale(KS, KS); x.beginPath(); x.rect(-20, -30, 40, 30 - 4.3 / KS); x.clip(); sword(x, [0, -4.3 / KS - 1.3 - 1.1], Math.PI / 2, 10.5); } x.restore(); }
-    else if (k === 1) { if (K.kind === 'fire') drawFire(x, t); else drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; x.fillText(K.i === ME ? 'YOU' : pName(K.i), K.x, K.y - 17 * (K.sz || 1)); } }
+    else if (k === 1) { if (K.kind === 'fire') drawFire(x, t); else if (K.kind === 'priest') drawPriest(x, t); else drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; x.fillText(K.i === ME ? 'YOU' : pName(K.i), K.x, K.y - (K.kind === 'priest' ? 23 + (K.z || 0) : 17 * (K.sz || 1))); } }
     else if (k === 2) walker(x, o, t);
     else { x.fillStyle = 'rgba(0,0,0,.2)'; x.beginPath(); x.ellipse(o.x, o.y + 0.5, 1.6, 0.6, 0, 0, 7); x.fill(); drawPartFast(x, o); }
   }
@@ -1897,18 +2269,19 @@ function draw() {
     x.restore(); }
   if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
   ST.textContent = (NET ? `Room ${NET.code} · ${LIVE().length}/${MAXP} · ` : '') + (LIVE().length > 1 ? `Enemies ${walkers.length} · ` + LIVE().map(kn => `${kn.i === ME ? 'You' : pName(kn.i)} ${kn.kills}k/${Math.round(kn.hits)}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${Math.round(K.hits)}`);
-  const cdk = K.kind === 'fire' ? (K.lava ? 1 : cl((K.lvCd || 0) / LAVA.CD, 0, 1)) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
-  { const FV = K.kind === 'fire', live = FV ? K.vPh >= 0 : K.ultPh >= 0, pr = cl((K.kills - (K.ultBase || 0)) / ultNeed(K), 0, 1);
+  const cdk = K.kind === 'priest' ? (K.hoT > 0 ? 1 : cl((K.hoCd || 0) / WP.HO.CD, 0, 1)) : K.kind === 'fire' ? (K.lava ? 1 : cl((K.lvCd || 0) / LAVA.CD, 0, 1)) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
+  { const FV = K.kind === 'fire', WPV = K.kind === 'priest', live = FV ? K.vPh >= 0 : WPV ? K.pPh >= 0 : K.ultPh >= 0, pr = cl((K.kills - (K.ultBase || 0)) / ultNeed(K), 0, 1);
     document.body.classList.toggle('volc', FV && live); const vOpen = K.vPh === 1 || (K.vPh === 0 && K.vT >= V.RISE - 1); VTAP.classList.toggle('on', FV && vOpen && K.vSh < V.SHOTS && !(K.vBel >= 0)); if (FV && vOpen) { const tx = `Tap the screen to erupt · ${V.SHOTS - K.vSh} left`; if (VTAP.textContent !== tx) VTAP.textContent = tx; }
-    if (FV) ULI.style.height = (live ? (K.vPh === 1 ? 1 - K.vT / V.T : K.vPh === 0 ? 1 : 0) : pr) * 100 + '%'; else ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live);
-    const lab = live ? (FV ? (K.vPh === 1 ? Math.ceil(V.T - K.vT) + 's' : '') : K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (K.kills - (K.ultBase || 0)) + '/' + ultNeed(K); if (ULS.textContent !== lab) ULS.textContent = lab;
-    if (!FV) { DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); } else { DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); } }
-  if ((K.kind === 'fire') !== CHAR_UI) charUI(K.kind === 'fire');
+    if (FV) ULI.style.height = (live ? (K.vPh === 1 ? 1 - K.vT / V.T : K.vPh === 0 ? 1 : 0) : pr) * 100 + '%'; else if (WPV) ULI.style.height = (live ? (K.pPh === 1 ? 1 - K.pT / WP.PEN.T : K.pPh === 0 ? 1 : 0) : pr) * 100 + '%'; else ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live);
+    const lab = live ? (FV ? (K.vPh === 1 ? Math.ceil(V.T - K.vT) + 's' : '') : WPV ? (K.pPh === 1 ? Math.ceil(WP.PEN.T - K.pT) + 's' : '') : K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (K.kills - (K.ultBase || 0)) + '/' + ultNeed(K); if (ULS.textContent !== lab) ULS.textContent = lab;
+    document.body.classList.toggle('pen', WPV && live); if (WPV && live && !PENPOS) penPos(); if (!(WPV && live)) PENPOS = 0;
+    if (WPV) { DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); AOE.classList.toggle('out', K.hOut > 0); const al = K.hOut > 0 ? 'pull' : 'slam'; if (AOEL.textContent !== al) AOEL.textContent = al; SMI.style.height = (K.pPh === 1 ? 100 * cl(Math.hypot(K.hvx || 0, K.hvy || 0) / WP.PEN.MAXV, 0, 1) : 0) + '%'; } else if (!FV) { DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); } else { DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); } }
+  if ((K.kind || 'knight') !== CHAR_UI) charUI(K.kind || 'knight');
   if (K.kind === 'fire') AOEI.style.height = (K.coT >= 0 ? 100 : cl((K.coCd || 0) / CO.CD, 0, 1) * 100) + '%';
   // breath charge fills the breath stick's ring with orange from the bottom
   { const rs = document.getElementById('rst'); rs.style.background = K.kind === 'fire' ? `linear-gradient(to top, ${K.lava ? '#f5c518cc' : '#f0a04a88'} ${100 * cl((K.lava ? (K.lvW > 0 ? K.lvW / LAVA.T : 1) : (K.brC ?? FIRE.BR_T) / FIRE.BR_T), 0, 1)}%, #ffffff14 0)` : ''; }
   if (K.kind === 'fire') BSTI.style.height = (100 * (1 - cl((K.brC ?? FIRE.BR_T) / FIRE.BR_T, 0, 1))) + '%';
-  if (K.kind === 'fire') DASHI.style.height = (K.plT >= 0 ? 100 * (1 - K.plT / PL.T) : cl((K.plCd || 0) / PL.CD, 0, 1) * 100) + '%'; else DASHI.style.height = (K.ab === 'dash' ? 100 : cl((K.dashCd || 0) / DASH_CD, 0, 1) * 100) + '%'; if (K.kind !== 'fire') AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
+  if (K.kind === 'priest') { DASHI.style.height = (K.ab === 'sweep' ? 100 : cl((K.swCd || 0) / WP.SW.CD, 0, 1) * 100) + '%'; AOEI.style.height = (K.hOut > 0 ? 0 : K.ab === 'slam' ? 100 : cl((K.slCd || 0) / WP.SL.CD, 0, 1) * 100) + '%'; } else if (K.kind === 'fire') DASHI.style.height = (K.plT >= 0 ? 100 * (1 - K.plT / PL.T) : cl((K.plCd || 0) / PL.CD, 0, 1) * 100) + '%'; else DASHI.style.height = (K.ab === 'dash' ? 100 : cl((K.dashCd || 0) / DASH_CD, 0, 1) * 100) + '%'; if (K.kind !== 'fire' && K.kind !== 'priest') AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
 }
 function frame(ms) {
   const dt = Math.min(0.05, (ms - last) / 1000) * speed; last = ms; t += dt; step(dt, t); sndWatch(); draw();
@@ -1971,10 +2344,16 @@ function stick(el, onMove, dynamic) {
   const end = e => { if (e.pointerId !== id) return; id = null; knob.style.transition = 'transform .12s'; knob.style.transform = ''; setTimeout(() => knob.style.transition = '', 130); onMove(null); };
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
 }
-let stickPl = null, stickBr = null, stickMv = [0, 0], stickAim = null, keyMv = [0, 0], mouseAim = null, keySpin = false, btnSpin = false;
-const syncIn = () => { const IN = KN[ME].in; IN.mv = Math.hypot(...stickMv) > 0.05 ? stickMv : keyMv; IN.aim = stickAim || mouseAim; IN.spin = keySpin || btnSpin; IN.br = stickBr || (isFire() && keys.has(' ') ? cursorVec() : null); IN.pl = stickPl || (isFire() && keys.has('shift') ? [-keyMv[0], -keyMv[1]] : null); if (NET && NET.mode === 'guest') NET.inDirty = 1; };
+let stickPn = null, mousePn = null, stickPl = null, stickBr = null, stickMv = [0, 0], stickAim = null, keyMv = [0, 0], mouseAim = null, keySpin = false, btnSpin = false;
+const syncIn = () => { const IN = KN[ME].in; IN.mv = Math.hypot(...stickMv) > 0.05 ? stickMv : keyMv; IN.aim = stickAim || mouseAim; IN.spin = keySpin || btnSpin; IN.br = stickBr || (isFire() && keys.has(' ') ? cursorVec() : null); IN.pl = stickPl || (isFire() && keys.has('shift') ? [-keyMv[0], -keyMv[1]] : null); IN.pn = stickPn || (isPriest() && (keyMv[0] || keyMv[1]) ? keyMv : null) || (isPriest() && KN[ME].pPh >= 0 ? mousePn : null); if (NET && NET.mode === 'guest') NET.inDirty = 1; };
 stick(document.getElementById('lst'), v => { stickMv = v || [0, 0]; syncIn(); });
 stick(document.getElementById('rst'), v => { stickAim = v && Math.hypot(...v) > 0.35 ? v : null; syncIn(); }, true);
+// Penance: a stick that steers the flail head, and Smash (both appear where the swing and move sticks were)
+stick(document.getElementById('pst'), v => { stickPn = v && Math.hypot(...v) > 0.12 ? v.map(q => Math.round(q * 100) / 100) : null; syncIn(); });
+const SMB = document.getElementById('smash'), SMI = SMB.querySelector('i'), AOEL = document.querySelector('#aoe small'); let PENPOS = 0;
+function doSmash() { const IN = KN[ME].in; IN.smN = (IN.smN || 0) + 1; markIn(); }
+SMB.addEventListener('pointerdown', e => { e.preventDefault(); doSmash(); });
+function penPos() { PENPOS = 1; for (const [a, b] of [['rst', 'pst'], ['lst', 'smash']]) { const r = document.getElementById(a).getBoundingClientRect(), el = document.getElementById(b); if (!r.width) continue; Object.assign(el.style, { left: r.left + 'px', top: r.top + 'px', right: 'auto', bottom: 'auto', width: r.width + 'px', height: r.height + 'px' }); } }
 const BSTI = document.querySelector('#bst i'); stick(document.getElementById('bst'), v => { stickBr = v && Math.hypot(...v) > 0.3 ? v : null; syncIn(); }, true);
 const DASHE = document.getElementById('dash'), DASHI = DASHE.querySelector('i'), DASHD = DASHE.querySelector('.dot'), AOE = document.getElementById('aoe'), AOEI = AOE.querySelector('i'), AOED = AOE.querySelector('.dot');
 const markIn = () => { if (NET && NET.mode === 'guest') NET.inDirty = 1; };
@@ -2021,13 +2400,14 @@ const keyUpd = () => { keyMv = [(keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0
 // the cursor relative to my character, in screen pixels
 const cursorVec = () => { if (!mousePos || !KN[ME]) return null; const kn = KN[ME], [kx, ky] = w2s(kn.x, kn.y - 6); return [mousePos[0] - kx, mousePos[1] - ky]; };
 const kbCoal = () => { const v = cursorVec(); if (!v) return [KN[ME].f, 0]; const sc = viewScale() / DPR, L = Math.hypot(v[0], v[1]) / sc, m = cl((L - CO.L0) / CO.L1, 0.25, 1), d = Math.hypot(v[0], v[1]) || 1; return [v[0] / d * m, v[1] / d * m]; };
-const kbLeap = () => { if (!mousePos) return [KN[ME].f, 0]; const sc = viewScale() / DPR, kn = KN[ME], [kx, ky] = w2s(kn.x, kn.y - 6); let v = [(mousePos[0] - kx) / (LEAP_R * sc), (mousePos[1] - ky) / (LEAP_R * 0.8 * sc)]; const d = Math.hypot(...v); if (d > 1) v = v.map(q => q / d); return v; };
+const kbLeap = () => { if (!mousePos) return [KN[ME].f, 0]; const sc = viewScale() / DPR, kn = KN[ME], [kx, ky] = w2s(kn.x, kn.y - 6); const LR = isPriest() ? WP.SL.RANGE : LEAP_R; let v = [(mousePos[0] - kx) / (LR * sc), (mousePos[1] - ky) / (LR * 0.8 * sc)]; const d = Math.hypot(...v); if (d > 1) v = v.map(q => q / d); return v; };
 const ARROW = { arrowup: 'w', arrowleft: 'a', arrowdown: 's', arrowright: 'd' }, keyOf = e => { const k = e.key.toLowerCase(); return ARROW[k] || (k === 'spacebar' ? ' ' : k); };
-const isFire = () => KN[ME] && KN[ME].kind === 'fire';
+const isFire = () => KN[ME] && KN[ME].kind === 'fire', isPriest = () => KN[ME] && KN[ME].kind === 'priest';
 addEventListener('keydown', e => { if (e.target && e.target.closest && e.target.closest('input')) return; const k = keyOf(e); if ('wasd '.includes(k) && k) { keys.add(k); keyUpd(); e.preventDefault(); }
-  if (k === 'shift' && !e.repeat) { if (isFire()) { keys.add('shift'); keyUpd(); } else { const m = keyMv[0] || keyMv[1] ? keyMv : [KN[ME].f, 0]; doDash(m); } }
+  if (k === ' ' && !e.repeat && isPriest() && KN[ME].pPh >= 0) doSmash();
+  if (k === 'shift' && !e.repeat && isPriest()) { const v = cursorVec() || (keyMv[0] || keyMv[1] ? keyMv : [KN[ME].f, 0]); doDash(v); } else if (k === 'shift' && !e.repeat) { if (isFire()) { keys.add('shift'); keyUpd(); } else { const m = keyMv[0] || keyMv[1] ? keyMv : [KN[ME].f, 0]; doDash(m); } }
   if (k === 'q') { if (!e.repeat) keys.add('q'); if (isFire()) COAIM = kbCoal(); else LEAPAIM = kbLeap(); }
-  if (k === 'e' && !e.repeat && isFire()) { const IN = KN[ME].in; IN.lvN = (IN.lvN || 0) + 1; markIn(); }
+  if (k === 'e' && !e.repeat && (isFire() || isPriest())) { const IN = KN[ME].in; IN.lvN = (IN.lvN || 0) + 1; markIn(); }
   if (k === 'r' && !e.repeat) doUlt(); });
 addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') return; mousePos = [e.clientX, e.clientY]; if (keys.has('q')) { if (isFire()) COAIM = kbCoal(); else LEAPAIM = kbLeap(); } if (isFire() && keys.has(' ')) syncIn(); });
 addEventListener('keyup', e => { if (keyOf(e) === 'q' && keys.has('q')) { keys.delete('q'); if (COAIM) { const IN = KN[ME].in; IN.coN = (IN.coN || 0) + 1; IN.coV = [Math.round(COAIM[0] * 100) / 100, Math.round(COAIM[1] * 100) / 100]; markIn(); } else if (LEAPAIM) doLeap(LEAPAIM); LEAPAIM = null; COAIM = null; } });
@@ -2036,7 +2416,8 @@ addEventListener('blur', () => { keys.clear(); keyUpd(); });
 // a clicked button keeps keyboard focus, and Space would then press it again: let go of focus after every click
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button'); if (b) b.blur(); });
 let mouseDown = false, mousePos = null;
-const mouseAimUpd = () => { if (!mouseDown || !mousePos) { mouseAim = null; return syncIn(); } const [kx, ky] = w2s(K.x, K.y - 6); mouseAim = [mousePos[0] - kx, mousePos[1] - ky]; syncIn(); };
+const mouseAimUpd = () => { mousePn = null; if (mouseDown && mousePos && isPriest() && KN[ME].pPh >= 0) { const kn = KN[ME], [hx, hy] = w2s(kn.hx, kn.hy - (kn.hz || 0)), v = [mousePos[0] - hx, mousePos[1] - hy], l = Math.hypot(...v); mousePn = l > 6 ? v.map(q => Math.round(q / Math.max(l, 70) * 100) / 100) : null; }
+  if (!mouseDown || !mousePos) { mouseAim = null; return syncIn(); } const [kx, ky] = w2s(K.x, K.y - 6); mouseAim = [mousePos[0] - kx, mousePos[1] - ky]; syncIn(); };
 cv.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') return; mouseDown = true; mousePos = [e.clientX, e.clientY]; mouseAimUpd(); });
 addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') return; mousePos = [e.clientX, e.clientY]; if (mouseDown) mouseAimUpd(); });
 addEventListener('pointerup', e => { if (e.pointerType !== 'mouse') return; mouseDown = false; mouseAimUpd(); });
@@ -2052,15 +2433,15 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
-const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
+const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
 // a player is called by their character; a second one of the same gets a number (Knight 2)
-const cName = kn => kn && (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) ? 'Firebreather' : 'Knight';
+const cName = kn => kn && (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) ? 'Firebreather' : kn && (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) ? 'Warpriest' : 'Knight';
 const pName = i => { const kn = KN[i], n = cName(kn), same = LIVE().filter(o => cName(o) === n); return same.length > 1 && kn ? n + ' ' + (same.indexOf(kn) + 1) : n; };
 // kept small: with 4 players and MAX hordes a snapshot carries ~500 enemies; positions to 0.5 units (guests ease toward them anyway)
-const packW = w => [w.id, UKEYS.indexOf(w.k), Math.round(w.x * 2) / 2, Math.round(w.y * 2) / 2, Math.round(w.hp), w.max, Math.round(w.atk * 10) / 10, w.hit > 0 ? 1 : 0, w.tk, w.bd > 0 ? 1 : 0];
+const packW = w => [w.id, UKEYS.indexOf(w.k), Math.round(w.x * 2) / 2, Math.round(w.y * 2) / 2, Math.round(w.hp), w.max, Math.round(w.atk * 10) / 10, w.hit > 0 ? 1 : 0, w.tk, (w.bd > 0 ? 1 : 0) | (w.bT > 0 ? 2 : 0) | (w.sl > 0 ? 4 : 0)];
 const LC = document.getElementById('lcard'), LUI = document.getElementById('lobbyUI'), NOTE = document.getElementById('note');
 let noteT = 0; const note = (msg, sec = 3) => { NOTE.textContent = msg; NOTE.style.display = 'block'; noteT = sec; };
 // ---------- lobby directory: the same Supabase table as Hold the Line (rows tagged mode 'brawl', codes prefixed KN) ----------
@@ -2072,7 +2453,7 @@ function renderGames() { const el = document.getElementById('lGames'), nt = docu
   el.querySelectorAll('[data-code]').forEach(b => b.onclick = () => join(b.dataset.code)); }
 function browse(on) { if (dirT) clearInterval(dirT); dirT = null; if (on) { fetchGames(); dirT = setInterval(fetchGames, 5000); } }
 // the host lists its game while it has room, the whole time it's running (people can join mid-fight)
-function gameRow() { const L2 = NET.started ? LIVE() : [], j = Math.max(1, L2.length), open = j < MAXP, chars = NET.started ? L2.map(kn => cName(kn)).join(', ') : (CHAR === 'fire' ? 'Firebreather' : 'Knight');
+function gameRow() { const L2 = NET.started ? LIVE() : [], j = Math.max(1, L2.length), open = j < MAXP, chars = NET.started ? L2.map(kn => cName(kn)).join(', ') : (CHAR === 'fire' ? 'Firebreather' : CHAR === 'priest' ? 'Warpriest' : 'Knight');
   return { code: 'KN' + NET.code, name: ((myName !== 'Knight' ? myName + "'s" : 'Open') + ' brawl').slice(0, 40), host: myName.slice(0, 20), mode: 'brawl', n: MAXP, joined: open ? Math.min(j, MAXP - 1) : MAXP, heroes: (chars + '|' + j + '/' + MAXP).slice(0, 120), version: DIRV() }; }
 function advertise() { const sb = getSB(); if (!sb || !NET || NET.mode !== 'host') return; advertised = 'KN' + NET.code;
   const beat = () => { if (!NET || NET.mode !== 'host') return unadvertise(); sb.from('bod_lobbies').upsert(gameRow(), { onConflict: 'code' }).then(() => { }, () => { }); }; NET.beat = beat; beat(); if (!beatT) beatT = setInterval(beat, 5000); }
@@ -2085,12 +2466,12 @@ function lobby(screen, extra) {
     <div class="gh"><b>Open games</b><span id="lDirNote">${DIR.ready ? '' : 'Looking…'}</span></div><div class="games" id="lGames"></div>
     <button class="big pri" id="lHost" ${getSB() ? '' : 'disabled'}>Host a game</button>
     <input id="lCode" maxlength="4" placeholder="CODE" autocomplete="off"><button class="big" id="lJoin" ${getSB() ? '' : 'disabled'}>Join with code</button>
-    <div class="chars"><button id="cKnight" class="${CHAR === 'knight' ? 'on' : ''}">Knight</button><button id="cFire" class="${CHAR === 'fire' ? 'on' : ''}">Firebreather</button></div><button class="big" id="lSolo">Play solo</button><button id="lLay">Control layout</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
+    <div class="chars"><button id="cKnight" class="${CHAR === 'knight' ? 'on' : ''}">Knight</button><button id="cFire" class="${CHAR === 'fire' ? 'on' : ''}">Firebreather</button><button id="cPriest" class="${CHAR === 'priest' ? 'on' : ''}">Warpriest</button></div><button class="big" id="lSolo">Play solo</button><button id="lLay">Control layout</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
   else if (screen === 'hosting') LC.innerHTML = `<h1>Knight Brawl</h1><p>Give your friends this code</p><div class="code">${NET.code}</div><p>Waiting for players (up to 4; others can join any time)…</p>
     <button class="big" id="lSoloH">Start now (they can still join)</button><button id="lCancel">Cancel</button>`;
   else if (screen === 'joining') LC.innerHTML = `<h1>Knight Brawl</h1><p>Joining <b>${NET.code}</b>…</p><button id="lCancel">Cancel</button>`;
   const on = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
-  on('lHost', host); on('lLay', () => layOpen(true)); const pick = c => { CHAR = c; try { localStorage.setItem('kn_char', c); } catch (e) { } charUI(c === 'fire'); applyLayout(); lobby('home'); }; on('cKnight', () => pick('knight')); on('cFire', () => pick('fire')); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
+  on('lHost', host); on('lLay', () => layOpen(true)); const pick = c => { CHAR = c; try { localStorage.setItem('kn_char', c); } catch (e) { } charUI(c); applyLayout(); lobby('home'); }; on('cKnight', () => pick('knight')); on('cFire', () => pick('fire')); on('cPriest', () => pick('priest')); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
   if (screen === 'home') renderGames();
   on('lJoin', () => { const c = (document.getElementById('lCode').value || '').toUpperCase().replace(/[^A-Z]/g, ''); if (c.length !== 4) return lobby('home', 'Enter the 4-letter code.'); join(c); });
   on('lCancel', () => { leave(); lobby('home'); });
@@ -2157,16 +2538,16 @@ function applySnap(S) {
   const byId = new Map(walkers.map(w => [w.id, w])), seen = new Set();
   for (const a of S.w) { const [id, ki, wx, wy, hp, mx, atk, hit, tk, brn] = a;  seen.add(id); let w = byId.get(id);
     if (!w) { w = mkWalker(UKEYS[ki] || 'foot', wx, wy); w.id = id; walkers.push(w); }
-    if (hp < w.hp && hp > 0 && !brn) hitSnd(w); w.bd = brn ? 1 : 0; w.tx = wx; w.ty = wy; w.hp = hp; w.max = mx; w.tk = tk; if (hit) w.hit = 0.1; if (atk < 0) w.atk = -1; else if (w.atk < 0 || Math.abs(w.atk - atk) > 0.15) w.atk = atk; }
-  for (const e of S.e) { const [id, kind, dir, ki, ex, ey] = e; let w = byId.get(id) || walkers.find(o => o.id === id); if (!w) { w = mkWalker('foot', ex, ey); w.id = id; } w.x = ex; w.y = ey; const k0 = K; K = KN[ki] || KN[0]; if (kind === 5) burnKill(w); else if (kind === 4) boomFx(w); else if (kind === 1) spinKill(w); else if (kind === 2) dashKill(w, dir); else if (kind === 3) slamKill(w, dir); else cleaveKill(w, dir); K = k0; }
+    if (hp < w.hp && hp > 0 && !(brn & 1)) hitSnd(w); w.bd = brn & 1 ? 1 : 0; w.bndF = brn & 2 ? 1 : 0; w.slF = brn & 4 ? 1 : 0; w.tx = wx; w.ty = wy; w.hp = hp; w.max = mx; w.tk = tk; if (hit) w.hit = 0.1; if (atk < 0) w.atk = -1; else if (w.atk < 0 || Math.abs(w.atk - atk) > 0.15) w.atk = atk; }
+  for (const e of S.e) { const [id, kind, dir, ki, ex, ey] = e; let w = byId.get(id) || walkers.find(o => o.id === id); if (!w) { w = mkWalker('foot', ex, ey); w.id = id; } w.x = ex; w.y = ey; const k0 = K; K = KN[ki] || KN[0]; if (kind === 6) impaleKill(w, dir); else if (kind === 5) burnKill(w); else if (kind === 4) boomFx(w); else if (kind === 1) spinKill(w); else if (kind === 2) dashKill(w, dir); else if (kind === 3) slamKill(w, dir); else cleaveKill(w, dir); K = k0; }
   walkers = walkers.filter(w => w.dead || seen.has(w.id));
 }
 // ---------- control layout: each player drags/resizes the touch controls, per character and orientation (saved on this device) ----------
 const CTLS = { move: ['lst', 'Move stick'], swing: ['rst', 'Swing stick'], dash: ['dash', 'Dash aim'], leap: ['aoe', 'Leap aim'], spin: ['spin', 'Spin button'], ult: ['ult', 'Ult button'], breath: ['bst', 'Breath stick'] };
-const layCh = () => CHAR === 'fire' ? 'fire' : 'knight';
+const layCh = () => CHAR === 'fire' || CHAR === 'priest' ? CHAR : 'knight';
 // the HUD for the character being played: which controls show and what they're called
 let CHAR_UI = null;
-function charUI(fire) { CHAR_UI = fire; document.getElementById('help').textContent = fire ? 'WASD/arrows move · hold mouse to breathe at the cursor · E lava · hold Shift to ride a plume the way you move · hold Q to aim the coals at the cursor, release to run them · R volcano, then click to erupt · wheel zoom' : 'WASD/arrows move · hold mouse to swing toward cursor · Space spin · Shift dash where you\'re moving · hold Q to aim the leap at the cursor, release to jump · R ult · wheel zoom'; document.body.classList.toggle('fire', fire); document.querySelector('#rst small').textContent = fire ? 'breath' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : 'leap'; document.querySelector('#spin span').textContent = fire ? 'LAVA' : 'SPIN'; }
+function charUI(kind) { CHAR_UI = kind; const fire = kind === 'fire', pr = kind === 'priest'; document.getElementById('help').textContent = fire ? 'WASD/arrows move · hold mouse to breathe at the cursor · E lava · hold Shift to ride a plume the way you move · hold Q to aim the coals at the cursor, release to run them · R volcano, then click to erupt · wheel zoom' : pr ? 'WASD/arrows move · hold mouse to swing the censer toward the cursor · Shift sweep the flail at the cursor · hold Q to aim the slam, release to throw (again to pull yourself to it) · E holy flame · R penance: WASD/mouse steer the flail, Space smash · wheel zoom' : 'WASD/arrows move · hold mouse to swing toward cursor · Space spin · Shift dash where you\'re moving · hold Q to aim the leap at the cursor, release to jump · R ult · wheel zoom'; document.body.classList.toggle('fire', fire); document.body.classList.toggle('priest', pr); document.querySelector('#rst small').textContent = fire ? 'breath' : pr ? 'censer' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : pr ? 'sweep' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : pr ? 'slam' : 'leap'; document.querySelector('#spin span').textContent = fire ? 'LAVA' : pr ? 'HOLY' : 'SPIN'; }
 let LAY = {}; try { LAY = JSON.parse(localStorage.getItem('kn_layout') || '{}') || {}; } catch (e) { }
 // plume and coals swapped places: carry a Firebreather layout saved before that over, so his saved spots swap too
 if (LAY.fire && !LAY.fire.sw1) { for (const o of ['landscape', 'portrait']) { const L = LAY.fire[o]; if (L) { const d = L.dash; L.dash = L.leap; L.leap = d; if (!L.dash) delete L.dash; if (!L.leap) delete L.leap; } } LAY.fire.sw1 = 1; try { localStorage.setItem('kn_layout', JSON.stringify(LAY)); } catch (e) { } }
@@ -2233,16 +2614,16 @@ window.addEventListener('pointermove', e => {
 const lend = e => { if (!EDIT) return; if (!e.target.closest || !e.target.closest('#layEd, #top')) e.stopImmediatePropagation(); if (ldrag && e.pointerId === ldrag.id) { ldrag = null; document.body.classList.remove('dragging'); laySave(); } };
 window.addEventListener('pointerup', lend, true); window.addEventListener('pointercancel', lend, true);
 addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { layEnsure(); layPanel(); } }, 60));
-charUI(CHAR === 'fire'); applyLayout();
+charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '8aae27';
+const KBUILD = 'fb9f05';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
 
 window.__KN = () => KN; window.__pose = t2 => pose(t2); window.__W = () => walkers; window.__spinSw = () => spinSwept(); window.__SPT = SPIN_T; window.__SPO = SPIN_O; window.__PRT = PRE_T;
 window.__arr = () => ({ blood: blood.length, dust: dust.length, sparks: sparks.length, parts: parts.length, splats: splats.length, fx: FX.length, fp: KN.reduce((a, k) => a + (k.fp ? k.fp.length : 0), 0), burning: walkers.filter(w => w.bd > 0).length }); window.__leave = () => leave(); window.__w2s = (a, b) => w2s(a, b); window.__cam = () => [camX, camY, viewScale(), cv.width, cv.height, cv.getBoundingClientRect().height, shake]; window.__flush = () => { try { x.getImageData(0, 0, 1, 1); } catch (e) { } }; window.__still = 0; window.__stop = () => { window.__still = 1; };
-window.__spawn = (x0, n, sp) => { for (let i = 0; i < n; i++) spawnWalker(x0 - i * 4, sp); };
+window.__WP = WP; window.__spawn = (x0, n, sp) => { for (let i = 0; i < n; i++) spawnWalker(x0 - i * 4, sp); };
 })();
 </script></body></html>
