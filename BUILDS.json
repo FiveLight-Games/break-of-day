@@ -49,5 +49,6 @@
   {"v": "0.48", "build": "2ac0d8", "commit": "762cb9b", "date": "2026-10-16", "notes": "Ult cost per character (Knight 450 kills, Firebreather 300); volcano range and zoom-out -20%, molten rock drawn 20% bigger, blast radius +15%."},
   {"v": "0.49", "build": "93a7e3", "commit": "e941787", "date": "2026-10-16", "notes": "Fix taps landing below the finger on iPhone (canvas sized to its real box, taps/aim mapped through it); volcano shows a dashed range ring."},
   {"v": "0.50", "build": "aafe0c", "commit": "5043c27", "date": "2026-10-16", "notes": "Lava: 5s window that starts with his first breath; while it runs his headdress grows with licking flames and ember tattoos glow."},
-  {"v": "0.51", "build": "96b9b3", "commit": "", "date": "2026-10-16", "notes": "Knight Brawl: up to 4 players, join mid-game, seats freed on leave, full-room message; MAX horde button; enemy cap and spawns scale with players; smaller snapshots."}
+  {"v": "0.51", "build": "96b9b3", "commit": "79d22c9", "date": "2026-10-16", "notes": "Knight Brawl: up to 4 players, join mid-game, seats freed on leave, full-room message; MAX horde button; enemy cap and spawns scale with players; smaller snapshots."},
+  {"v": "0.52", "build": "ed8b85", "commit": "", "date": "2026-10-16", "notes": "Volcano: molten rock drawn 20% bigger, blast radius 25% bigger."}
 ]
