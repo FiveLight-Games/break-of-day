@@ -310,7 +310,7 @@ function boomFx(w) {
   gib(w, 'head', rr(-30, 30), rr(-10, 10), rr(30, 44), rr(-20, 20)); gib(w, 'arm', rr(-30, 30), rr(-10, 10), rr(25, 40), rr(-20, 20)); spray(w.x, w.y, 4, 1, 16, 1.4);
 }
 const HORDE = { off: [0, 1], few: [6, 3], dozens: [24, 3], hundreds: [80, 2] };
-let HZ = { rate: 'off', kinds: ['foot', 'zombie', 'skel', 'scout'], t: 0 };
+let HZ = { rate: 'off', kinds: ['foot', 'zombie', 'scout'], t: 0 };
 // waves come in from the right, just past what the host can see, spread down the field in clumps
 function hordeStep(dt) {
   if (!AUTH() || HZ.rate === 'off' || !HZ.kinds.length) return;
@@ -1473,7 +1473,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '53d5dc';
+const KBUILD = 'b25885';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || location.protocol === 'file:' || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });

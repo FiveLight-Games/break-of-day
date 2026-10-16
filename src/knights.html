@@ -310,7 +310,7 @@ function boomFx(w) {
   gib(w, 'head', rr(-30, 30), rr(-10, 10), rr(30, 44), rr(-20, 20)); gib(w, 'arm', rr(-30, 30), rr(-10, 10), rr(25, 40), rr(-20, 20)); spray(w.x, w.y, 4, 1, 16, 1.4);
 }
 const HORDE = { off: [0, 1], few: [6, 3], dozens: [24, 3], hundreds: [80, 2] };
-let HZ = { rate: 'off', kinds: ['foot', 'zombie', 'skel', 'scout'], t: 0 };
+let HZ = { rate: 'off', kinds: ['foot', 'zombie', 'scout'], t: 0 };
 // waves come in from the right, just past what the host can see, spread down the field in clumps
 function hordeStep(dt) {
   if (!AUTH() || HZ.rate === 'off' || !HZ.kinds.length) return;
