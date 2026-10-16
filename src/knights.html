@@ -416,7 +416,7 @@ function drawDashPreview(c, t) {
 function drawLeapPreview(c, t) {
   const kn = KN[ME]; if (!LEAPAIM || !kn || kn.st === 'kneel') return;
   // a Warpriest with his flail out: the pull along the chain
-  if (kn.kind === 'priest' && !(kn.hOut > 0 || kn.hRet >= 0) && (kn.ab || kn.slCd > 0 || kn.slWait)) return;
+  if (kn.kind === 'priest' && kn.ab !== 'reel' && !(kn.hOut > 0 || kn.hRet >= 0) && (kn.ab || kn.slCd > 0 || kn.slWait)) return;
   if (kn.kind === 'priest' && kn.hOut > 0) { c.save(); c.strokeStyle = 'rgba(255,240,190,.85)'; c.lineWidth = 0.7; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 14; c.beginPath(); c.moveTo(kn.x, kn.y - 6); c.lineTo(kn.hx, kn.hy - 3); c.stroke(); c.restore(); return; }
   const [tx, ty] = leapTarget(kn, LEAPAIM), pul = 0.5 + 0.5 * Math.sin(t * 8);
   c.save();
@@ -1750,9 +1750,11 @@ function priestStep(dt, t) {
   if (mine && dashP && IN.dashD) K.wq = { k: 'sweep', v: IN.dashD, t: 0.6 };
   // no slam (or go to) during a sweep or a slam: the press is ignored and the button is greyed out
   if (mine && leapP && K.ab === 'slam' && K.abT >= WP.SL.GOEARLY && gd(K.x, K.y, K.sx, K.sy) > WP.DRAG + 2) { K.wq = null; startReel(true); }
-  else if (mine && leapP && K.ab !== 'sweep' && K.ab !== 'slam' && K.ab !== 'reel') K.wq = { k: K.hOut > 0 || K.hRet >= 0 ? 'reel' : 'slam', v: IN.leapT || [0, 0], t: 0.6 };
+  // during Go to a slam can be queued: it goes the moment he arrives at the ball, whatever's left of the cooldown
+  else if (mine && leapP && K.ab === 'reel') K.wq = { k: 'slam', v: IN.leapT || [0, 0], t: WP.SL.REEL + 0.3, force: 1 };
+  else if (mine && leapP && K.ab !== 'sweep' && K.ab !== 'slam') K.wq = { k: K.hOut > 0 || K.hRet >= 0 ? 'reel' : 'slam', v: IN.leapT || [0, 0], t: 0.6 };
   if (K.wq && (K.wq.t -= dt) <= 0) K.wq = null;
-  if (K.wq && wpRec(K)) { const q = K.wq, ok = q.k === 'sweep' ? !(K.swCd > 0) : q.k === 'slam' ? !(K.slCd > 0) && !(K.hOut > 0) && !K.slWait : K.hOut > 0 || K.hRet >= 0;
+  if (K.wq && wpRec(K)) { const q = K.wq, ok = q.k === 'sweep' ? !(K.swCd > 0) : q.k === 'slam' ? (q.force || !(K.slCd > 0) && !K.slWait) && !(K.hOut > 0) : K.hOut > 0 || K.hRet >= 0;
     if (ok) { K.wq = null; wpEndAb(); K.cen = -1; if (q.k === 'sweep') startSweep(q.v); else if (q.k === 'slam') startSlam(q.v); else startReel(); } }
   // the censer can also take over from a follow-through
   if (K.ab && IN.aim && wpRec(K) && K.ab !== 'reel') wpEndAb();
@@ -2405,7 +2407,7 @@ function draw() {
     const lab = live ? (FV ? (K.vPh === 1 ? Math.ceil(V.T - K.vT) + 's' : '') : WPV ? (K.pPh === 1 ? Math.ceil(WP.PEN.T - K.pT) + 's' : '') : K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (K.kills - (K.ultBase || 0)) + '/' + ultNeed(K); if (ULS.textContent !== lab) ULS.textContent = lab;
     document.body.classList.toggle('pen', WPV && live); if (WPV && live && !PENPOS) penPos(); if (!(WPV && live)) PENPOS = 0;
     if (WPV) { DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); // while a slam's head is in the air the button is only ever Go to (lit once that's allowed), never another slam
-    const early = K.ab === 'slam' && K.abT >= WP.SL.GOEARLY && gd(K.x, K.y, K.sx, K.sy) > WP.DRAG + 2, hOut = K.hOut > 0 || K.hRet >= 0 || early; const abBusy = K.ab === 'sweep' || K.ab === 'reel' || (K.ab === 'slam' && !early) || (!hOut && (K.slCd > 0 || K.slWait)); AOE.classList.toggle('out', hOut && !abBusy); AOE.classList.toggle('dim', abBusy); BRB.classList.toggle('ready', K.hOut > 0); const al = hOut ? 'go to' : 'slam'; if (AOEL.textContent !== al) AOEL.textContent = al; SMI.style.height = (K.pPh === 1 ? 100 * cl(Math.hypot(K.hvx || 0, K.hvy || 0) / WP.PEN.MAXV, 0, 1) : 0) + '%'; } else if (!FV) { DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); } else { DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); } }
+    const early = K.ab === 'slam' && K.abT >= WP.SL.GOEARLY && gd(K.x, K.y, K.sx, K.sy) > WP.DRAG + 2, hOut = K.hOut > 0 || K.hRet >= 0 || early; const abBusy = K.ab === 'sweep' || (K.ab === 'slam' && !early) || (K.ab !== 'reel' && !hOut && (K.slCd > 0 || K.slWait)); AOE.classList.toggle('out', hOut && !abBusy); AOE.classList.toggle('dim', abBusy); BRB.classList.toggle('ready', K.hOut > 0); const al = hOut ? 'go to' : 'slam'; if (AOEL.textContent !== al) AOEL.textContent = al; SMI.style.height = (K.pPh === 1 ? 100 * cl(Math.hypot(K.hvx || 0, K.hvy || 0) / WP.PEN.MAXV, 0, 1) : 0) + '%'; } else if (!FV) { DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); } else { DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); } }
   if ((K.kind || 'knight') !== CHAR_UI) charUI(K.kind || 'knight');
   if (K.kind === 'fire') AOEI.style.height = (K.coT >= 0 ? 100 : cl((K.coCd || 0) / CO.CD, 0, 1) * 100) + '%';
   // breath charge fills the breath stick's ring with orange from the bottom
