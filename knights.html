@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Knight Brawl</title>
 <style>
 html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none;-webkit-user-select:none;user-select:none}
@@ -38,6 +38,7 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 @media (orientation:portrait){#dash{right:calc(16vw + 13px);bottom:140px;width:84px;height:84px}#aoe{left:27px;bottom:140px;width:84px;height:84px}#spin{bottom:276px !important}#spawnUI .kinds{flex-direction:column !important}}
 #spawnUI{position:fixed;left:8px;top:54px;display:flex;flex-direction:column;gap:6px;z-index:2}#spawnUI .kinds,#spawnUI .counts{display:flex;flex-direction:column;gap:4px}#spawnUI .counts{flex-direction:row}#spawnUI button{padding:6px 9px;font-size:12px}#spawnUI .on{border-color:#f0c419;color:#f0c419}
 @media (orientation:portrait){#spawnUI{top:92px}}
+button,.stick,#spin,#dash,#aoe,#spawnUI,#top{touch-action:none;-webkit-touch-callout:none}
 #help{position:fixed;left:50%;transform:translateX(-50%);bottom:6px;font-size:11px;color:#fff9;text-align:center;pointer-events:none}
 </style></head><body>
 <canvas id="c"></canvas>
@@ -169,8 +170,8 @@ const DT_PREP = 0.1, DT_GO = 0.26, DT_REC = 0.24, LT_CR = 0.28, LT_AIR = 0.85, L
 const lerpA = (A, B, k) => A.map((v, j) => j ? lerp(v, B[j], k) : 0);
 // [u, crouch, lean, twist, hand x, hand y, sword angle, step]
 const DP_PREP = [0, 1.5, 0.35, 0.5, 2.2, 4.4, 1.25, 1.2], DP_GO = [0, 0.6, 0.55, -0.9, 2.6, -2.6, -2.3, 1.6];
-const LP_CR = [0, 1.9, 0.4, 0.2, 1.8, 4.6, 1.3, 0.6], LP_TUCK = [0, 1.6, 0.25, 0, 1.2, 1.0, 0.7, 0], LP_FALL = [0, -0.3, -0.15, 0, -0.2, -6.2, -3.35, 0], LP_LAND = [0, 2.1, 0.75, 0, 3.2, 4.6, 1.2, 1.0];
-const LAND_IN = 14; // he lands this far short of the slam centre, so the blade comes down on it
+const LP_CR = [0, 1.9, 0.4, 0.2, 1.8, 4.6, 1.3, 0.6], LP_TUCK = [0, 1.6, 0.25, 0, 1.2, 1.0, 0.7, 0], LP_FALL = [0, -0.3, -0.15, 0, -0.2, -6.2, -3.35 + Math.PI * 2, 0], LP_LAND = [0, 2.1, 0.75, 0, 3.2, 4.6, 1.2, 1.0];
+const LAND_IN = 14, LP_LAND2 = LP_LAND.map((v, j) => j === 6 ? v + Math.PI * 2 : v); // he lands this far short of the slam centre, so the blade comes down on it
 let FX = [], shake = 0, LEAPAIM = null, DASHAIM = null;
 function abilityPose() {
   const t = K.abT;
@@ -182,7 +183,7 @@ function abilityPose() {
   if (K.ab === 'leap') { // crouch, tucked flips on the way up, stretch with the sword overhead after the apex, slam down
     if (t < LT_CR) return lerpA(G_, LP_CR, sm(t / LT_CR));
     const q = (t - LT_CR) / LT_AIR;
-    if (q < 1) { if (q < 0.55) return lerpA(LP_CR, LP_TUCK, sm(Math.min(1, q / 0.12))); let A = lerpA(LP_TUCK, LP_FALL, sm(Math.min(1, (q - 0.55) / 0.15))); if (q > 0.8) A = lerpA(A, LP_LAND, sm((q - 0.8) / 0.2)); return A; }
+    if (q < 1) { if (q < 0.45) return lerpA(LP_CR, LP_TUCK, sm(Math.min(1, q / 0.12))); let A = lerpA(LP_TUCK, LP_FALL, sm(Math.min(1, (q - 0.45) / 0.17))); if (q > 0.8) A = lerpA(A, LP_LAND2, sm((q - 0.8) / 0.2)); return A; }
     const r = (t - LT_CR - LT_AIR) / LT_LAND; return r < 0.35 ? LP_LAND : lerpA(LP_LAND, G_, sm((r - 0.35) / 0.65));
   }
   return null;
@@ -194,10 +195,10 @@ function abilityBody() {
   const q = (K.abT - LT_CR) / LT_AIR; if (q <= 0 || q >= 1) return;
   const dist = Math.hypot(K.ax1 - K.ax0, K.ay1 - K.ay0), Hh = 22 + dist * 0.15;
   K.z = Hh * 4 * q * (1 - q);
-  if (q < 0.55) { const e = q / 0.55; K.flipA = e * e * (3 - 2 * e) * Math.PI * 4; K.tuck = sm(Math.min(1, q / 0.1)) * (1 - sm(cl((q - 0.45) / 0.1, 0, 1))); }
-  else { // falling: tipped 45° toward the landing, sword overhead, legs trailing back with soft knees; uprights right at the slam
-    const inn = sm(Math.min(1, (q - 0.55) / 0.15)), out = q > 0.8 ? sm((q - 0.8) / 0.2) : 0;
-    K.flipA = Math.PI * 4 + Math.PI / 4 * inn * (1 - out); K.fallLeg = inn * (1 - out); }
+  const FL = Math.PI * 4 + Math.PI / 4;
+  if (q < 0.62) { const e = q / 0.62; K.flipA = e * e * (3 - 2 * e) * FL; K.tuck = sm(Math.min(1, q / 0.1)) * (1 - sm(cl((q - 0.45) / 0.15, 0, 1))); K.fallLeg = sm(cl((q - 0.5) / 0.12, 0, 1)); }
+  else { // falling: tipped 45° toward the landing, blade back over his head, legs trailing with soft knees; uprights right at the slam
+    const out = q > 0.8 ? sm((q - 0.8) / 0.2) : 0; K.flipA = Math.PI * 4 + Math.PI / 4 * (1 - out); K.fallLeg = 1 - out; }
 }
 function startDash(v) {
   const l = Math.hypot(v[0], v[1]) || 1, d = [v[0] / l, v[1] / l]; Object.assign(K, { dvx: d[0], dvy: d[1], slice: [], ab: 'dash', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: cl(K.x + d[0] * DASH_D, 8, W - 8), ay1: cl(K.y + d[1] * DASH_D * 0.8, 16, H - 4), dashCd: DASH_CD + DT_PREP + DT_GO + DT_REC });
@@ -887,7 +888,7 @@ function frame(ms) {
 }
 const ST = document.getElementById('stats'), SPI = document.querySelector('#spin i');
 let SPK = 'foot';
-document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { SPK = b.dataset.k; document.querySelectorAll('[data-k]').forEach(o => o.classList.toggle('on', o === b)); });
+document.querySelectorAll('[data-k]').forEach(b => b.onpointerdown = () => { SPK = b.dataset.k; document.querySelectorAll('[data-k]').forEach(o => o.classList.toggle('on', o === b)); });
 function spawnClump(n, kind, ki) {
   kind = kind || SPK; const K0 = KN[ki ?? ME] || K;
   if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'spawn', n, k: kind } });
@@ -895,7 +896,7 @@ function spawnClump(n, kind, ki) {
   const a = rr(0, 6.28), r = rr(70, 100); let cx = cl(K0.x + Math.cos(a) * r, 15, W - 15), cy = cl(K0.y + Math.sin(a) * r * 0.6, 20, H - 10);
   for (let i = 0; i < n; i++) { const b = rr(0, 6.28), q = Math.sqrt(Math.random()) * (n > 1 ? 4 + Math.sqrt(n) * 2.2 : 0); spawnWalker(cl(cx + Math.cos(b) * q * Math.sqrt(UK[kind].r / 2.1), 4, W - 4), undefined, cl(cy + Math.sin(b) * q * 0.7 * Math.sqrt(UK[kind].r / 2.1), 12, H - 4), kind); }
 }
-document.querySelectorAll('[data-n]').forEach(b => b.onclick = () => spawnClump(+b.dataset.n));
+document.querySelectorAll('[data-n]').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); spawnClump(+b.dataset.n); }));
 window.__spawnK = (n, k) => spawnClump(n, k);
 const doClear = () => { if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'clear' } }); walkers = []; };
 const doReset = () => { if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'reset' } }); setup(); if (NET) NET.resync = 1; };
@@ -948,6 +949,9 @@ cv.addEventListener('pointermove', e => { if (!pinch.has(e.pointerId)) return; p
 const pinchEnd = e => { pinch.delete(e.pointerId); pinchD = 0; };
 cv.addEventListener('pointerup', pinchEnd); cv.addEventListener('pointercancel', pinchEnd);
 cv.addEventListener('wheel', e => { ZOOM = cl(ZOOM * Math.exp(-e.deltaY * 0.0012), 0.45, 2.6); e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', e => { if (LUI.style.display === 'none') e.preventDefault(); }, { passive: false });
+document.addEventListener('gesturestart', e => e.preventDefault());
+document.addEventListener('dblclick', e => e.preventDefault());
 window.__dash = v => doDash(typeof v === 'number' ? DIR8[v] : v); window.__aimDash = v => { DASHAIM = v; }; window.__leap = doLeap; window.__aimLeap = v => { LEAPAIM = v; };
 const sb = document.getElementById('spin');
 sb.addEventListener('pointerdown', e => { btnSpin = true; syncIn(); e.preventDefault(); });
