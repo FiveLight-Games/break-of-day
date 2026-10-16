@@ -188,7 +188,7 @@ const SW_A = [G_, [0.26, 1.0, -0.22, -0.95, -1.4, -2.6, -2.75, 0.1], [0.34, 1.2,
 const T2 = Math.PI * 2, SW_B = [G_, [0.26, 1.5, 0.38, 0.95, -1.2, 4.4, 2.75 - T2, 0.3], [0.34, 1.2, 0.2, 0.1, 1.8, 4.2, 0.2 - T2, 1.0], [0.41, 0.7, -0.08, -0.8, 3.7, -0.5, -0.7 - T2, 1.5], [0.56, 0.45, -0.2, -0.9, 3.4, -2.4, -1.3 - T2, 1.4], [1, 0.5, 0.08, 0, 1.6, 3.0, -1.1 - T2, 0.8]];
 const PRE = [0, 1.3, 0.25, -1.0, -1.6, 4.0, 2.75, 0.6];
 // ---------------- abilities: dashing slice (8-way pad) and leap slam (aimed circle) ----------------
-const PART_CAP = 900, US_HIT = 0.62, US_END = 1.35, ULT_KILLS = 450, ULT_KILLS_FIRE = 300, ULT_T = 12, UT_IN = 1.2, UT_OUT = 0.7, ULT_SZ = 3, ULT_DMG = 700, ULT_SLAM_R = 78, ULT_LEAP = 2.25, ULT_CR = 1.0;
+const GIANT_DR = 0.65, PART_CAP = 900, US_HIT = 0.62, US_END = 1.35, ULT_KILLS = 450, ULT_KILLS_FIRE = 300, ULT_T = 12, UT_IN = 1.2, UT_OUT = 0.7, ULT_SZ = 3, ULT_DMG = 700, ULT_SLAM_R = 78, ULT_LEAP = 2.25, ULT_CR = 1.0;
 const DASH_D = 52, DASH_CD = 2, DASH_DMG = 200, DASH_R = 11, LEAP_R = 78, LEAP_CD = 7, SLAM_R = 26, SLAM_DMG = 320;
 const DIR8 = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]].map(([a, b]) => { const l = Math.hypot(a, b); return [a / l, b / l]; });
 const lcr = () => K.lcr || LT_CR;
@@ -1807,7 +1807,7 @@ function worldStep(dt, t) {
     if (w.atk < 0) { let bd = 1e9; KN.forEach((kn, i) => { if (kn.on === 0) return; const dd = Math.hypot(kn.x - w.x, kn.y - w.y); if (dd < bd) { bd = dd; w.tk = i; } }); }
     const T2 = (KN[w.tk] && KN[w.tk].on !== 0 ? KN[w.tk] : LIVE()[0]) || KN[0], dx = T2.x - w.x, dy = (T2.y - w.y), d = Math.hypot(dx, dy * 1.3) || 1;
     const U = UK[w.k], reach = 4.4 + U.r + ((T2.sz || 1) - 1) * 3.5;
-    if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5 && !((T2.z || 0) > 4)) { T2.hits += w.k === 'sapper' ? 3 : 1; if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
+    if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5 && !((T2.z || 0) > 4)) { T2.hits += (w.k === 'sapper' ? 3 : 1) * (T2.kind !== 'fire' && T2.ultPh >= 0 ? 1 - GIANT_DR : 1); if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
     else if (d > reach) { w.x += dx / d * w.sp * dt; w.y += dy / d * w.sp * dt; }
     else if (w.cd <= 0 && T2.st !== 'kneel') w.atk = 0;
     w.x += w.kx * UK[w.k].kb * dt; w.y += w.ky * UK[w.k].kb * dt; w.kx *= 1 - dt * 6; w.ky *= 1 - dt * 6;
@@ -1896,7 +1896,7 @@ function draw() {
     for (let i = 0; i < 8; i++) { const a0 = (i - 0.5) * Math.PI / 4; const sa = Math.atan2(Math.sin(a0) * 25 / 12, Math.cos(a0)), sb = Math.atan2(Math.sin(a0 + Math.PI / 4) * 25 / 12, Math.cos(a0 + Math.PI / 4)); x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, 25, sa, sb); x.closePath(); x.fillStyle = live && i === K.sec ? 'rgba(255,60,40,.35)' : 'rgba(255,255,255,.06)'; x.fill(); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 0.3; x.stroke(); }
     x.restore(); }
   if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
-  ST.textContent = (NET ? `Room ${NET.code} · ${LIVE().length}/${MAXP} · ` : '') + (LIVE().length > 1 ? `Enemies ${walkers.length} · ` + LIVE().map(kn => `${kn.i === ME ? 'You' : pName(kn.i)} ${kn.kills}k/${kn.hits}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${K.hits}`);
+  ST.textContent = (NET ? `Room ${NET.code} · ${LIVE().length}/${MAXP} · ` : '') + (LIVE().length > 1 ? `Enemies ${walkers.length} · ` + LIVE().map(kn => `${kn.i === ME ? 'You' : pName(kn.i)} ${kn.kills}k/${Math.round(kn.hits)}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${Math.round(K.hits)}`);
   const cdk = K.kind === 'fire' ? (K.lava ? 1 : cl((K.lvCd || 0) / LAVA.CD, 0, 1)) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
   { const FV = K.kind === 'fire', live = FV ? K.vPh >= 0 : K.ultPh >= 0, pr = cl((K.kills - (K.ultBase || 0)) / ultNeed(K), 0, 1);
     document.body.classList.toggle('volc', FV && live); const vOpen = K.vPh === 1 || (K.vPh === 0 && K.vT >= V.RISE - 1); VTAP.classList.toggle('on', FV && vOpen && K.vSh < V.SHOTS && !(K.vBel >= 0)); if (FV && vOpen) { const tx = `Tap the screen to erupt · ${V.SHOTS - K.vSh} left`; if (VTAP.textContent !== tx) VTAP.textContent = tx; }
@@ -2236,7 +2236,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR === 'fire'); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'a48252';
+const KBUILD = '8aae27';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
