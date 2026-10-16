@@ -1290,7 +1290,8 @@ function startCoals(v) {
   Object.assign(K, { coT: 0, coId: (K.coId || 0) + 1, cx0: K.x, cy0: K.y, cdx: d[0], cdy: d[1], cL: L, tsw: -1, att: 0, cone: 0 });
 }
 function coalStep(dt) {
-  K.coT += dt; const LAY = K.cL / CO.FRONT + 0.12, T = K.coT, run = Math.max(0, T - LAY), dur = K.cL / CO.SPD, q = Math.min(1, run / dur), d = [K.cdx, K.cdy], p = [-d[1], d[0] * 0.6];
+  // full speed down the bed, easing off over the last 30% (sp), like the knight's dash
+  K.coT += dt; const LAY = K.cL / CO.FRONT + 0.12, T = K.coT, run = Math.max(0, T - LAY), dur = K.cL * 1.176 / CO.SPD, q = Math.min(1, run / dur), sp = q < 0.7 ? 1.176 * q : 1 - 1.96 * (1 - q) * (1 - q), d = [K.cdx, K.cdy], p = [-d[1], d[0] * 0.6];
   K.f = d[0] >= 0 ? 1 : -1;
   if (T < LAY) { // he drives both torches at the ground and a wall of fire rolls away down the bed, leaving coals behind it
     K.vx = K.vy = 0; K.att = Math.min(1, T / 0.12); K.aimS = Math.atan2(d[1] * 0.6 + 0.8, d[0]); K.aim = K.aimS; K.cone = 0; K.heat = undefined;
@@ -1298,14 +1299,14 @@ function coalStep(dt) {
     for (let i = 0; i < Math.ceil(dt * 360); i++) { const b = rr(-CO.W / 2, CO.W / 2), x = K.cx0 + e1[0] * fr + e2[0] * b, y = K.cy0 + e1[1] * fr + e2[1] * b; K.fp.push({ h: rr(0.05, 0.4), x, y: y - rr(0, 2), vx: d[0] * rr(20, 70) + rr(-8, 8), vy: d[1] * rr(10, 40) - rr(14, 34), life: 0, max: rr(0.22, 0.38), sd: Math.random() * 6 }); }
     return; }
   K.att = Math.max(0, K.att - dt * 6);
-  const ox = K.x, oy = K.y; K.x = K.cx0 + d[0] * K.cL * q; K.y = cl(K.cy0 + d[1] * K.cL * q, 16, H - 4); K.vx = (K.x - ox) / Math.max(dt, 1e-4); K.vy = (K.y - oy) / Math.max(dt, 1e-4); K.spd = Math.hypot(K.vx, K.vy); K.wph = (K.wph || 0) + Math.hypot(K.x - ox, K.y - oy) * 0.42;
+  const ox = K.x, oy = K.y; K.x = K.cx0 + d[0] * K.cL * sp; K.y = cl(K.cy0 + d[1] * K.cL * sp, 16, H - 4); K.vx = (K.x - ox) / Math.max(dt, 1e-4); K.vy = (K.y - oy) / Math.max(dt, 1e-4); K.spd = Math.hypot(K.vx, K.vy); K.wph = (K.wph || 0) + Math.hypot(K.x - ox, K.y - oy) * 0.42;
   // flames thrown out past both long sides as he runs
   K.fp = K.fp || []; const n = Math.ceil(dt * 220);
   for (let i = 0; i < n; i++) { const sd = i % 2 ? 1 : -1, pl = Math.hypot(p[0], p[1]) || 1, ux = p[0] / pl * sd, uy = p[1] / pl * sd, sp = rr(110, 170); K.fp.push({ x: K.x + ux * 3, y: K.y - rr(3, 9), vx: ux * sp + d[0] * 40, vy: uy * sp + d[1] * 20, life: 0, max: rr(0.22, 0.32), sd: Math.random() * 6 }); }
-  if (AUTH()) { const s0 = K.cL * q;
+  if (AUTH()) { const s0 = K.cL * sp;
     for (const w of walkers) { if (w.hp <= 0 || w.coCut === K.coId) continue; const [a, b] = coalUV(w.x, w.y, { x0: K.cx0, y0: K.cy0, dx: d[0], dy: d[1] }); if (Math.abs(a - s0) > 6 || Math.abs(b) > CO.W / 2 + CO.SIDE + UK[w.k].r) continue;
       w.coCut = K.coId; w.bd = FIRE.BURN; w.bsrc = K.i; w.atk = -1; const sd = b >= 0 ? 1 : -1; w.kx += p[0] * sd * 120; w.ky += p[1] * sd * 120; w.hp -= CO.DMG; if (w.hp <= 0) { K.kills++; burnFx(w); } } }
-  if (q >= 1) { K.coT = -1; K.coCd = CO.CD; K.vx = K.vy = 0; }
+  if (q >= 1) { K.coT = -1; K.coCd = CO.CD; } // keeps his last velocity: with the stick held he runs straight on, otherwise he slides to a stop
 }
 // the coals keep burning anyone standing on them until they fade
 function coalBurn(dt) {
