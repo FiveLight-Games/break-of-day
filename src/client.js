@@ -63,7 +63,7 @@ function menuAct(a) {
   if (a === 'find') { goFull(); return startQuick(); }
   if (a === 'cancelSearch') { stopQuick(); homeScreen = 'home'; return renderMenu(); }
   if (a === 'cancelJoin') { leaveLobby(); return; }
-  if (a === 'knights') { location.href = 'knights.html'; return; }
+  if (a === 'knights') { location.href = 'knights.html?v=' + BUILD; return; }
   if (a === 'vsai') { goFull(); return enterSolo('def'); }
   if (a === 'atkai') { goFull(); return enterSolo('atk'); }
 }
