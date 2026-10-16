@@ -8,6 +8,7 @@ canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block}
 #top{position:fixed;top:8px;left:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;pointer-events:none}
 #top>*{pointer-events:auto}
 button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;cursor:pointer}
+#vol{margin-left:auto;display:flex;align-items:center;gap:6px;background:#1b1813e6;border:1px solid #3a332a;border-radius:10px;padding:5px 10px;color:#f0c419;font-size:16px}#vol input{width:96px;accent-color:#f0c419;touch-action:auto}
 #stats{margin-left:auto;background:#000a;border-radius:10px;padding:6px 10px;font-size:13px}
 .stick{position:fixed;bottom:22px;width:140px;height:140px;border-radius:50%;background:#ffffff14;border:2px solid #ffffff33;touch-action:none}
 .stick .knob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:#ffffff40;border:2px solid #ffffff80}
@@ -49,7 +50,7 @@ button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none
 
 <div id="horde" class="pnl"><div class="hrow"><b>Horde</b><button data-r="off" class="on">Off</button><button data-r="few">A few</button><button data-r="dozens">Dozens</button><button data-r="hundreds">Hundreds</button></div>
 <div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button><button data-n="50">+50</button></div></div>
-<div id="top"><a id="menuBtn" href="./">&#8962; Menu</a><button id="hordeBtn">&#9776; Horde</button><button id="clear">Clear</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><button id="sound">Sound: on</button><button id="music">Music: on</button><div id="stats"></div></div>
+<div id="top"><a id="menuBtn" href="./">&#8962; Menu</a><button id="hordeBtn">&#9776; Horde</button><button id="clear">Clear</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><button id="sound">Sound: on</button><div id="vol" title="Music volume"><span>&#9835;</span><input type="range" min="0" max="100" step="1"></div><div id="stats"></div></div>
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
 <div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
 <button id="spin"><i></i><span>SPIN</span></button>
@@ -855,7 +856,8 @@ function drawPart(c, p) {
 }
 // ---------- sound: all synthesized (Web Audio), throttled per kind so a horde doesn't turn into noise ----------
 const AU = { ctx: null, on: true, mus: true, last: {} };
-try { AU.on = localStorage.getItem('kn_sfx') !== '0'; AU.mus = localStorage.getItem('kn_mus') !== '0'; } catch (e) { }
+try { AU.on = localStorage.getItem('kn_sfx') !== '0'; const sv = localStorage.getItem('kn_vol'); if (sv !== null) AU.vol = +sv; } catch (e) { }
+if (!(AU.vol >= 0)) AU.vol = 44; AU.mus = AU.vol > 0; const musGain = () => AU.vol / 100 * 0.5;
 function audioInit() {
   if (AU.ctx) { if (AU.ctx.state === 'suspended') AU.ctx.resume().catch(() => { }); if (AU.mus && AU.go && AU.el && AU.el.paused) AU.el.play().catch(() => { }); return; }
   const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
@@ -864,12 +866,12 @@ function audioInit() {
   const n = c.createBuffer(1, c.sampleRate * 2, c.sampleRate), d = n.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; AU.noise = n;
   // music: the track loops quietly underneath; routed through a gain node because iOS ignores <audio>.volume
   const el = AU.el = new Audio('audio/baroque-breakdown.mp3'); el.loop = true; el.preload = 'auto';
-  try { const src = c.createMediaElementSource(el); AU.musG = c.createGain(); AU.musG.gain.value = AU.mus ? 0.22 : 0; src.connect(AU.musG); AU.musG.connect(c.destination); } catch (e) { el.volume = 0.22; }
+  try { const src = c.createMediaElementSource(el); AU.musG = c.createGain(); AU.musG.gain.value = musGain(); src.connect(AU.musG); AU.musG.connect(c.destination); } catch (e) { el.volume = Math.min(1, musGain()); }
   if (AU.mus && AU.go) el.play().catch(() => { });
 }
 // the music starts when the first knight pulls his sword from the stone
 function musGo() { AU.go = 1; if (AU.el && AU.mus && AU.el.paused) AU.el.play().catch(() => { }); }
-function setMusic(on) { AU.mus = on; try { localStorage.setItem('kn_mus', on ? '1' : '0'); } catch (e) { } if (!AU.el) return; if (AU.musG) AU.musG.gain.setTargetAtTime(on ? 0.22 : 0, AU.ctx.currentTime, 0.1); if (on && AU.go) AU.el.play().catch(() => { }); else if (!on) AU.el.pause(); }
+function setVol(v) { AU.vol = v; const on = AU.mus = v > 0; try { localStorage.setItem('kn_vol', String(v)); } catch (e) { } if (!AU.el) return; if (AU.musG) AU.musG.gain.setTargetAtTime(musGain(), AU.ctx.currentTime, 0.05); else AU.el.volume = Math.min(1, musGain()); if (on && AU.go && AU.el.paused) AU.el.play().catch(() => { }); else if (!on) AU.el.pause(); }
 ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, audioInit, { passive: true }));
 document.addEventListener('visibilitychange', () => { if (!AU.ctx) return; if (document.hidden) AU.ctx.suspend().catch(() => { }); else AU.ctx.resume().catch(() => { }); });
 function setSound(on) { AU.on = on; try { localStorage.setItem('kn_sfx', on ? '1' : '0'); } catch (e) { } if (AU.out) AU.out.gain.setTargetAtTime(on ? 0.7 : 0, AU.ctx.currentTime, 0.05); }
@@ -894,7 +896,7 @@ function snd(k, wx, wy, big) {
     case 'dash': noise(t, 0.26, 0.42 * v, 'bandpass', 300, 3200, 1.2, 0.03); ring(t + 0.05, 1900 * j, 0.35, 0.05 * v); noise(t + 0.05, 0.08, 0.18 * v, 'highpass', 5000, 7000, 0.8); break;
     case 'jump': noise(t, 0.3, 0.26 * v, 'lowpass', 300, 1100, 0.8, 0.04); tone('sine', 140, 240, t, 0.02, 0.2, 0.08 * v); break;
     case 'slam': tone('sine', 95, 32, t, 0.004, 0.55, 0.85 * v); noise(t, 0.5, 0.45 * v, 'lowpass', 1400, 120, 0.7); noise(t, 0.09, 0.3 * v, 'bandpass', 2500, 1200, 1.2); ring(t, 520, 0.6, 0.06 * v); for (let i = 0; i < 6; i++) noise(t + 0.08 + Math.random() * 0.3, 0.04, 0.08 * v, 'bandpass', 600 + Math.random() * 1500, 0, 3); break;
-    case 'pull': noise(t, 0.35, 0.16 * v, 'bandpass', 2600, 4200, 4, 0.08); ring(t + 0.3, 1320, 1.2, 0.06 * v); tone('sine', 660, 660, t + 0.3, 0.02, 0.9, 0.03 * v); break;
+    case 'pull': noise(t, 0.35, 0.16 * v, 'bandpass', 2600, 4200, 4, 0.08); break;
     case 'gore': { const s = big ? 0.7 : 1; noise(t, 0.12 * (big ? 1.5 : 1), 0.3 * v, 'lowpass', 1300 * s * j, 260, 1); tone('sine', 150 * s * j, 60, t, 0.003, 0.11, 0.2 * v); noise(t + 0.02, 0.05, 0.12 * v, 'bandpass', 900 * j, 500, 3); break; }
     case 'bones': for (let i = 0; i < 5; i++) tone('square', 1300 + Math.random() * 1600, 900, t + i * 0.022 + Math.random() * 0.02, 0.001, 0.025, 0.035 * v); noise(t, 0.06, 0.08 * v, 'bandpass', 2400, 1600, 2); break;
     case 'hit': noise(t, 0.06, 0.24 * v, 'lowpass', 1600 * j, 400, 1); tone('sine', 190 * j, 90, t, 0.002, 0.07, 0.15 * v); break;
@@ -1129,7 +1131,7 @@ const doClear = () => { if (!AUTH()) return NET.ch.send({ type: 'broadcast', eve
 const doReset = () => { if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'reset' } }); setup(); if (NET) NET.resync = 1; };
 document.getElementById('clear').onclick = doClear;
 document.getElementById('reset').onclick = doReset;
-{ const SB = document.getElementById('sound'), lab = () => SB.textContent = 'Sound: ' + (AU.on ? 'on' : 'off'); lab(); SB.onclick = () => { audioInit(); setSound(!AU.on); lab(); }; const MB = document.getElementById('music'), ml = () => MB.textContent = 'Music: ' + (AU.mus ? 'on' : 'off'); ml(); MB.onclick = () => { audioInit(); setMusic(!AU.mus); ml(); }; }
+{ const SB = document.getElementById('sound'), lab = () => SB.textContent = 'Sound: ' + (AU.on ? 'on' : 'off'); lab(); SB.onclick = () => { audioInit(); setSound(!AU.on); lab(); }; const VI = document.querySelector('#vol input'); VI.value = AU.vol; VI.addEventListener('input', () => { audioInit(); setVol(+VI.value); }); VI.addEventListener('change', () => VI.blur()); document.querySelector('#vol span').onclick = () => { audioInit(); const v = AU.vol > 0 ? 0 : (AU.lastVol || 44); if (AU.vol > 0) AU.lastVol = AU.vol; VI.value = v; setVol(v); }; }
 let ZONES = false; document.getElementById('zones').onclick = e => { ZONES = !ZONES; e.target.textContent = 'Hit zones: ' + (ZONES ? 'on' : 'off'); };
 const SLB = document.getElementById('slow');
 function slowLabel() { SLB.textContent = 'Slow-mo: ' + (speed === 1 ? 'off' : 'on'); SLB.style.borderColor = speed === 1 ? '' : '#f0c419'; SLB.style.color = speed === 1 ? '' : '#f0c419'; }
