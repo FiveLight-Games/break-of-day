@@ -40,5 +40,6 @@
   {"v": "0.39", "build": "232bf0", "commit": "c9c3ce6", "date": "2026-10-16", "notes": "Knight Brawl: music starts when the first knight pulls his sword."},
   {"v": "0.40", "build": "ab8a3b", "commit": "355b8cd", "date": "2026-10-16", "notes": "Knight Brawl: music volume slider, leap button moved right next to swing, swing/dash closer to the edge, no clink on sword pull or dash."},
   {"v": "0.41", "build": "62fd3b", "commit": "e4277e8", "date": "2026-10-16", "notes": "Knight Brawl: Spin button centred vertically in landscape."},
-  {"v": "0.42", "build": "5c37b1", "commit": "", "date": "2026-10-16", "notes": "Knight Brawl: 'Exit to main menu?' confirmation on the Menu button."}
+  {"v": "0.42", "build": "5c37b1", "commit": "d7aeade", "date": "2026-10-16", "notes": "Knight Brawl: 'Exit to main menu?' confirmation on the Menu button."},
+  {"v": "0.43", "build": "0c5438", "commit": "", "date": "2026-10-16", "notes": "Knight Brawl: basic swing glows like the spin with the spin's reach and a wide cleave (no hit cap), 20% slower; page reloads itself on new versions."}
 ]

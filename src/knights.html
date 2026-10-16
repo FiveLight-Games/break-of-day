@@ -69,7 +69,7 @@ const sm = k => k * k * (3 - 2 * k), lerp = (a, b, k) => a + (b - a) * k, L2 = (
 let mode = 'play', speed = 1, foes = false;
 const W = 640, H = 360, LANE_Y = 200;
 // tuning (demo units = game pixels)
-const AGGRO = 95, LEASH = 110, RUN = 62, WALKB = 26, SWING = 0.85, CLEAVE_R = 13, CLEAVE_DMG = 112, SPIN_CD = 0.5, SPIN_T = 1.87, SPIN_TURNS = 4, SPIN_O = 0, SPIN_MOM = 0, PRE_T = 0.5, SPIN_R = 22, SPIN_DMG = 160;
+const AGGRO = 95, LEASH = 110, RUN = 62, WALKB = 26, SWING = 1.02, CLEAVE_R = 13, CLEAVE_DMG = 112, CLEAVE_ARC = 1.9, SPIN_CD = 0.5, SPIN_T = 1.87, SPIN_TURNS = 4, SPIN_O = 0, SPIN_MOM = 0, PRE_T = 0.5, SPIN_R = 22, SPIN_DMG = 160;
 let K = null, walkers = [], parts = [], blood = [], splats = [], dust = [], sparks = [];
 function srand(s) { return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
 function shade(h, k) { const p = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); return '#' + p.map(v => Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k))).toString(16).padStart(2, '0')).join(''); }
@@ -942,7 +942,7 @@ function step(dt, t) {
 function knightStep(dt, t) {
   if (K.ab === 'dash' && K.abT >= DT_PREP && K.abT < DT_PREP + DT_GO + 0.06) { const P = pose(t); if (P.g) { const d = [Math.cos(P.a), Math.sin(P.a)], w2 = v => [K.x + v[0] * KS, K.y + v[1] * KS], grow = cl((K.abT - DT_PREP) / DT_GO, 0, 1);
     (K.slice = K.slice || []).push({ b: w2([P.g[0] + d[0] * 2, P.g[1] + d[1] * 2]), e: w2([P.g[0] + d[0] * (11 + 9 * grow), P.g[1] + d[1] * (11 + 9 * grow)]), g: grow }); if (K.slice.length > 40) K.slice.shift(); } }
-  if (K.spin >= 0 || (K.preGlow && K.glow > 0.3)) { const P = pose(t); if (P.g) { const L = 10.5 * (P.th != null ? (P.blade || 1) : 1) * 1.85, d = [Math.cos(P.a), Math.sin(P.a)], w2 = v => [K.x + v[0] * KS, K.y + v[1] * KS]; (K.trail = K.trail || []).push({ t, b: w2([P.g[0] + d[0] * 1.5, P.g[1] + d[1] * 1.5]), e: w2([P.g[0] + d[0] * (1 + L), P.g[1] + d[1] * (1 + L)]) }); if (K.trail.length > 30) K.trail.shift(); } }
+  if (K.spin >= 0 || (K.swing >= 0 && K.glow > 0.3) || (K.preGlow && K.glow > 0.3)) { const P = pose(t); if (P.g) { const L = 10.5 * (P.th != null ? (P.blade || 1) : 1) * 1.85, d = [Math.cos(P.a), Math.sin(P.a)], w2 = v => [K.x + v[0] * KS, K.y + v[1] * KS]; (K.trail = K.trail || []).push({ t, b: w2([P.g[0] + d[0] * 1.5, P.g[1] + d[1] * 1.5]), e: w2([P.g[0] + d[0] * (1 + L), P.g[1] + d[1] * (1 + L)]) }); if (K.trail.length > 30) K.trail.shift(); } }
   else if (K.trail && K.trail.length) { if (t - K.trail[K.trail.length - 1].t > 0.2) K.trail = []; }
   K.post = Math.max(0, (K.post || 0) - dt);
   if (K.xfT > 0) K.xfT -= dt;
@@ -955,7 +955,7 @@ function startPull() { if (K.st === 'kneel') { K.st = 'pull'; K.u = 0; K.pullUp 
 function stepK(dt, t) {
   const IN = K.in;
   if (K.preGlow && K.spin < 0) K.glow = sm(cl((1 - K.pre / PRE_T) / 0.45, 0, 1)); // the light blade grows as he raises the sword over his head
-  else K.glow = ap(K.glow, K.spin >= 0 ? 1 : 0, dt * (K.spin >= 0 ? 8 : 3));
+  else { const lit = K.spin >= 0 || K.swing >= 0; K.glow = ap(K.glow, lit ? 1 : 0, dt * (lit ? 8 : 3)); } // swings glow like the spin
   K.slotGlow = ap(K.slotGlow, K.hold ? 0.6 + 0.4 * Math.sin(t * 3) : 0, dt * 2);
   if (K.spin < 0 && !K.preGlow) K.spinCd -= dt;
   const s = stoneW(), mvL = Math.hypot(IN.mv[0], IN.mv[1]);
@@ -1013,7 +1013,8 @@ function stepK(dt, t) {
       K.swing += dt; const u = K.swing / SWING, ad = [Math.cos(K.aimA), Math.sin(K.aimA)];
       if (u > 0.26 && u < 0.42) { K.x += ad[0] * 16 * dt; K.y += ad[1] * 10 * dt; } // he steps into the blow
       if (u >= 0.4 && !K.hitDone) { K.hitDone = 1; const f = K.f; if (AUTH())
-        for (const w of walkers) { if (w.hp <= 0) continue; const ex = w.x - K.x, ey = (w.y + 4 - K.y) * 1.4, d = Math.hypot(ex, ey) - UK[w.k].r + 2.1; if (d > CLEAVE_R + 2) continue; let da = Math.atan2(ey, ex) - Math.atan2(ad[1] * 1.4, ad[0]); da = Math.atan2(Math.sin(da), Math.cos(da)); if (d < 3 || Math.abs(da) < 1.8) { w.kx += ad[0] * 18; w.ky += ad[1] * 10; w.atk = -1; hurt(w, CLEAVE_DMG, ww => cleaveFx(ww, ex >= 0 ? 1 : -1)); } } }
+        // the light blade reaches as far as the spin's: everyone inside that ellipse and on the swing's side of him is cut, no limit
+        for (const w of walkers) { if (w.hp <= 0) continue; const ex = w.x - K.x, ey = (w.y - 5 * UK[w.k].sc) - (K.y - 7), rx = 25 + UK[w.k].r - 2.1, ry = 12 + UK[w.k].r - 2.1, q = Math.hypot(ex / rx, ey / ry); if (q > 1) continue; let da = Math.atan2(ey * 25 / 12, ex) - Math.atan2(ad[1], ad[0]); da = Math.atan2(Math.sin(da), Math.cos(da)); if (q < 0.25 || Math.abs(da) < CLEAVE_ARC) { w.kx += ad[0] * 18; w.ky += ad[1] * 10; w.atk = -1; hurt(w, CLEAVE_DMG, ww => cleaveFx(ww, ex >= 0 ? 1 : -1)); } } }
       if (u >= 1) { K.swing = -1; K.swN++; }
     }
     K.st = K.spd > RUN * 0.55 && K.swing < 0 && K.spin < 0 ? 'charge' : 'fight';
