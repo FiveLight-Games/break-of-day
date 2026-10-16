@@ -26,15 +26,16 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 #lobbyUI a{color:#a59c88;font-size:12px}
 #note{position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#000b;border-radius:10px;padding:6px 12px;font-size:12px;display:none;pointer-events:none}
 #menuBtn{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;text-decoration:none}
-#dpad{position:fixed;right:calc(20vw + 7px);bottom:172px;display:grid;grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,40px);gap:3px;touch-action:none}
-#dpad button{padding:0;font:800 18px system-ui;border-radius:9px;background:#211d18c0}#dpad span{display:flex;align-items:center;justify-content:center;font:800 10px system-ui;color:#fff8}
-#dpad.cd button{opacity:.35}
+#dash{position:fixed;right:calc(20vw + 22px);bottom:172px;width:96px;height:96px;border-radius:50%;background:#9fd3ff14;border:2px solid #9fd3ff80;touch-action:none;overflow:hidden}
+#dash .dot{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:#9fd3ff80;border:2px solid #9fd3ff}
+#dash i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0}
+#dash small{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;color:#9fd3ffc0}
 #aoe{position:fixed;left:44px;bottom:172px;width:96px;height:96px;border-radius:50%;background:#f0c41914;border:2px solid #f0c41980;touch-action:none;overflow:hidden}
 #aoe .dot{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:#f0c41980;border:2px solid #f0c419}
 #aoe i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0}
 #aoe small{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;color:#f0c419c0}
 #spawnUI .kinds{flex-direction:row !important}
-@media (orientation:portrait){#dpad{right:calc(16vw - 8px);bottom:140px}#aoe{left:27px;bottom:140px;width:84px;height:84px}#spin{bottom:276px !important}#spawnUI .kinds{flex-direction:column !important}}
+@media (orientation:portrait){#dash{right:calc(16vw + 13px);bottom:140px;width:84px;height:84px}#aoe{left:27px;bottom:140px;width:84px;height:84px}#spin{bottom:276px !important}#spawnUI .kinds{flex-direction:column !important}}
 #spawnUI{position:fixed;left:8px;top:54px;display:flex;flex-direction:column;gap:6px;z-index:2}#spawnUI .kinds,#spawnUI .counts{display:flex;flex-direction:column;gap:4px}#spawnUI .counts{flex-direction:row}#spawnUI button{padding:6px 9px;font-size:12px}#spawnUI .on{border-color:#f0c419;color:#f0c419}
 @media (orientation:portrait){#spawnUI{top:92px}}
 #help{position:fixed;left:50%;transform:translateX(-50%);bottom:6px;font-size:11px;color:#fff9;text-align:center;pointer-events:none}
@@ -47,9 +48,9 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
 <div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
 <button id="spin"><i></i><span>SPIN</span></button>
-<div id="dpad"><button data-d="5">&#8598;</button><button data-d="6">&#8593;</button><button data-d="7">&#8599;</button><button data-d="4">&#8592;</button><span>DASH</span><button data-d="0">&#8594;</button><button data-d="3">&#8601;</button><button data-d="2">&#8595;</button><button data-d="1">&#8600;</button></div>
+<div id="dash" class="aim"><i></i><div class="dot"></div><small>dash</small></div>
 <div id="aoe"><i></i><div class="dot"></div><small>leap</small></div>
-<div id="help">WASD move · hold mouse to swing toward cursor · Space spin · Shift dash · hold Q to aim the leap at the cursor, release to jump · wheel zoom</div>
+<div id="help">WASD move · hold mouse to swing toward cursor · Space spin · Shift dash where you're moving · hold Q to aim the leap at the cursor, release to jump · wheel zoom</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 (() => {
@@ -168,8 +169,9 @@ const DT_PREP = 0.2, DT_GO = 0.26, DT_REC = 0.24, LT_CR = 0.28, LT_AIR = 0.85, L
 const lerpA = (A, B, k) => A.map((v, j) => j ? lerp(v, B[j], k) : 0);
 // [u, crouch, lean, twist, hand x, hand y, sword angle, step]
 const DP_PREP = [0, 1.5, 0.35, 0.5, 2.2, 4.4, 1.25, 1.2], DP_GO = [0, 0.6, 0.55, -0.9, 2.6, -2.6, -2.3, 1.6];
-const LP_CR = [0, 1.9, 0.4, 0.2, 1.8, 4.6, 1.3, 0.6], LP_TUCK = [0, 1.6, 0.25, 0, 1.2, 1.0, 0.7, 0], LP_EXT = [0, 0, -0.25, 0, 0.4, -6.2, -1.75, 0], LP_SLAM = [0, 0.9, 0.5, 0, 2.4, 3.4, 1.15, 0.8], LP_LAND = [0, 1.7, 0.55, 0, 2.4, 4.2, 1.3, 0.8];
-let FX = [], shake = 0, LEAPAIM = null;
+const LP_CR = [0, 1.9, 0.4, 0.2, 1.8, 4.6, 1.3, 0.6], LP_TUCK = [0, 1.6, 0.25, 0, 1.2, 1.0, 0.7, 0], LP_FALL = [0, -0.3, -0.15, 0, 0.6, -6.0, -2.0, 0], LP_LAND = [0, 1.8, 0.6, 0, 3.2, 4.6, 1.2, 1.0];
+const LAND_IN = 7; // he lands this far short of the slam centre, so the blade comes down on it
+let FX = [], shake = 0, LEAPAIM = null, DASHAIM = null;
 function abilityPose() {
   const t = K.abT;
   if (K.ab === 'dash') { // tip down + squat, then a rising slash as he launches, then back to guard
@@ -180,29 +182,32 @@ function abilityPose() {
   if (K.ab === 'leap') { // crouch, tucked flips on the way up, stretch with the sword overhead after the apex, slam down
     if (t < LT_CR) return lerpA(G_, LP_CR, sm(t / LT_CR));
     const q = (t - LT_CR) / LT_AIR;
-    if (q < 1) { if (q < 0.55) return lerpA(LP_CR, LP_TUCK, sm(Math.min(1, q / 0.12))); let A = lerpA(LP_TUCK, LP_EXT, sm(Math.min(1, (q - 0.55) / 0.15))); if (q > 0.8) A = lerpA(A, LP_SLAM, sm((q - 0.8) / 0.2)); return A; }
+    if (q < 1) { if (q < 0.55) return lerpA(LP_CR, LP_TUCK, sm(Math.min(1, q / 0.12))); let A = lerpA(LP_TUCK, LP_FALL, sm(Math.min(1, (q - 0.55) / 0.15))); if (q > 0.88) A = lerpA(A, LP_LAND, sm((q - 0.88) / 0.12)); return A; }
     const r = (t - LT_CR - LT_AIR) / LT_LAND; return r < 0.35 ? LP_LAND : lerpA(LP_LAND, G_, sm((r - 0.35) / 0.65));
   }
   return null;
 }
 // height, flips and tuck all follow from the ability clock, so both screens draw the same jump
 function abilityBody() {
-  K.z = 0; K.flipA = 0; K.tuck = 0; K.straight = 0;
+  K.z = 0; K.flipA = 0; K.tuck = 0; K.fallLeg = 0;
   if (K.ab !== 'leap') return;
   const q = (K.abT - LT_CR) / LT_AIR; if (q <= 0 || q >= 1) return;
   const dist = Math.hypot(K.ax1 - K.ax0, K.ay1 - K.ay0), Hh = 22 + dist * 0.15;
   K.z = Hh * 4 * q * (1 - q);
   if (q < 0.55) { const e = q / 0.55; K.flipA = e * e * (3 - 2 * e) * Math.PI * 4; K.tuck = sm(Math.min(1, q / 0.1)) * (1 - sm(cl((q - 0.45) / 0.1, 0, 1))); }
-  else K.straight = sm(Math.min(1, (q - 0.55) / 0.15));
+  else { // falling: tipped 45° toward the landing, sword overhead, legs trailing back with soft knees; uprights right at the slam
+    const inn = sm(Math.min(1, (q - 0.55) / 0.15)), out = q > 0.88 ? sm((q - 0.88) / 0.12) : 0;
+    K.flipA = Math.PI * 4 + Math.PI / 4 * inn * (1 - out); K.fallLeg = inn * (1 - out); }
 }
-function startDash(di) {
-  const d = DIR8[di]; Object.assign(K, { lastWave: 0, ab: 'dash', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: cl(K.x + d[0] * DASH_D, 8, W - 8), ay1: cl(K.y + d[1] * DASH_D * 0.8, 16, H - 4), dashCd: DASH_CD + DT_PREP + DT_GO + DT_REC });
+function startDash(v) {
+  const l = Math.hypot(v[0], v[1]) || 1, d = [v[0] / l, v[1] / l]; Object.assign(K, { dvx: d[0], dvy: d[1], slice: [], ab: 'dash', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: cl(K.x + d[0] * DASH_D, 8, W - 8), ay1: cl(K.y + d[1] * DASH_D * 0.8, 16, H - 4), dashCd: DASH_CD + DT_PREP + DT_GO + DT_REC });
   if (Math.abs(d[0]) > 0.2) K.f = d[0] > 0 ? 1 : -1;
 }
 function leapTarget(kn, v) { return [cl(kn.x + v[0] * LEAP_R, 8, W - 8), cl(kn.y + v[1] * LEAP_R * 0.8, 16, H - 4)]; }
 function startLeap(v) {
-  const tg = leapTarget(K, v); Object.assign(K, { ab: 'leap', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: tg[0], ay1: tg[1], leapCd: LEAP_CD + LT_CR + LT_AIR + LT_LAND });
-  if (Math.abs(tg[0] - K.x) > 2) K.f = tg[0] > K.x ? 1 : -1;
+  const tg = leapTarget(K, v), dx = tg[0] - K.x, dy = tg[1] - K.y, d = Math.hypot(dx, dy), back = Math.min(LAND_IN, d * 0.6), lx = tg[0] - (d ? dx / d : 0) * back, ly = tg[1] - (d ? dy / d : 0) * back * 0.6;
+  Object.assign(K, { ab: 'leap', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: lx, ay1: ly, sx: tg[0], sy: tg[1], leapCd: LEAP_CD + LT_CR + LT_AIR + LT_LAND });
+  if (Math.abs(dx) > 2) K.f = dx > 0 ? 1 : -1;
 }
 // distance from a point to a segment, in the game's squashed ground space
 function segDist(px, py, a, b) { const dx = b[0] - a[0], dy = (b[1] - a[1]) * 1.3, l2 = dx * dx + dy * dy || 1e-6, q = cl(((px - a[0]) * dx + (py - a[1]) * 1.3 * dy) / l2, 0, 1); return Math.hypot(px - (a[0] + dx * q), (py - a[1]) * 1.3 - dy * q); }
@@ -214,10 +219,9 @@ function stepAbility(dt) {
       const ease = q => 1 - (1 - q) * (1 - q), qa = ease(cl((t0 - g0) / DT_GO, 0, 1)), qb = ease(cl((t - g0) / DT_GO, 0, 1));
       const pa = [lerp(K.ax0, K.ax1, qa), lerp(K.ay0, K.ay1, qa)], pb = [lerp(K.ax0, K.ax1, qb), lerp(K.ay0, K.ay1, qb)], ang = Math.atan2(K.ay1 - K.ay0, K.ax1 - K.ax0);
       K.x = pb[0]; K.y = pb[1];
-      if (!K.lastWave || t - K.lastWave > 0.055) { K.lastWave = t; FX.push({ k: 'wave', x: K.x + Math.cos(ang) * 6, y: K.y - 6 + Math.sin(ang) * 4, ang, t: 0, max: 0.24, s: 0.75 + 0.5 * Math.sin(Math.PI * qb) }); }
       if (AUTH()) for (const w of walkers) { if (w.hp <= 0 || w.dashed === K.i * 1e6 + K.abId) continue; if (segDist(w.x, w.y, pa, pb) < DASH_R + UK[w.k].r) { w.dashed = K.i * 1e6 + K.abId; w.atk = -1; w.kx += Math.cos(ang) * 90; w.ky += Math.sin(ang) * 50; hurt(w, DASH_DMG, ww => dashFx(ww, ang)); } }
     }
-    if (t >= g1 + DT_REC) K.ab = null;
+    if (t >= g1 + DT_REC) { K.ab = null; if (K.slice && K.slice.length > 1) FX.push({ k: 'slice', pts: K.slice, t: 0, max: 0.3 }); K.slice = null; }
   } else if (K.ab === 'leap') {
     const a0 = LT_CR, a1 = LT_CR + LT_AIR;
     if (t > a0 && t0 < a1) { const q = cl((t - a0) / LT_AIR, 0, 1); K.x = lerp(K.ax0, K.ax1, q); K.y = lerp(K.ay0, K.ay1, q); }
@@ -226,7 +230,7 @@ function stepAbility(dt) {
   }
 }
 function slam() {
-  const cx = K.x, cy = K.y;
+  const cx = K.sx ?? K.x, cy = K.sy ?? K.y;
   FX.push({ k: 'ring', x: cx, y: cy, t: 0, max: 0.45 }, { k: 'crater', x: cx, y: cy, t: 0, max: 6, seed: Math.random() * 1e4 });
   for (let i = 0; i < 34; i++) { const a = rr(0, 6.28), v = rr(18, 55); dust.push({ x: cx + Math.cos(a) * 3, y: cy + Math.sin(a) * 1.5, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1, 2.2), t: 0, max: rr(0.4, 0.9) }); }
   if (K.i === ME) shake = 0.35;
@@ -273,6 +277,24 @@ function drawFxAir(c) {
   c.restore();
 }
 // aimed preview for the leap: a lit circle where he'll land, joined by an arc
+// one ribbon along the blade's path: thin and faint where the slash began, widest and brightest at the blade now
+function drawSlice(c, pts, fade) {
+  const n = pts.length; c.save(); c.globalCompositeOperation = 'lighter';
+  for (let i = 1; i < n; i++) { const A = pts[i - 1], B = pts[i], k = i / (n - 1), al = 0.55 * fade * k ** 1.3 * (0.5 + 0.5 * B.g);
+    const g = c.createLinearGradient(B.b[0], B.b[1], B.e[0], B.e[1]); g.addColorStop(0, 'rgba(255,230,160,0)'); g.addColorStop(0.45, `rgba(255,236,175,${al * 0.45})`); g.addColorStop(1, `rgba(255,252,235,${al})`);
+    c.fillStyle = g; c.beginPath(); c.moveTo(...A.b); c.lineTo(...A.e); c.lineTo(...B.e); c.lineTo(...B.b); c.closePath(); c.fill(); }
+  const L = pts[n - 1]; c.strokeStyle = `rgba(255,255,245,${0.8 * fade})`; c.lineWidth = 0.5; c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(...p.e) : c.moveTo(...p.e)); c.stroke();
+  c.restore();
+}
+// dash aim preview: the path he'll cut
+function drawDashPreview(c, t) {
+  const kn = KN[ME]; if (!DASHAIM || !kn || kn.st === 'kneel') return;
+  const l = Math.hypot(...DASHAIM) || 1, d = [DASHAIM[0] / l, DASHAIM[1] / l], ex = cl(kn.x + d[0] * DASH_D, 8, W - 8), ey = cl(kn.y + d[1] * DASH_D * 0.8, 16, H - 4), a = Math.atan2(ey - kn.y, ex - kn.x), len = Math.hypot(ex - kn.x, ey - kn.y);
+  c.save(); c.translate(kn.x, kn.y); c.rotate(a);
+  const g = c.createLinearGradient(0, 0, len, 0); g.addColorStop(0, 'rgba(255,220,120,.05)'); g.addColorStop(1, 'rgba(255,220,120,.35)'); c.fillStyle = g;
+  c.beginPath(); c.moveTo(0, -DASH_R * 0.5); c.lineTo(len, -DASH_R); c.lineTo(len + 4, 0); c.lineTo(len, DASH_R); c.lineTo(0, DASH_R * 0.5); c.closePath(); c.fill();
+  c.strokeStyle = 'rgba(255,240,190,.8)'; c.lineWidth = 0.5; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 10; c.stroke(); c.restore();
+}
 function drawLeapPreview(c, t) {
   const kn = KN[ME]; if (!LEAPAIM || !kn || kn.st === 'kneel') return;
   const [tx, ty] = leapTarget(kn, LEAPAIM), pul = 0.5 + 0.5 * Math.sin(t * 8);
@@ -293,7 +315,7 @@ function kfn(u, keys) { let i = 0; while (i < keys.length - 2 && keys[i + 1][0] 
 const rot = (v, a) => [v[0] * Math.cos(a) - v[1] * Math.sin(a), v[0] * Math.sin(a) + v[1] * Math.cos(a)];
 const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
 function pose(t) {
-  let f = K.f; const kn = K.kn, br = Math.sin(t * 2.1), mv = cl(K.spd / 10, 0, 1), run = cl(K.spd / RUN, 0, 1), gp = K.gp;
+  let f = K.f; const kn = K.kn, br = Math.sin(t * 2.1), mv = K.ab ? 0 : cl(K.spd / 10, 0, 1), run = K.ab ? 0 : cl(K.spd / RUN, 0, 1), gp = K.gp;
   const P = { f, back: false, wscale: 1 };
   // ---- action layer ----
   const combat = K.hold && (K.st === 'charge' || K.st === 'fight');
@@ -338,7 +360,7 @@ function pose(t) {
   const spinStance = a => { const pp = [-Math.sin(a), Math.cos(a) * 0.45]; return [0, 1].map(i => [(i ? 1 : -1) * pp[0] * 1.9, (i ? 1 : -1) * pp[1] * 1.9]); };
   if (th !== null) stance = spinStance(th); else if (kb || ps) { const ss = spinStance(thB), wb = Math.max(kb, ps); stance = stance.map((p2, i) => L2(p2, ss[i], wb)); }
   const feetS = [0, 1].map(i => L2(stance[i], loco[i], mv));
-  if (K.tuck > 0 || K.straight > 0) for (let i = 0; i < 2; i++) { const s2 = i ? 1 : -1, tk = [s2 * 0.7 + f * 1.6, -3.6], sg = [s2 * 0.5 - f * 0.4, 0.2]; feetS[i] = L2(L2(feetS[i], sg, K.straight || 0), tk, K.tuck || 0); }
+  if (K.tuck > 0 || K.fallLeg > 0) for (let i = 0; i < 2; i++) { const s2 = i ? 1 : -1, tk = [s2 * 0.7 + f * 1.6, -3.6], fl = [s2 * 0.35 - f * (1.6 + i * 0.5), -0.9 - i * 0.4]; feetS[i] = L2(L2(feetS[i], fl, K.fallLeg || 0), tk, K.tuck || 0); }
   const bob = mv * (Math.abs(Math.cos(gp)) * 0.55 - 0.3);
   const pel = [f * (stepA * 0.55 * (1 - mv) + run * 0.35), -5.9 + cr * 0.95 + bob];
   lean += run * 0.28 * (K.swing >= 0 ? 0.4 : 1); tw += Math.sin(gp) * 0.25 * mv;
@@ -363,6 +385,10 @@ function pose(t) {
     g = add(C, rot([f * hx, hy], L * 0.6 * (1 - ps))); sa = f > 0 ? a + L * 0.5 * (1 - ps) : Math.PI - a + L * 0.5 * (1 - ps);
     if (kb) { g = L2(g, add(C, [Math.cos(thB) * 2.5, Math.sin(thB) * 0.9 + 1.3]), kb); let st = Math.atan2(Math.sin(thB) * 0.45, Math.cos(thB)); st += Math.PI * 2 * Math.round((sa - st) / (Math.PI * 2)); sa = lerp(sa, st, kb); }
   }
+  P.bury = 0;
+  if (K.ab === 'leap' && g && K.sx != null) { const q = (K.abT - LT_CR) / LT_AIR, r = (K.abT - LT_CR - LT_AIR) / LT_LAND, wS = q < 0.9 ? 0 : q < 1 ? sm((q - 0.9) / 0.1) : r < 0.45 ? 1 : 1 - sm((r - 0.45) / 0.4);
+    if (wS > 0) { const A2 = f > 0 ? 1.42 : Math.PI - 1.42, d2 = [Math.cos(A2), Math.sin(A2)], tip = [(K.sx - K.x) / KS, (K.sy - K.y) / KS + 1.8], g2 = [tip[0] - d2[0] * 12.1, tip[1] - d2[1] * 12.1];
+      g = L2(g, g2, wS); sa = lerp(sa, A2 + Math.PI * 2 * Math.round((sa - A2) / (Math.PI * 2)), wS); if (q >= 1) P.bury = (K.sy - K.y) / KS; } }
   if (g) { const d = [Math.cos(sa), Math.sin(sa)]; hands = [g, [g[0] + d[0] * 0.9, g[1] + d[1] * 0.9]]; }
   if (!hands) { const rk = add(C, [f * 1.0, 4.4]); hands = [rk, [rk[0] - f * 0.6, rk[1] + 0.2]]; }
   // ---- kneeling pose, blended over everything ----
@@ -388,7 +414,7 @@ function drawKnight(c, t) {
   c.save(); c.translate(K.x, K.y); c.scale(KS, KS);
   const clipSlot = K.hold && (K.st === 'pull' || K.st === 'sheathe'), slotY = (stoneW()[1] - 4.3 - K.y) / KS;
   const L = 10.5 * (P.th != null ? P.blade : 1);
-  const drawBlade = () => { if (!K.hold || !P.g) return; c.save(); if (clipSlot) { c.beginPath(); c.rect(-40, -60, 80, 60 + slotY); c.clip(); } lightSword(c, P.g, P.a, L, K.glow, t); sword(c, P.g, P.a, L); c.restore(); };
+  const drawBlade = () => { if (!K.hold || !P.g) return; c.save(); if (clipSlot) { c.beginPath(); c.rect(-40, -60, 80, 60 + slotY); c.clip(); } if (P.bury) { c.beginPath(); c.rect(-60, -80, 120, 80 + P.bury); c.clip(); } lightSword(c, P.g, P.a, L, K.glow, t); sword(c, P.g, P.a, L); c.restore(); };
   const zs = Math.max(0.35, 1 - (K.z || 0) / 50); c.fillStyle = `rgba(0,0,0,${0.3 * zs})`; c.beginPath(); c.ellipse(P.pel[0] * 0.5, 0.4, (4.4 + K.kn * 1.0) * zs, 1.5 * zs, 0, 0, 7); c.fill();
   if (K.z) c.translate(0, -K.z / KS);
   if (K.flipA) { c.translate(P.pel[0], -6); c.rotate(K.flipA * f); c.translate(-P.pel[0], 6); }
@@ -701,6 +727,8 @@ function step(dt, t) {
   netTick(dt, t);
 }
 function knightStep(dt, t) {
+  if (K.ab === 'dash' && K.abT > DT_PREP - 0.04 && K.abT < DT_PREP + DT_GO + 0.06) { const P = pose(t); if (P.g) { const d = [Math.cos(P.a), Math.sin(P.a)], w2 = v => [K.x + v[0] * KS, K.y + v[1] * KS], grow = cl((K.abT - DT_PREP) / DT_GO, 0, 1);
+    (K.slice = K.slice || []).push({ b: w2([P.g[0] + d[0] * 2, P.g[1] + d[1] * 2]), e: w2([P.g[0] + d[0] * (11 + 9 * grow), P.g[1] + d[1] * (11 + 9 * grow)]), g: grow }); if (K.slice.length > 40) K.slice.shift(); } }
   if (K.spin >= 0 || (K.preGlow && K.glow > 0.3)) { const P = pose(t); if (P.g) { const L = 10.5 * (P.th != null ? (P.blade || 1) : 1) * 1.85, d = [Math.cos(P.a), Math.sin(P.a)], w2 = v => [K.x + v[0] * KS, K.y + v[1] * KS]; (K.trail = K.trail || []).push({ t, b: w2([P.g[0] + d[0] * 1.5, P.g[1] + d[1] * 1.5]), e: w2([P.g[0] + d[0] * (1 + L), P.g[1] + d[1] * (1 + L)]) }); if (K.trail.length > 30) K.trail.shift(); } }
   else if (K.trail && K.trail.length) { if (t - K.trail[K.trail.length - 1].t > 0.2) K.trail = []; }
   K.post = Math.max(0, (K.post || 0) - dt);
@@ -731,7 +759,7 @@ function stepK(dt, t) {
     if (K.dashCd > 0) K.dashCd -= dt;
     if (K.leapCd > 0) K.leapCd -= dt;
     const mayStart = K.spin < 0 && !K.preGlow && !K.ab, mine = AUTH() || K.i === ME;
-    if (mine && IN.dashN !== K.dashSeen) { const fresh = K.dashSeen !== undefined; K.dashSeen = IN.dashN; if (fresh && mayStart && !(K.dashCd > 0) && IN.dashD != null) startDash(IN.dashD); }
+    if (mine && IN.dashN !== K.dashSeen) { const fresh = K.dashSeen !== undefined; K.dashSeen = IN.dashN; if (fresh && mayStart && !(K.dashCd > 0) && IN.dashD) startDash(IN.dashD); }
     if (mine && IN.leapN !== K.leapSeen) { const fresh = K.leapSeen !== undefined; K.leapSeen = IN.leapN; if (fresh && mayStart && !(K.leapCd > 0) && IN.leapT) startLeap(IN.leapT); }
     if (K.ab) { stepAbility(dt); abilityBody(); K.st = 'fight'; return; }
     abilityBody();
@@ -808,7 +836,7 @@ function draw() {
   x.setTransform(sc, 0, 0, sc, cv.width / 2 - (camX + shx) * sc, cv.height / 2 - (camY + shy) * sc); x.drawImage(ground, 0, 0, W, H);
   for (const sp of splats) { x.globalAlpha = Math.max(0, 1 - sp.t / 5) * 0.85; x.fillStyle = '#6a1610'; x.beginPath(); x.ellipse(sp.x, sp.y, sp.r, sp.r * 0.5, 0, 0, 7); x.fill(); } x.globalAlpha = 1;
   for (const kn of KN) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
-  drawFxGround(x); drawLeapPreview(x, t);
+  drawFxGround(x); drawLeapPreview(x, t); drawDashPreview(x, t);
   for (const p of parts) if (p.rest) { x.globalAlpha = Math.max(0, 1 - (p.t - p.rest) / 4); drawPart(x, p); } x.globalAlpha = 1;
   const list = KN.flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(walkers.map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).sort((a, b) => a[0] - b[0]);
   for (const [, k, o] of list) {
@@ -823,6 +851,8 @@ function draw() {
   for (const b of blood) { x.fillStyle = '#9c1c12'; x.beginPath(); x.arc(b.x, b.y - b.z, 0.38, 0, 7); x.fill(); }
   for (const p of dust) { const k = p.t / p.max; x.fillStyle = `rgba(150,140,120,${0.5 * (1 - k)})`; x.beginPath(); x.arc(p.x, p.y - k * 2.5, p.r * (1 + k * 1.6), 0, 7); x.fill(); }
   x.save(); x.globalCompositeOperation = 'lighter'; for (const p of sparks) { const k = p.t / p.max; x.fillStyle = `rgba(255,230,150,${1 - k})`; x.beginPath(); x.arc(p.x, p.y, 0.45, 0, 7); x.fill(); } x.restore();
+  for (const kn of KN) if (kn.ab === 'dash' && kn.slice && kn.slice.length > 1) drawSlice(x, kn.slice, 1);
+  for (const f of FX) if (f.k === 'slice') drawSlice(x, f.pts, 1 - f.t / f.max);
   drawFxAir(x);
   // blade trail: a short ribbon the length of the light blade, fading behind it
   for (const kn of KN) { K = kn; if (K.trail && K.trail.length > 1) { x.save(); const now = K.trail[K.trail.length - 1].t, TL = 0.11;
@@ -838,7 +868,7 @@ function draw() {
   if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
   ST.textContent = NP > 1 ? `Enemies ${walkers.length} · ` + KN.map(kn => `${kn.i === ME ? 'You' : (NET && NET.otherName) || 'P' + (kn.i + 1)} ${kn.kills}k/${kn.hits}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${K.hits}`;
   const cdk = K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
-  DPAD.classList.toggle('cd', K.ab === 'dash' || K.dashCd > 0); AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
+  DASHI.style.height = (K.ab === 'dash' ? 100 : cl((K.dashCd || 0) / DASH_CD, 0, 1) * 100) + '%'; AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
 }
 function frame(ms) {
   const dt = Math.min(0.05, (ms - last) / 1000) * speed; last = ms; t += dt; step(dt, t); draw();
@@ -881,11 +911,18 @@ let stickMv = [0, 0], stickAim = null, keyMv = [0, 0], mouseAim = null, keySpin 
 const syncIn = () => { const IN = KN[ME].in; IN.mv = Math.hypot(...stickMv) > 0.05 ? stickMv : keyMv; IN.aim = stickAim || mouseAim; IN.spin = keySpin || btnSpin; if (NET && NET.mode === 'guest') NET.inDirty = 1; };
 stick(document.getElementById('lst'), v => { stickMv = v || [0, 0]; syncIn(); });
 stick(document.getElementById('rst'), v => { stickAim = v && Math.hypot(...v) > 0.35 ? v : null; syncIn(); }, true);
-const DPAD = document.getElementById('dpad'), AOE = document.getElementById('aoe'), AOEI = AOE.querySelector('i'), AOED = AOE.querySelector('.dot');
+const DASHE = document.getElementById('dash'), DASHI = DASHE.querySelector('i'), DASHD = DASHE.querySelector('.dot'), AOE = document.getElementById('aoe'), AOEI = AOE.querySelector('i'), AOED = AOE.querySelector('.dot');
 const markIn = () => { if (NET && NET.mode === 'guest') NET.inDirty = 1; };
-function doDash(di) { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.dashN = (IN.dashN || 0) + 1; IN.dashD = di; markIn(); }
+function doDash(v) { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.dashN = (IN.dashN || 0) + 1; IN.dashD = [Math.round(v[0] * 100) / 100, Math.round(v[1] * 100) / 100]; markIn(); }
 function doLeap(v) { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.leapN = (IN.leapN || 0) + 1; IN.leapT = [Math.round(v[0] * 100) / 100, Math.round(v[1] * 100) / 100]; markIn(); }
-DPAD.querySelectorAll('[data-d]').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); doDash(+b.dataset.d); }));
+// dash aim: a stick whose centre is where the thumb lands; drag to aim (the path shows on the field), release to dash
+let dashId = null, dashO = null;
+const dashUpd = e => { const r = DASHE.getBoundingClientRect(), R = r.width / 2; let dx = e.clientX - dashO[0], dy = e.clientY - dashO[1]; const d = Math.hypot(dx, dy); if (d > R * 0.7) { dx *= R * 0.7 / d; dy *= R * 0.7 / d; }
+  DASHAIM = d > 8 ? [dx, dy] : null; DASHD.style.transform = `translate(${dashO[0] - r.left - R + dx}px,${dashO[1] - r.top - R + dy}px)`; };
+DASHE.addEventListener('pointerdown', e => { dashId = e.pointerId; DASHE.setPointerCapture(dashId); dashO = [e.clientX, e.clientY]; dashUpd(e); e.preventDefault(); });
+DASHE.addEventListener('pointermove', e => { if (e.pointerId === dashId) dashUpd(e); });
+const dashEnd = (e, go) => { if (e.pointerId !== dashId) return; dashId = null; if (go && DASHAIM) doDash(DASHAIM); DASHAIM = null; DASHD.style.transition = 'transform .12s'; DASHD.style.transform = ''; setTimeout(() => DASHD.style.transition = '', 130); };
+DASHE.addEventListener('pointerup', e => dashEnd(e, true)); DASHE.addEventListener('pointercancel', e => dashEnd(e, false));
 // leap aim: where the thumb sits in the circle maps to a spot within LEAP_R of the knight; release to jump there
 let aoeId = null;
 const aoeUpd = e => { const r = AOE.getBoundingClientRect(), R = r.width / 2; let dx = (e.clientX - r.left - R) / R, dy = (e.clientY - r.top - R) / R; const d = Math.hypot(dx, dy); if (d > 1) { dx /= d; dy /= d; } LEAPAIM = [dx, dy]; AOED.style.transform = `translate(${dx * (R - 13)}px,${dy * (R - 13)}px)`; };
@@ -900,7 +937,7 @@ cv.addEventListener('pointermove', e => { if (!pinch.has(e.pointerId)) return; p
 const pinchEnd = e => { pinch.delete(e.pointerId); pinchD = 0; };
 cv.addEventListener('pointerup', pinchEnd); cv.addEventListener('pointercancel', pinchEnd);
 cv.addEventListener('wheel', e => { ZOOM = cl(ZOOM * Math.exp(-e.deltaY * 0.0012), 0.45, 2.6); e.preventDefault(); }, { passive: false });
-window.__dash = doDash; window.__leap = doLeap; window.__aimLeap = v => { LEAPAIM = v; };
+window.__dash = v => doDash(typeof v === 'number' ? DIR8[v] : v); window.__aimDash = v => { DASHAIM = v; }; window.__leap = doLeap; window.__aimLeap = v => { LEAPAIM = v; };
 const sb = document.getElementById('spin');
 sb.addEventListener('pointerdown', e => { btnSpin = true; syncIn(); e.preventDefault(); });
 const sbUp = () => { btnSpin = false; syncIn(); }; sb.addEventListener('pointerup', sbUp); sb.addEventListener('pointerleave', sbUp); sb.addEventListener('pointercancel', sbUp);
@@ -909,7 +946,7 @@ const keys = new Set();
 const keyUpd = () => { keyMv = [(keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0), (keys.has('s') ? 1 : 0) - (keys.has('w') ? 1 : 0)]; keySpin = keys.has(' '); syncIn(); };
 const kbLeap = () => { if (!mousePos) return [KN[ME].f, 0]; const sc = viewScale() / DPR, kn = KN[ME], kx = innerWidth / 2 + (kn.x - camX) * sc, ky = innerHeight / 2 + (kn.y - 6 - camY) * sc; let v = [(mousePos[0] - kx) / (LEAP_R * sc), (mousePos[1] - ky) / (LEAP_R * 0.8 * sc)]; const d = Math.hypot(...v); if (d > 1) v = v.map(q => q / d); return v; };
 addEventListener('keydown', e => { const k = e.key.toLowerCase(); if ('wasd '.includes(k)) { keys.add(k); keyUpd(); e.preventDefault(); }
-  if (k === 'shift' && !e.repeat) { const m = keyMv[0] || keyMv[1] ? keyMv : [KN[ME].f, 0]; doDash(((Math.round(Math.atan2(m[1], m[0]) / (Math.PI / 4)) % 8) + 8) % 8); }
+  if (k === 'shift' && !e.repeat) { const m = keyMv[0] || keyMv[1] ? keyMv : [KN[ME].f, 0]; doDash(m); }
   if (k === 'q') { if (!e.repeat) keys.add('q'); LEAPAIM = kbLeap(); } });
 addEventListener('pointermove', e => { if (keys.has('q') && e.pointerType === 'mouse') { mousePos = [e.clientX, e.clientY]; LEAPAIM = kbLeap(); } });
 addEventListener('keyup', e => { if (e.key.toLowerCase() === 'q' && keys.has('q')) { keys.delete('q'); if (LEAPAIM) doLeap(LEAPAIM); LEAPAIM = null; } });
@@ -930,9 +967,9 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
-const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD ?? null, leapN: n.leapN || 0, leapT: n.leapT || null });
+const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in) });
 const packW = w => [w.id, UKEYS.indexOf(w.k), Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10, Math.round(w.hp), w.max, Math.round(w.atk * 100) / 100, w.hit > 0 ? 1 : 0, w.tk];
 const LC = document.getElementById('lcard'), LUI = document.getElementById('lobbyUI'), NOTE = document.getElementById('note');
