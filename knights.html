@@ -1249,7 +1249,7 @@ function volcStep(dt, IN, mine) {
 function volcFx(dt, t) {
   for (const kn of KN) { if (kn.kind !== 'fire') continue;
     if (kn.vSNs === undefined) kn.vSNs = kn.vSN || 0;
-    if ((kn.vSN || 0) > kn.vSNs) { kn.vSNs = kn.vSN; const d = Math.hypot(kn.vTX - kn.vcx, kn.vTY - kn.vcy); FX.push({ k: 'vrock', i: kn.i, x0: kn.vcx, y0: kn.vcy, h0: V.H, x1: kn.vTX, y1: kn.vTY, pk: 30 + Math.min(d * 0.35, 90), t: 0, max: V.FLY + 0.02, tr: [], sp: rr(-1, 1) });
+    if ((kn.vSN || 0) > kn.vSNs) { kn.vSNs = kn.vSN; const d = Math.hypot(kn.vTX - kn.vcx, kn.vTY - kn.vcy); FX.push({ k: 'vrock', i: kn.i, x0: kn.vcx, y0: kn.vcy, h0: V.H, x1: kn.vTX, y1: kn.vTY, pk: 30 + Math.min(d * 0.35, 90), t: 0, max: V.FLY + 5, tr: [], sp: rr(-1, 1) });
       snd('plume', kn.vcx, kn.vcy); for (let i = 0; i < 40; i++) { const a = rr(-2.6, -0.5); sparks.push({ x: kn.vcx + rr(-4, 4), y: kn.vcy - V.H - 1, vx: Math.cos(a) * rr(15, 70), vy: Math.sin(a) * rr(30, 90), t: 0, max: rr(0.5, 1.1) }); }
       FX.push({ k: 'vpuff', x: kn.vcx, y: kn.vcy - V.H - 3, t: 0, max: 2.2, big: 1 }); if (kn.i === ME) shake = Math.max(shake, 0.45); }
     if (kn.vPh >= 0) { const h = volcH(kn), bw = volcBW(kn);
@@ -1264,7 +1264,7 @@ function volcFx(dt, t) {
   for (const f of FX) {
     if (f.k === 'vrock') { const k = Math.min(1, f.t / V.FLY), g = vrockPos(f, k); f.tr.push([g[0], g[1] - g[2]]); if (f.tr.length > 14) f.tr.shift();
       if (Math.random() < dt * 50) dust.push({ x: g[0] + rr(-2, 2), y: g[1] - g[2] + rr(-2, 2), vx: rr(-6, 6), vy: rr(-10, -2), r: rr(1.2, 2.2), t: 0, max: rr(0.5, 0.9) });
-      if (f.t >= V.FLY && !f.done) { f.done = 1; volcImpact(f); } }
+      if (f.t >= V.FLY && !f.done) { f.done = 1; f.max = 0; volcImpact(f); } }
     else if (f.k === 'vfire' && AUTH()) { const k0 = K; K = KN[f.i] || KN[0];
       for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - f.x, dy = (w.y - f.y) / 0.45; if (Math.hypot(dx, dy) > V.FR + UK[w.k].r) continue; w.bd = FIRE.BURN; w.bsrc = K.i; w.hp -= V.FDPS * dt; if (w.hp <= 0 && !w.dead) { K.kills++; burnFx(w); } }
       K = k0; } }
@@ -2127,7 +2127,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR === 'fire'); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'e9c253';
+const KBUILD = '576e31';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
