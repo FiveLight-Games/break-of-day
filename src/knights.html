@@ -1818,9 +1818,11 @@ function flailReturn(dt) {
     for (const w of walkers) { if (w.hp <= 0 || w.retHit === id || w.bT > 0) continue; const U = UK[w.k]; if (segDist(w.x, w.y, [px, py], [K.hx, K.hy]) > WP.HR + U.r) continue; w.retHit = id; w.atk = -1;
       const s = ((w.x - K.hx) * -Math.sin(ang) + (w.y - K.hy) * Math.cos(ang)) >= 0 ? 1 : -1; w.kx += (-Math.sin(ang) * s * 0.7 + Math.cos(ang) * 0.5) * 160; w.ky += (Math.cos(ang) * s * 0.7 + Math.sin(ang) * 0.5) * 90;
       hurt(w, S.RDMG, ww => canImpale(ww) && Math.random() < WP.IMP ? impaleFx(ww, ang) : slamFx(ww, ang)); } }
-  if (q >= 1) { K.hRet = -1; K.hz = 0; K.hL = WP.DRAG; K.impN = (K.impN || 0) + 1; K.impX = K.hx; K.impY = K.hy; K.impR = S.LAND;
-    if (AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k], dd = gd(K.hx, K.hy, w.x, w.y); if (dd > S.LAND + U.r) continue; const a = Math.atan2(w.y - K.hy, w.x - K.hx); w.atk = -1; w.kx += Math.cos(a) * 140; w.ky += Math.sin(a) * 80; hurt(w, S.LDMG, ww => dd < WP.HR + U.r && canImpale(ww) && Math.random() < WP.IMP ? impaleFx(ww, a) : slamFx(ww, a)); } }
+  if (q >= 1) { K.hRet = -1; K.hz = 0; K.hL = WP.DRAG; landBlast(K.hx, K.hy, 1); }
 }
+// a landing blast (LAND radius, LDMG): the head slamming down beside him on its way home, or him landing at the head after Go to
+function landBlast(x, y, head) { const S = WP.SL; K.impN = (K.impN || 0) + 1; K.impX = x; K.impY = y; K.impR = S.LAND;
+  if (AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k], dd = gd(x, y, w.x, w.y); if (dd > S.LAND + U.r) continue; const a = Math.atan2(w.y - y, w.x - x); w.atk = -1; w.kx += Math.cos(a) * 140; w.ky += Math.sin(a) * 80; hurt(w, S.LDMG, ww => head && dd < WP.HR + U.r && canImpale(ww) && Math.random() < WP.IMP ? impaleFx(ww, a) : slamFx(ww, a)); } }
 // head position on a circle of ground radius r round (x, y) at angle a
 const ring2 = (x, y, a, r) => [x + Math.cos(a) * r, y + Math.sin(a) * r / 1.25];
 // ---- Ability 1: the sweep. He hauls the head from wherever it lies round to a spot he picks: up to 120 degrees either way round him from where the head is,
@@ -1883,7 +1885,7 @@ function priestAb(dt) {
     const q = cl(tt / WP.SL.REEL, 0, 1), e = q * q * (3 - 2 * q), px = K.x, py = K.y; K.x = lerp(K.ax0, K.ax1, e); K.y = lerp(K.ay0, K.ay1, e); K.z = Math.sin(q * Math.PI) * 5;
     // he hits like a battering ram: everyone in the way is thrown aside, whole
     if (AUTH()) { const ang = Math.atan2(K.y - py, K.x - px); for (const w of walkers) { if (w.hp <= 0 || w.reeled === K.i * 1e6 + K.abId) continue; if (segDist(w.x, w.y, [px, py], [K.x, K.y]) < 7 + UK[w.k].r) { w.reeled = K.i * 1e6 + K.abId; w.atk = -1; const s = ((w.x - K.x) * -Math.sin(ang) + (w.y - K.y) * Math.cos(ang)) >= 0 ? 1 : -1, ka = Math.atan2(Math.cos(ang) * s * 0.75 + Math.sin(ang) * 0.6, -Math.sin(ang) * s * 0.75 + Math.cos(ang) * 0.6); w.kx += Math.cos(ka) * WP.SL.PKB; w.ky += Math.sin(ka) * WP.SL.PKB * 0.55; hurt(w, WP.SL.PDMG, ww => flingFx(ww, ka)); } } }
-    if (q >= 1) { if (K.sfT >= 0) { K.hx = K.sx; K.hy = K.sy; K.hz = 0; K.sfT = -1; slamImpact(); } K.ab = null; K.z = 0; K.hL = WP.DRAG; } }
+    if (q >= 1) { if (K.sfT >= 0) { K.hx = K.sx; K.hy = K.sy; K.hz = 0; K.sfT = -1; slamImpact(); } K.ab = null; K.z = 0; K.hL = WP.DRAG; landBlast(K.x, K.y); } }
 }
 // what the chain catches sticks to it where it was caught (the same fraction of the way out along it) and is carried round with it until the sweep ends;
 // the head's own catches ride just outside the ball
