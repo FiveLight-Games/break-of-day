@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Knight Brawl</title>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none;-webkit-user-select:none;user-select:none}
+body{color:#efe7d6;font:600 14px/1.3 system-ui,sans-serif}
+canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block}
+#top{position:fixed;top:8px;left:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;pointer-events:none}
+#top>*{pointer-events:auto}
+button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;cursor:pointer}
+#stats{margin-left:auto;background:#000a;border-radius:10px;padding:6px 10px;font-size:13px}
+.stick{position:fixed;bottom:22px;width:140px;height:140px;border-radius:50%;background:#ffffff14;border:2px solid #ffffff33;touch-action:none}
+.stick .knob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:#ffffff40;border:2px solid #ffffff80}
+#lst{left:22px} #rst{right:20vw}
+.stick small{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:11px;color:#fffa}
+#spin{position:fixed;right:22px;bottom:40px;width:78px;height:78px;border-radius:50%;padding:0;font:800 13px system-ui;background:#f0c41933;border:2px solid #f0c419;color:#f0c419;overflow:hidden}
+#spin i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0}
+#spin span{position:relative}
+@media (orientation:portrait){.stick{width:110px;height:110px;bottom:18px}.stick .knob{width:46px;height:46px;margin:-23px 0 0 -23px}#lst{left:14px}#rst{right:16vw}#spin{right:12px;bottom:150px;width:64px;height:64px}#top button{padding:6px 9px;font-size:12px}#stats{font-size:11px}}
+#lobbyUI{position:fixed;inset:0;background:radial-gradient(circle at 50% 30%,#2a2620,#0d0c0a);display:flex;align-items:center;justify-content:center;z-index:10;padding:16px;box-sizing:border-box}
+#lobbyUI .card{background:#1a1713;border:1px solid #3a332a;border-radius:16px;padding:20px;max-width:360px;width:100%;display:flex;flex-direction:column;gap:10px;text-align:center}
+#lobbyUI h1{margin:0;font:800 26px system-ui;color:#f0c419}#lobbyUI p{margin:0;color:#a59c88;font-size:13px}
+#lobbyUI .big{font-size:16px;padding:12px}#lobbyUI .pri{background:#f0c419;color:#1a1713;border-color:#f0c419}
+#lobbyUI input{background:#0d0c0a;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:12px;font:800 22px system-ui;text-align:center;letter-spacing:6px;text-transform:uppercase}
+#lobbyUI .code{font:800 40px system-ui;letter-spacing:10px;color:#efe7d6}#lobbyUI .err{color:#ff7b6b}
+#lobbyUI a{color:#a59c88;font-size:12px}
+#note{position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#000b;border-radius:10px;padding:6px 12px;font-size:12px;display:none;pointer-events:none}
+#spawnUI{position:fixed;left:8px;top:54px;display:flex;flex-direction:column;gap:6px;z-index:2}#spawnUI .kinds,#spawnUI .counts{display:flex;flex-direction:column;gap:4px}#spawnUI .counts{flex-direction:row}#spawnUI button{padding:6px 9px;font-size:12px}#spawnUI .on{border-color:#f0c419;color:#f0c419}
+@media (orientation:portrait){#spawnUI{top:92px}}
+#help{position:fixed;left:50%;transform:translateX(-50%);bottom:6px;font-size:11px;color:#fff9;text-align:center;pointer-events:none}
+</style></head><body>
+<canvas id="c"></canvas>
+<div id="lobbyUI"><div class="card" id="lcard"></div></div>
+<div id="note"></div>
+<div id="spawnUI"><div class="kinds"><button data-k="foot" class="on">Footman</button><button data-k="zombie">Zombie</button><button data-k="ogre">Ogre</button><button data-k="warg">Warg rider</button></div><div class="counts"><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button></div></div>
+<div id="top"><button id="clear">Clear</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><div id="stats"></div></div>
+<div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
+<div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
+<button id="spin"><i></i><span>SPIN</span></button>
+<div id="help">WASD move · hold mouse to swing toward cursor · Space spin</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+(() => {
+const cv = document.getElementById('c'), x = cv.getContext('2d'), DPR = Math.min(2, devicePixelRatio || 1);
+let COL = '#3a7bd5';
+const rr = (a, b) => a + Math.random() * (b - a), ap = (v, g, r) => v < g ? Math.min(g, v + r) : Math.max(g, v - r);
+const sm = k => k * k * (3 - 2 * k), lerp = (a, b, k) => a + (b - a) * k, L2 = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k)], cl = (v, a, b) => Math.max(a, Math.min(b, v));
+let mode = 'play', speed = 1, foes = false;
+const W = 640, H = 360, LANE_Y = 200;
+// tuning (demo units = game pixels)
+const AGGRO = 95, LEASH = 110, RUN = 62, WALKB = 26, SWING = 0.85, CLEAVE_R = 11, CLEAVE_DMG = 80, SPIN_CD = 0.5, SPIN_T = 1.87, SPIN_TURNS = 4, SPIN_O = 0, SPIN_MOM = 0, PRE_T = 0.5, SPIN_R = 22, SPIN_DMG = 160;
+let K = null, walkers = [], parts = [], blood = [], splats = [], dust = [], sparks = [];
+function srand(s) { return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+function shade(h, k) { const p = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); return '#' + p.map(v => Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k))).toString(16).padStart(2, '0')).join(''); }
+function kf(u, keys) { let i = 0; while (i < keys.length - 2 && keys[i + 1][0] <= u) i++; const [u0, a] = keys[i], [u1, b] = keys[i + 1], k = sm(cl((u - u0) / ((u1 - u0) || 1), 0, 1)); return Array.isArray(a) ? L2(a, b, k) : lerp(a, b, k); }
+function ik(a, b, l1, l2, s) { const dx = b[0] - a[0], dy = b[1] - a[1], d = cl(Math.hypot(dx, dy), 0.01, l1 + l2 - 0.01), ca = (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), an = Math.atan2(dy, dx) + s * Math.acos(cl(ca, -1, 1)); return [a[0] + Math.cos(an) * l1, a[1] + Math.sin(an) * l1]; }
+const STEEL = '#b4bcc6', STEELD = '#7f8893', STEELL = '#e3e8ed', MAIL = '#8a9098', LEA = '#6e4527', LEAD = '#4a2d18', LEAL = '#8d5d36', SKIN = '#d9a27a', SKIND = '#a9714f', HAIR = '#4a2f1c', GOLD = '#e0b84a', GOLDD = '#9c7a26';
+// ---------- ground plot: flagstones round a mossy boulder ----------
+let patch = null;
+const STONE = { x: 3.5, y: -1.5 };
+function makePatch() {
+  const S = 6, pw = 58, ph = 28; patch = document.createElement('canvas'); patch.width = pw * S; patch.height = ph * S;
+  const g = patch.getContext('2d'); g.scale(S, S); g.translate(pw / 2, ph / 2); const R = srand(41);
+  g.fillStyle = 'rgba(0,0,0,.18)'; g.beginPath(); g.ellipse(1.5, 2, 24, 9.8, 0, 0, 7); g.fill();
+  g.fillStyle = '#6f7a52'; g.beginPath(); g.ellipse(0, 0, 21, 8.5, 0, 0, 7); g.fill();
+  g.save(); g.beginPath(); g.ellipse(0, 0, 21, 8.5, 0, 0, 7); g.clip();
+  // worn flagstones in two rings
+  for (let ring = 0; ring < 2; ring++) { const n = ring ? 14 : 9, rx = ring ? 17 : 10, ry = ring ? 6.8 : 4; for (let i = 0; i < n; i++) { const a = i / n * 6.283 + R() * 0.2, cx = Math.cos(a) * rx, cy = Math.sin(a) * ry, s = ring ? 2.6 : 2.2; g.fillStyle = '#4f5640'; g.beginPath(); for (let j = 0; j < 6; j++) { const b = j / 6 * 6.283 + R() * 0.4, r = s * (0.75 + R() * 0.35); g.lineTo(cx + Math.cos(b) * r + 0.25, cy + Math.sin(b) * r * 0.55 + 0.3); } g.fill(); g.fillStyle = ['#9a9688', '#8c887b', '#a7a294'][i % 3]; g.beginPath(); for (let j = 0; j < 6; j++) { const b = j / 6 * 6.283 + R() * 0.4, r = s * (0.75 + R() * 0.35); g.lineTo(cx + Math.cos(b) * r, cy + Math.sin(b) * r * 0.55); } g.fill(); } }
+  for (let i = 0; i < 40; i++) { g.fillStyle = R() < 0.5 ? '#5f6b44' : '#7d8a5c'; g.beginPath(); g.ellipse((R() - 0.5) * 38, (R() - 0.5) * 15, 0.6 + R(), 0.3 + R() * 0.4, 0, 0, 7); g.fill(); }
+  g.restore();
+  g.strokeStyle = 'rgba(40,46,28,.5)'; g.lineWidth = 0.5; g.beginPath(); g.ellipse(0, 0, 21, 8.5, 0, 0, 7); g.stroke();
+}
+// the stone the sword sits in (drawn upright, base at STONE)
+function boulder(c, t, empty, glow) {
+  c.save(); c.translate(STONE.x, STONE.y);
+  c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(0.4, 0.6, 6.4, 2, 0, 0, 7); c.fill();
+  const P = [[-5.6, 0.4], [-6, -2.2], [-4.4, -4.6], [-1.5, -5.6], [1.8, -5.3], [4.6, -4], [5.9, -1.6], [5.4, 0.6], [0, 1.2]];
+  c.fillStyle = '#6c6a64'; c.beginPath(); P.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); c.fill();
+  c.fillStyle = '#8c8a82'; c.beginPath(); c.moveTo(-5.4, -2.3); c.lineTo(-4.1, -4.4); c.lineTo(-1.4, -5.3); c.lineTo(1.8, -5.0); c.lineTo(4.3, -3.8); c.lineTo(3.6, -2.2); c.lineTo(0, -1.4); c.lineTo(-3.4, -1.6); c.closePath(); c.fill();
+  c.fillStyle = '#a3a199'; c.beginPath(); c.moveTo(-3.4, -4.2); c.lineTo(-1.3, -4.9); c.lineTo(1.2, -4.7); c.lineTo(0, -3.6); c.closePath(); c.fill();
+  // moss and a crack
+  c.fillStyle = '#5f7a3c'; c.beginPath(); c.ellipse(-4.2, -0.3, 1.8, 0.8, 0.2, 0, 7); c.ellipse(4.2, -0.2, 1.4, 0.6, -0.2, 0, 7); c.fill();
+  c.fillStyle = '#6f8c48'; c.beginPath(); c.ellipse(-4.4, -0.6, 1.0, 0.4, 0.2, 0, 7); c.fill();
+  c.strokeStyle = '#4a4843'; c.lineWidth = 0.28; c.lineCap = 'round'; c.beginPath(); c.moveTo(2.6, -1.8); c.lineTo(3.4, -0.6); c.lineTo(3.0, 0.4); c.stroke();
+  c.strokeStyle = 'rgba(30,28,25,.6)'; c.lineWidth = 0.4; c.beginPath(); P.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); c.stroke();
+  // the slot
+  c.fillStyle = '#2a2826'; c.beginPath(); c.ellipse(0, -4.3, 0.9, 0.35, 0, 0, 7); c.fill();
+  if (empty && glow > 0) { c.save(); c.globalCompositeOperation = 'lighter'; const g = c.createRadialGradient(0, -4.4, 0, 0, -4.4, 5); g.addColorStop(0, `rgba(255,236,170,${0.6 * glow})`); g.addColorStop(1, 'rgba(255,220,140,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, -4.4, 5, 0, 7); c.fill(); c.restore(); }
+  c.restore();
+}
+// ---------- the sword: grip point g, direction a; blade ends at g + d*(1.3+len) ----------
+function sword(c, g, a, len, sc = 1) {
+  const d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]];
+  const P = (u, w) => [g[0] + d[0] * u + n[0] * w, g[1] + d[1] * u + n[1] * w];
+  const gd = 1.3 * sc, w = 0.42 * sc, L = len;
+  // blade
+  c.fillStyle = '#2b2f36'; c.beginPath(); [P(gd, w + 0.18), P(gd + L - 1.6, w + 0.12), P(gd + L + 0.35, 0), P(gd + L - 1.6, -w - 0.12), P(gd, -w - 0.18)].forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.closePath(); c.fill();
+  c.fillStyle = '#dfe5ec'; c.beginPath(); [P(gd, w), P(gd + L - 1.6, w * 0.9), P(gd + L, 0), P(gd + L - 1.6, -w * 0.9), P(gd, -w)].forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.closePath(); c.fill();
+  c.fillStyle = '#9aa4b0'; c.beginPath(); [P(gd, 0), P(gd + L, 0), P(gd + L - 1.6, -w * 0.9), P(gd, -w)].forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.closePath(); c.fill();
+  c.strokeStyle = '#7b8693'; c.lineWidth = 0.16 * sc; c.beginPath(); c.moveTo(...P(gd + 0.4, 0)); c.lineTo(...P(gd + L * 0.7, 0)); c.stroke();
+  // grip, crossguard, pommel
+  c.strokeStyle = '#2b2f36'; c.lineWidth = 0.75 * sc; c.lineCap = 'round'; c.beginPath(); c.moveTo(...P(-1.1 * sc, 0)); c.lineTo(...P(gd, 0)); c.stroke();
+  c.strokeStyle = LEA; c.lineWidth = 0.5 * sc; c.beginPath(); c.moveTo(...P(-1.0 * sc, 0)); c.lineTo(...P(gd - 0.1, 0)); c.stroke();
+  c.strokeStyle = '#2b2f36'; c.lineWidth = 0.75 * sc; c.beginPath(); c.moveTo(...P(gd, -1.85 * sc)); c.lineTo(...P(gd, 1.85 * sc)); c.stroke();
+  c.strokeStyle = GOLD; c.lineWidth = 0.42 * sc; c.beginPath(); c.moveTo(...P(gd, -1.75 * sc)); c.lineTo(...P(gd, 1.75 * sc)); c.stroke();
+  c.fillStyle = '#2b2f36'; c.beginPath(); c.arc(...P(-1.25 * sc, 0), 0.62 * sc, 0, 7); c.fill(); c.fillStyle = GOLD; c.beginPath(); c.arc(...P(-1.25 * sc, 0), 0.42 * sc, 0, 7); c.fill();
+  c.fillStyle = COL; c.beginPath(); c.arc(...P(-1.25 * sc, 0), 0.2 * sc, 0, 7); c.fill();
+}
+// the sword of light around the blade
+function lightSword(c, g, a, len, k, t) {
+  if (k <= 0.01) return;
+  const d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]], L = len * 1.85, w = 1.25, gd = 1.0;
+  const P = (u, ww) => [g[0] + d[0] * u + n[0] * ww, g[1] + d[1] * u + n[1] * ww];
+  c.save(); c.globalCompositeOperation = 'lighter';
+  for (const [s, al] of [[2.2, 0.16], [1.5, 0.28], [1, 0.55]]) {
+    c.fillStyle = `rgba(255,236,170,${al * k})`; c.beginPath();
+    [P(gd, w * s), P(gd + L - 3, w * s * 0.9), P(gd + L + s, 0), P(gd + L - 3, -w * s * 0.9), P(gd, -w * s)].forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.closePath(); c.fill();
+  }
+  c.strokeStyle = `rgba(255,250,225,${0.7 * k})`; c.lineWidth = 0.5; c.beginPath(); c.moveTo(...P(gd - 0.5, -3.6)); c.lineTo(...P(gd - 0.5, 3.6)); c.stroke(); // crossguard of light
+  c.fillStyle = `rgba(255,255,240,${0.9 * k})`; c.beginPath(); c.moveTo(...P(gd, 0.3)); c.lineTo(...P(gd + L, 0)); c.lineTo(...P(gd, -0.3)); c.fill();
+  c.restore();
+}
+// ---------- knight state ----------
+const HOME = { x: -5.5, y: 2.0 }, KS = 1.12;
+let ARMS_FRONT = false;
+// two knights, each kneeling at his own stone; KN[ME] is the one this screen controls
+const KCOLS = ['#3a7bd5', '#d64541'];
+let KN = [], ME = 0, NP = 1, wid = 1;
+function mkKnight(i) {
+  const T = { x: W / 2 + (NP > 1 ? (i ? 36 : -36) : 0), y: LANE_Y - 45 };
+  return { i, col: KCOLS[i], in: { mv: [0, 0], aim: null, spin: false }, kills: 0, hits: 0, T, x: T.x + HOME.x, y: T.y + HOME.y, f: 1, st: 'kneel', u: 0, kn: 1, wk: 0, wp: 0, hold: 0, swing: -1, swN: 0, spinCd: 0, spin: -1, glow: 0, slotGlow: 0, look: 0, lookT: 3 + i, post: 0, spd: 0, gp: 0 };
+}
+function setup() {
+  KN = []; for (let i = 0; i < NP; i++) KN.push(mkKnight(i)); K = KN[ME];
+  walkers = []; parts = []; blood = []; splats = []; dust = []; sparks = []; camX = K.x; camY = K.y - 6;
+}
+let camX = 0, camY = 0, hurtT = 0, lastHits = 0;
+// net: null = solo; {mode:'host'|'guest', ch, ...}
+let NET = null;
+const AUTH = () => !NET || NET.mode === 'host';
+const stoneW = () => [K.T.x + STONE.x, K.T.y + STONE.y];
+function inLeash(w) { return Math.hypot(w.x - K.T.x, (w.y - K.T.y) * 1.2) < LEASH; }
+function pickTarget() { let best = null, bd = 1e9; for (const w of walkers) { if (w.hp <= 0 || !inLeash(w)) continue; const d = Math.hypot(w.x - K.x, w.y - K.y); if (d < bd) { bd = d; best = w; } } return best; }
+function anyAggro() { return walkers.some(w => w.hp > 0 && Math.hypot(w.x - K.T.x, (w.y - K.T.y) * 1.2) < AGGRO); }
+// ---------- the knight's body (feet at 0,0; f = facing) ----------
+// layers: locomotion (gait from real movement) -> stance -> action (swing / spin / pull) drives crouch, spine lean,
+// shoulder twist, hands (relative to the chest, so the torso carries the arms) and the sword; kneeling blends over all
+const G_ = [0, 0.5, 0.08, 0, 1.6, 3.0, -1.1, 0.8]; // [u, crouch, lean, twist, hand x, hand y, sword angle, step]
+const SW_A = [G_, [0.26, 1.0, -0.22, -0.95, -1.4, -2.6, -2.75, 0.1], [0.34, 1.2, 0.1, 0.0, 1.6, -4.2, -1.2, 0.9], [0.41, 1.7, 0.5, 0.9, 3.4, 2.6, 0.45, 1.7], [0.56, 1.8, 0.6, 1.05, 1.4, 4.6, 0.3, 1.8], [1, ...G_.slice(1)]];
+const T2 = Math.PI * 2, SW_B = [G_, [0.26, 1.5, 0.38, 0.95, -1.2, 4.4, 2.75 - T2, 0.3], [0.34, 1.2, 0.2, 0.1, 1.8, 4.2, 0.2 - T2, 1.0], [0.41, 0.7, -0.08, -0.8, 3.7, -0.5, -0.7 - T2, 1.5], [0.56, 0.45, -0.2, -0.9, 3.4, -2.4, -1.3 - T2, 1.4], [1, 0.5, 0.08, 0, 1.6, 3.0, -1.1 - T2, 0.8]];
+const PRE = [0, 1.3, 0.25, -1.0, -1.6, 4.0, 2.75, 0.6];
+// total angle the blade has swept: steady turns, a short wind-in and wind-down
+const spinSector = a => ((Math.floor((a + Math.PI / 8) / (Math.PI / 4)) % 8) + 8) % 8;
+function spinSwept() { const u = cl(K.spin / SPIN_T, 0, 1), e1 = 0.001, e2 = 0.08, A = 1 - e1 / 2 - e2 / 2, v = u < e1 ? u * u / (2 * e1) : u < 1 - e2 ? e1 / 2 + (u - e1) : A - (1 - u) * (1 - u) / (2 * e2); return v / A * (SPIN_O + SPIN_TURNS * Math.PI * 2); }
+function kfn(u, keys) { let i = 0; while (i < keys.length - 2 && keys[i + 1][0] <= u) i++; const a = keys[i], b = keys[i + 1], k = sm(cl((u - a[0]) / ((b[0] - a[0]) || 1), 0, 1)); return a.map((v, j) => j ? lerp(v, b[j], k) : u); }
+const rot = (v, a) => [v[0] * Math.cos(a) - v[1] * Math.sin(a), v[0] * Math.sin(a) + v[1] * Math.cos(a)];
+const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
+function pose(t) {
+  let f = K.f; const kn = K.kn, br = Math.sin(t * 2.1), mv = cl(K.spd / 10, 0, 1), run = cl(K.spd / RUN, 0, 1), gp = K.gp;
+  const P = { f, back: false, wscale: 1 };
+  // ---- action layer ----
+  const combat = K.hold && (K.st === 'charge' || K.st === 'fight');
+  let A = combat ? [0, 0.5, 0.08, 0, 1.6, 3.0 + Math.sin(t * 2.5) * 0.12, -1.1, 0.8] : [0, 0, 0, 0, 1.0, 4.3, 2.55, 0];
+  if (K.hold && !combat && K.st === 'return') A = [0, 0.1, 0.05, 0.2, 1.2, 0.6, -2.45, 0]; // walking back: blade resting on his shoulder
+  // carrying the sword low while running hard
+  if (combat && K.swing < 0 && K.spin < 0 && !K.preGlow) { const k = run; A = A.map((v, j) => j ? lerp(v, [0, 0.45, 0.3, 0.1, 1.5, 2.6, -0.65, 0][j], k) : 0); }
+  if (K.swing >= 0) A = kfn(K.swing / SWING, K.swN % 2 === 0 ? SW_A : SW_B);
+  // bridge into / out of the spin: blend from the current pose to the spin's own start pose (same pose it ends on)
+  const kp = K.preGlow && K.spin < 0 ? 1 - cl(K.pre / PRE_T, 0, 1) : 0, sdir = K.spinDir || f;
+  const kb = K.spin >= 0 || K.swing >= 0 || K.preGlow ? 0 : K.post > 0 ? sm(K.post / 0.25) : 0;
+  const thB = K.spinA0 ?? (f > 0 ? 0 : Math.PI);
+  // spin opener: wind the sword up over the shoulder (eased), then chop down and forward, still accelerating as it reaches the spin's start pose, so the spin picks up at full speed
+  let ps = 0;
+  if (K.preGlow && K.spin < 0) { const PW = 0.45, WIND = SW_A[1], START = [0, 1.25, 0.22, 0, 2.5, 1.3, 0, 0];
+    if (kp < PW) { const k = sm(kp / PW); A = G_.map((v, j) => j ? lerp(v, WIND[j], k) : 0); }
+    else { const q = (kp - PW) / (1 - PW), m = 0.7; ps = (m - 2) * q * q * q + (3 - m) * q * q; A = WIND.map((v, j) => j ? lerp(v, START[j], ps) : 0); } }
+  let [, cr, lean, tw, hx, hy, a, stepA] = A;
+  // directional swing: the whole strike tilts by the aim's elevation (up = negative)
+  let elw = 0;
+  if (K.swing >= 0 && K.el) { const u = K.swing / SWING; elw = (u < 0.42 ? sm(u / 0.42) : u < 0.62 ? 1 : 1 - sm((u - 0.62) / 0.38)) * K.el;
+    if (elw < 0) { lean += elw * 0.45; cr += elw * 0.6; tw += -elw * 0.3; } else { lean += elw * 0.42; cr += elw * 0.6; } cr = Math.max(-0.2, cr); }
+  // pulling: lean in and grab, then heave back with the knees as it comes free; planting: drive it down with the body
+  if (K.st === 'pull') { const yank = K.hold ? Math.sin(cl((K.u - 0.3) / 0.32, 0, 1) * Math.PI) : 0, reach = K.hold ? 0 : sm(cl(K.u / 0.3, 0, 1)); lean = -0.32 * yank + 0.28 * reach; cr = 0.4 + 0.5 * reach + 0.9 * yank; tw = 0.4 * reach - 0.3 * yank; }
+  if (K.st === 'sheathe') { const dn = Math.sin(cl((K.u - 0.15) / 0.3, 0, 1) * Math.PI); lean = 0.34 * dn; cr = 0.4 + 1.0 * dn; tw = 0.3 * dn; }
+  // ---- spin: the whole body turns with the blade ----
+  let th = null;
+  if (K.spin >= 0) {
+    th = K.spinA0 + sdir * (spinSwept() - SPIN_O);
+    f = Math.cos(th) >= 0 ? 1 : -1; P.f = f; P.back = Math.sin(th) < -0.3; P.away = Math.sin(th) < -0.3 && Math.sin(th) > -0.75; P.wscale = 0.45 + 0.55 * Math.abs(Math.sin(th)); // 3/4 away, then full back
+    cr = 1.25; lean = 0.22; tw = 0; stepA = 0; P.th = th;
+  } else if (kb) { cr = lerp(cr, 1.25, kb); lean = lerp(lean, 0.22, kb); tw = lerp(tw, 0, kb); stepA = lerp(stepA, 0, kb);
+    if (kb > 0.5) { f = Math.cos(thB) >= 0 ? 1 : -1; P.f = f; P.back = Math.sin(thB) < -0.3; P.away = Math.sin(thB) < -0.3 && Math.sin(thB) > -0.75; P.th = thB; }
+    P.blade = lerp(1, Math.hypot(Math.cos(thB), Math.sin(thB) * 0.45), kb); }
+  // ---- legs: gait when moving, a wide fighting stance when planted ----
+  const front = f > 0 ? 1 : 0;
+  const stride = lerp(2.0, 3.6, run);
+  const loco = [0, 1].map(i => { const ph = gp + i * Math.PI; return [(i ? 0.9 : -0.9) + f * Math.sin(ph) * stride * mv, -Math.max(0, Math.cos(ph)) * lerp(1.0, 1.8, run) * mv]; });
+  const stanceW = combat || K.swing >= 0 ? 1 : 0.4;
+  let stance = [0, 1].map(i => { const fr = i === front; return [fr ? f * (0.9 + stanceW * 0.6 + stepA * 1.3) : -f * (0.8 + stanceW * 0.7), fr ? 0 : -0.25]; });
+  const spinStance = a => { const pp = [-Math.sin(a), Math.cos(a) * 0.45]; return [0, 1].map(i => [(i ? 1 : -1) * pp[0] * 1.9, (i ? 1 : -1) * pp[1] * 1.9]); };
+  if (th !== null) stance = spinStance(th); else if (kb || ps) { const ss = spinStance(thB), wb = Math.max(kb, ps); stance = stance.map((p2, i) => L2(p2, ss[i], wb)); }
+  const feetS = [0, 1].map(i => L2(stance[i], loco[i], mv));
+  const bob = mv * (Math.abs(Math.cos(gp)) * 0.55 - 0.3);
+  const pel = [f * (stepA * 0.55 * (1 - mv) + run * 0.35), -5.9 + cr * 0.95 + bob];
+  lean += run * 0.28 * (K.swing >= 0 ? 0.4 : 1); tw += Math.sin(gp) * 0.25 * mv;
+  // ---- spine, shoulders, head ----
+  const L = f * lean;
+  const C = add(add(pel, rot([0, -4.2], L)), [f * tw * 0.55, 0]);
+  const w = 1.95 * (1 - 0.22 * tw) * P.wscale, sd = [Math.cos(L * 0.8), Math.sin(L * 0.8)];
+  const sh = [[C[0] - sd[0] * w, C[1] - sd[1] * w + f * tw * 0.18], [C[0] + sd[0] * w, C[1] + sd[1] * w - f * tw * 0.18]];
+  const head = add(C, rot([f * (0.35 + Math.max(0, tw) * 0.2), -2.15], L * 0.55));
+  // ---- hands & sword ----
+  let g, sa, hands;
+  if (th === null && kb >= 1 && K.preGlow) th = thB;
+  if (th !== null) {
+    g = add(C, [Math.cos(th) * 2.5, Math.sin(th) * 0.9 + 1.3]); sa = Math.atan2(Math.sin(th) * 0.45, Math.cos(th)); P.blade = Math.hypot(Math.cos(th), Math.sin(th) * 0.45);
+  } else if (K.st === 'pull' || K.st === 'sheathe') {
+    const s = stoneW(), rel = [(s[0] - K.x) / KS, (s[1] - K.y) / KS], up = K.st === 'pull' ? (K.pullUp || 0) : K.downK;
+    g = [rel[0], rel[1] - 4.3 / KS - 2.4 - up * 7]; sa = Math.PI / 2;
+    if (K.st === 'pull' && K.u > 0.62) { const k = sm((K.u - 0.62) / 0.38), gg = add(C, [f * 1.6, 3.0]); g = L2(g, gg, k); sa = lerp(Math.PI / 2, f > 0 ? -1.1 : Math.PI + 1.1, k); }
+    if (!K.hold) { const tgt = g, k = K.st === 'pull' ? sm(cl(K.u / 0.3, 0, 1)) : 1 - sm(cl((K.u - 0.62) / 0.3, 0, 1)); const rest = add(C, [f * 1.0, 4.4]); hands = [L2(rest, tgt, k), L2([rest[0] - f * 0.6, rest[1] + 0.2], [tgt[0], tgt[1] + 0.9], k)]; g = null; }
+  } else {
+    if (elw) { const sp = [0, -0.6], r = rot([hx - sp[0], hy - sp[1]], elw); hx = r[0] + sp[0]; hy = r[1] + sp[1]; a += elw; } // rotate the strike round the shoulders
+    g = add(C, rot([f * hx, hy], L * 0.6 * (1 - ps))); sa = f > 0 ? a + L * 0.5 * (1 - ps) : Math.PI - a + L * 0.5 * (1 - ps);
+    if (kb) { g = L2(g, add(C, [Math.cos(thB) * 2.5, Math.sin(thB) * 0.9 + 1.3]), kb); let st = Math.atan2(Math.sin(thB) * 0.45, Math.cos(thB)); st += Math.PI * 2 * Math.round((sa - st) / (Math.PI * 2)); sa = lerp(sa, st, kb); }
+  }
+  if (g) { const d = [Math.cos(sa), Math.sin(sa)]; hands = [g, [g[0] + d[0] * 0.9, g[1] + d[1] * 0.9]]; }
+  if (!hands) { const rk = add(C, [f * 1.0, 4.4]); hands = [rk, [rk[0] - f * 0.6, rk[1] + 0.2]]; }
+  // ---- kneeling pose, blended over everything ----
+  const kHip = [-f * 0.3, -3.6 + br * 0.08], kC = [f * 0.6, -8.3 + br * 0.12];
+  const kFeet = f > 0 ? [[-3.3, -0.3], [2.5, 0]] : [[-2.5, 0], [3.3, -0.3]];
+  const kKnees = f > 0 ? [[-0.4, -0.5], [2.6, -3.7]] : [[-2.6, -3.7], [0.4, -0.5]];
+  const bow = kn * (0.6 + 0.4 * (1 - K.look));
+  const kHead = [kC[0] + f * (0.35 + bow * 0.5), kC[1] - 1.85 + bow * 0.55];
+  const rk = f > 0 ? kKnees[1] : kKnees[0], kHands = [[rk[0] - f * 0.3, rk[1] - 0.55], [rk[0] - f * 1.0, rk[1] - 0.35]];
+  P.pel = L2(pel, kHip, kn);
+  P.hips = [[P.pel[0] - 1.05, P.pel[1]], [P.pel[0] + 1.05, P.pel[1]]];
+  P.feet = feetS.map((p, i) => L2(p, kFeet[i], kn));
+  P.knees = P.hips.map((h, i) => L2(ik(h, feetS[i], 3.1, 3.1, f > 0 ? -1 : 1), kKnees[i], kn));
+  P.C = L2(C, kC, kn); P.sh = sh.map((s2, i) => L2(s2, [kC[0] + (i ? 1.95 : -1.95), kC[1]], kn));
+  P.head = L2(head, kHead, kn); P.bow = bow; P.lean = lean; P.tw = tw;
+  P.hands = hands.map((h, i) => K.hold || K.st === 'pull' || K.st === 'sheathe' ? h : L2(h, kHands[i], kn));
+  P.g = g; P.a = sa;
+  if (K.st === 'kneel' || K.st === 'pull' || K.st === 'sheathe') P.away = true; // at the stone he turns 3/4 away from the camera
+  return P;
+}
+function drawKnight(c, t) {
+  const P = pose(t), f = P.f; window.__lastP = { f: P.f, th: P.th, back: P.back, away: P.away };
+  c.save(); c.translate(K.x, K.y); c.scale(KS, KS);
+  const clipSlot = K.hold && (K.st === 'pull' || K.st === 'sheathe'), slotY = (stoneW()[1] - 4.3 - K.y) / KS;
+  const L = 10.5 * (P.th != null ? P.blade : 1);
+  const drawBlade = () => { if (!K.hold || !P.g) return; c.save(); if (clipSlot) { c.beginPath(); c.rect(-40, -60, 80, 60 + slotY); c.clip(); } lightSword(c, P.g, P.a, L, K.glow, t); sword(c, P.g, P.a, L); c.restore(); };
+  c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(P.pel[0] * 0.5, 0.4, 4.4 + K.kn * 1.0, 1.5, 0, 0, 7); c.fill();
+  // ---- depth ----
+  // A = the arm on the shoulder at his facing side (hand nearest the crossguard), B = the other one.
+  // Turned toward the camera, B is the arm nearest the camera: order is A, head, sword, B.
+  // Turned away, it flips: B goes behind his body and A is nearest.
+  const far = f > 0 ? 0 : 1, near = 1 - far;
+  // gloves on the grip are always drawn over the sword, so he is always visibly holding it
+  const holding = K.hold && P.g, armA = () => arm(c, P.sh[near], P.hands[0], f, false, holding), armB = () => arm(c, P.sh[far], P.hands[1], f, true, holding);
+  const blade = () => { drawBlade(); if (holding) { glove(c, P.hands[1], true); glove(c, P.hands[0], false); } };
+  const hx = (P.hands[0][0] - P.C[0]) * f, hy = P.hands[0][1] - P.C[1]; // grip relative to the chest, in facing terms
+  const bx = Math.cos(P.a) * f, swordBack = K.hold && P.th == null && bx < -0.3 && hx < 0.5; // blade pointing back past him
+  if (window.__labelArms) { const tag = (sh, h, txt, col) => { const e1 = ik(sh, h, 2.6, 2.6, 1), e2 = ik(sh, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2; window.__tags.push([L2(sh, el, 0.6), txt, col]); }; window.__tags = []; tag(P.sh[near], P.hands[0], 'A', '#ff3b30'); tag(P.sh[far], P.hands[1], 'B', '#1e90ff'); }
+  const body = () => {
+    leg(c, P.hips[far], P.knees[far], P.feet[far], f, true, K.kn > 0.5);
+    if (K.kn <= 0.5) leg(c, P.hips[near], P.knees[near], P.feet[near], f, false, false);
+    torso(c, P, f, P.back || P.away);
+    if (K.kn > 0.5) leg(c, P.hips[near], P.knees[near], P.feet[near], f, false, false);
+  };
+  const hd = () => head(c, P, f, t, P.away ? 'away' : P.back);
+  if (P.back && !P.away) { // straight from behind: arms and sword are all on the far side of him
+    blade(); armB(); armA(); body(); hd();
+  } else if (P.away) { // 3/4 away: B behind the body, then head, sword, A
+    if (swordBack) blade();
+    armB(); body(); hd();
+    if (!swordBack) drawBlade();
+    if (holding) glove(c, P.hands[1], true);
+    arm(c, P.sh[near], P.hands[0], f, false); // turned away, A is nearest the camera: whole arm over the sword
+  } else { // 3/4 toward the camera: A (behind the body when the hands drop low), head, sword, B
+    const aBehind = hy > 3.8; // follow-through down by the hips: A tucks behind the body
+    if (swordBack) blade();
+    if (aBehind) armA();
+    body();
+    if (!aBehind) armA();
+    hd();
+    armB();
+    if (!swordBack) blade(); else if (holding) { glove(c, P.hands[1], true); glove(c, P.hands[0], false); } // arms go under the sword; only the gloves sit on top of the grip
+  }
+  if (window.__labelArms && window.__tags) for (const [m, txt, col] of window.__tags) { c.save(); c.translate(m[0], m[1]); c.fillStyle = col; c.strokeStyle = '#fff'; c.lineWidth = 0.18; c.beginPath(); c.arc(0, 0, 0.62, 0, 7); c.fill(); c.stroke(); c.fillStyle = "#fff"; c.font = "700 0.85px system-ui"; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 0, 0.05); c.restore(); }
+  c.restore();
+}
+function leg(c, hip, knee, foot, f, far, kneelBack) {
+  const dk = far ? -0.14 : 0;
+  c.lineCap = 'round';
+  c.strokeStyle = shade(STEELD, dk - 0.2); c.lineWidth = 1.9; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke();
+  c.strokeStyle = shade(STEEL, dk); c.lineWidth = 1.45; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke();
+  const ank = L2(knee, foot, 0.62);
+  c.strokeStyle = shade(STEELD, dk - 0.2); c.lineWidth = 1.7; c.beginPath(); c.moveTo(...knee); c.lineTo(...ank); c.stroke();
+  c.strokeStyle = shade(STEEL, dk); c.lineWidth = 1.25; c.beginPath(); c.moveTo(...knee); c.lineTo(...ank); c.stroke();
+  c.strokeStyle = shade(LEAD, dk); c.lineWidth = 1.6; c.beginPath(); c.moveTo(...ank); c.lineTo(foot[0], foot[1] - 0.4); c.stroke();
+  c.strokeStyle = shade(LEA, dk); c.lineWidth = 1.2; c.beginPath(); c.moveTo(...ank); c.lineTo(foot[0], foot[1] - 0.4); c.stroke();
+  const toe = kneelBack ? -f : f;
+  c.fillStyle = shade(LEA, dk); c.beginPath(); c.ellipse(foot[0] + toe * 0.55, foot[1] - 0.35, 1.05, 0.5, 0, 0, 7); c.fill();
+  c.fillStyle = shade(LEAL, dk); c.beginPath(); c.ellipse(foot[0] + toe * 0.85, foot[1] - 0.55, 0.4, 0.18, 0, 0, 7); c.fill();
+  c.fillStyle = shade(LEAL, dk - 0.1); c.fillRect(ank[0] - 0.75, ank[1] - 0.2, 1.5, 0.45);
+  c.fillStyle = shade(STEELL, dk - 0.05); c.beginPath(); c.arc(knee[0], knee[1], 0.72, 0, 7); c.fill();
+  c.fillStyle = shade(STEELD, dk); c.beginPath(); c.arc(knee[0] + 0.15, knee[1] + 0.2, 0.32, 0, 7); c.fill();
+}
+function torso(c, P, f, backView) {
+  const hip = P.pel, [L, R] = P.sh, C = P.C, mx = (L[0] + R[0]) / 2, my = (L[1] + R[1]) / 2;
+  const hw = 1.9 * (1 - 0.1 * Math.abs(P.tw)), hl = [hip[0] - hw, hip[1]], hr = [hip[0] + hw, hip[1]];
+  // mail skirt, swinging with the hips
+  c.fillStyle = MAIL; c.beginPath(); c.moveTo(hl[0], hl[1] - 0.6); c.lineTo(hr[0], hr[1] - 0.6); c.lineTo(hr[0] + 0.4, hr[1] + 1.5); c.lineTo(hl[0] - 0.4, hl[1] + 1.5); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(40,44,50,.45)'; for (let i = 0; i < 9; i++) for (let j = 0; j < 2; j++) { c.beginPath(); c.arc(hl[0] - 0.1 + i * 0.5 + j * 0.25, hip[1] + 0.1 + j * 0.6, 0.12, 0, 7); c.fill(); }
+  // breastplate edge, then the surcoat stretched from hips to shoulders (it skews as he leans and twists)
+  c.fillStyle = STEELD; c.beginPath(); c.moveTo(hl[0], hl[1] - 0.4); c.lineTo(L[0] - 0.1, L[1] + 0.4); c.quadraticCurveTo(mx, my - 0.7, R[0] + 0.1, R[1] + 0.4); c.lineTo(hr[0], hr[1] - 0.4); c.closePath(); c.fill();
+  c.fillStyle = backView ? shade(COL, -0.12) : COL; c.beginPath(); c.moveTo(hl[0] + 0.3, hl[1] - 0.3); c.lineTo(L[0] + 0.55, L[1] + 0.6); c.lineTo(mx - 0.6, my + 0.1); c.lineTo(mx + 0.6, my + 0.1); c.lineTo(R[0] - 0.55, R[1] + 0.6); c.lineTo(hr[0] - 0.3, hr[1] - 0.3); c.closePath(); c.fill();
+  // shading on the side turned away
+  c.fillStyle = 'rgba(0,0,0,.16)'; c.beginPath(); const sx = f > 0 ? [L, hl] : [R, hr]; c.moveTo(sx[0][0] + f * 0.55, sx[0][1] + 0.6); c.lineTo(lerp(sx[0][0], mx, 0.45), my + 0.4); c.lineTo(lerp(sx[1][0], hip[0], 0.45), hip[1] - 0.3); c.lineTo(sx[1][0] + f * 0.3, sx[1][1] - 0.3); c.closePath(); c.fill();
+  // tabard tail, swinging behind the stride
+  const sway = -f * cl(K.spd / RUN, 0, 1) * 0.9;
+  c.fillStyle = backView ? shade(COL, -0.12) : COL; c.beginPath(); c.moveTo(hip[0] - 1.2, hip[1] - 0.2); c.lineTo(hip[0] + 1.2, hip[1] - 0.2); c.lineTo(hip[0] + 0.95 + sway, hip[1] + 2.9 - K.kn * 1.4); c.lineTo(hip[0] - 0.95 + sway, hip[1] + 2.9 - K.kn * 1.4); c.closePath(); c.fill();
+  c.fillStyle = shade(COL, -0.3); c.beginPath(); c.moveTo(hip[0] - 0.95 + sway, hip[1] + 2.4 - K.kn * 1.4); c.lineTo(hip[0] + 0.95 + sway, hip[1] + 2.4 - K.kn * 1.4); c.lineTo(hip[0] + 0.95 + sway, hip[1] + 2.9 - K.kn * 1.4); c.lineTo(hip[0] - 0.95 + sway, hip[1] + 2.9 - K.kn * 1.4); c.fill();
+  // gold cross rides on the chest
+  const cx = lerp(mx, hip[0], 0.42) + (backView ? 0 : f * P.tw * 0.3), cy = lerp(my, hip[1], 0.42);
+  if (!backView) { c.save(); c.translate(cx, cy); c.rotate(Math.atan2(R[1] - L[1], R[0] - L[0])); c.fillStyle = GOLD; c.fillRect(-0.22, -1.0, 0.44, 2.0); c.fillRect(-0.75, -0.5, 1.5, 0.42); c.restore(); }
+  if (!backView) { c.fillStyle = STEEL; c.beginPath(); c.ellipse(mx + f * 0.2, my - 0.15, 1.15, 0.55, 0, 0, 7); c.fill(); }
+  c.fillStyle = LEAD; c.beginPath(); c.moveTo(hl[0] + 0.05, hip[1] - 0.75); c.lineTo(hr[0] - 0.05, hip[1] - 0.75); c.lineTo(hr[0] - 0.05, hip[1] - 0.15); c.lineTo(hl[0] + 0.05, hip[1] - 0.15); c.fill();
+  if (!backView) { c.fillStyle = GOLD; c.fillRect(hip[0] - 0.3, hip[1] - 0.8, 0.6, 0.7); }
+}
+function pauldron(c, s, f, far) {
+  const dk = far ? -0.12 : 0;
+  c.fillStyle = shade(STEELD, dk - 0.1); c.beginPath(); c.ellipse(s[0], s[1] + 0.5, 1.15, 0.7, 0, 0, Math.PI); c.fill();
+  c.fillStyle = shade(STEEL, dk); c.beginPath(); c.ellipse(s[0], s[1] + 0.1, 1.25, 0.9, 0, Math.PI, 0); c.lineTo(s[0] + 1.25, s[1] + 0.35); c.lineTo(s[0] - 1.25, s[1] + 0.35); c.closePath(); c.fill();
+  c.fillStyle = shade(STEELL, dk); c.beginPath(); c.ellipse(s[0] + 0.35, s[1] - 0.45, 0.6, 0.3, -0.2, 0, 7); c.fill();
+  c.strokeStyle = GOLD; c.lineWidth = 0.22; c.beginPath(); c.ellipse(s[0], s[1] + 0.12, 1.1, 0.75, 0, Math.PI * 1.05, Math.PI * 1.95); c.stroke();
+}
+function arm(c, s, h, f, far, noGlove) {
+  // elbows point down and out, away from the body
+  const e1 = ik(s, h, 2.6, 2.6, 1), e2 = ik(s, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2, dk = far ? -0.15 : 0; // the elbow hangs low, never up across the face
+  c.lineCap = 'round';
+  c.strokeStyle = shade(MAIL, dk - 0.15); c.lineWidth = 1.45; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke();
+  c.strokeStyle = shade(MAIL, dk); c.lineWidth = 1.1; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke();
+  // the pauldron rides on the upper arm: it tilts and lifts with it instead of the arm sliding under it
+  const ua = Math.atan2(el[1] - s[1], el[0] - s[0]), tilt = (ua - Math.PI / 2 + (ua < -Math.PI / 2 ? Math.PI * 2 : 0)) * 0.75;
+  c.save(); c.translate(s[0] + Math.cos(ua) * 0.25, s[1] + Math.sin(ua) * 0.25); c.rotate(tilt); pauldron(c, [0, 0], f, far); c.restore();
+  const wr = L2(el, h, 0.7);
+  c.strokeStyle = shade(STEELD, dk - 0.15); c.lineWidth = 1.4; c.beginPath(); c.moveTo(...el); c.lineTo(...wr); c.stroke();
+  c.strokeStyle = shade(STEEL, dk); c.lineWidth = 1.05; c.beginPath(); c.moveTo(...el); c.lineTo(...wr); c.stroke();
+  c.fillStyle = shade(STEELL, dk); c.beginPath(); c.arc(el[0], el[1], 0.5, 0, 7); c.fill();
+  c.strokeStyle = shade(LEA, dk); c.lineWidth = 1.2; c.beginPath(); c.moveTo(...wr); c.lineTo(...h); c.stroke();
+  if (!noGlove) glove(c, h, far);
+}
+function glove(c, h, far) { const dk = far ? -0.15 : 0; c.fillStyle = shade(LEA, dk); c.beginPath(); c.arc(h[0], h[1], 0.62, 0, 7); c.fill(); c.fillStyle = shade(LEAL, dk); c.beginPath(); c.arc(h[0] - 0.15, h[1] - 0.2, 0.25, 0, 7); c.fill(); }
+function head(c, P, f, t, backView) {
+  const [hx, hy] = P.head, blink = (t % 4.1) < 0.12 || P.bow > 0.8;
+  c.save(); c.translate(hx, hy); c.rotate(f * (P.lean || 0) * 0.35);
+  c.fillStyle = SKIND; c.fillRect(-0.45 - f * 0.1, 0.9, 0.9, 0.9);
+  if (backView === 'away') { // 3/4 from behind: back of the head, an ear, the edge of cheek and beard
+    c.fillStyle = SKIN; c.beginPath(); c.ellipse(0, 0, 1.45, 1.7, 0, 0, 7); c.fill();
+    c.fillStyle = HAIR; c.beginPath(); c.moveTo(f * 0.95, 0.1); c.quadraticCurveTo(f * 1.25, 1.35, f * 0.55, 1.7); c.quadraticCurveTo(f * 0.2, 1.55, f * 0.3, 0.9); c.closePath(); c.fill();
+    c.fillStyle = SKIND; c.beginPath(); c.ellipse(f * 0.35, 0.05, 0.32, 0.48, 0, 0, 7); c.fill();
+    c.fillStyle = HAIR; c.beginPath(); c.moveTo(f * 0.15, 1.25); c.quadraticCurveTo(-f * 1.5, 1.4, -f * 1.5, -0.2); c.quadraticCurveTo(-f * 1.4, -1.85, f * 0.3, -1.85); c.quadraticCurveTo(f * 1.35, -1.75, f * 1.4, -0.65); c.quadraticCurveTo(f * 0.8, -0.95, f * 0.6, -0.4); c.quadraticCurveTo(f * 0.1, 0.4, f * 0.15, 1.25); c.closePath(); c.fill();
+    c.fillStyle = '#6a4630'; c.beginPath(); c.ellipse(-f * 0.3, -1.25, 0.8, 0.25, -f * 0.2, 0, 7); c.fill();
+    c.restore(); return;
+  }
+  if (backView) {
+    c.fillStyle = SKIN; c.beginPath(); c.ellipse(0, 0, 1.45, 1.7, 0, 0, 7); c.fill();
+    c.fillStyle = SKIND; c.beginPath(); c.ellipse(-1.35, 0, 0.3, 0.45, 0, 0, 7); c.ellipse(1.35, 0, 0.3, 0.45, 0, 0, 7); c.fill();
+    c.fillStyle = HAIR; c.beginPath(); c.ellipse(0, -0.35, 1.5, 1.55, 0, 0, 7); c.fill();
+    c.fillStyle = '#6a4630'; c.beginPath(); c.ellipse(0.2, -1.2, 0.8, 0.3, 0.2, 0, 7); c.fill();
+    c.restore(); return;
+  }
+  c.fillStyle = SKIN; c.beginPath(); c.ellipse(0, 0, 1.45, 1.7, 0, 0, 7); c.fill();
+  c.fillStyle = SKIN; c.beginPath(); c.moveTo(f * 1.2, -0.4); c.lineTo(f * 1.85, 0.35); c.lineTo(f * 1.25, 0.55); c.fill();
+  c.fillStyle = 'rgba(120,70,45,.25)'; c.beginPath(); c.ellipse(-f * 0.55, 0.25, 0.7, 0.9, 0, 0, 7); c.fill();
+  const shout = K.swing >= 0 ? Math.max(0, Math.sin(cl((K.swing / SWING - 0.3) / 0.3, 0, 1) * Math.PI)) : K.spin >= 0 ? 1 : 0;
+  c.fillStyle = HAIR; c.beginPath(); c.moveTo(-f * 1.35, 0.1); c.quadraticCurveTo(-f * 1.2, 1.55 + shout * 0.25, f * 0.2, 1.75 + shout * 0.3); c.quadraticCurveTo(f * 1.25, 1.55 + shout * 0.25, f * 1.4, 0.75); c.lineTo(f * 0.9, 0.95); c.quadraticCurveTo(f * 0.1, 1.05, -f * 0.6, 0.35); c.closePath(); c.fill();
+  if (shout > 0.1) { c.fillStyle = '#3a1712'; c.beginPath(); c.ellipse(f * 0.95, 1.05, 0.4, 0.3 * shout, 0, 0, 7); c.fill(); }
+  c.fillStyle = HAIR; c.beginPath(); c.ellipse(f * 0.95, 0.72, 0.62, 0.2, 0, 0, 7); c.fill();
+  if (blink) { c.strokeStyle = '#2a1a10'; c.lineWidth = 0.2; c.beginPath(); c.moveTo(f * 0.45, -0.2); c.lineTo(f * 1.0, -0.15); c.stroke(); }
+  else { c.fillStyle = '#f3ede4'; c.beginPath(); c.ellipse(f * 0.75, -0.2, 0.36, 0.22, 0, 0, 7); c.fill(); c.fillStyle = '#2f4a6b'; c.beginPath(); c.arc(f * 0.85, -0.2, 0.17, 0, 7); c.fill(); }
+  c.strokeStyle = HAIR; c.lineWidth = 0.3; c.lineCap = 'round'; c.beginPath(); c.moveTo(f * 0.3, -0.62 + (K.hold ? 0.12 : 0)); c.lineTo(f * 1.15, -0.55 + (K.hold ? 0.22 : 0)); c.stroke();
+  c.fillStyle = SKIND; c.beginPath(); c.ellipse(-f * 0.55, -0.05, 0.3, 0.45, 0, 0, 7); c.fill();
+  c.fillStyle = HAIR; c.beginPath(); c.moveTo(-f * 1.5, 0.2); c.quadraticCurveTo(-f * 1.7, -1.6, -f * 0.2, -1.85); c.quadraticCurveTo(f * 1.2, -1.95, f * 1.45, -0.75); c.quadraticCurveTo(f * 0.6, -1.15, -f * 0.2, -0.85); c.quadraticCurveTo(-f * 0.75, -0.6, -f * 0.95, 0.35); c.closePath(); c.fill();
+  c.fillStyle = '#6a4630'; c.beginPath(); c.ellipse(-f * 0.1, -1.45, 0.8, 0.22, -f * 0.2, 0, 7); c.fill();
+  c.restore();
+}
+// ---------- enemies ----------
+function spawnWalker(x0, sp, y0, k) { const w = mkWalker(k || 'foot', x0, y0); w.id = wid++; walkers.push(w); return w; }
+// ---------------- enemy kinds ----------------
+// r: body radius (crowding + reach), sc: draw scale, atkT: club swing time, kb: how far hits push them
+const UK = {
+  foot: { n: 'Footman', hp: 140, sp: [22, 30], r: 2.1, sc: 1, atkT: 0.7, kb: 1, skin: '#e8c39a', body: '#b03a2e', legs: '#3a3030', helm: '#7a7a80' },
+  zombie: { n: 'Zombie', hp: 110, sp: [10, 14], r: 2.1, sc: 1, atkT: 0.9, kb: 1, skin: '#8fa36b', body: '#5b4a3a', legs: '#3d3a2e', helm: null, hair: '#2d2a22' },
+  ogre: { n: 'Ogre', hp: 700, sp: [13, 17], r: 4.3, sc: 1.85, atkT: 1.1, kb: 0.3, skin: '#a39a5e', body: '#6b4a2a', legs: '#a39a5e', helm: null, hair: '#3a2c1c' },
+  warg: { n: 'Warg rider', hp: 320, sp: [44, 52], r: 3.6, sc: 1, atkT: 0.6, kb: 0.6, skin: '#6f8f4a', body: '#4a3a2a', legs: '#3a3030', helm: '#5a5048', fur: '#6d6a66', furD: '#4e4b48' },
+};
+const UKEYS = Object.keys(UK);
+function mkWalker(k, x0, y0) { const U = UK[k]; return { id: 0, k, tk: 0, x: x0, y: y0, tx: x0, ty: y0, hp: U.hp, max: U.hp, ph: rr(0, 6), sp: rr(U.sp[0], U.sp[1]), hit: 0, kx: 0, ky: 0, atk: -1, cd: rr(0, 0.6) }; }
+function hpBar(c, w, top) { const U = UK[w.k], bw = 8 * Math.max(1, U.sc * 0.8); c.fillStyle = '#000a'; c.fillRect(w.x - bw / 2, w.y - top, bw, 1.4); c.fillStyle = '#e04b3a'; c.fillRect(w.x - bw / 2, w.y - top, bw * Math.max(0, w.hp) / w.max, 1.4); }
+// club raise (0..1) and the lean for an attack at u (0..1)
+const clubRaise = u => u < 0 ? 0 : u < 0.6 ? sm(u / 0.6) : u < 0.72 ? 1 - sm((u - 0.6) / 0.12) * 1.6 : -0.6 + sm((u - 0.72) / 0.28) * 0.6;
+const clubLean = u => u < 0 ? 0 : u < 0.6 ? -0.15 * sm(u / 0.6) : u < 0.8 ? 0.3 : 0.3 * (1 - sm((u - 0.8) / 0.2));
+function walker(c, w, t) {
+  const U = UK[w.k], tkn = KN[w.tk] || K, fx = tkn.x >= w.x ? 1 : -1, u = w.atk < 0 ? -1 : w.atk / U.atkT, white = w.hit > 0;
+  if (w.k === 'zombie') drawZombie(c, w, t, U, fx, u, white);
+  else if (w.k === 'ogre') drawOgre(c, w, t, U, fx, u, white);
+  else if (w.k === 'warg') drawWarg(c, w, t, U, fx, u, white);
+  else drawFoot(c, w, t, U, fx, u, white);
+}
+function drawFoot(c, w, t, U, fx, u, white, top = 14) {
+  c.save(); c.translate(w.x, w.y);
+  const mv = u < 0 ? 1 : 0, st = Math.sin(t * 11 + w.ph) * mv;
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(0, 1, 3.5, 1.4, 0, 0, 7); c.fill();
+  c.strokeStyle = U.legs; c.lineWidth = 1.2; c.lineCap = 'round'; c.beginPath(); c.moveTo(-0.8, -3); c.lineTo(-0.8 + st * 1.6, 0.6); c.moveTo(0.8, -3); c.lineTo(0.8 - st * 1.6, 0.6); c.stroke();
+  const raise = clubRaise(u); c.rotate(fx * clubLean(u));
+  const sh = [fx * 2.0, -6.2], hand = u < 0 ? [fx * (2.6 + st * 0.5), -3.4] : [sh[0] + fx * Math.cos(-1.2 * raise + 0.9) * 3.2, sh[1] + Math.sin(-1.2 * raise + 0.9) * 3.2 - raise * 1.2];
+  c.strokeStyle = white ? '#fff' : U.skin; c.lineWidth = 1; c.beginPath(); c.moveTo(-fx * 2.3, -6); c.lineTo(-fx * (2.8 + st * 0.6), -3.6); c.moveTo(...sh); c.lineTo(...hand); c.stroke();
+  const ca = u < 0 ? -fx * 0.4 - Math.PI / 2 * 0.2 : Math.atan2(hand[1] - sh[1], hand[0] - sh[0]);
+  c.strokeStyle = '#6b4a2a'; c.lineWidth = 0.9; c.beginPath(); c.moveTo(...hand); c.lineTo(hand[0] + Math.cos(ca) * 3.2, hand[1] + Math.sin(ca) * 3.2); c.stroke();
+  c.fillStyle = '#5a3d22'; c.beginPath(); c.arc(hand[0] + Math.cos(ca) * 3.4, hand[1] + Math.sin(ca) * 3.4, 0.75, 0, 7); c.fill();
+  c.fillStyle = white ? '#fff' : U.body; c.beginPath(); c.ellipse(0, -5, 2.6, 3, 0, 0, 7); c.fill();
+  c.fillStyle = white ? '#fff' : U.skin; c.beginPath(); c.arc(0, -9.2, 1.9, 0, 7); c.fill(); c.fillStyle = U.helm; c.beginPath(); c.arc(0, -9.8, 2, Math.PI, 0); c.fill();
+  c.fillStyle = '#222'; c.beginPath(); c.arc(fx * 0.8, -9.2, 0.25, 0, 7); c.fill();
+  c.restore(); hpBar(c, w, top);
+}
+// zombie: hunched, dragging feet, arms reaching out; claws down when it attacks
+function drawZombie(c, w, t, U, fx, u, white) {
+  c.save(); c.translate(w.x, w.y);
+  const mv = u < 0 ? 1 : 0, ph = t * 6 + w.ph, st = Math.sin(ph) * mv, sway = Math.sin(ph * 0.5) * 0.12;
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(0, 1, 3.4, 1.3, 0, 0, 7); c.fill();
+  c.strokeStyle = U.legs; c.lineWidth = 1.2; c.lineCap = 'round'; c.beginPath(); c.moveTo(-0.8, -3); c.lineTo(-0.9 + st * 1.1, 0.6); c.moveTo(0.8, -3); c.lineTo(0.9 - Math.max(0, st) * 0.6, 0.7); c.stroke();
+  const claw = u < 0 ? 0 : u < 0.55 ? sm(u / 0.55) : 1 - sm((u - 0.55) / 0.45);
+  c.rotate(fx * (0.22 + sway + claw * 0.18));
+  const skin = white ? '#fff' : U.skin;
+  // arms out in front, raised for the claw, then slashing down
+  const ay = -6.2 - claw * 3 + (u > 0.55 ? (u - 0.55) * 9 : 0);
+  c.strokeStyle = skin; c.lineWidth = 0.95; c.beginPath(); c.moveTo(fx * 1.2, -6.4); c.lineTo(fx * 5.0, ay + Math.sin(ph) * 0.3); c.moveTo(-fx * 0.6, -6.2); c.lineTo(fx * 4.2, ay + 0.8 - Math.sin(ph) * 0.3); c.stroke();
+  c.fillStyle = white ? '#fff' : U.body; c.beginPath(); c.moveTo(-2.4, -2.4); c.lineTo(-2.6, -7.2); c.quadraticCurveTo(0, -8.6, 2.6, -7.2); c.lineTo(2.3, -2.4); c.lineTo(1.2, -1.6); c.lineTo(0.2, -2.6); c.lineTo(-1, -1.7); c.closePath(); c.fill(); // torn shirt
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(-0.8, -4.6, 0.8, 0.5, 0.3, 0, 7); c.fill(); c.fillStyle = skin; c.beginPath(); c.ellipse(0.9, -5.2, 0.6, 0.4, -0.2, 0, 7); c.fill(); // hole in the shirt
+  c.fillStyle = skin; c.beginPath(); c.arc(fx * 0.4, -9.3, 1.85, 0, 7); c.fill();
+  c.fillStyle = U.hair; c.beginPath(); c.arc(fx * 0.1, -10.2, 1.6, Math.PI * 1.05, Math.PI * 1.95); c.fill();
+  c.fillStyle = '#1d140f'; c.beginPath(); c.arc(fx * 1.1, -9.5, 0.35, 0, 7); c.arc(fx * 0.0, -9.5, 0.3, 0, 7); c.fill(); // sunken eyes
+  c.fillStyle = '#3a1a14'; c.beginPath(); c.ellipse(fx * 0.8, -8.2, 0.55, 0.3 + claw * 0.2, 0, 0, 7); c.fill(); // open mouth
+  c.restore(); hpBar(c, w, 14);
+}
+// ogre: big and heavy, belly and loincloth, a spiked club brought down two-handed
+function drawOgre(c, w, t, U, fx, u, white) {
+  c.save(); c.translate(w.x, w.y);
+  c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(0, 1, 6.4, 2.2, 0, 0, 7); c.fill();
+  c.scale(U.sc, U.sc);
+  const mv = u < 0 ? 1 : 0, ph = t * 6 + w.ph, st = Math.sin(ph) * mv, bob = Math.abs(Math.cos(ph)) * 0.3 * mv, skin = white ? '#fff' : U.skin;
+  c.strokeStyle = skin; c.lineWidth = 1.7; c.lineCap = 'round'; c.beginPath(); c.moveTo(-1, -3); c.lineTo(-1.2 + st * 1.2, 0.5); c.moveTo(1, -3); c.lineTo(1.2 - st * 1.2, 0.5); c.stroke();
+  c.translate(0, -bob);
+  const raise = clubRaise(u); c.rotate(fx * clubLean(u) * 0.8);
+  // belly, loincloth, belt
+  c.fillStyle = skin; c.beginPath(); c.ellipse(fx * 0.3, -5.6, 3.1, 3.3, 0, 0, 7); c.fill();
+  c.fillStyle = 'rgba(0,0,0,.12)'; c.beginPath(); c.ellipse(-fx * 1.2, -5.4, 1.4, 2.6, 0, 0, 7); c.fill();
+  c.fillStyle = white ? '#fff' : U.body; c.beginPath(); c.moveTo(-2.6, -3.6); c.lineTo(2.6, -3.6); c.lineTo(1.8, -1.2); c.lineTo(0, -2.2); c.lineTo(-1.8, -1.2); c.closePath(); c.fill();
+  c.fillStyle = '#3a2614'; c.fillRect(-2.7, -4, 5.4, 0.6);
+  // club: overhead then down
+  const sh = [fx * 2.3, -7.6], hand = u < 0 ? [fx * 3.2, -4.4 + st * 0.3] : [sh[0] + fx * Math.cos(-1.3 * raise + 0.8) * 3.0, sh[1] + Math.sin(-1.3 * raise + 0.8) * 3.0 - raise * 1.4];
+  const ca = u < 0 ? -Math.PI / 2 + fx * 0.35 : Math.atan2(hand[1] - sh[1], hand[0] - sh[0]) + fx * 0.2;
+  c.strokeStyle = skin; c.lineWidth = 1.4; c.beginPath(); c.moveTo(-fx * 2.6, -7.4); c.lineTo(-fx * 3.2, -4.6); c.moveTo(...sh); c.lineTo(...hand); c.stroke();
+  const tip = [hand[0] + Math.cos(ca) * 4.6, hand[1] + Math.sin(ca) * 4.6];
+  c.strokeStyle = '#5b3a1f'; c.lineWidth = 1.1; c.beginPath(); c.moveTo(...hand); c.lineTo(...tip); c.stroke();
+  c.fillStyle = '#4a2f18'; c.beginPath(); c.ellipse(tip[0], tip[1], 1.25, 1.0, ca, 0, 7); c.fill();
+  c.fillStyle = '#c9c2b0'; for (let i = 0; i < 4; i++) { const a = ca + i * 1.57 + 0.5; c.beginPath(); c.arc(tip[0] + Math.cos(a) * 1.2, tip[1] + Math.sin(a) * 1.0, 0.25, 0, 7); c.fill(); }
+  c.fillStyle = skin; c.beginPath(); c.arc(hand[0], hand[1], 0.7, 0, 7); c.fill();
+  // small head on big shoulders, tusks, heavy brow
+  c.fillStyle = skin; c.beginPath(); c.arc(fx * 0.6, -9.6, 1.6, 0, 7); c.fill();
+  c.fillStyle = U.hair; c.beginPath(); c.arc(fx * 0.3, -10.4, 1.3, Math.PI * 1.1, Math.PI * 1.9); c.fill();
+  c.strokeStyle = '#4a3a20'; c.lineWidth = 0.35; c.beginPath(); c.moveTo(fx * 0.4, -10.2); c.lineTo(fx * 1.9, -9.9); c.stroke();
+  c.fillStyle = '#222'; c.beginPath(); c.arc(fx * 1.3, -9.7, 0.22, 0, 7); c.fill();
+  c.fillStyle = '#f2ead0'; c.beginPath(); c.moveTo(fx * 0.9, -8.7); c.lineTo(fx * 1.15, -9.5); c.lineTo(fx * 1.35, -8.7); c.fill(); c.beginPath(); c.moveTo(fx * 1.7, -8.8); c.lineTo(fx * 1.9, -9.5); c.lineTo(fx * 2.05, -8.8); c.fill();
+  c.restore(); hpBar(c, w, 23);
+}
+// warg rider: a big grey wolf at a gallop with an orc on its back; the wolf lunges and bites, the rider swings an axe
+function drawWarg(c, w, t, U, fx, u, white) {
+  c.save(); c.translate(w.x, w.y);
+  c.fillStyle = 'rgba(0,0,0,.26)'; c.beginPath(); c.ellipse(0, 1, 5.6, 1.6, 0, 0, 7); c.fill();
+  c.scale(fx, 1);
+  const mv = u < 0 ? 1 : 0, ph = t * 14 + w.ph, g = Math.sin(ph) * mv, lunge = u < 0 ? 0 : Math.sin(Math.min(1, u) * Math.PI), fur = white ? '#fff' : U.fur, furD = white ? '#ddd' : U.furD;
+  const by = -4.4 - Math.abs(Math.cos(ph)) * 0.6 * mv;
+  // legs: gallop
+  c.strokeStyle = furD; c.lineWidth = 1.0; c.lineCap = 'round'; c.beginPath();
+  c.moveTo(2.4, by + 0.8); c.lineTo(2.6 + g * 1.6, 0.4); c.moveTo(1.6, by + 1); c.lineTo(1.6 - g * 1.4, 0.4);
+  c.moveTo(-2.4, by + 0.8); c.lineTo(-2.4 - g * 1.6, 0.4); c.moveTo(-1.6, by + 1); c.lineTo(-1.6 + g * 1.4, 0.4); c.stroke();
+  // tail, body
+  c.strokeStyle = fur; c.lineWidth = 1.1; c.beginPath(); c.moveTo(-3.6, by - 0.4); c.quadraticCurveTo(-5.4, by - 1.6 + g, -6.2, by - 0.6 + g * 0.6); c.stroke();
+  c.fillStyle = fur; c.beginPath(); c.ellipse(0, by, 4.1, 1.9, -0.05, 0, 7); c.fill();
+  c.fillStyle = furD; c.beginPath(); c.ellipse(-0.4, by + 0.9, 3.4, 0.7, 0, 0, 7); c.fill();
+  // head and jaws, lunging forward on the bite
+  const hx = 4.0 + lunge * 1.6, hy = by - 1.4 + lunge * 0.6;
+  c.fillStyle = fur; c.beginPath(); c.ellipse(hx, hy, 1.6, 1.25, 0.15, 0, 7); c.fill();
+  c.beginPath(); c.moveTo(hx + 0.8, hy - 0.5); c.lineTo(hx + 3.0, hy + 0.1 - lunge * 0.4); c.lineTo(hx + 0.9, hy + 0.4); c.fill(); // upper jaw
+  c.fillStyle = furD; c.beginPath(); c.moveTo(hx + 0.7, hy + 0.5); c.lineTo(hx + 2.7, hy + 0.6 + lunge * 0.9); c.lineTo(hx + 0.6, hy + 1.0); c.fill(); // lower jaw
+  c.fillStyle = '#f2ead0'; c.beginPath(); c.moveTo(hx + 2.2, hy + 0.15); c.lineTo(hx + 2.35, hy + 0.55); c.lineTo(hx + 2.5, hy + 0.1); c.fill();
+  c.fillStyle = furD; c.beginPath(); c.moveTo(hx - 0.6, hy - 0.9); c.lineTo(hx - 0.2, hy - 2.3); c.lineTo(hx + 0.4, hy - 1.0); c.fill(); // ear
+  c.fillStyle = '#e8c040'; c.beginPath(); c.arc(hx + 0.6, hy - 0.3, 0.25, 0, 7); c.fill();
+  // rider: orc torso on the wolf's back, axe arm
+  const rx = -0.4, ry = by - 1.4, axe = u < 0 ? 0 : clubRaise(u);
+  c.fillStyle = white ? '#fff' : U.body; c.beginPath(); c.ellipse(rx, ry - 1.6, 1.7, 2.1, 0.1, 0, 7); c.fill();
+  c.strokeStyle = white ? '#fff' : U.legs; c.lineWidth = 0.9; c.beginPath(); c.moveTo(rx + 0.4, ry); c.lineTo(rx + 1.4, by + 1.4); c.stroke();
+  const sh = [rx + 1.0, ry - 2.6], hand = [sh[0] + Math.cos(-1.4 * axe + 0.6) * 2.4, sh[1] + Math.sin(-1.4 * axe + 0.6) * 2.4 - axe * 0.8];
+  c.strokeStyle = white ? '#fff' : U.skin; c.lineWidth = 0.85; c.beginPath(); c.moveTo(...sh); c.lineTo(...hand); c.stroke();
+  const aa = Math.atan2(hand[1] - sh[1], hand[0] - sh[0]) - 0.5, ah = [hand[0] + Math.cos(aa) * 2.4, hand[1] + Math.sin(aa) * 2.4];
+  c.strokeStyle = '#5b3a1f'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(...hand); c.lineTo(...ah); c.stroke();
+  c.fillStyle = '#9aa1a8'; c.beginPath(); c.moveTo(ah[0], ah[1]); c.lineTo(ah[0] + Math.cos(aa + 1.4) * 1.2, ah[1] + Math.sin(aa + 1.4) * 1.2); c.lineTo(ah[0] - Math.cos(aa) * 1.0 + Math.cos(aa + 1.4) * 1.0, ah[1] - Math.sin(aa) * 1.0 + Math.sin(aa + 1.4) * 1.0); c.fill();
+  c.fillStyle = white ? '#fff' : U.skin; c.beginPath(); c.arc(rx + 0.3, ry - 4.4, 1.35, 0, 7); c.fill();
+  c.fillStyle = U.helm; c.beginPath(); c.arc(rx + 0.1, ry - 4.9, 1.4, Math.PI, 0); c.fill();
+  c.fillStyle = '#222'; c.beginPath(); c.arc(rx + 0.9, ry - 4.4, 0.2, 0, 7); c.fill();
+  c.fillStyle = '#f2ead0'; c.beginPath(); c.moveTo(rx + 0.8, ry - 3.6); c.lineTo(rx + 0.95, ry - 4.1); c.lineTo(rx + 1.1, ry - 3.6); c.fill();
+  c.restore(); hpBar(c, w, 15);
+}
+// ---------- dismemberment ----------
+// kinds: head, torso, arm, legs; each flies with z, spins, bleeds, then lies on the ground and fades
+function gib(w, kind, vx, vy, vz, spin) { const U = UK[w.k] || UK.foot, sc = kind === 'chunk' || kind === 'wolfhead' ? 1 : U.sc, kb = Math.max(0.55, U.kb); parts.push({ kind, uk: w.k || 'foot', sc, x: w.x, y: w.y, z: ({ head: 9.2, torso: 5, arm: 6, legs: 1.5, chunk: 4, wolfhead: 4.5 })[kind] * (w.k === 'warg' && kind !== 'chunk' && kind !== 'wolfhead' ? 1.5 : sc), vx: vx * kb, vy: vy * kb, vz, rot: 0, spin, t: 0, rest: 0, side: Math.random() < 0.5 ? -1 : 1 }); }
+const wolfBits = (w, dir) => { if (w.k !== 'warg') return; gib(w, 'wolfhead', dir * rr(14, 24), rr(-5, 5), rr(12, 20), rr(-12, 12)); for (let i = 0; i < 3; i++) gib(w, 'chunk', dir * rr(4, 18), rr(-6, 6), rr(8, 18), rr(-14, 14)); };
+function spray(px, py, pz, dx, n, pow) { for (let i = 0; i < n; i++) blood.push({ x: px, y: py, z: pz, vx: dx * rr(8, 26) * pow + rr(-8, 8), vy: rr(-6, 6), vz: rr(6, 24) * pow, t: 0 }); }
+function cleaveKill(w, dir) {
+  w.dead = 1; const h = Math.random(); wolfBits(w, dir);
+  // the cut: head off, an arm off, or cut through the middle
+  if (h < 0.4) { gib(w, 'head', dir * rr(22, 36), rr(-6, 6), rr(22, 34), rr(-14, 14)); gib(w, 'torso', dir * rr(8, 14), rr(-3, 3), 6, dir * rr(3, 6)); gib(w, 'legs', dir * 3, 0, 2, dir * 2); spray(w.x, w.y, 8, dir, 14, 1); }
+  else if (h < 0.7) { gib(w, 'arm', dir * rr(20, 32), rr(-8, 8), rr(18, 28), rr(-18, 18)); gib(w, 'torso', dir * rr(10, 16), rr(-3, 3), 8, dir * rr(4, 7)); gib(w, 'legs', dir * 3, 0, 2, dir * 2); if (Math.random() < 0.5) gib(w, 'head', dir * rr(14, 22), rr(-6, 6), rr(14, 22), rr(-10, 10)); spray(w.x, w.y, 6, dir, 12, 1); }
+  else { gib(w, 'torso', dir * rr(18, 28), rr(-4, 4), rr(14, 22), dir * rr(6, 10)); gib(w, 'legs', dir * rr(2, 5), 0, 3, -dir * 2); gib(w, 'arm', dir * rr(10, 20), rr(-8, 8), rr(14, 22), rr(-16, 16)); spray(w.x, w.y, 4, dir, 16, 0.9); }
+}
+function spinKill(w) {
+  w.dead = 1; const a = Math.atan2(w.y - K.y, w.x - K.x), dx = Math.cos(a), dy = Math.sin(a), tang = [-dy, dx];
+  const pw = rr(45, 70);
+  for (const kd of ['torso', 'head', 'arm', 'arm', 'legs']) { const j = kd === 'torso' ? 1 : rr(0.7, 1.25); gib(w, kd, (dx * pw + tang[0] * pw * 0.5) * j + rr(-8, 8), (dy * pw * 0.6 + tang[1] * pw * 0.3) * j + rr(-6, 6), rr(28, 44) * (kd === 'torso' ? 0.9 : 1.1), rr(-22, 22)); }
+  wolfBits(w, Math.sign(dx) || 1); spray(w.x, w.y, 6, Math.sign(dx) || 1, 22, 1.4);
+}
+function drawPart(c, p) {
+  const U = UK[p.uk] || UK.foot, BL = '#7a1a12';
+  c.save(); c.translate(p.x, p.y - p.z); c.rotate(p.rot); c.scale(p.sc, p.sc);
+  if (p.kind === 'head') { c.fillStyle = U.skin; c.beginPath(); c.arc(0, 0, 1.9, 0, 7); c.fill(); if (U.helm) { c.fillStyle = U.helm; c.beginPath(); c.arc(0, -0.6, 2, Math.PI, 0); c.fill(); } else { c.fillStyle = U.hair; c.beginPath(); c.arc(0, -0.5, 1.7, Math.PI * 1.05, Math.PI * 1.95); c.fill(); } c.fillStyle = BL; c.beginPath(); c.ellipse(0, 1.7, 1.1, 0.45, 0, 0, 7); c.fill(); }
+  else if (p.kind === 'torso') { c.fillStyle = p.uk === 'ogre' ? U.skin : U.body; c.beginPath(); c.ellipse(0, 0, 2.6, 3, 0, 0, 7); c.fill(); c.fillStyle = '#c95f4a'; c.beginPath(); c.ellipse(0, -2.6, 1.3, 0.55, 0, 0, 7); c.fill(); c.fillStyle = BL; c.beginPath(); c.ellipse(0, -2.6, 0.8, 0.3, 0, 0, 7); c.fill(); }
+  else if (p.kind === 'arm') { c.strokeStyle = U.skin; c.lineWidth = 1; c.lineCap = 'round'; c.beginPath(); c.moveTo(0, -1.6); c.lineTo(0, 1.6); c.stroke(); c.fillStyle = U.body; c.fillRect(-0.6, -1.9, 1.2, 1.0); c.fillStyle = BL; c.beginPath(); c.arc(0, -1.9, 0.5, 0, 7); c.fill(); }
+  else if (p.kind === 'chunk') { c.fillStyle = U.fur; c.beginPath(); c.ellipse(0, 0, 2.2, 1.4, 0, 0, 7); c.fill(); c.fillStyle = '#9c2a1e'; c.beginPath(); c.ellipse(0.8, 0, 1.0, 1.1, 0, 0, 7); c.fill(); c.fillStyle = '#efe0d0'; c.beginPath(); c.arc(1.1, 0, 0.3, 0, 7); c.fill(); }
+  else if (p.kind === 'wolfhead') { c.fillStyle = U.fur; c.beginPath(); c.ellipse(0, 0, 1.6, 1.25, 0, 0, 7); c.fill(); c.beginPath(); c.moveTo(0.8, -0.5); c.lineTo(3, 0.1); c.lineTo(0.9, 0.5); c.fill(); c.fillStyle = U.furD; c.beginPath(); c.moveTo(-0.6, -0.9); c.lineTo(-0.2, -2.3); c.lineTo(0.4, -1); c.fill(); c.fillStyle = BL; c.beginPath(); c.ellipse(-1.4, 0.2, 0.5, 0.9, 0, 0, 7); c.fill(); }
+  else { c.strokeStyle = U.legs; c.lineWidth = 1.2; c.lineCap = 'round'; c.beginPath(); c.moveTo(-0.8, -1.8); c.lineTo(-1.0, 1.8); c.moveTo(0.8, -1.8); c.lineTo(1.1, 1.8); c.stroke(); c.fillStyle = U.body; c.beginPath(); c.ellipse(0, -2, 1.6, 0.8, 0, 0, 7); c.fill(); c.fillStyle = BL; c.beginPath(); c.ellipse(0, -2.2, 1.0, 0.4, 0, 0, 7); c.fill(); }
+  c.restore();
+}
+// ---------- sim ----------
+let spawnT = 0;
+// kills are logged so the guest can play the same dismemberment
+let EV = [];
+function hurt(w, d, kill) { w.hp -= d; w.hit = 0.1; if (w.hp <= 0) { K.kills++; kill(w); } }
+const cleaveFx = (w, dir) => { EV.push([w.id, 0, dir, K.i, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10]); cleaveKill(w, dir); };
+const spinFx = w => { EV.push([w.id, 1, 0, K.i, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10]); spinKill(w); };
+function step(dt, t) {
+  worldStep(dt, t);
+  for (const kn of KN) { K = kn; knightStep(dt, t); }
+  K = KN[ME];
+  if (K.hits > lastHits) { hurtT = 0.12; } lastHits = K.hits; hurtT = Math.max(0, hurtT - dt);
+  netTick(dt, t);
+}
+function knightStep(dt, t) {
+  if (K.spin >= 0 || (K.preGlow && K.glow > 0.3)) { const P = pose(t); if (P.g) { const L = 10.5 * (P.th != null ? (P.blade || 1) : 1) * 1.85, d = [Math.cos(P.a), Math.sin(P.a)], w2 = v => [K.x + v[0] * KS, K.y + v[1] * KS]; (K.trail = K.trail || []).push({ t, b: w2([P.g[0] + d[0] * 1.5, P.g[1] + d[1] * 1.5]), e: w2([P.g[0] + d[0] * (1 + L), P.g[1] + d[1] * (1 + L)]) }); if (K.trail.length > 30) K.trail.shift(); } }
+  else if (K.trail && K.trail.length) { if (t - K.trail[K.trail.length - 1].t > 0.2) K.trail = []; }
+  K.post = Math.max(0, (K.post || 0) - dt);
+  const ox0 = K.x, oy0 = K.y; stepK(dt, t); const md = Math.hypot(K.x - ox0, K.y - oy0); K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.62;
+}
+// input: move vector, aim vector (null when the right stick / mouse is released), spin button
+
+function startPull() { if (K.st === 'kneel') { K.st = 'pull'; K.u = 0; K.pullUp = 0; K.f = 1; K.look = 1; } }
+function stepK(dt, t) {
+  const IN = K.in;
+  if (K.preGlow && K.spin < 0) K.glow = sm(cl((1 - K.pre / PRE_T) / 0.45, 0, 1)); // the light blade grows as he raises the sword over his head
+  else K.glow = ap(K.glow, K.spin >= 0 ? 1 : 0, dt * (K.spin >= 0 ? 8 : 3));
+  K.slotGlow = ap(K.slotGlow, K.hold ? 0.6 + 0.4 * Math.sin(t * 3) : 0, dt * 2);
+  if (K.spin < 0 && !K.preGlow) K.spinCd -= dt;
+  const s = stoneW(), mvL = Math.hypot(IN.mv[0], IN.mv[1]);
+  if (K.st === 'kneel') {
+    K.kn = ap(K.kn, 1, dt * 3);
+    K.lookT -= dt; if (K.lookT <= 0) { K.lookGoal = K.lookGoal ? 0 : 1; K.lookT = K.lookGoal ? rr(1.2, 2) : rr(4, 7); } K.look = ap(K.look, K.lookGoal || 0, dt * 2);
+    if (mvL > 0.2 || IN.aim || IN.spin) startPull();
+  } else if (K.st === 'pull') {
+    K.u += dt / 0.9; K.kn = ap(K.kn, 0, dt * 4.5);
+    if (K.u < 0.35) { const k = sm(K.u / 0.35), hx = K.T.x + HOME.x, hy = K.T.y + HOME.y; K.x = lerp(hx, s[0] - 5.0, k); K.y = lerp(hy, s[1] + 0.7, k); }
+    if (K.u > 0.3 && !K.hold) { K.hold = 1; K.pullUp = 0; }
+    if (K.hold) { const was = K.pullUp; K.pullUp = sm(cl((K.u - 0.3) / 0.32, 0, 1)); if (was < 0.15 && K.pullUp >= 0.15) { for (let i = 0; i < 12; i++) { const a = rr(0, 6.28); sparks.push({ x: s[0], y: s[1] - 4.5, vx: Math.cos(a) * rr(10, 30), vy: Math.sin(a) * rr(6, 20) - 8, t: 0, max: rr(0.3, 0.6) }); } for (let i = 0; i < 8; i++) dust.push({ x: s[0] + rr(-2, 2), y: s[1] - 4, vx: rr(-10, 10), vy: rr(-4, 2), r: rr(0.8, 1.5), t: 0, max: rr(0.4, 0.8) }); } }
+    if (K.u >= 1) { K.st = 'fight'; }
+  } else {
+    K.kn = ap(K.kn, 0, dt * 5);
+    // movement: full speed, slower mid-swing, a bit slower while spinning
+    const v = RUN * (K.spin >= 0 ? 0.6 : K.swing >= 0 ? 0.55 : K.preGlow ? 0.3 : 1);
+    if (mvL > 0.12) { const k = Math.min(1, mvL); K.x += IN.mv[0] / mvL * k * v * dt; K.y += IN.mv[1] / mvL * k * v * dt; if (K.spd > RUN * 0.6 && Math.random() < dt * 10) dust.push({ x: K.x - K.f * 1.5, y: K.y, vx: -K.f * rr(4, 10), vy: rr(-2, 1), r: rr(0.7, 1.3), t: 0, max: rr(0.3, 0.6) }); }
+    K.x = cl(K.x, 8, W - 8); K.y = cl(K.y, 16, H - 4);
+    if (K.spin >= 0) {
+      K.spin += dt;
+      const sw = spinSwept(), th = K.spinA0 + K.spinDir * (sw - SPIN_O), bs = spinSector(Math.atan2(Math.sin(th) * 0.45, Math.cos(th)));
+      if (bs !== K.sec) { K.sec = bs; K.secN = (K.secN || 0) + 1; }
+      // 8 pie slices round him, in screen space: only the slice the blade is in can be hit, once per pass, and only after the blade has come round from the coil
+      if (sw >= SPIN_MOM && AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.x, dy = (w.y - 5 * UK[w.k].sc) - (K.y - 7), rx = 25 + UK[w.k].r - 2.1; if ((dx / rx) ** 2 + (dy / (12 + UK[w.k].r - 2.1)) ** 2 > 1) continue; if (spinSector(Math.atan2(dy, dx)) !== bs || w.spun === K.secN) continue; w.spun = K.secN; const a = Math.atan2(w.y - K.y, w.x - K.x); w.kx += Math.cos(a) * 40; w.ky += Math.sin(a) * 22; w.atk = -1; hurt(w, SPIN_DMG, spinFx); }
+      if (K.spin >= SPIN_T) { K.spin = -1; K.spinCd = SPIN_CD; K.preGlow = 0; K.post = 0.25; K.sec = -1; walkers.forEach(w => w.spun = 0); K.f = Math.cos(K.spinA0) >= 0 ? 1 : -1; }
+    } else {
+      // facing: the swing stick wins, otherwise the way he walks
+      if (K.swing < 0 && !K.preGlow) { if (IN.aim && Math.abs(IN.aim[0]) > 0.15) K.f = IN.aim[0] > 0 ? 1 : -1; else if (!IN.aim && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1; }
+      if (IN.spin && K.spinCd <= 0 && K.swing < 0 && !K.preGlow) { K.preGlow = 1; K.pre = PRE_T; K.spinA0 = K.f > 0 ? 0 : Math.PI; K.spinDir = K.f; }
+      if (K.preGlow) { K.pre -= dt; if (K.pre <= 0) { K.spin = -K.pre; } }
+      else if (IN.aim && K.swing < 0 && !(K.post > 0)) { K.swing = 0; K.hitDone = 0; K.aimA = Math.atan2(IN.aim[1], IN.aim[0]); K.el = cl(Math.atan2(IN.aim[1], Math.abs(IN.aim[0])), -1.15, 1.15); }
+    }
+    if (K.swing >= 0) {
+      K.swing += dt; const u = K.swing / SWING, ad = [Math.cos(K.aimA), Math.sin(K.aimA)];
+      if (u > 0.26 && u < 0.42) { K.x += ad[0] * 16 * dt; K.y += ad[1] * 10 * dt; } // he steps into the blow
+      if (u >= 0.4 && !K.hitDone) { K.hitDone = 1; const f = K.f; if (AUTH())
+        for (const w of walkers) { if (w.hp <= 0) continue; const ex = w.x - K.x, ey = (w.y + 4 - K.y) * 1.4, d = Math.hypot(ex, ey) - UK[w.k].r + 2.1; if (d > CLEAVE_R + 2) continue; let da = Math.atan2(ey, ex) - Math.atan2(ad[1] * 1.4, ad[0]); da = Math.atan2(Math.sin(da), Math.cos(da)); if (d < 3 || Math.abs(da) < 1.3) { w.kx += ad[0] * 18; w.ky += ad[1] * 10; w.atk = -1; hurt(w, CLEAVE_DMG, ww => cleaveFx(ww, ex >= 0 ? 1 : -1)); } } }
+      if (u >= 1) { K.swing = -1; K.swN++; }
+    }
+    K.st = K.spd > RUN * 0.55 && K.swing < 0 && K.spin < 0 ? 'charge' : 'fight';
+  }
+}
+function worldStep(dt, t) {
+  if (AUTH()) {
+  // enemies run at the knight, crowd round him and club him
+  for (const w of walkers) {
+    w.hit = Math.max(0, w.hit - dt); w.cd -= dt;
+    // run at the nearest knight
+    if (w.atk < 0) { let bd = 1e9; KN.forEach((kn, i) => { const dd = Math.hypot(kn.x - w.x, kn.y - w.y); if (dd < bd) { bd = dd; w.tk = i; } }); }
+    const T2 = KN[w.tk] || KN[0], dx = T2.x - w.x, dy = (T2.y - w.y), d = Math.hypot(dx, dy * 1.3) || 1;
+    const U = UK[w.k], reach = 4.4 + U.r;
+    if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5) T2.hits++; if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
+    else if (d > reach) { w.x += dx / d * w.sp * dt; w.y += dy / d * w.sp * dt; }
+    else if (w.cd <= 0 && T2.st !== 'kneel') w.atk = 0;
+    w.x += w.kx * UK[w.k].kb * dt; w.y += w.ky * UK[w.k].kb * dt; w.kx *= 1 - dt * 6; w.ky *= 1 - dt * 6;
+  }
+  // keep them from stacking on one spot
+  for (let a = 0; a < walkers.length; a++) for (let b = a + 1; b < walkers.length; b++) { const A = walkers[a], B = walkers[b], dx = B.x - A.x, dy = (B.y - A.y) * 1.3, d = Math.hypot(dx, dy), R2 = UK[A.k].r + UK[B.k].r; if (d < R2 && d > 0.01) { const p = (R2 - d) * 0.5 * Math.min(1, dt * 12), nx = dx / d, ny = dy / d; A.x -= nx * p; A.y -= ny * p / 1.3; B.x += nx * p; B.y += ny * p / 1.3; } }
+  for (const w of walkers) { w.x = cl(w.x, 4, W - 4); w.y = cl(w.y, 12, H - 4); }
+  } else { // guest: walkers glide to the host's positions; their club swings tick locally
+    for (const w of walkers) { w.hit = Math.max(0, w.hit - dt); if (w.atk >= 0) w.atk = Math.min(UK[w.k].atkT, w.atk + dt); const k = Math.min(1, dt * 14); w.x += (w.tx - w.x) * k; w.y += (w.ty - w.y) * k; }
+  }
+  // gibs, blood
+  for (const p of parts) { p.t += dt; if (!p.rest) { p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.vz -= 110 * dt; p.rot += p.spin * dt; if (Math.random() < dt * 30 && p.t < 0.8) blood.push({ x: p.x, y: p.y, z: p.z, vx: p.vx * 0.2 + rr(-3, 3), vy: rr(-2, 2), vz: rr(-2, 6), t: 0, drip: 1 }); if (p.z <= 0) { p.z = 0; if (p.vz < -18) { p.vz *= -0.3; p.vx *= 0.45; p.vy *= 0.45; p.spin *= 0.4; } else { p.rest = p.t; p.rot = Math.round(p.rot / (Math.PI / 2)) * (Math.PI / 2) + (p.kind === 'torso' || p.kind === 'legs' ? Math.PI / 2 : 0); splats.push({ x: p.x, y: p.y, r: rr(1.4, 2.6), t: 0 }); } } } }
+  parts = parts.filter(p => !p.rest || p.t - p.rest < 4);
+  for (const b of blood) { b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; b.vz -= 100 * dt; if (b.z <= 0 && !b.done) { b.done = 1; if (Math.random() < 0.5) splats.push({ x: b.x, y: b.y, r: rr(0.4, 1.1), t: 0 }); } }
+  blood = blood.filter(b => !b.done);
+  splats.forEach(s2 => s2.t += dt); splats = splats.filter(s2 => s2.t < 5);
+  for (const p of dust) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 5; p.vy *= 1 - dt * 5; } dust = dust.filter(p => p.t < p.max);
+  for (const p of sparks) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 30 * dt; } sparks = sparks.filter(p => p.t < p.max);
+  walkers = walkers.filter(w => !w.dead);
+}
+let ground = document.createElement('canvas');
+function paintGround() { ground.width = W * 3; ground.height = H * 3; const g = ground.getContext('2d'); g.scale(3, 3); g.fillStyle = '#4e8a3a'; g.fillRect(0, 0, W, H); g.fillStyle = '#56953f'; for (let i = 0; i < 60; i++) { g.beginPath(); g.ellipse(Math.random() * W, Math.random() * H, rr(6, 18), rr(4, 9), rr(0, 3), 0, 7); g.fill(); } g.fillStyle = '#b08a5a'; g.fillRect(0, LANE_Y - 20, W, 40); g.fillStyle = '#3e2a18'; g.fillRect(0, LANE_Y - 21, W, 1.5); g.fillRect(0, LANE_Y + 20, W, 1.5); g.fillStyle = '#9a7748'; for (let i = 0; i < 70; i++) { g.beginPath(); g.arc(Math.random() * W, LANE_Y + rr(-17, 17), rr(0.6, 1.6), 0, 7); g.fill(); } }
+function resize() { cv.width = Math.round(innerWidth * DPR); cv.height = Math.round(innerHeight * DPR); }
+addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 250));
+let last = performance.now(), t = 0;
+function draw() {
+  const sc = Math.min(cv.height / 85, cv.width / 75) * (window.__zoom || 1); camX = lerp(camX, K.x, 0.12); camY = lerp(camY, K.y - 6, 0.12);
+  x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#000'; x.fillRect(0, 0, cv.width, cv.height);
+  x.setTransform(sc, 0, 0, sc, cv.width / 2 - camX * sc, cv.height / 2 - camY * sc); x.drawImage(ground, 0, 0, W, H);
+  for (const sp of splats) { x.globalAlpha = Math.max(0, 1 - sp.t / 5) * 0.85; x.fillStyle = '#6a1610'; x.beginPath(); x.ellipse(sp.x, sp.y, sp.r, sp.r * 0.5, 0, 0, 7); x.fill(); } x.globalAlpha = 1;
+  for (const kn of KN) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
+  for (const p of parts) if (p.rest) { x.globalAlpha = Math.max(0, 1 - (p.t - p.rest) / 4); drawPart(x, p); } x.globalAlpha = 1;
+  const list = KN.flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(walkers.map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).sort((a, b) => a[0] - b[0]);
+  for (const [, k, o] of list) {
+    if (k < 2) { K = o; COL = o.col; }
+    if (k === 0) { x.save(); x.translate(K.T.x, K.T.y); boulder(x, t, !(K.st === 'kneel' || (K.st === 'pull' && !K.hold) || (K.st === 'sheathe' && !K.hold)), K.slotGlow); if (!K.hold) { x.translate(STONE.x, STONE.y); x.scale(KS, KS); x.beginPath(); x.rect(-20, -30, 40, 30 - 4.3 / KS); x.clip(); sword(x, [0, -4.3 / KS - 1.3 - 1.1], Math.PI / 2, 10.5); } x.restore(); }
+    else if (k === 1) { drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; x.fillText(K.i === ME ? 'YOU' : (NET && NET.otherName) || 'P' + (K.i + 1), K.x, K.y - 17); } }
+    else if (k === 2) walker(x, o, t);
+    else { x.fillStyle = 'rgba(0,0,0,.2)'; x.beginPath(); x.ellipse(o.x, o.y + 0.5, 1.6, 0.6, 0, 0, 7); x.fill(); drawPart(x, o); }
+  }
+  K = KN[ME];
+  // stone blade covered by the boulder's front: redraw the boulder lip over the buried part
+  for (const b of blood) { x.fillStyle = '#9c1c12'; x.beginPath(); x.arc(b.x, b.y - b.z, 0.38, 0, 7); x.fill(); }
+  for (const p of dust) { const k = p.t / p.max; x.fillStyle = `rgba(150,140,120,${0.5 * (1 - k)})`; x.beginPath(); x.arc(p.x, p.y - k * 2.5, p.r * (1 + k * 1.6), 0, 7); x.fill(); }
+  x.save(); x.globalCompositeOperation = 'lighter'; for (const p of sparks) { const k = p.t / p.max; x.fillStyle = `rgba(255,230,150,${1 - k})`; x.beginPath(); x.arc(p.x, p.y, 0.45, 0, 7); x.fill(); } x.restore();
+  // spin: a ring of light following the blade
+  // blade trail: a short ribbon the length of the light blade, fading behind it
+  for (const kn of KN) { K = kn; if (K.trail && K.trail.length > 1) { x.save(); const now = K.trail[K.trail.length - 1].t, TL = 0.11;
+    for (let i = K.trail.length - 1; i > 0; i--) { const A2 = K.trail[i], B2 = K.trail[i - 1], age = now - B2.t; if (age > TL) break; const al = 0.42 * (1 - age / TL) ** 1.6;
+      const gr = x.createLinearGradient(A2.b[0], A2.b[1], A2.e[0], A2.e[1]); gr.addColorStop(0, `rgba(255,230,160,0)`); gr.addColorStop(0.35, `rgba(255,236,170,${al * 0.5})`); gr.addColorStop(1, `rgba(255,250,225,${al})`);
+      x.fillStyle = gr; x.beginPath(); x.moveTo(...A2.b); x.lineTo(...A2.e); x.lineTo(...B2.e); x.lineTo(...B2.b); x.closePath(); x.fill(); }
+    x.restore(); } }
+  K = KN[ME];
+  if (ZONES && (K.spin >= 0 || K.preGlow)) { // spin pie: 8 slices, the live one lit
+    x.save(); x.translate(K.x, K.y - 7); x.scale(1, 12 / 25); const live = K.spin >= 0 && spinSwept() >= SPIN_MOM;
+    for (let i = 0; i < 8; i++) { const a0 = (i - 0.5) * Math.PI / 4; const sa = Math.atan2(Math.sin(a0) * 25 / 12, Math.cos(a0)), sb = Math.atan2(Math.sin(a0 + Math.PI / 4) * 25 / 12, Math.cos(a0 + Math.PI / 4)); x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, 25, sa, sb); x.closePath(); x.fillStyle = live && i === K.sec ? 'rgba(255,60,40,.35)' : 'rgba(255,255,255,.06)'; x.fill(); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 0.3; x.stroke(); }
+    x.restore(); }
+  if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
+  ST.textContent = NP > 1 ? `Enemies ${walkers.length} · ` + KN.map(kn => `${kn.i === ME ? 'You' : (NET && NET.otherName) || 'P' + (kn.i + 1)} ${kn.kills}k/${kn.hits}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${K.hits}`;
+  const cdk = K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
+}
+function frame(ms) {
+  const dt = Math.min(0.05, (ms - last) / 1000) * speed; last = ms; t += dt; step(dt, t); draw();
+  if (!window.__still) requestAnimationFrame(frame);
+}
+const ST = document.getElementById('stats'), SPI = document.querySelector('#spin i');
+let SPK = 'foot';
+document.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { SPK = b.dataset.k; document.querySelectorAll('[data-k]').forEach(o => o.classList.toggle('on', o === b)); });
+function spawnClump(n, kind, ki) {
+  kind = kind || SPK; const K0 = KN[ki ?? ME] || K;
+  if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'spawn', n, k: kind } });
+  // a clump appears at a random spot 70-100 away from the knight and runs at him
+  const a = rr(0, 6.28), r = rr(70, 100); let cx = cl(K0.x + Math.cos(a) * r, 15, W - 15), cy = cl(K0.y + Math.sin(a) * r * 0.6, 20, H - 10);
+  for (let i = 0; i < n; i++) { const b = rr(0, 6.28), q = Math.sqrt(Math.random()) * (n > 1 ? 4 + Math.sqrt(n) * 2.2 : 0); spawnWalker(cl(cx + Math.cos(b) * q * Math.sqrt(UK[kind].r / 2.1), 4, W - 4), undefined, cl(cy + Math.sin(b) * q * 0.7 * Math.sqrt(UK[kind].r / 2.1), 12, H - 4), kind); }
+}
+document.querySelectorAll('[data-n]').forEach(b => b.onclick = () => spawnClump(+b.dataset.n));
+window.__spawnK = (n, k) => spawnClump(n, k);
+const doClear = () => { if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'clear' } }); walkers = []; };
+const doReset = () => { if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'reset' } }); setup(); if (NET) NET.resync = 1; };
+document.getElementById('clear').onclick = doClear;
+document.getElementById('reset').onclick = doReset;
+let ZONES = false; document.getElementById('zones').onclick = e => { ZONES = !ZONES; e.target.textContent = 'Hit zones: ' + (ZONES ? 'on' : 'off'); };
+const SLB = document.getElementById('slow');
+function slowLabel() { SLB.textContent = 'Slow-mo: ' + (speed === 1 ? 'off' : 'on'); SLB.style.borderColor = speed === 1 ? '' : '#f0c419'; SLB.style.color = speed === 1 ? '' : '#f0c419'; }
+function toggleSlow() { if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'slow' } }); speed = speed === 1 ? 0.3 : 1; slowLabel(); }
+SLB.onclick = toggleSlow;
+// joysticks (touch / mouse drag)
+// dynamic: wherever the thumb lands becomes the stick's centre (so a tap never fires in some random direction); it snaps home on release
+function stick(el, onMove, dynamic) {
+  const knob = el.querySelector('.knob'); let id = null, O = null;
+  const upd = e => { const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, R = r.width / 2;
+    let dx = e.clientX - O[0], dy = e.clientY - O[1]; const d = Math.hypot(dx, dy); if (d > R * 0.8) { dx *= R * 0.8 / d; dy *= R * 0.8 / d; }
+    knob.style.transform = `translate(${O[0] - cx + dx}px,${O[1] - cy + dy}px)`; onMove([dx / (R * 0.8), dy / (R * 0.8)]); };
+  el.addEventListener('pointerdown', e => { id = e.pointerId; el.setPointerCapture(id); const r = el.getBoundingClientRect(); O = dynamic ? [e.clientX, e.clientY] : [r.left + r.width / 2, r.top + r.height / 2]; upd(e); e.preventDefault(); });
+  el.addEventListener('pointermove', e => { if (e.pointerId === id) upd(e); });
+  const end = e => { if (e.pointerId !== id) return; id = null; knob.style.transition = 'transform .12s'; knob.style.transform = ''; setTimeout(() => knob.style.transition = '', 130); onMove(null); };
+  el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+}
+let stickMv = [0, 0], stickAim = null, keyMv = [0, 0], mouseAim = null, keySpin = false, btnSpin = false;
+const syncIn = () => { const IN = KN[ME].in; IN.mv = Math.hypot(...stickMv) > 0.05 ? stickMv : keyMv; IN.aim = stickAim || mouseAim; IN.spin = keySpin || btnSpin; if (NET && NET.mode === 'guest') NET.inDirty = 1; };
+stick(document.getElementById('lst'), v => { stickMv = v || [0, 0]; syncIn(); });
+stick(document.getElementById('rst'), v => { stickAim = v && Math.hypot(...v) > 0.35 ? v : null; syncIn(); }, true);
+const sb = document.getElementById('spin');
+sb.addEventListener('pointerdown', e => { btnSpin = true; syncIn(); e.preventDefault(); });
+const sbUp = () => { btnSpin = false; syncIn(); }; sb.addEventListener('pointerup', sbUp); sb.addEventListener('pointerleave', sbUp); sb.addEventListener('pointercancel', sbUp);
+// keyboard + mouse
+const keys = new Set();
+const keyUpd = () => { keyMv = [(keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0), (keys.has('s') ? 1 : 0) - (keys.has('w') ? 1 : 0)]; keySpin = keys.has(' '); syncIn(); };
+addEventListener('keydown', e => { const k = e.key.toLowerCase(); if ('wasd '.includes(k)) { keys.add(k); keyUpd(); e.preventDefault(); } });
+addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); keyUpd(); });
+let mouseDown = false, mousePos = null;
+const mouseAimUpd = () => { if (!mouseDown || !mousePos) { mouseAim = null; return syncIn(); } const sc = Math.min(cv.height / 85, cv.width / 75) * (window.__zoom || 1) / DPR, kx = innerWidth / 2 + (K.x - camX) * sc, ky = innerHeight / 2 + (K.y - 6 - camY) * sc; mouseAim = [mousePos[0] - kx, mousePos[1] - ky]; syncIn(); };
+cv.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') return; mouseDown = true; mousePos = [e.clientX, e.clientY]; mouseAimUpd(); });
+addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') return; mousePos = [e.clientX, e.clientY]; if (mouseDown) mouseAimUpd(); });
+addEventListener('pointerup', e => { if (e.pointerType !== 'mouse') return; mouseDown = false; mouseAimUpd(); });
+if (matchMedia('(pointer: fine)').matches === false) document.getElementById('help').style.display = 'none';
+makePatch(); paintGround(); resize(); setup(); requestAnimationFrame(frame);
+window.__IN = KN[ME].in; window.__clumpN = spawnClump;
+window.__K = () => K;
+window.__adv = (sec) => { for (let i = 0; i < sec * 60; i++) { t += 1 / 60; step(1 / 60, t); } draw(); };
+// ---------------- lobby + netcode (Supabase Realtime broadcast; the host runs the enemies and all damage) ----------------
+const SB_URL = 'https://ucdwqexhkglvhilurqti.supabase.co', SB_KEY = 'sb_publishable_E9Iaftt5o7nK4Ph5FeoONw_QSfj7KeE';
+let sbc = null;
+const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
+const myPid = Math.random().toString(36).slice(2, 10);
+const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK'];
+const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
+const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin });
+const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in) });
+const packW = w => [w.id, UKEYS.indexOf(w.k), Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10, Math.round(w.hp), w.max, Math.round(w.atk * 100) / 100, w.hit > 0 ? 1 : 0, w.tk];
+const LC = document.getElementById('lcard'), LUI = document.getElementById('lobbyUI'), NOTE = document.getElementById('note');
+let noteT = 0; const note = (msg, sec = 3) => { NOTE.textContent = msg; NOTE.style.display = 'block'; noteT = sec; };
+function lobby(screen, extra) {
+  LUI.style.display = 'flex';
+  const back = '<a href="./">← Back to Hold the Line</a>';
+  if (screen === 'home') LC.innerHTML = `<h1>Knight Brawl</h1><p>Two knights, one horde. Play together online or practise alone.</p>
+    <button class="big pri" id="lHost" ${getSB() ? '' : 'disabled'}>Host a game</button>
+    <input id="lCode" maxlength="4" placeholder="CODE" autocomplete="off"><button class="big" id="lJoin" ${getSB() ? '' : 'disabled'}>Join with code</button>
+    <button class="big" id="lSolo">Play solo</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
+  else if (screen === 'hosting') LC.innerHTML = `<h1>Knight Brawl</h1><p>Give your friend this code</p><div class="code">${NET.code}</div><p>Waiting for player 2…</p>
+    <button class="big" id="lSoloH">Start now (they can still join)</button><button id="lCancel">Cancel</button>`;
+  else if (screen === 'joining') LC.innerHTML = `<h1>Knight Brawl</h1><p>Joining <b>${NET.code}</b>…</p><button id="lCancel">Cancel</button>`;
+  const on = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
+  on('lHost', host); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
+  on('lJoin', () => { const c = (document.getElementById('lCode').value || '').toUpperCase().replace(/[^A-Z]/g, ''); if (c.length !== 4) return lobby('home', 'Enter the 4-letter code.'); join(c); });
+  on('lCancel', () => { leave(); lobby('home'); });
+  const ci = document.getElementById('lCode'); if (ci) ci.onkeydown = e => { if (e.key === 'Enter') document.getElementById('lJoin').click(); };
+}
+function leave() { if (NET && NET.ch) { try { NET.ch.untrack(); sbc.removeChannel(NET.ch); } catch (e) { } } NET = null; }
+function startGame(np, me) { NP = np; ME = me; setup(); LUI.style.display = 'none'; syncIn(); if (NET) NET.started = 1; }
+function openRoom(code, mode) {
+  const ch = getSB().channel('kn-' + code, { config: { presence: { key: myPid }, broadcast: { self: false, ack: false } } });
+  NET = { mode, code, ch, acc: 0, inAcc: 0, inDirty: 1, lastSnap: performance.now(), started: 0, otherName: '' };
+  ch.on('presence', { event: 'sync' }, () => {
+    if (!NET || NET.mode !== 'host') return;
+    const others = Object.entries(ch.presenceState()).filter(([k]) => k !== myPid);
+    if (others.length && !NET.guest) { NET.guest = others[0][0]; NET.otherName = (others[0][1][0] || {}).name || 'P2'; startGame(2, 0); ch.send({ type: 'broadcast', event: 'start', payload: { name: myName } }); note(NET.otherName + ' joined'); }
+    else if (!others.length && NET.guest) { NET.guest = null; note((NET.otherName || 'Player 2') + ' left', 4); }
+  });
+  ch.on('broadcast', { event: 'start' }, ({ payload }) => { if (NET && NET.mode === 'guest' && !NET.started) { NET.otherName = payload.name || 'Host'; startGame(2, 1); } });
+  ch.on('broadcast', { event: 'hi' }, () => { if (NET && NET.mode === 'host' && NET.guest) ch.send({ type: 'broadcast', event: 'start', payload: { name: myName } }); });
+  ch.on('broadcast', { event: 'in' }, ({ payload }) => { if (NET && NET.mode === 'host' && KN[1]) KN[1].in = payload; });
+  ch.on('broadcast', { event: 'rq' }, ({ payload: q }) => { if (!NET || NET.mode !== 'host') return;
+    if (q.a === 'spawn') spawnClump(q.n, q.k, 1); else if (q.a === 'clear') doClear(); else if (q.a === 'reset') doReset(); else if (q.a === 'slow') toggleSlow(); });
+  ch.on('broadcast', { event: 's' }, ({ payload }) => { if (NET && NET.mode === 'guest' && NET.started) applySnap(payload); });
+  ch.subscribe(st => { if (st === 'SUBSCRIBED' && NET && NET.ch === ch) { ch.track({ name: myName, host: mode === 'host' ? 1 : 0 }); if (mode === 'guest') ch.send({ type: 'broadcast', event: 'hi', payload: {} }); } });
+}
+function host() { const A = 'ABCDEFGHJKMNPQRSTUVWXYZ'; let c = ''; for (let i = 0; i < 4; i++) c += A[Math.floor(Math.random() * A.length)]; openRoom(c, 'host'); lobby('hosting'); }
+function join(c) {
+  openRoom(c, 'guest'); lobby('joining');
+  const n0 = NET; setTimeout(() => { if (NET === n0 && !NET.started) { NET.ch.send({ type: 'broadcast', event: 'hi', payload: {} }); } }, 1500);
+  setTimeout(() => { if (NET === n0 && !NET.started) { leave(); lobby('home', 'No game found with code ' + c + '.'); } }, 6000);
+}
+function netTick(dt) {
+  if (noteT > 0 && (noteT -= dt / Math.max(0.05, speed)) <= 0) NOTE.style.display = 'none';
+  if (!NET || !NET.started) { EV.length = 0; return; }
+  const now = performance.now();
+  if (NET.mode === 'host') {
+    if (now - (NET.lastSend || 0) > 66) { NET.lastSend = now; NET.ch.send({ type: 'broadcast', event: 's', payload: { k: KN.map(packK), w: walkers.map(packW), e: EV.splice(0), sp: speed } }); }
+  } else {
+    if ((NET.inDirty && now - (NET.lastIn || 0) > 50) || now - (NET.lastIn || 0) > 250) { NET.lastIn = now; NET.inDirty = 0; NET.ch.send({ type: 'broadcast', event: 'in', payload: packIn(KN[ME].in) }); }
+    if (now - NET.lastSnap > 4000 && !NET.lostNoted) { NET.lostNoted = 1; note('Lost connection to the host', 6); }
+    EV.length = 0;
+  }
+}
+function applySnap(S) {
+  NET.lastSnap = performance.now(); NET.lostNoted = 0;
+  if (S.sp !== speed) { speed = S.sp; slowLabel(); }
+  S.k.forEach((p, i) => { const kn = KN[i]; if (!kn) return; const v = {}; KF.forEach((k, j) => v[k] = p.v[j]);
+    if (i === ME) { // my own knight is predicted locally: only pull its position back toward the host's, and take the score
+      const d = Math.hypot(v.x - kn.x, v.y - kn.y); if (d > 12) { kn.x = v.x; kn.y = v.y; } else { kn.x += (v.x - kn.x) * 0.2; kn.y += (v.y - kn.y) * 0.2; }
+      kn.hits = v.hits; kn.kills = v.kills; if (kn.st === 'kneel' && v.st !== 'kneel') Object.assign(kn, { st: v.st, u: v.u, hold: v.hold });
+    } else { Object.assign(kn, v); kn.in = p.in; }
+  });
+  const byId = new Map(walkers.map(w => [w.id, w])), seen = new Set();
+  for (const a of S.w) { const [id, ki, wx, wy, hp, mx, atk, hit, tk] = a; seen.add(id); let w = byId.get(id);
+    if (!w) { w = mkWalker(UKEYS[ki] || 'foot', wx, wy); w.id = id; walkers.push(w); }
+    w.tx = wx; w.ty = wy; w.hp = hp; w.max = mx; w.tk = tk; if (hit) w.hit = 0.1; if (atk < 0) w.atk = -1; else if (w.atk < 0 || Math.abs(w.atk - atk) > 0.15) w.atk = atk; }
+  for (const e of S.e) { const [id, kind, dir, ki, ex, ey] = e; let w = byId.get(id) || walkers.find(o => o.id === id); if (!w) { w = mkWalker('foot', ex, ey); w.id = id; } w.x = ex; w.y = ey; const k0 = K; K = KN[ki] || KN[0]; if (kind) spinKill(w); else cleaveKill(w, dir); K = k0; }
+  walkers = walkers.filter(w => w.dead || seen.has(w.id));
+}
+lobby('home');
+
+window.__KN = () => KN; window.__pose = t2 => pose(t2); window.__W = () => walkers; window.__spinSw = () => spinSwept(); window.__SPT = SPIN_T; window.__SPO = SPIN_O; window.__PRT = PRE_T;
+window.__still = 0; window.__stop = () => { window.__still = 1; };
+window.__spawn = (x0, n, sp) => { for (let i = 0; i < n; i++) spawnWalker(x0 - i * 4, sp); };
+})();
+</script></body></html>

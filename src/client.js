@@ -41,6 +41,7 @@ function renderMenu() {
     <button class="btn primary big" data-act="find" ${on ? '' : 'disabled'}>Find Match<small>Join the next open lobby</small></button>
     <div class="row2"><button class="btn big" data-act="hostForm" ${on ? '' : 'disabled'}>Host Lobby</button><button class="btn big" data-act="browse" ${on ? '' : 'disabled'}>Browse Lobbies</button></div>
     <div class="row2"><button class="btn big" data-act="vsai">Defend vs AI<small>Hold the line against an AI attacker</small></button><button class="btn big" data-act="atkai">Attack vs AI<small>Break through AI defenders</small></button></div>
+    <button class="btn big" data-act="knights">Knight Brawl<small>New mode: 2 knights co-op vs the horde</small></button>
     ${on ? '' : '<p class="err">Online play is unavailable (the game server didn\'t load). Play vs AI still works.</p>'}<p class="err">${esc(menuErr)}</p>`; }
   bindMenu();
 }
@@ -62,6 +63,7 @@ function menuAct(a) {
   if (a === 'find') { goFull(); return startQuick(); }
   if (a === 'cancelSearch') { stopQuick(); homeScreen = 'home'; return renderMenu(); }
   if (a === 'cancelJoin') { leaveLobby(); return; }
+  if (a === 'knights') { location.href = 'knights.html'; return; }
   if (a === 'vsai') { goFull(); return enterSolo('def'); }
   if (a === 'atkai') { goFull(); return enterSolo('atk'); }
 }
