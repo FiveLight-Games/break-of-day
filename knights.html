@@ -1862,7 +1862,7 @@ function priestAb(dt) {
     if (AUTH()) { const ang = Math.atan2(K.y - py, K.x - px); for (const w of walkers) { if (w.hp <= 0 || w.reeled === K.i * 1e6 + K.abId) continue; if (segDist(w.x, w.y, [px, py], [K.x, K.y]) < 7 + UK[w.k].r) { w.reeled = K.i * 1e6 + K.abId; w.atk = -1; const s = ((w.x - K.x) * -Math.sin(ang) + (w.y - K.y) * Math.cos(ang)) >= 0 ? 1 : -1, ka = Math.atan2(Math.cos(ang) * s * 0.75 + Math.sin(ang) * 0.6, -Math.sin(ang) * s * 0.75 + Math.cos(ang) * 0.6); w.kx += Math.cos(ka) * WP.SL.PKB; w.ky += Math.sin(ka) * WP.SL.PKB * 0.55; hurt(w, WP.SL.PDMG, ww => flingFx(ww, ka)); } } }
     if (q >= 1) { K.ab = null; K.z = 0; K.hL = WP.DRAG; } }
 }
-// what the chain catches: anyone further out than the chosen spot is hooked and hauled along to the clump where the head lands; anyone closer in is knocked aside
+// what the chain catches is hooked and hauled along with it all the way to the clump where the head lands
 function sweepHit(pa, p, B, dt) {
   const id = K.i * 1e6 + K.abId, s = Math.sign(wrapA(K.sa1 - K.sa0)) || 1, base = [K.x, K.y], a = B.a, tang = [-Math.sin(a) * s, Math.cos(a) * s];
   for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k];
@@ -1871,11 +1871,10 @@ function sweepHit(pa, p, B, dt) {
     const onHead = gd(p[0], p[1], w.x, w.y) < WP.HR + U.r + 1.5;
     if (!onHead && !(inTri(pt, base, pa, p) || ptSeg(pt, base, p) < U.r + 1.2)) continue;
     w.swpd = id; w.atk = -1; w.sl = Math.max(w.sl || 0, WP.SW.SLOW);
-    const rw = gd(K.x, K.y, w.x, w.y), far = rw > K.sr1 + 2;
+    const rw = gd(K.x, K.y, w.x, w.y);
     hurt(w, onHead ? WP.SW.HEAD : WP.SW.DMG, ww => onHead && canImpale(ww) && Math.random() < WP.IMP ? impaleFx(ww, Math.atan2(ww.y - K.hy, ww.x - K.hx)) : dashFx(ww, Math.atan2(tang[1], tang[0])));
     if (w.hp <= 0) continue;
-    if (far) { w.hook = K.i; w.hId = id; w.hr0 = rw; w.hq = B.q; w.ha = Math.atan2((w.y - K.y) * 1.25, w.x - K.x); w.hja = rr(-0.12, 0.12); w.hoff = rr(-3, 3) + (onHead ? WP.HR + U.r : rr(0, WP.HR)); }
-    else { w.kx += tang[0] * 130; w.ky += tang[1] * 75; } }
+    w.hook = K.i; w.hId = id; w.hr0 = rw; w.hq = B.q; w.ha = Math.atan2((w.y - K.y) * 1.25, w.x - K.x); w.hja = rr(-0.12, 0.12); w.hoff = rr(-3, 3) + (onHead ? WP.HR + U.r : rr(0, WP.HR)); }
 }
 function sweepRelease() {
   const id = K.i * 1e6 + K.abId;
@@ -2711,7 +2710,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '768eab';
+const KBUILD = '547da7';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
