@@ -78,7 +78,7 @@ const sm = k => k * k * (3 - 2 * k), lerp = (a, b, k) => a + (b - a) * k, L2 = (
 let mode = 'play', speed = 1, foes = false;
 const W = 640, H = 360, LANE_Y = 200;
 // tuning (demo units = game pixels)
-const AGGRO = 95, LEASH = 110, RUN = 62, WALKB = 26, SWING = 1.02, CLEAVE_R = 13, CLEAVE_DMG = 112, CLEAVE_ARC = 1.9, SPIN_CD = 3, SPIN_T = 1.87, SPIN_TURNS = 4, SPIN_O = 0, SPIN_MOM = 0, PRE_T = 0.5, SPIN_R = 22, SPIN_DMG = 160;
+const AGGRO = 95, LEASH = 110, RUN = 62, WALKB = 26, SWING = 1.02, CLEAVE_R = 13, CLEAVE_DMG = 112, CLEAVE_ARC = 1.9, SPIN_CD = 6, SPIN_T = 1.87, SPIN_TURNS = 4, SPIN_O = 0, SPIN_MOM = 0, PRE_T = 0.5, SPIN_R = 22, SPIN_DMG = 160;
 let K = null, walkers = [], parts = [], blood = [], splats = [], dust = [], sparks = [];
 function srand(s) { return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
 function shade(h, k) { const p = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); return '#' + p.map(v => Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k))).toString(16).padStart(2, '0')).join(''); }
@@ -181,7 +181,7 @@ const T2 = Math.PI * 2, SW_B = [G_, [0.26, 1.5, 0.38, 0.95, -1.2, 4.4, 2.75 - T2
 const PRE = [0, 1.3, 0.25, -1.0, -1.6, 4.0, 2.75, 0.6];
 // ---------------- abilities: dashing slice (8-way pad) and leap slam (aimed circle) ----------------
 const US_HIT = 0.62, US_END = 1.35, ULT_KILLS = 250, ULT_T = 12, UT_IN = 1.2, UT_OUT = 0.7, ULT_SZ = 3, ULT_DMG = 700, ULT_SLAM_R = 78, ULT_LEAP = 2.25, ULT_CR = 1.0;
-const DASH_D = 52, DASH_CD = 3, DASH_DMG = 200, DASH_R = 11, LEAP_R = 78, LEAP_CD = 7, SLAM_R = 26, SLAM_DMG = 320;
+const DASH_D = 52, DASH_CD = 2, DASH_DMG = 200, DASH_R = 11, LEAP_R = 78, LEAP_CD = 7, SLAM_R = 26, SLAM_DMG = 320;
 const DIR8 = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]].map(([a, b]) => { const l = Math.hypot(a, b); return [a / l, b / l]; });
 const lcr = () => K.lcr || LT_CR;
 const GCR = [0, 2.0, 0.4, -0.8, -1.4, -2.4, -2.75, 0.35]; // the giant's charge: deep squat, sword cocked back over his shoulder // the leap's crouch: the giant squats and charges for a full second
@@ -1087,7 +1087,7 @@ function stepK(dt, t) {
     if (K.ab) { K.vx = K.vy = 0; stepAbility(dt); abilityBody(); K.st = 'fight'; return; }
     abilityBody();
     // movement: full speed, slower mid-swing, a bit slower while spinning
-    const v = RUN * (K.ultPh >= 0 ? 0.9 : 1) * (K.spin >= 0 ? 0.6 : K.swing >= 0 ? 0.55 : K.preGlow ? 0.3 : 1);
+    const v = RUN * (K.ultPh >= 0 ? 0.9 : 1) * (K.spin >= 0 ? 0.6 * (1 + 0.3 * Math.min(1, K.spin / 0.5)) : K.swing >= 0 ? 0.55 : K.preGlow ? 0.3 : 1);
     // stick held: move at full speed; released: carry on a few pixels, sliding to a stop
     if (mvL > 0.12) { const k = Math.min(1, mvL); K.vx = IN.mv[0] / mvL * k * v; K.vy = IN.mv[1] / mvL * k * v; } else { const dmp = Math.exp(-dt * 13); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
     K.x += (K.vx || 0) * dt; K.y += (K.vy || 0) * dt;
@@ -1473,7 +1473,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'b25885';
+const KBUILD = '3b4086';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || location.protocol === 'file:' || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
