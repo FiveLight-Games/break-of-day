@@ -22,7 +22,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await B.evaluate(() => { const ev = (t, x, y) => document.getElementById('lst').dispatchEvent(new PointerEvent(t, { pointerId: 3, clientX: x, clientY: y, bubbles: true, pointerType: 'touch' })); const r = document.getElementById('lst').getBoundingClientRect(); document.getElementById('lst').setPointerCapture = () => { }; ev('pointerdown', r.left + r.width / 2, r.top + r.height / 2); ev('pointermove', r.left + r.width / 2 - 50, r.top + r.height / 2); window.__up = () => ev('pointerup', 0, 0); });
   await sleep(1500); await B.evaluate(() => window.__up());
   await sleep(500);
-  await B.click('[data-k="ogre"]'); await B.click('[data-n="4"]'); await A.click('[data-k="zombie"]'); await A.click('[data-n="10"]'); await A.click('[data-k="warg"]'); await A.click('[data-n="4"]');
+  await B.click('#hordeBtn'); await B.click('[data-kk="ogre"]'); await B.click('[data-n="4"]'); await A.click('#hordeBtn'); await A.click('[data-kk="warg"]'); await A.click('[data-n="10"]'); await A.click('[data-r="few"]');
   await sleep(2500);
   await A.screenshot({ path: OUT + '/1-host.png' }); await B.screenshot({ path: OUT + '/1-guest.png' });
   const st = async p => p.evaluate(() => document.getElementById('stats').textContent);

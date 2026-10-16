@@ -34,18 +34,22 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 #aoe .dot{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:#f0c41980;border:2px solid #f0c419}
 #aoe i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0}
 #aoe small{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;color:#f0c419c0}
-#spawnUI .kinds{flex-direction:row !important}
-@media (orientation:portrait){#dash{right:calc(16vw + 13px);bottom:140px;width:84px;height:84px}#aoe{left:27px;bottom:140px;width:84px;height:84px}#spin{bottom:276px !important}#spawnUI .kinds{flex-direction:column !important}}
-#spawnUI{position:fixed;left:8px;top:54px;display:flex;flex-direction:column;gap:6px;z-index:2}#spawnUI .kinds,#spawnUI .counts{display:flex;flex-direction:column;gap:4px}#spawnUI .counts{flex-direction:row}#spawnUI button{padding:6px 9px;font-size:12px}#spawnUI .on{border-color:#f0c419;color:#f0c419}
-@media (orientation:portrait){#spawnUI{top:92px}}
-button,.stick,#spin,#dash,#aoe,#spawnUI,#top{touch-action:none;-webkit-touch-callout:none}
+@media (orientation:portrait){#dash{right:calc(16vw + 13px);bottom:140px;width:84px;height:84px}#aoe{left:27px;bottom:140px;width:84px;height:84px}#spin{bottom:276px !important}}
+#horde{position:fixed;left:8px;top:54px;z-index:5;background:#14120fee;border:1px solid #3a332a;border-radius:12px;padding:10px;display:none;flex-direction:column;gap:8px;max-width:min(380px,calc(100vw - 16px));max-height:calc(100vh - 70px);overflow:auto}
+#horde.open{display:flex}#horde .hrow{display:flex;gap:5px;align-items:center;flex-wrap:wrap}#horde b,#horde span{font-size:12px;color:#a59c88;margin-right:4px}
+#horde button{padding:6px 10px;font-size:12px}#horde button.on{border-color:#f0c419;color:#f0c419}
+#horde .kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px}#horde label{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0}#horde input{width:18px;height:18px;accent-color:#f0c419}
+@media (orientation:portrait){#horde{top:92px}#horde .kgrid{grid-template-columns:repeat(2,1fr)}}
+button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none}
 #help{position:fixed;left:50%;transform:translateX(-50%);bottom:6px;font-size:11px;color:#fff9;text-align:center;pointer-events:none}
 </style></head><body>
 <canvas id="c"></canvas>
 <div id="lobbyUI"><div class="card" id="lcard"></div></div>
 <div id="note"></div>
-<div id="spawnUI"><div class="kinds"><button data-k="foot" class="on">Footman</button><button data-k="zombie">Zombie</button><button data-k="ogre">Ogre</button><button data-k="warg">Warg rider</button></div><div class="counts"><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button></div></div>
-<div id="top"><a id="menuBtn" href="./">&#8962; Menu</a><button id="clear">Clear</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><div id="stats"></div></div>
+
+<div id="horde"><div class="hrow"><b>Horde</b><button data-r="off" class="on">Off</button><button data-r="few">A few</button><button data-r="dozens">Dozens</button><button data-r="hundreds">Hundreds</button></div>
+<div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button></div></div>
+<div id="top"><a id="menuBtn" href="./">&#8962; Menu</a><button id="hordeBtn">&#9776; Horde</button><button id="clear">Clear</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><div id="stats"></div></div>
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
 <div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
 <button id="spin"><i></i><span>SPIN</span></button>
@@ -62,7 +66,7 @@ const sm = k => k * k * (3 - 2 * k), lerp = (a, b, k) => a + (b - a) * k, L2 = (
 let mode = 'play', speed = 1, foes = false;
 const W = 640, H = 360, LANE_Y = 200;
 // tuning (demo units = game pixels)
-const AGGRO = 95, LEASH = 110, RUN = 62, WALKB = 26, SWING = 0.85, CLEAVE_R = 11, CLEAVE_DMG = 80, SPIN_CD = 0.5, SPIN_T = 1.87, SPIN_TURNS = 4, SPIN_O = 0, SPIN_MOM = 0, PRE_T = 0.5, SPIN_R = 22, SPIN_DMG = 160;
+const AGGRO = 95, LEASH = 110, RUN = 62, WALKB = 26, SWING = 0.85, CLEAVE_R = 13, CLEAVE_DMG = 112, SPIN_CD = 0.5, SPIN_T = 1.87, SPIN_TURNS = 4, SPIN_O = 0, SPIN_MOM = 0, PRE_T = 0.5, SPIN_R = 22, SPIN_DMG = 160;
 let K = null, walkers = [], parts = [], blood = [], splats = [], dust = [], sparks = [];
 function srand(s) { return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
 function shade(h, k) { const p = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); return '#' + p.map(v => Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k))).toString(16).padStart(2, '0')).join(''); }
@@ -218,10 +222,10 @@ function chainOut() {
 }
 function startSpin() { K.preGlow = 1; K.pre = PRE_T; K.spinA0 = K.f > 0 ? 0 : Math.PI; K.spinDir = K.f; }
 function startDash(v) {
-  const l = Math.hypot(v[0], v[1]) || 1, d = [v[0] / l, v[1] / l]; Object.assign(K, { dvx: d[0], dvy: d[1], slice: [], ab: 'dash', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: cl(K.x + d[0] * DASH_D, 8, W - 8), ay1: cl(K.y + d[1] * DASH_D * 0.8, 16, H - 4), dashCd: DASH_CD + DT_PREP + DT_GO + DT_REC });
+  const l = Math.hypot(v[0], v[1]) || 1, d = [v[0] / l, v[1] / l]; Object.assign(K, { dvx: d[0], dvy: d[1], slice: [], ab: 'dash', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: K.x + d[0] * DASH_D, ay1: cl(K.y + d[1] * DASH_D * 0.8, 16, H - 4), dashCd: DASH_CD + DT_PREP + DT_GO + DT_REC });
   if (Math.abs(d[0]) > 0.2) K.f = d[0] > 0 ? 1 : -1;
 }
-function leapTarget(kn, v) { return [cl(kn.x + v[0] * LEAP_R, 8, W - 8), cl(kn.y + v[1] * LEAP_R * 0.8, 16, H - 4)]; }
+function leapTarget(kn, v) { return [kn.x + v[0] * LEAP_R, cl(kn.y + v[1] * LEAP_R * 0.8, 16, H - 4)]; }
 function startLeap(v) {
   const tg = leapTarget(K, v), dx = tg[0] - K.x, dy = tg[1] - K.y, d = Math.hypot(dx, dy), back = Math.min(LAND_IN, d * 0.6), lx = tg[0] - (d ? dx / d : 0) * back, ly = tg[1] - (d ? dy / d : 0) * back * 0.6;
   Object.assign(K, { ab: 'leap', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: lx, ay1: ly, sx: tg[0], sy: tg[1], leapCd: LEAP_CD + LT_CR + LT_AIR + LT_LAND });
@@ -246,6 +250,26 @@ function stepAbility(dt) {
     if (t0 < a1 && t >= a1) { K.x = K.ax1; K.y = K.ay1; slam(); }
     if (t >= a1 + LT_LAND) K.ab = null;
   }
+}
+function boom(w) { // goblin sapper's bomb: fireball, smoke, shove the knight
+  EV.push([w.id, 4, 0, 0, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10]); boomFx(w);
+}
+function boomFx(w) {
+  w.dead = 1; FX.push({ k: 'boom', x: w.x, y: w.y - 3, t: 0, max: 0.5 });
+  for (let i = 0; i < 16; i++) { const a = rr(0, 6.28), v = rr(14, 40); dust.push({ x: w.x, y: w.y - 2, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1, 2), t: 0, max: rr(0.4, 0.9) }); }
+  for (const kn of KN) { const dx = kn.x - w.x, dy = kn.y - w.y, d = Math.hypot(dx, dy); if (d < 14 && !kn.ab) { kn.vx = (kn.vx || 0) + dx / (d || 1) * 60; kn.vy = (kn.vy || 0) + dy / (d || 1) * 35; } }
+  gib(w, 'head', rr(-30, 30), rr(-10, 10), rr(30, 44), rr(-20, 20)); gib(w, 'arm', rr(-30, 30), rr(-10, 10), rr(25, 40), rr(-20, 20)); spray(w.x, w.y, 4, 1, 16, 1.4);
+}
+const HORDE = { off: [0, 1], few: [6, 3], dozens: [24, 3], hundreds: [80, 2] };
+let HZ = { rate: 'off', kinds: ['foot', 'zombie', 'skel', 'scout'], t: 0 };
+// waves come in from the right, just past what the host can see, spread down the field in clumps
+function hordeStep(dt) {
+  if (!AUTH() || HZ.rate === 'off' || !HZ.kinds.length) return;
+  if ((HZ.t -= dt) > 0) return; const [n, per] = HORDE[HZ.rate]; HZ.t = per;
+  const room = 360 - walkers.length; if (room <= 0) return;
+  const hw = cv.width / 2 / viewScale(), edge = Math.max(...KN.map(k2 => k2.x)) + Math.max(hw, 110) + 18;
+  let left = Math.min(n, room); while (left > 0) { const m = Math.min(left, 4 + Math.floor(Math.random() * 6)), cx = edge + rr(0, 40), cy = rr(30, H - 20); left -= m;
+    for (let i = 0; i < m; i++) { const kind = HZ.kinds[Math.floor(Math.random() * HZ.kinds.length)], q = Math.sqrt(Math.random()) * (3 + Math.sqrt(m) * 2.4); spawnWalker(cx + Math.abs(Math.cos(i * 2.4)) * q, undefined, cl(cy + Math.sin(i * 2.4) * q * 0.7, 14, H - 6), kind); } }
 }
 function slam() {
   const cx = K.sx ?? K.x, cy = K.sy ?? K.y;
@@ -287,6 +311,7 @@ function drawFxAir(c) {
     if (f.k === 'ring') { const r = SLAM_R * 1.25 * (0.25 + 0.75 * sm(Math.min(1, k * 1.3))), al = (1 - k) ** 1.3; c.save(); c.translate(f.x, f.y); c.scale(1, 0.5);
       const g = c.createRadialGradient(0, 0, r * 0.55, 0, 0, r); g.addColorStop(0, 'rgba(255,230,160,0)'); g.addColorStop(0.85, `rgba(255,236,180,${0.55 * al})`); g.addColorStop(1, 'rgba(255,250,230,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, 7); c.fill();
       if (k < 0.25) { c.fillStyle = `rgba(255,245,210,${0.5 * (1 - k / 0.25)})`; c.beginPath(); c.arc(0, 0, r * 0.6, 0, 7); c.fill(); } c.restore(); }
+    else if (f.k === 'boom') { const r = 4 + 12 * sm(Math.min(1, k * 1.6)), al = (1 - k) ** 1.4; const g = c.createRadialGradient(f.x, f.y, 0, f.x, f.y, r); g.addColorStop(0, `rgba(255,240,180,${al})`); g.addColorStop(0.5, `rgba(255,150,50,${0.8 * al})`); g.addColorStop(1, 'rgba(200,60,20,0)'); c.fillStyle = g; c.beginPath(); c.arc(f.x, f.y, r, 0, 7); c.fill(); }
     else if (f.k === 'wave') { // a crescent of light ahead of him, fading behind as he travels
       const al = 0.42 * (1 - k) ** 1.8, s = f.s * (1 + k * 0.35); c.save(); c.translate(f.x, f.y); c.rotate(f.ang); c.scale(1, 1.15);
       const g = c.createRadialGradient(-3 * s, 0, 4 * s, -3 * s, 0, 13 * s); g.addColorStop(0, 'rgba(255,230,160,0)'); g.addColorStop(0.75, `rgba(255,236,170,${al * 0.55})`); g.addColorStop(1, `rgba(255,252,235,${al})`);
@@ -307,7 +332,7 @@ function drawSlice(c, pts, fade) {
 // dash aim preview: the path he'll cut
 function drawDashPreview(c, t) {
   const kn = KN[ME]; if (!DASHAIM || !kn || kn.st === 'kneel') return;
-  const l = Math.hypot(...DASHAIM) || 1, d = [DASHAIM[0] / l, DASHAIM[1] / l], ex = cl(kn.x + d[0] * DASH_D, 8, W - 8), ey = cl(kn.y + d[1] * DASH_D * 0.8, 16, H - 4), a = Math.atan2(ey - kn.y, ex - kn.x), len = Math.hypot(ex - kn.x, ey - kn.y);
+  const l = Math.hypot(...DASHAIM) || 1, d = [DASHAIM[0] / l, DASHAIM[1] / l], ex = kn.x + d[0] * DASH_D, ey = cl(kn.y + d[1] * DASH_D * 0.8, 16, H - 4), a = Math.atan2(ey - kn.y, ex - kn.x), len = Math.hypot(ex - kn.x, ey - kn.y);
   c.save(); c.translate(kn.x, kn.y); c.rotate(a);
   const g = c.createLinearGradient(0, 0, len, 0); g.addColorStop(0, 'rgba(255,220,120,.05)'); g.addColorStop(1, 'rgba(255,220,120,.35)'); c.fillStyle = g;
   c.beginPath(); c.moveTo(0, -DASH_R * 0.5); c.lineTo(len, -DASH_R); c.lineTo(len + 4, 0); c.lineTo(len, DASH_R); c.lineTo(0, DASH_R * 0.5); c.closePath(); c.fill();
@@ -596,16 +621,102 @@ const UK = {
 };
 const UKEYS = Object.keys(UK);
 function mkWalker(k, x0, y0) { const U = UK[k]; return { id: 0, k, tk: 0, x: x0, y: y0, tx: x0, ty: y0, hp: U.hp, max: U.hp, ph: rr(0, 6), sp: rr(U.sp[0], U.sp[1]), hit: 0, kx: 0, ky: 0, atk: -1, cd: rr(0, 0.6) }; }
-function hpBar(c, w, top) { const U = UK[w.k], bw = 8 * Math.max(1, U.sc * 0.8); c.fillStyle = '#000a'; c.fillRect(w.x - bw / 2, w.y - top, bw, 1.4); c.fillStyle = '#e04b3a'; c.fillRect(w.x - bw / 2, w.y - top, bw * Math.max(0, w.hp) / w.max, 1.4); }
+let NOHP = false;
+function hpBar(c, w, top) { if (NOHP) { HPT = top; return; } const U = UK[w.k], bw = 8 * Math.max(1, U.sc * 0.8); c.fillStyle = '#000a'; c.fillRect(w.x - bw / 2, w.y - top, bw, 1.4); c.fillStyle = '#e04b3a'; c.fillRect(w.x - bw / 2, w.y - top, bw * Math.max(0, w.hp) / w.max, 1.4); }
 // club raise (0..1) and the lean for an attack at u (0..1)
 const clubRaise = u => u < 0 ? 0 : u < 0.6 ? sm(u / 0.6) : u < 0.72 ? 1 - sm((u - 0.6) / 0.12) * 1.6 : -0.6 + sm((u - 0.72) / 0.28) * 0.6;
 const clubLean = u => u < 0 ? 0 : u < 0.6 ? -0.15 * sm(u / 0.6) : u < 0.8 ? 0.3 : 0.3 * (1 - sm((u - 0.8) / 0.2));
-function walker(c, w, t) {
-  const U = UK[w.k], tkn = KN[w.tk] || K, fx = tkn.x >= w.x ? 1 : -1, u = w.atk < 0 ? -1 : w.atk / U.atkT, white = w.hit > 0;
+// ---------------- the rest of the small enemies from Hold the Line ----------------
+Object.assign(UK, {
+  scout: { n: 'Scout', hp: 70, sp: [34, 40], r: 1.9, sc: 0.92, atkT: 0.5, kb: 1.2, skin: '#e8c39a', body: '#6a7a3a', legs: '#4a3a2a', hood: '#55642e', hair: '#4a3a2a', weapon: 'dagger' },
+  fknight: { n: 'Knight', hp: 300, sp: [17, 22], r: 2.3, sc: 1.05, atkT: 0.85, kb: 0.7, skin: '#e8c39a', body: '#8a929c', legs: '#5a6068', helm: '#9aa2ac', visor: 1, weapon: 'sword', shield: '#7a2a24' },
+  skel: { n: 'Skeleton', hp: 50, sp: [26, 32], r: 1.9, sc: 0.95, atkT: 0.55, kb: 1.3, skin: '#e6dfca', body: '#d8d0b8', legs: '#d8d0b8', bones: 1, hair: '#e6dfca', weapon: 'sword' },
+  gnoll: { n: 'Gnoll', hp: 110, sp: [28, 34], r: 2.1, sc: 1, atkT: 0.6, kb: 1, skin: '#b8925a', body: '#6e5130', legs: '#8a6a3e', hyena: 1, hair: '#5a4026', weapon: 'axe' },
+  naga: { n: 'Naga', hp: 260, sp: [22, 27], r: 2.4, sc: 1.05, atkT: 0.75, kb: 0.8, skin: '#5f9a7a', body: '#3f6f5a', legs: '#4e8a6c', tail: 1, hair: '#22413a', weapon: 'spear' },
+  sapper: { n: 'Goblin sapper', hp: 90, sp: [34, 40], r: 1.8, sc: 0.85, atkT: 0.5, kb: 1.2, skin: '#7fa04a', body: '#5a3e24', legs: '#3d2c1c', goblin: 1, hair: '#6a4a2a', weapon: 'bomb' },
+  shield: { n: 'Shieldbearer', hp: 220, sp: [17, 21], r: 2.4, sc: 1.02, atkT: 0.8, kb: 0.6, skin: '#e8c39a', body: '#7a5a3a', legs: '#3a3030', helm: '#7a7a80', weapon: 'club', shield: '#8a6a3a', bigShield: 1 },
+  necro: { n: 'Necromancer', hp: 200, sp: [15, 19], r: 2.1, sc: 1, atkT: 0.9, kb: 0.9, skin: '#cfc6b4', body: '#2e2340', legs: '#2e2340', hood: '#3a2b52', robe: 1, hair: '#3a2b52', weapon: 'staff' },
+});
+UKEYS.splice(0, UKEYS.length, ...Object.keys(UK));
+// one humanoid drawer for all of them: legs (or a serpent tail / robe), body, head style, weapon, shield
+function drawHum(c, w, t, U, fx, u, white) {
+  c.save(); c.translate(w.x, w.y);
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(0, 1, 3.4 * U.sc, 1.3, 0, 0, 7); c.fill();
+  c.scale(U.sc, U.sc);
+  const mv = u < 0 ? 1 : 0, sp = (U.sp[0] + U.sp[1]) / 2, st = Math.sin(t * (6 + sp * 0.18) + w.ph) * mv, W2 = white ? '#fff' : null;
+  const skin = W2 || U.skin, body = W2 || U.body, legs = W2 || U.legs;
+  if (U.tail) { // serpent body coiling along the ground
+    c.strokeStyle = legs; c.lineWidth = 2.2; c.lineCap = 'round'; c.beginPath(); c.moveTo(0, -3); c.quadraticCurveTo(-fx * 1.5 + st, 0.4, -fx * 4.2, 0.2 + st * 0.5); c.quadraticCurveTo(-fx * 6, 0, -fx * 6.6 - st, -0.8); c.stroke();
+    c.strokeStyle = W2 || '#8ec4a4'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(0, -2.6); c.quadraticCurveTo(-fx * 1.5 + st, 0.8, -fx * 4.2, 0.6 + st * 0.5); c.stroke();
+  } else if (U.robe) {
+    c.fillStyle = body; c.beginPath(); c.moveTo(-2.4, -5); c.lineTo(2.4, -5); c.lineTo(3 + st * 0.4, 0.4); c.lineTo(-3 + st * 0.4, 0.4); c.closePath(); c.fill();
+  } else {
+    c.strokeStyle = legs; c.lineWidth = U.bones ? 0.7 : 1.2; c.lineCap = 'round'; c.beginPath(); c.moveTo(-0.8, -3); c.lineTo(-0.8 + st * 1.6, 0.6); c.moveTo(0.8, -3); c.lineTo(0.8 - st * 1.6, 0.6); c.stroke();
+  }
+  const raise = clubRaise(u); c.rotate(fx * clubLean(u) * (U.weapon === 'spear' ? 0.5 : 1));
+  // weapon arm
+  const sh = [fx * 2.0, -6.2], hand = u < 0 ? [fx * (2.6 + st * 0.5), -3.4] : [sh[0] + fx * Math.cos(-1.2 * raise + 0.9) * 3.2, sh[1] + Math.sin(-1.2 * raise + 0.9) * 3.2 - raise * 1.2];
+  if (U.weapon === 'spear' && u >= 0) { const th = Math.max(0, Math.sin(Math.min(1, u) * Math.PI)); hand[0] = sh[0] + fx * (1.2 + th * 3); hand[1] = -5.4; }
+  // body
+  if (U.bones) { c.strokeStyle = body; c.lineWidth = 0.6; c.beginPath(); c.moveTo(0, -3); c.lineTo(0, -7.6); for (let i = 0; i < 3; i++) { c.moveTo(-1.6, -6.9 + i * 1.1); c.quadraticCurveTo(0, -7.4 + i * 1.1, 1.6, -6.9 + i * 1.1); } c.stroke(); c.fillStyle = body; c.beginPath(); c.ellipse(0, -3, 1.4, 0.6, 0, 0, 7); c.fill(); }
+  else { c.fillStyle = body; c.beginPath(); c.ellipse(0, -5, U.robe ? 2.4 : 2.6, 3, 0, 0, 7); c.fill(); }
+  if (U.goblin) { c.fillStyle = W2 || '#3d2c1c'; c.fillRect(-2.4, -5.2, 4.8, 0.7); } // belt of fuses
+  // far arm / shield
+  if (U.shield) { const big = U.bigShield, sx = fx * (big ? 1.8 : 1.4), sy = big ? -5 : -5.2; c.fillStyle = W2 || U.shield; c.strokeStyle = W2 || '#3a2a18'; c.lineWidth = 0.4; c.beginPath();
+    if (big) c.rect(sx - 1.4, sy - 3.4, 2.8, 6.4); else { c.moveTo(sx - 1.6, sy - 2); c.lineTo(sx + 1.6, sy - 2); c.lineTo(sx + 1.4, sy + 0.8); c.lineTo(sx, sy + 2.2); c.lineTo(sx - 1.4, sy + 0.8); c.closePath(); }
+    c.fill(); c.stroke(); c.fillStyle = W2 || '#d9b44a'; c.beginPath(); c.arc(sx, sy - 0.2, 0.5, 0, 7); c.fill(); }
+  else { c.strokeStyle = U.bones ? body : skin; c.lineWidth = U.bones ? 0.55 : 1; c.beginPath(); c.moveTo(-fx * 2.3, -6); c.lineTo(-fx * (2.8 + st * 0.6), -3.6); c.stroke(); }
+  c.strokeStyle = U.bones ? body : skin; c.lineWidth = U.bones ? 0.55 : 1; c.beginPath(); c.moveTo(...sh); c.lineTo(...hand); c.stroke();
+  // weapon
+  const ca = u < 0 ? -fx * 0.4 - 0.3 : U.weapon === 'spear' ? (fx > 0 ? 0 : Math.PI) : Math.atan2(hand[1] - sh[1], hand[0] - sh[0]), wv = W2 || '#c9ced4';
+  const L = { dagger: 1.8, sword: 3.6, axe: 3.2, spear: 6, staff: 6.5, club: 3.2, bomb: 0 }[U.weapon] || 3, tip = [hand[0] + Math.cos(ca) * L, hand[1] + Math.sin(ca) * L];
+  if (U.weapon === 'bomb') { c.fillStyle = W2 || '#2a2a2e'; c.beginPath(); c.arc(hand[0], hand[1] - 0.4, 1.2, 0, 7); c.fill(); c.strokeStyle = '#c8a060'; c.lineWidth = 0.3; c.beginPath(); c.moveTo(hand[0] + 0.4, hand[1] - 1.5); c.quadraticCurveTo(hand[0] + 1.2, hand[1] - 2.4, hand[0] + 0.6, hand[1] - 2.8); c.stroke(); c.fillStyle = `rgba(255,${180 + Math.random() * 60},80,1)`; c.beginPath(); c.arc(hand[0] + 0.6, hand[1] - 2.8, 0.35, 0, 7); c.fill(); }
+  else if (U.weapon === 'staff') { c.strokeStyle = W2 || '#4a3a28'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(hand[0] - Math.cos(ca) * 2, hand[1] - Math.sin(ca) * 2); c.lineTo(...tip); c.stroke(); c.fillStyle = '#9d7bff'; c.beginPath(); c.arc(tip[0], tip[1], 0.7, 0, 7); c.fill(); c.fillStyle = 'rgba(157,123,255,.3)'; c.beginPath(); c.arc(tip[0], tip[1], 1.6, 0, 7); c.fill(); }
+  else if (U.weapon === 'club') { c.strokeStyle = '#6b4a2a'; c.lineWidth = 0.9; c.beginPath(); c.moveTo(...hand); c.lineTo(...tip); c.stroke(); c.fillStyle = '#5a3d22'; c.beginPath(); c.arc(tip[0], tip[1], 0.75, 0, 7); c.fill(); }
+  else if (U.weapon === 'axe') { c.strokeStyle = '#5b3a1f'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(...hand); c.lineTo(...tip); c.stroke(); c.fillStyle = wv; c.beginPath(); c.moveTo(...tip); c.lineTo(tip[0] + Math.cos(ca + 1.5) * 1.4, tip[1] + Math.sin(ca + 1.5) * 1.4); c.lineTo(tip[0] - Math.cos(ca) * 1.4 + Math.cos(ca + 1.5) * 1.2, tip[1] - Math.sin(ca) * 1.4 + Math.sin(ca + 1.5) * 1.2); c.fill(); }
+  else if (U.weapon === 'spear') { c.strokeStyle = '#6b4a2a'; c.lineWidth = 0.5; c.beginPath(); c.moveTo(hand[0] - Math.cos(ca) * 2.5, hand[1] - Math.sin(ca) * 2.5); c.lineTo(...tip); c.stroke(); c.fillStyle = wv; c.beginPath(); c.moveTo(tip[0] + Math.cos(ca) * 1.4, tip[1] + Math.sin(ca) * 1.4); c.lineTo(tip[0] + Math.cos(ca + 1.57) * 0.5, tip[1] + Math.sin(ca + 1.57) * 0.5); c.lineTo(tip[0] - Math.cos(ca + 1.57) * 0.5, tip[1] - Math.sin(ca + 1.57) * 0.5); c.fill(); }
+  else { c.strokeStyle = wv; c.lineWidth = U.weapon === 'dagger' ? 0.5 : 0.65; c.beginPath(); c.moveTo(...hand); c.lineTo(...tip); c.stroke(); c.strokeStyle = W2 || '#6b4a2a'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(hand[0] + Math.cos(ca + 1.57) * 0.6, hand[1] + Math.sin(ca + 1.57) * 0.6); c.lineTo(hand[0] - Math.cos(ca + 1.57) * 0.6, hand[1] - Math.sin(ca + 1.57) * 0.6); c.stroke(); }
+  c.fillStyle = U.bones ? body : skin; c.beginPath(); c.arc(hand[0], hand[1], 0.45, 0, 7); c.fill();
+  // head
+  const hx = 0, hy = -9.2;
+  if (U.hyena) { c.fillStyle = skin; c.beginPath(); c.ellipse(hx, hy, 1.7, 1.6, 0, 0, 7); c.fill(); c.beginPath(); c.moveTo(hx + fx * 1, hy - 0.7); c.lineTo(hx + fx * 3.2, hy + 0.1); c.lineTo(hx + fx * 1.1, hy + 0.9); c.fill(); c.fillStyle = W2 || '#3a2a18'; c.beginPath(); c.arc(hx + fx * 3.1, hy + 0.1, 0.3, 0, 7); c.fill(); c.fillStyle = W2 || '#5a4026'; c.beginPath(); c.moveTo(hx - fx * 0.4, hy - 1.2); c.lineTo(hx - fx * 0.1, hy - 2.8); c.lineTo(hx + fx * 0.5, hy - 1.3); c.fill(); c.beginPath(); c.moveTo(hx - fx * 1.2, hy - 1); c.lineTo(hx - fx * 1.9, hy - 2.5); c.lineTo(hx - fx * 0.5, hy - 1.4); c.fill(); for (const [a2, b2] of [[-0.6, 0.4], [0.5, -0.3], [-1, -0.6]]) { c.beginPath(); c.arc(hx + a2, hy + b2, 0.25, 0, 7); c.fill(); } c.fillStyle = '#222'; c.beginPath(); c.arc(hx + fx * 0.8, hy - 0.4, 0.22, 0, 7); c.fill(); }
+  else if (U.bones) { c.fillStyle = skin; c.beginPath(); c.arc(hx, hy, 1.8, 0, 7); c.fill(); c.fillRect(hx - 1, hy + 1, 2, 1); c.fillStyle = W2 || '#2a2420'; c.beginPath(); c.arc(hx + fx * 0.9, hy - 0.2, 0.5, 0, 7); c.arc(hx - fx * 0.2, hy - 0.2, 0.42, 0, 7); c.fill(); c.fillRect(hx - 0.6, hy + 1.3, 1.4, 0.25); }
+  else if (U.goblin) { c.fillStyle = skin; c.beginPath(); c.arc(hx, hy + 0.3, 1.6, 0, 7); c.fill(); c.beginPath(); c.moveTo(hx - fx * 0.8, hy - 0.4); c.lineTo(hx - fx * 3.2, hy - 1.6); c.lineTo(hx - fx * 1.2, hy + 0.4); c.fill(); c.beginPath(); c.moveTo(hx + fx * 1.4, hy + 0.2); c.lineTo(hx + fx * 2.4, hy + 0.6); c.lineTo(hx + fx * 1.4, hy + 0.9); c.fill(); c.fillStyle = W2 || '#c8a24a'; c.beginPath(); c.arc(hx + fx * 0.7, hy - 0.1, 0.3, 0, 7); c.fill(); c.fillStyle = W2 || '#6a4a2a'; c.beginPath(); c.arc(hx, hy - 0.6, 1.5, Math.PI, 0); c.fill(); }
+  else { c.fillStyle = skin; c.beginPath(); c.arc(hx, hy, 1.9, 0, 7); c.fill();
+    if (U.hood) { c.fillStyle = W2 || U.hood; c.beginPath(); c.arc(hx - fx * 0.2, hy - 0.2, 2.15, Math.PI * 0.75 + (fx > 0 ? 0 : 0.5), Math.PI * 2.25 + (fx > 0 ? 0 : 0.5)); c.fill(); }
+    else if (U.helm) { c.fillStyle = W2 || U.helm; c.beginPath(); c.arc(hx, hy - 0.6, 2, Math.PI, 0); c.fill(); if (U.visor) { c.fillRect(hx - 2, hy - 0.8, 4, 2.2); c.fillStyle = '#222'; c.fillRect(hx + fx * 0.2 - 0.1, hy - 0.1, fx * 1.6, 0.35); } }
+    else if (U.hair) { c.fillStyle = W2 || U.hair; c.beginPath(); c.arc(hx, hy - 0.4, 2, Math.PI * 1.05, Math.PI * 1.95); c.fill(); c.fillRect(hx - fx * 2, hy - 0.6, fx * 1.4, 3); }
+    if (!U.visor) { c.fillStyle = U.robe ? '#9d7bff' : '#222'; c.beginPath(); c.arc(hx + fx * 0.8, hy - 0.1, 0.25, 0, 7); c.fill(); } }
+  c.restore(); hpBar(c, w, 13 * U.sc + 1);
+}
+
+// enemies are drawn from a cache of pre-rendered frames (kind x facing x walk/attack phase) at the current zoom;
+// only the brief white hit-flash is drawn live. The hp bar is drawn on top, only once they're hurt.
+let HPT = 14, SPR = new Map(), SPRsc = 0;
+const PHK = { foot: 11, zombie: 6, ogre: 6, warg: 14 }, SBB = { x: -18, y: -30, w: 36, h: 36 }, SBS = { x: -11, y: -18, w: 22, h: 21 };
+function walkerLive(c, w, t, fx, u, white) {
+  const U = UK[w.k];
   if (w.k === 'zombie') drawZombie(c, w, t, U, fx, u, white);
   else if (w.k === 'ogre') drawOgre(c, w, t, U, fx, u, white);
   else if (w.k === 'warg') drawWarg(c, w, t, U, fx, u, white);
-  else drawFoot(c, w, t, U, fx, u, white);
+  else if (w.k === 'foot') drawFoot(c, w, t, U, fx, u, white);
+  else drawHum(c, w, t, U, fx, u, white);
+}
+function walker(c, w, t) {
+  const U = UK[w.k], tkn = KN[w.tk] || K, fx = tkn.x >= w.x ? 1 : -1, u = w.atk < 0 ? -1 : w.atk / U.atkT, white = w.hit > 0;
+  const sc = c.getTransform().a;
+  if (white || sc < 0.5) { walkerLive(c, w, t, fx, u, white); return; }
+  if (Math.abs(sc - SPRsc) > SPRsc * 0.08) { SPR.clear(); SPRsc = sc; }
+  const kph = PHK[w.k] || (6 + (U.sp[0] + U.sp[1]) / 2 * 0.18), ph = (((t * kph + w.ph) % 6.2832) + 6.2832) % 6.2832;
+  const fr = u < 0 ? 'w' + Math.floor(ph / 6.2832 * 10) : 'a' + Math.min(9, Math.floor(u * 10)), key = w.k + fx + fr;
+  const SB = w.k === 'ogre' || w.k === 'warg' || w.k === 'naga' || w.k === 'necro' ? SBB : SBS; let sp = SPR.get(key);
+  if (!sp) {
+    sp = document.createElement('canvas'); sp.width = Math.ceil(SB.w * sc); sp.height = Math.ceil(SB.h * sc); const g = sp.getContext('2d'); g.setTransform(sc, 0, 0, sc, -SB.x * sc, -SB.y * sc);
+    const ph2 = u < 0 ? (Math.floor(ph / 6.2832 * 10) + 0.5) / 10 * 6.2832 : w.ph, u2 = u < 0 ? -1 : (Math.min(9, Math.floor(u * 10)) + 0.5) / 10;
+    const fake = Object.assign({}, w, { x: 0, y: 0, ph: ph2, atk: u2 < 0 ? -1 : u2 * U.atkT, hit: 0 }); NOHP = true; walkerLive(g, fake, 0, fx, u2, false); NOHP = false; SPR.set(key, sp); sp.hpt = HPT;
+  }
+  c.drawImage(sp, w.x + SB.x, w.y + SB.y, SB.w, SB.h);
+  if (w.hp < w.max) hpBar(c, w, sp.hpt);
 }
 function drawFoot(c, w, t, U, fx, u, white, top = 14) {
   c.save(); c.translate(w.x, w.y);
@@ -800,7 +911,7 @@ function stepK(dt, t) {
     if (K.qDash && !(K.dashCd > 0) && canChain('dash')) { const v = K.qDash.v; K.qDash = null; chainOut(); startDash(v); }
     else if (K.qLeap && !(K.leapCd > 0) && canChain('leap')) { const v = K.qLeap.v; K.qLeap = null; chainOut(); startLeap(v); }
     else if (K.qSpin > 0 && K.spinCd <= 0 && (K.ab || K.swing >= 0) && canChain('spin')) { K.qSpin = 0; chainOut(); startSpin(); }
-    if (K.ab === 'dash' && K.abT >= DT_PREP + DT_GO && mvL > 0.12) chainOut(); // the stick takes over as soon as the dash has landed
+    if (K.ab === 'dash' && K.abT >= DT_PREP + DT_GO * 0.8 && mvL > 0.12) chainOut(); // stick held: run straight on out of the slash instead of stopping // the stick takes over as soon as the dash has landed
     if (K.ab) { K.vx = K.vy = 0; stepAbility(dt); abilityBody(); K.st = 'fight'; return; }
     abilityBody();
     // movement: full speed, slower mid-swing, a bit slower while spinning
@@ -809,7 +920,7 @@ function stepK(dt, t) {
     if (mvL > 0.12) { const k = Math.min(1, mvL); K.vx = IN.mv[0] / mvL * k * v; K.vy = IN.mv[1] / mvL * k * v; } else { const dmp = Math.exp(-dt * 13); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
     K.x += (K.vx || 0) * dt; K.y += (K.vy || 0) * dt;
     if (mvL > 0.12) { if (K.spd > RUN * 0.6 && Math.random() < dt * 10) dust.push({ x: K.x - K.f * 1.5, y: K.y, vx: -K.f * rr(4, 10), vy: rr(-2, 1), r: rr(0.7, 1.3), t: 0, max: rr(0.3, 0.6) }); }
-    K.x = cl(K.x, 8, W - 8); K.y = cl(K.y, 16, H - 4);
+    K.y = cl(K.y, 16, H - 4);
     if (K.spin >= 0) {
       K.spin += dt;
       const sw = spinSwept(), th = K.spinA0 + K.spinDir * (sw - SPIN_O), bs = spinSector(Math.atan2(Math.sin(th) * 0.45, Math.cos(th)));
@@ -830,14 +941,17 @@ function stepK(dt, t) {
       K.swing += dt; const u = K.swing / SWING, ad = [Math.cos(K.aimA), Math.sin(K.aimA)];
       if (u > 0.26 && u < 0.42) { K.x += ad[0] * 16 * dt; K.y += ad[1] * 10 * dt; } // he steps into the blow
       if (u >= 0.4 && !K.hitDone) { K.hitDone = 1; const f = K.f; if (AUTH())
-        for (const w of walkers) { if (w.hp <= 0) continue; const ex = w.x - K.x, ey = (w.y + 4 - K.y) * 1.4, d = Math.hypot(ex, ey) - UK[w.k].r + 2.1; if (d > CLEAVE_R + 2) continue; let da = Math.atan2(ey, ex) - Math.atan2(ad[1] * 1.4, ad[0]); da = Math.atan2(Math.sin(da), Math.cos(da)); if (d < 3 || Math.abs(da) < 1.3) { w.kx += ad[0] * 18; w.ky += ad[1] * 10; w.atk = -1; hurt(w, CLEAVE_DMG, ww => cleaveFx(ww, ex >= 0 ? 1 : -1)); } } }
+        for (const w of walkers) { if (w.hp <= 0) continue; const ex = w.x - K.x, ey = (w.y + 4 - K.y) * 1.4, d = Math.hypot(ex, ey) - UK[w.k].r + 2.1; if (d > CLEAVE_R + 2) continue; let da = Math.atan2(ey, ex) - Math.atan2(ad[1] * 1.4, ad[0]); da = Math.atan2(Math.sin(da), Math.cos(da)); if (d < 3 || Math.abs(da) < 1.8) { w.kx += ad[0] * 18; w.ky += ad[1] * 10; w.atk = -1; hurt(w, CLEAVE_DMG, ww => cleaveFx(ww, ex >= 0 ? 1 : -1)); } } }
       if (u >= 1) { K.swing = -1; K.swN++; }
     }
     K.st = K.spd > RUN * 0.55 && K.swing < 0 && K.spin < 0 ? 'charge' : 'fight';
   }
 }
 function worldStep(dt, t) {
+  hordeStep(dt);
   if (AUTH()) {
+    // anything left far behind the knights is dropped
+    const minX = Math.min(...KN.map(k2 => k2.x)); walkers = walkers.filter(w => w.x > minX - 420);
   // enemies run at the knight, crowd round him and club him
   for (const w of walkers) {
     w.hit = Math.max(0, w.hit - dt); w.cd -= dt;
@@ -845,14 +959,16 @@ function worldStep(dt, t) {
     if (w.atk < 0) { let bd = 1e9; KN.forEach((kn, i) => { const dd = Math.hypot(kn.x - w.x, kn.y - w.y); if (dd < bd) { bd = dd; w.tk = i; } }); }
     const T2 = KN[w.tk] || KN[0], dx = T2.x - w.x, dy = (T2.y - w.y), d = Math.hypot(dx, dy * 1.3) || 1;
     const U = UK[w.k], reach = 4.4 + U.r;
-    if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5) T2.hits++; if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
+    if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5) { T2.hits += w.k === 'sapper' ? 3 : 1; if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
     else if (d > reach) { w.x += dx / d * w.sp * dt; w.y += dy / d * w.sp * dt; }
     else if (w.cd <= 0 && T2.st !== 'kneel') w.atk = 0;
     w.x += w.kx * UK[w.k].kb * dt; w.y += w.ky * UK[w.k].kb * dt; w.kx *= 1 - dt * 6; w.ky *= 1 - dt * 6;
   }
   // keep them from stacking on one spot
-  for (let a = 0; a < walkers.length; a++) for (let b = a + 1; b < walkers.length; b++) { const A = walkers[a], B = walkers[b], dx = B.x - A.x, dy = (B.y - A.y) * 1.3, d = Math.hypot(dx, dy), R2 = UK[A.k].r + UK[B.k].r; if (d < R2 && d > 0.01) { const p = (R2 - d) * 0.5 * Math.min(1, dt * 12), nx = dx / d, ny = dy / d; A.x -= nx * p; A.y -= ny * p / 1.3; B.x += nx * p; B.y += ny * p / 1.3; } }
-  for (const w of walkers) { w.x = cl(w.x, 4, W - 4); w.y = cl(w.y, 12, H - 4); }
+  { const G2 = new Map(), CS = 10; for (const w of walkers) { const k = Math.floor(w.x / CS) * 4096 + Math.floor(w.y / CS); let a = G2.get(k); if (!a) G2.set(k, a = []); a.push(w); }
+    for (const A of walkers) { const cx = Math.floor(A.x / CS), cy = Math.floor(A.y / CS); for (let ox = -1; ox <= 1; ox++) for (let oy = -1; oy <= 1; oy++) { const L = G2.get((cx + ox) * 4096 + cy + oy); if (!L) continue;
+      for (const B of L) { if (B === A || B.id < A.id) continue; const dx = B.x - A.x, dy = (B.y - A.y) * 1.3, d = Math.hypot(dx, dy), R2 = UK[A.k].r + UK[B.k].r; if (d < R2 && d > 0.01) { const p = (R2 - d) * 0.5 * Math.min(1, dt * 12), nx = dx / d, ny = dy / d; A.x -= nx * p; A.y -= ny * p / 1.3; B.x += nx * p; B.y += ny * p / 1.3; } } } } }
+  for (const w of walkers) w.y = cl(w.y, 12, H - 4);
   } else { // guest: walkers glide to the host's positions; their club swings tick locally
     for (const w of walkers) { w.hit = Math.max(0, w.hit - dt); if (w.atk >= 0) w.atk = Math.min(UK[w.k].atkT, w.atk + dt); const k = Math.min(1, dt * 14); w.x += (w.tx - w.x) * k; w.y += (w.ty - w.y) * k; }
   }
@@ -862,6 +978,9 @@ function worldStep(dt, t) {
   for (const b of blood) { b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; b.vz -= 100 * dt; if (b.z <= 0 && !b.done) { b.done = 1; if (Math.random() < 0.5) splats.push({ x: b.x, y: b.y, r: rr(0.4, 1.1), t: 0 }); } }
   blood = blood.filter(b => !b.done);
   splats.forEach(s2 => s2.t += dt); splats = splats.filter(s2 => s2.t < 5);
+  if (parts.length > 700) parts.splice(0, parts.length - 700);
+  if (blood.length > 1600) blood.splice(0, blood.length - 1600);
+  if (splats.length > 900) splats.splice(0, splats.length - 900);
   for (const f of FX) f.t += dt;
   FX = FX.filter(f => f.t < f.max); shake = Math.max(0, shake - dt);
   for (const p of dust) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 5; p.vy *= 1 - dt * 5; } dust = dust.filter(p => p.t < p.max);
@@ -869,7 +988,7 @@ function worldStep(dt, t) {
   walkers = walkers.filter(w => !w.dead);
 }
 let ground = document.createElement('canvas');
-function paintGround() { ground.width = W * 3; ground.height = H * 3; const g = ground.getContext('2d'); g.scale(3, 3); g.fillStyle = '#4e8a3a'; g.fillRect(0, 0, W, H); g.fillStyle = '#56953f'; for (let i = 0; i < 60; i++) { g.beginPath(); g.ellipse(Math.random() * W, Math.random() * H, rr(6, 18), rr(4, 9), rr(0, 3), 0, 7); g.fill(); } g.fillStyle = '#b08a5a'; g.fillRect(0, LANE_Y - 20, W, 40); g.fillStyle = '#3e2a18'; g.fillRect(0, LANE_Y - 21, W, 1.5); g.fillRect(0, LANE_Y + 20, W, 1.5); g.fillStyle = '#9a7748'; for (let i = 0; i < 70; i++) { g.beginPath(); g.arc(Math.random() * W, LANE_Y + rr(-17, 17), rr(0.6, 1.6), 0, 7); g.fill(); } }
+function paintGround() { ground.width = W * 3; ground.height = H * 3; const g = ground.getContext('2d'); g.scale(3, 3); g.fillStyle = '#4e8a3a'; g.fillRect(0, 0, W, H); g.fillStyle = '#56953f'; for (let i = 0; i < 60; i++) { const bx = Math.random() * W, by = Math.random() * H, rx = rr(6, 18), ry = rr(4, 9), ra = rr(0, 3); for (const o of [-W, 0, W]) { g.beginPath(); g.ellipse(bx + o, by, rx, ry, ra, 0, 7); g.fill(); } } g.fillStyle = '#b08a5a'; g.fillRect(0, LANE_Y - 20, W, 40); g.fillStyle = '#3e2a18'; g.fillRect(0, LANE_Y - 21, W, 1.5); g.fillRect(0, LANE_Y + 20, W, 1.5); g.fillStyle = '#9a7748'; for (let i = 0; i < 70; i++) { g.beginPath(); g.arc(Math.random() * W, LANE_Y + rr(-17, 17), rr(0.6, 1.6), 0, 7); g.fill(); } }
 let ZOOM = 1;
 const viewScale = () => Math.min(cv.height / 85, cv.width / 75) * ZOOM * (window.__zoom || 1);
 function resize() { cv.width = Math.round(innerWidth * DPR); cv.height = Math.round(innerHeight * DPR); }
@@ -878,12 +997,13 @@ let last = performance.now(), t = 0;
 function draw() {
   const sc = viewScale(); camX = lerp(camX, K.x, 0.12); camY = lerp(camY, K.y - 6 - (K.z || 0) * 0.5, 0.12); const shx = shake ? rr(-1, 1) * shake * 5 : 0, shy = shake ? rr(-1, 1) * shake * 5 : 0;
   x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#000'; x.fillRect(0, 0, cv.width, cv.height);
-  x.setTransform(sc, 0, 0, sc, cv.width / 2 - (camX + shx) * sc, cv.height / 2 - (camY + shy) * sc); x.drawImage(ground, 0, 0, W, H);
-  for (const sp of splats) { x.globalAlpha = Math.max(0, 1 - sp.t / 5) * 0.85; x.fillStyle = '#6a1610'; x.beginPath(); x.ellipse(sp.x, sp.y, sp.r, sp.r * 0.5, 0, 0, 7); x.fill(); } x.globalAlpha = 1;
+  x.setTransform(sc, 0, 0, sc, cv.width / 2 - (camX + shx) * sc, cv.height / 2 - (camY + shy) * sc); { const hw = cv.width / 2 / sc + 10, x0 = Math.floor((camX - hw) / W), x1 = Math.floor((camX + hw) / W); for (let gi = x0; gi <= x1; gi++) x.drawImage(ground, gi * W, 0, W + 0.5, H); }
+  const VL = camX - cv.width / 2 / sc - 30, VR = camX + cv.width / 2 / sc + 30, inV = q => q.x > VL && q.x < VR;
+  for (const sp of splats) { if (sp.x < VL || sp.x > VR) continue; x.globalAlpha = Math.max(0, 1 - sp.t / 5) * 0.85; x.fillStyle = '#6a1610'; x.beginPath(); x.ellipse(sp.x, sp.y, sp.r, sp.r * 0.5, 0, 0, 7); x.fill(); } x.globalAlpha = 1;
   for (const kn of KN) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
   drawFxGround(x); drawLeapPreview(x, t); drawDashPreview(x, t);
-  for (const p of parts) if (p.rest) { x.globalAlpha = Math.max(0, 1 - (p.t - p.rest) / 4); drawPart(x, p); } x.globalAlpha = 1;
-  const list = KN.flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(walkers.map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).sort((a, b) => a[0] - b[0]);
+  for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = Math.max(0, 1 - (p.t - p.rest) / 4); drawPart(x, p); } x.globalAlpha = 1;
+  const list = KN.flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).sort((a, b) => a[0] - b[0]);
   for (const [, k, o] of list) {
     if (k < 2) { K = o; COL = o.col; }
     if (k === 0) { x.save(); x.translate(K.T.x, K.T.y); boulder(x, t, !(K.st === 'kneel' || (K.st === 'pull' && !K.hold) || (K.st === 'sheathe' && !K.hold)), K.slotGlow); if (!K.hold) { x.translate(STONE.x, STONE.y); x.scale(KS, KS); x.beginPath(); x.rect(-20, -30, 40, 30 - 4.3 / KS); x.clip(); sword(x, [0, -4.3 / KS - 1.3 - 1.1], Math.PI / 2, 10.5); } x.restore(); }
@@ -920,14 +1040,20 @@ function frame(ms) {
   if (!window.__still) requestAnimationFrame(frame);
 }
 const ST = document.getElementById('stats'), SPI = document.querySelector('#spin i');
-let SPK = 'foot';
-document.querySelectorAll('[data-k]').forEach(b => b.onpointerdown = () => { SPK = b.dataset.k; document.querySelectorAll('[data-k]').forEach(o => o.classList.toggle('on', o === b)); });
+const HZE = document.getElementById('horde'), KG = HZE.querySelector('.kgrid');
+document.getElementById('hordeBtn').onclick = () => HZE.classList.toggle('open');
+KG.innerHTML = UKEYS.map(k => `<label><input type="checkbox" data-kk="${k}">${UK[k].n}</label>`).join('');
+function hordeUI() { HZE.querySelectorAll('[data-r]').forEach(b => b.classList.toggle('on', b.dataset.r === HZ.rate)); KG.querySelectorAll('[data-kk]').forEach(cb => cb.checked = HZ.kinds.includes(cb.dataset.kk)); }
+function setHorde(rate, kinds) { if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'horde', rate, kinds } }); if (rate && rate !== HZ.rate) { HZ.rate = rate; HZ.t = 0.3; } if (kinds) HZ.kinds = kinds.filter(k => UK[k]); hordeUI(); }
+HZE.querySelectorAll('[data-r]').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); setHorde(b.dataset.r, null); if (!AUTH()) { HZ.rate = b.dataset.r; hordeUI(); } }));
+KG.addEventListener('change', () => { const ks = [...KG.querySelectorAll('[data-kk]:checked')].map(cb => cb.dataset.kk); if (!AUTH()) HZ.kinds = ks; setHorde(null, ks); });
+hordeUI();
 function spawnClump(n, kind, ki) {
-  kind = kind || SPK; const K0 = KN[ki ?? ME] || K;
-  if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'spawn', n, k: kind } });
+  const K0 = KN[ki ?? ME] || K, pick = () => kind || (HZ.kinds.length ? HZ.kinds[Math.floor(Math.random() * HZ.kinds.length)] : 'foot');
+  if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'spawn', n, k: kind || null } });
   // a clump appears at a random spot 70-100 away from the knight and runs at him
-  const a = rr(0, 6.28), r = rr(70, 100); let cx = cl(K0.x + Math.cos(a) * r, 15, W - 15), cy = cl(K0.y + Math.sin(a) * r * 0.6, 20, H - 10);
-  for (let i = 0; i < n; i++) { const b = rr(0, 6.28), q = Math.sqrt(Math.random()) * (n > 1 ? 4 + Math.sqrt(n) * 2.2 : 0); spawnWalker(cl(cx + Math.cos(b) * q * Math.sqrt(UK[kind].r / 2.1), 4, W - 4), undefined, cl(cy + Math.sin(b) * q * 0.7 * Math.sqrt(UK[kind].r / 2.1), 12, H - 4), kind); }
+  const a = rr(0, 6.28), r = rr(70, 100); let cx = K0.x + Math.cos(a) * r, cy = cl(K0.y + Math.sin(a) * r * 0.6, 20, H - 10);
+  for (let i = 0; i < n; i++) { const b = rr(0, 6.28), q = Math.sqrt(Math.random()) * (n > 1 ? 4 + Math.sqrt(n) * 2.2 : 0); const kd = pick(); spawnWalker(cx + Math.cos(b) * q * Math.sqrt(UK[kd].r / 2.1), undefined, cl(cy + Math.sin(b) * q * 0.7 * Math.sqrt(UK[kd].r / 2.1), 12, H - 4), kd); }
 }
 document.querySelectorAll('[data-n]').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); spawnClump(+b.dataset.n); }));
 window.__spawnK = (n, k) => spawnClump(n, k);
@@ -985,7 +1111,7 @@ cv.addEventListener('wheel', e => { ZOOM = cl(ZOOM * Math.exp(-e.deltaY * 0.0012
 document.addEventListener('touchmove', e => { if (LUI.style.display === 'none') e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('dblclick', e => e.preventDefault());
-window.__dash = v => doDash(typeof v === 'number' ? DIR8[v] : v); window.__aimDash = v => { DASHAIM = v; }; window.__leap = doLeap; window.__aimLeap = v => { LEAPAIM = v; };
+window.__horde = (r, k) => setHorde(r, k); window.__dash = v => doDash(typeof v === 'number' ? DIR8[v] : v); window.__aimDash = v => { DASHAIM = v; }; window.__leap = doLeap; window.__aimLeap = v => { LEAPAIM = v; };
 const sb = document.getElementById('spin');
 sb.addEventListener('pointerdown', e => { btnSpin = true; syncIn(); e.preventDefault(); });
 const sbUp = () => { btnSpin = false; syncIn(); }; sb.addEventListener('pointerup', sbUp); sb.addEventListener('pointerleave', sbUp); sb.addEventListener('pointercancel', sbUp);
@@ -1009,6 +1135,7 @@ makePatch(); paintGround(); resize(); setup(); requestAnimationFrame(frame);
 window.__IN = KN[ME].in; window.__clumpN = spawnClump;
 window.__K = () => K;
 window.__adv = (sec) => { for (let i = 0; i < sec * 60; i++) { t += 1 / 60; step(1 / 60, t); } draw(); };
+window.__spr = () => SPR.size; window.__step = d => { t += d; step(d, t); }; window.__draw = () => draw();
 // ---------------- lobby + netcode (Supabase Realtime broadcast; the host runs the enemies and all damage) ----------------
 const SB_URL = 'https://ucdwqexhkglvhilurqti.supabase.co', SB_KEY = 'sb_publishable_E9Iaftt5o7nK4Ph5FeoONw_QSfj7KeE';
 let sbc = null;
@@ -1053,7 +1180,7 @@ function openRoom(code, mode) {
   ch.on('broadcast', { event: 'hi' }, () => { if (NET && NET.mode === 'host' && NET.guest) ch.send({ type: 'broadcast', event: 'start', payload: { name: myName } }); });
   ch.on('broadcast', { event: 'in' }, ({ payload }) => { if (NET && NET.mode === 'host' && KN[1]) KN[1].in = payload; });
   ch.on('broadcast', { event: 'rq' }, ({ payload: q }) => { if (!NET || NET.mode !== 'host') return;
-    if (q.a === 'spawn') spawnClump(q.n, q.k, 1); else if (q.a === 'clear') doClear(); else if (q.a === 'reset') doReset(); else if (q.a === 'slow') toggleSlow(); });
+    if (q.a === 'horde') setHorde(q.rate, q.kinds); else if (q.a === 'spawn') spawnClump(q.n, q.k || undefined, 1); else if (q.a === 'clear') doClear(); else if (q.a === 'reset') doReset(); else if (q.a === 'slow') toggleSlow(); });
   ch.on('broadcast', { event: 's' }, ({ payload }) => { if (NET && NET.mode === 'guest' && NET.started) applySnap(payload); });
   ch.subscribe(st => { if (st === 'SUBSCRIBED' && NET && NET.ch === ch) { ch.track({ name: myName, host: mode === 'host' ? 1 : 0 }); if (mode === 'guest') ch.send({ type: 'broadcast', event: 'hi', payload: {} }); } });
 }
@@ -1068,7 +1195,7 @@ function netTick(dt) {
   if (!NET || !NET.started) { EV.length = 0; return; }
   const now = performance.now();
   if (NET.mode === 'host') {
-    if (now - (NET.lastSend || 0) > 66) { NET.lastSend = now; NET.ch.send({ type: 'broadcast', event: 's', payload: { k: KN.map(packK), w: walkers.map(packW), e: EV.splice(0), sp: speed } }); }
+    if (now - (NET.lastSend || 0) > 66) { NET.lastSend = now; NET.ch.send({ type: 'broadcast', event: 's', payload: { k: KN.map(packK), w: walkers.filter(w => KN.some(k2 => Math.abs(w.x - k2.x) < 300)).slice(0, 280).map(packW), e: EV.splice(0), sp: speed, hz: [HZ.rate, HZ.kinds] } }); }
   } else {
     if ((NET.inDirty && now - (NET.lastIn || 0) > 50) || now - (NET.lastIn || 0) > 250) { NET.lastIn = now; NET.inDirty = 0; NET.ch.send({ type: 'broadcast', event: 'in', payload: packIn(KN[ME].in) }); }
     if (now - NET.lastSnap > 4000 && !NET.lostNoted) { NET.lostNoted = 1; note('Lost connection to the host', 6); }
@@ -1078,6 +1205,7 @@ function netTick(dt) {
 function applySnap(S) {
   NET.lastSnap = performance.now(); NET.lostNoted = 0;
   if (S.sp !== speed) { speed = S.sp; slowLabel(); }
+  if (S.hz && (S.hz[0] !== HZ.rate || S.hz[1].join() !== HZ.kinds.join())) { HZ.rate = S.hz[0]; HZ.kinds = S.hz[1]; hordeUI(); }
   S.k.forEach((p, i) => { const kn = KN[i]; if (!kn) return; const v = {}; KF.forEach((k, j) => v[k] = p.v[j]);
     if (i === ME) { // my own knight is predicted locally: only pull its position back toward the host's, and take the score
       const d = Math.hypot(v.x - kn.x, v.y - kn.y); if (d > 12) { kn.x = v.x; kn.y = v.y; } else { kn.x += (v.x - kn.x) * 0.2; kn.y += (v.y - kn.y) * 0.2; }
@@ -1088,7 +1216,7 @@ function applySnap(S) {
   for (const a of S.w) { const [id, ki, wx, wy, hp, mx, atk, hit, tk] = a; seen.add(id); let w = byId.get(id);
     if (!w) { w = mkWalker(UKEYS[ki] || 'foot', wx, wy); w.id = id; walkers.push(w); }
     w.tx = wx; w.ty = wy; w.hp = hp; w.max = mx; w.tk = tk; if (hit) w.hit = 0.1; if (atk < 0) w.atk = -1; else if (w.atk < 0 || Math.abs(w.atk - atk) > 0.15) w.atk = atk; }
-  for (const e of S.e) { const [id, kind, dir, ki, ex, ey] = e; let w = byId.get(id) || walkers.find(o => o.id === id); if (!w) { w = mkWalker('foot', ex, ey); w.id = id; } w.x = ex; w.y = ey; const k0 = K; K = KN[ki] || KN[0]; if (kind === 1) spinKill(w); else if (kind === 2) dashKill(w, dir); else if (kind === 3) slamKill(w, dir); else cleaveKill(w, dir); K = k0; }
+  for (const e of S.e) { const [id, kind, dir, ki, ex, ey] = e; let w = byId.get(id) || walkers.find(o => o.id === id); if (!w) { w = mkWalker('foot', ex, ey); w.id = id; } w.x = ex; w.y = ey; const k0 = K; K = KN[ki] || KN[0]; if (kind === 4) boomFx(w); else if (kind === 1) spinKill(w); else if (kind === 2) dashKill(w, dir); else if (kind === 3) slamKill(w, dir); else cleaveKill(w, dir); K = k0; }
   walkers = walkers.filter(w => w.dead || seen.has(w.id));
 }
 lobby('home');
