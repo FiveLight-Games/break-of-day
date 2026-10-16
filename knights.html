@@ -1834,8 +1834,8 @@ const sweepR = kn => Math.max(WP.SW.RMAX, kn.hOut > 0 || kn.hRet >= 0 ? gd(kn.x,
 function sweepTarget(kn, v) {
   const S = WP.SW, RM = sweepR(kn), px = kn.x + v[0] * RM, py = kn.y + v[1] * RM * 0.8, ah = Math.atan2((kn.hy - kn.y) * 1.25, kn.hx - kn.x), rh = Math.max(8, gd(kn.x, kn.y, kn.hx, kn.hy));
   let a = Math.atan2((py - kn.y) * 1.25, px - kn.x); const r = cl(gd(kn.x, kn.y, px, py), S.RMIN, RM); let da = wrapA(a - ah);
-  // the stick's wind locks the way round: clockwise (+) or anticlockwise (-), up to a full turn
-  if (v[2] > 0 && da < 0) da += Math.PI * 2; else if (v[2] < 0 && da > 0) da -= Math.PI * 2; else if (!v[2]) da = cl(da, -S.ARC, S.ARC);
+  // from the sweep stick the way round (and how far, up to a full turn) comes worked out from the thumb's wind (v[2]); the keyboard takes the shorter way
+  if (v.length > 2) da = cl(v[2], -Math.PI * 2 + 0.06, Math.PI * 2 - 0.06); else da = cl(da, -S.ARC, S.ARC);
   a = ah + da;
   return { a, r, ah, rh, da };
 }
@@ -2585,13 +2585,20 @@ function penPos() { PENPOS = 1; for (const [a, b] of [['rst', 'pst'], ['lst', 's
 const BSTI = document.querySelector('#bst i'); stick(document.getElementById('bst'), v => { stickBr = v && Math.hypot(...v) > 0.3 ? v : null; syncIn(); }, true);
 const DASHE = document.getElementById('dash'), DASHI = DASHE.querySelector('i'), DASHD = DASHE.querySelector('.dot'), AOE = document.getElementById('aoe'), AOEI = AOE.querySelector('i'), AOED = AOE.querySelector('.dot');
 const markIn = () => { if (NET && NET.mode === 'guest') NET.inDirty = 1; };
-function doDash(v) { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.dashN = (IN.dashN || 0) + 1; IN.dashD = [Math.round(v[0] * 100) / 100, Math.round(v[1] * 100) / 100]; if (v[2]) IN.dashD.push(v[2]); markIn(); }
+function doDash(v) { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.dashN = (IN.dashN || 0) + 1; IN.dashD = [Math.round(v[0] * 100) / 100, Math.round(v[1] * 100) / 100]; if (v.length > 2) IN.dashD.push(Math.round(v[2] * 100) / 100); markIn(); }
 function doLeap(v) { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.leapN = (IN.leapN || 0) + 1; IN.leapT = [Math.round(v[0] * 100) / 100, Math.round(v[1] * 100) / 100]; markIn(); }
 // dash aim: a stick whose centre is where the thumb lands; drag to aim (the path shows on the field), release to dash
-let dashId = null, dashO = null, SWW = 0, SWP = null;
+let dashId = null, dashO = null, SWW = 0, SWP = null, SWD = 0, SWA = 0;
 const dashUpd = e => { const r = DASHE.getBoundingClientRect(), R = r.width / 2, PRI = isPriest(); let dx = e.clientX - dashO[0], dy = e.clientY - dashO[1]; const d = Math.hypot(dx, dy); if (d > R * 0.7) { dx *= R * 0.7 / d; dy *= R * 0.7 / d; }
-  if (PRI && d > 8) { const an = Math.atan2(dy, dx); if (SWP !== null) SWW += wrapA(an - SWP); SWP = an; }
-  DASHAIM = d > 8 ? (PRI ? [dx / (R * 0.7), dy / (R * 0.7), Math.abs(SWW) > 0.15 ? Math.sign(SWW) : 0] : [dx, dy]) : null; if (KN[ME] && KN[ME].kind === 'fire') { stickPl = [Math.round(dx / (R * 0.7) * 100) / 100, Math.round(dy / (R * 0.7) * 100) / 100]; syncIn(); DASHAIM = null; } DASHD.style.transform = `translate(${dashO[0] - r.left - R + dx}px,${dashO[1] - r.top - R + dy}px)`; };
+  // Warpriest sweep: the way round locks to the way the thumb first winds; winding on adds to the sweep, up to a full turn back to the head (where it stops);
+  // only unwinding all the way back past the head flips it to the other side
+  if (PRI && d > 8 && KN[ME]) { const kn = KN[ME], an = Math.atan2(dy, dx), ah = Math.atan2((kn.hy - kn.y) * 1.25, kn.hx - kn.x), T2 = Math.PI * 2, md = q => ((q % T2) + T2) % T2;
+    if (SWP === null) { SWW = 0; SWD = 0; SWA = wrapA(an - ah); }
+    else { const inc = wrapA(an - SWP); SWW += inc;
+      if (!SWD) { SWA = wrapA(an - ah); if (Math.abs(SWW) > 0.15) { SWD = Math.sign(SWW); SWA = SWD > 0 ? md(an - ah) : -md(ah - an); } }
+      else { SWA += inc; if (SWD > 0 && SWA < 0) SWD = -1; else if (SWD < 0 && SWA > 0) SWD = 1; SWA = cl(SWA, -T2 + 0.06, T2 - 0.06); } }
+    SWP = an; }
+  DASHAIM = d > 8 ? (PRI ? [dx / (R * 0.7), dy / (R * 0.7), SWA] : [dx, dy]) : null; if (KN[ME] && KN[ME].kind === 'fire') { stickPl = [Math.round(dx / (R * 0.7) * 100) / 100, Math.round(dy / (R * 0.7) * 100) / 100]; syncIn(); DASHAIM = null; } DASHD.style.transform = `translate(${dashO[0] - r.left - R + dx}px,${dashO[1] - r.top - R + dy}px)`; };
 // plume (the Firebreather's) is a fixed stick whose centre is the circle's centre; the knight's dash stick floats
 DASHE.addEventListener('pointerdown', e => { dashId = e.pointerId; SWW = 0; SWP = null; DASHE.setPointerCapture(dashId); const r0 = DASHE.getBoundingClientRect(); dashO = KN[ME] && (KN[ME].kind === 'fire' || KN[ME].kind === 'priest') ? [r0.left + r0.width / 2, r0.top + r0.height / 2] : [e.clientX, e.clientY]; dashUpd(e); e.preventDefault(); });
 DASHE.addEventListener('pointermove', e => { if (e.pointerId === dashId) dashUpd(e); });
@@ -2849,7 +2856,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '8f5c06';
+const KBUILD = '5103ad';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
