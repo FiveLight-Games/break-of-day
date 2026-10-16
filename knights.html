@@ -1937,7 +1937,7 @@ function penStep(dt, t, IN, mine, smP) {
   if (AUTH()) penAura(dt);
   if (K.pPh === 0) { const q = sm(cl(K.pT / P.RISE, 0, 1)); K.z = P.Z * q; K.hx = lerp(K.hrx, K.x + K.f * 2, q); K.hy = lerp(K.hry, K.y + 3, q); K.hz = 5 * q; if (K.pT >= P.RISE) { K.pPh = 1; K.pT = 0; } return; }
   if (K.pPh === 2) { const q = sm(cl(K.pT / P.END, 0, 1)); K.z = P.Z * (1 - q);
-    if (K.smT >= 0) { const t0 = K.smT; K.smT += dt; K.hz = (K.hz0 ?? 5) * (1 - sm(cl(K.smT / P.DROP, 0, 1))); if (t0 < P.DROP && K.smT >= P.DROP) { penSmash(); K.smT = -1; } } else K.hz = 0;
+    if (K.smT >= 0) { const t0 = K.smT; K.smT += dt; K.hz = (K.hz0 ?? 5) * (1 - sm(cl(K.smT / P.DROP, 0, 1))); if (t0 < P.DROP && K.smT >= P.DROP) { penSmash(); K.smT = -1; K.hz0 = 0; } } else K.hz = (K.hz0 || 0) * (1 - sm(cl(K.pT / (P.DROP * 2), 0, 1)));
     const dmp = Math.exp(-dt * 4); K.hvx *= dmp; K.hvy *= dmp; K.hx += K.hvx * dt; K.hy = cl(K.hy + K.hvy * dt, 14, H - 4);
     if (K.pT >= P.END) { K.pPh = -1; K.z = 0; K.hz = 0; K.smT = -1; K.ultBase = K.kills; K.hL = WP.MAXC; K.hRet = 0; K.hrx = K.hx; K.hry = K.hy; K.retN = (K.retN || 0) + 1; } return; }
   K.z = P.Z + Math.sin(t * 2.2) * 1.2; if (K.smCd > 0) K.smCd -= dt;
@@ -1955,7 +1955,7 @@ function penStep(dt, t, IN, mine, smP) {
   else K.hz = 5 + Math.sin(t * 3) * 0.8;
   if (AUTH() && K.hz < 8) holyBurn(K.hx, K.hy, P.BURN, P.BDPS, dt);
   // time's up: as he starts down the head smashes one last time (with whatever speed it has), and once he lands he hauls it home
-  if (K.pT >= P.T && K.smT < 0) { K.pPh = 2; K.pT = 0; K.smT = 0; K.smK = Math.min(1, Math.hypot(K.hvx, K.hvy) / P.MAXV); K.hz0 = K.hz; }
+  if (K.pT >= P.T && K.smT < 0) { K.pPh = 2; K.pT = 0; K.smT = K.smCd > 0 ? -1 : 0; K.smK = Math.min(1, Math.hypot(K.hvx, K.hvy) / P.MAXV); K.hz0 = K.hz; }
 }
 // Penance aura: small and medium enemies can't stand under him; they're pushed out to its edge and shoved away
 function penAura(dt) { const R = WP.PEN.AURA;
@@ -2860,7 +2860,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'a777e3';
+const KBUILD = 'ff4733';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
