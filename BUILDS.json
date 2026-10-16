@@ -42,5 +42,6 @@
   {"v": "0.41", "build": "62fd3b", "commit": "e4277e8", "date": "2026-10-16", "notes": "Knight Brawl: Spin button centred vertically in landscape."},
   {"v": "0.42", "build": "5c37b1", "commit": "d7aeade", "date": "2026-10-16", "notes": "Knight Brawl: 'Exit to main menu?' confirmation on the Menu button."},
   {"v": "0.43", "build": "0c5438", "commit": "aa6497f", "date": "2026-10-16", "notes": "Knight Brawl: basic swing glows like the spin with the spin's reach and a wide cleave (no hit cap), 20% slower; page reloads itself on new versions."},
-  {"v": "0.44", "build": "3b4086", "commit": "", "date": "2026-10-16", "notes": "Knight Brawl: giant ultimate (250 kills, 12s, charged leap once, end slam), swing hits follow the glowing blade, control layout editor, cooldowns spin 6s / dash 2s / leap 7s, faster spin movement, skeletons off by default."}
+  {"v": "0.44", "build": "3b4086", "commit": "af13f4d", "date": "2026-10-16", "notes": "Knight Brawl: giant ultimate (250 kills, 12s, charged leap once, end slam), swing hits follow the glowing blade, control layout editor, cooldowns spin 6s / dash 2s / leap 7s, faster spin movement, skeletons off by default."},
+  {"v": "0.45", "build": "5e4f74", "commit": "", "date": "2026-10-16", "notes": "Knight Brawl: new playable Firebreather (torch swings throwing fire waves, Breath stick, Plume flight, Coals sprint), character picker, per-character control layouts, mass-kill bodies all fly, draggable music slider + Music button."}
 ]
