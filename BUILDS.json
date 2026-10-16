@@ -35,5 +35,6 @@
   {"v": "0.34", "build": "5d7d8d", "commit": "af52733", "date": "2026-10-15", "notes": "New mode: Knight Brawl, 2-player online co-op (or solo) as Sword-in-the-Stone knights: move/swing sticks, directional swings, 4-turn light-sword spin, spawn footmen, zombies, ogres and warg riders, shared slow-mo."},
   {"v": "0.35", "build": "caa1e5", "commit": "b36f0ee", "date": "2026-10-15", "notes": "Knight Brawl: aimed dashing slice with a growing blade-slice effect, leap slam (flips, 45° dive, blade buried at the centre, splash + knockback + crater), pinch zoom, Menu button."},
   {"v": "0.36", "build": "e02d8c", "commit": "79dcb5b", "date": "2026-10-16", "notes": "Knight Brawl: endless path with horde spawner (A few / Dozens / Hundreds, pick enemy mix), 8 new enemy types incl. exploding sapper, bigger + 40% stronger basic swings, smoother dash/leap/spin chaining, dash runs straight into movement."},
-  {"v": "0.37", "build": "091832", "commit": "", "date": "2026-10-16", "notes": "Knight Brawl: health bars only on damaged enemies."}
+  {"v": "0.37", "build": "091832", "commit": "9900c87", "date": "2026-10-16", "notes": "Knight Brawl: health bars only on damaged enemies."},
+  {"v": "0.38", "build": "5e37bb", "commit": "", "date": "2026-10-16", "notes": "Knight Brawl: sound effects (swings, spin, dash, leap slam, sword pull, hits, kills, sapper blasts), looping music, Sound/Music toggles, Spawn now +50."}
 ]
