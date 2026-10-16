@@ -1706,7 +1706,7 @@ const WP = { S: KS * 1.3, RUN: 0.82, ATK: 0.7, ABMV: 0.55, DRAG: 65.6, HR: 6.3, 
   SW: { PREP: 0.12, GO: 0.24, SPD: 175, REC: 0.25, ARC: Math.PI * 4 / 3, RMAX: 65.6, RMIN: 12, NEAR: 14, DMG: 90, HEAD: 180, SLOW: 2.5, CD: 6, CD0: 2 },
   SL: { WIND: 0.2, FLY: 0.4, REC: 0.3, RANGE: 104, WAVE: 38, DMG: 275, WDMG: 75, SLOW: 3, BIND: 3, BINDR: 11, HOLD: 2.5, RET: 0.55, CD: 1.75, GOCD: 0, GOEARLY: 0.65, REEL: 0.45, RDMG: 90, PDMG: 110, PKB: 280, LAND: 16, LDMG: 80 },
   HO: { T: 6, CD: 15, R: 20, DPS: 70, CDPS: 50 },
-  PEN: { RISE: 1, T: 10, END: 0.8, Z: 18, ACC: 300, DRAG: 0.55, MAXV: 170, R: 200, SMR0: 12, SMR1: 52, DMG0: 150, DMG1: 650, DROP: 0.14, UP: 0.3, CD: 0.45, BURN: 11, BDPS: 40 } };
+  PEN: { RISE: 1, T: 10, END: 0.8, Z: 18, ACC: 300, DRAG: 0.55, MAXV: 170, R: 200, SMR0: 12, SMR1: 52, DMG0: 150, DMG1: 650, DROP: 0.14, UP: 0.3, CD: 0.45, BURN: 11, BDPS: 40, AURA: 20 } };
 const HOLYP = { outer: '#e8a020', mid: '#ffd34a', core: '#fff4b8', white: 0.8, blue: 0 };
 let GOUGE = [];
 // distance on the ground, with the depth squash the rest of the game uses
@@ -1927,6 +1927,7 @@ function startPen() {
 }
 function penStep(dt, t, IN, mine, smP) {
   const P = WP.PEN; K.pT += dt; K.vx = K.vy = 0; K.spd = 0; K.st = 'fight';
+  if (AUTH()) penAura(dt);
   if (K.pPh === 0) { const q = sm(cl(K.pT / P.RISE, 0, 1)); K.z = P.Z * q; K.hx = lerp(K.hrx, K.x + K.f * 2, q); K.hy = lerp(K.hry, K.y + 3, q); K.hz = 5 * q; if (K.pT >= P.RISE) { K.pPh = 1; K.pT = 0; } return; }
   if (K.pPh === 2) { const q = sm(cl(K.pT / P.END, 0, 1)); K.z = P.Z * (1 - q); K.hz = Math.max(0, K.hz - dt * 14); const dmp = Math.exp(-dt * 4); K.hvx *= dmp; K.hvy *= dmp; K.hx += K.hvx * dt; K.hy = cl(K.hy + K.hvy * dt, 14, H - 4);
     if (K.pT >= P.END) { K.pPh = -1; K.z = 0; K.hz = 0; K.ultBase = K.kills; K.hL = Math.max(WP.DRAG, gd(K.x, K.y, K.hx, K.hy)); } return; }
@@ -1946,6 +1947,10 @@ function penStep(dt, t, IN, mine, smP) {
   if (AUTH() && K.hz < 8) holyBurn(K.hx, K.hy, P.BURN, P.BDPS, dt);
   if (K.pT >= P.T && K.smT < 0) { K.pPh = 2; K.pT = 0; }
 }
+// Penance aura: small and medium enemies can't stand under him; they're pushed out to its edge and shoved away
+function penAura(dt) { const R = WP.PEN.AURA;
+  for (const w of walkers) { if (w.hp <= 0 || w.bT > 0) continue; const U = UK[w.k]; if (U.r > 2.45 || w.k === 'ogre') continue; const dx = w.x - K.x, dy = (w.y - K.y) * 1.25, d = Math.hypot(dx, dy); if (d > R + U.r) continue;
+    const nx = d > 0.01 ? dx / d : Math.cos(w.id), ny = d > 0.01 ? dy / d : Math.sin(w.id), push = Math.min(R + U.r - d, 60 * dt * 4); w.x += nx * push; w.y += ny * push / 1.25; w.kx += nx * 120 * dt * 4; w.ky += ny * 70 * dt * 4; w.atk = -1; } }
 function penSmash() {
   const P = WP.PEN, k = K.smK || 0, R = P.SMR0 + (P.SMR1 - P.SMR0) * Math.pow(k, 0.8), dmg = P.DMG0 + (P.DMG1 - P.DMG0) * k;
   K.hz = 0; K.impN = (K.impN || 0) + 1; K.impX = K.hx; K.impY = K.hy; K.impR = R; K.hvx *= 0.15; K.hvy *= 0.15; K.smCd = P.CD;
@@ -2110,7 +2115,7 @@ function censerCone(c, t, dt) {
   c.save(); for (const f of L) { const k = 1 - (t - f.t) / 0.45; c.globalAlpha = Math.min(1, k * 1.6); FBX.flame(c, f.x, f.y, 2.6 * f.s * (0.6 + 0.4 * k), 0.75 * f.s, t, HOLYP, f.a * 7, 1, true); } c.restore();
 }
 // penance: a shaft of golden light from above, a glow round him, motes rising
-function penLight(c, t) { const k = K.pPh === 0 ? sm(cl(K.pT / WP.PEN.RISE, 0, 1)) : K.pPh === 2 ? 1 - sm(cl(K.pT / WP.PEN.END, 0, 1)) : 1, z = K.z || 0, cy = K.y - z - 12;
+function penLight(c, t) { { const k0 = K.pPh === 0 ? sm(cl(K.pT / WP.PEN.RISE, 0, 1)) : K.pPh === 2 ? 1 - sm(cl(K.pT / WP.PEN.END, 0, 1)) : 1, R = WP.PEN.AURA * (0.96 + 0.04 * Math.sin(t * 5)); c.save(); c.translate(K.x, K.y); c.scale(1, 0.8); const g = c.createRadialGradient(0, 0, R * 0.6, 0, 0, R); g.addColorStop(0, 'rgba(255,220,120,0)'); g.addColorStop(0.85, `rgba(255,224,130,${0.28 * k0})`); g.addColorStop(1, 'rgba(255,224,130,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, R, 0, 7); c.fill(); c.strokeStyle = `rgba(255,236,170,${0.55 * k0})`; c.lineWidth = 0.5; c.setLineDash([2, 1.5]); c.lineDashOffset = -t * 8; c.beginPath(); c.arc(0, 0, R, 0, 7); c.stroke(); c.restore(); } const k = K.pPh === 0 ? sm(cl(K.pT / WP.PEN.RISE, 0, 1)) : K.pPh === 2 ? 1 - sm(cl(K.pT / WP.PEN.END, 0, 1)) : 1, z = K.z || 0, cy = K.y - z - 12;
   c.save();
   const wd = 9 + Math.sin(t * 3) * 0.8, g = c.createLinearGradient(K.x - wd, 0, K.x + wd, 0); g.addColorStop(0, 'rgba(255,220,120,0)'); g.addColorStop(0.5, `rgba(255,232,160,${0.38 * k})`); g.addColorStop(1, 'rgba(255,220,120,0)'); c.fillStyle = g; c.fillRect(K.x - wd, cy - 300, wd * 2, 300 + z + 12);
   const g2 = c.createRadialGradient(K.x, cy, 0, K.x, cy, 22); g2.addColorStop(0, `rgba(255,236,170,${0.5 * k})`); g2.addColorStop(1, 'rgba(255,210,110,0)'); c.fillStyle = g2; c.beginPath(); c.arc(K.x, cy, 22, 0, 7); c.fill();
