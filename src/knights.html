@@ -1722,7 +1722,7 @@ function makePriest(kn, hard) {
 }
 // an ability is past its strike (only the follow-through is left), so the next one can take over from here
 const wpRec = kn => kn.ab === 'sweep' ? kn.abT >= WP.SW.PREP + (kn.sGo || WP.SW.GO) : kn.ab === 'slam' ? kn.abT >= WP.SL.WIND + WP.SL.FLY + 0.05 : !kn.ab;
-function wpEndAb() { if (K.ab === 'sweep') { sweepRelease(); K.hz = 0; K.hL = Math.max(WP.DRAG, gd(K.x, K.y, K.hx, K.hy)); } K.ab = null; }
+function wpEndAb() { if (K.ab === 'sweep') { sweepRelease(); K.hz = 0; K.hL = Math.max(WP.DRAG, gd(K.x, K.y, K.hx, K.hy)); if (K.swOut) { K.swOut = 0; K.hOut = WP.SL.HOLD; K.hL = WP.MAXC; } } K.ab = null; }
 function priestStep(dt, t) {
   if (K.kind !== 'priest' || !(K.hL > 0)) makePriest(K, K.kind !== 'priest');
   const IN = K.in, mvL = Math.hypot(IN.mv[0], IN.mv[1]), mine = AUTH() || K.i === ME;
@@ -1833,6 +1833,8 @@ function sweepTarget(kn, v) {
 function startSweep(v) {
   const T = sweepTarget(K, v);
   const L = Math.abs(wrapA(T.a - T.ah)) * (T.rh + T.r) / 2 + Math.abs(T.r - T.rh), go = WP.SW.GO + L / WP.SW.SPD;
+  // sweeping while the head is out keeps the Bring in window going: a fresh one starts when the sweep ends
+  K.swOut = K.hOut > 0 || K.hRet >= 0 ? 1 : 0;
   Object.assign(K, { sGo: go, ab: 'sweep', abT: 0, abId: (K.abId || 0) + 1, cen: -1, sa0: T.ah, sa1: T.a, sr0: T.rh, sr1: T.r, ax0: K.hx, ay0: K.hy, az0: K.hz, swCd: WP.SW.CD + WP.SW.PREP + go + WP.SW.REC, hOut: 0, hRet: -1 });
   const ex = Math.cos(T.a); if (Math.abs(ex) > 0.2) K.f = ex > 0 ? 1 : -1;
 }
@@ -1866,7 +1868,7 @@ function priestAb(dt) {
     const GO = K.sGo || S.GO;
     if (tt > S.PREP && t0 < S.PREP + GO && AUTH()) sweepHit(ring2(K.x, K.y, A.a, A.r), p, B, dt);
     if (t0 < S.PREP + GO && tt >= S.PREP + GO) { sweepRelease(); K.impN = (K.impN || 0) + 1; K.impX = K.hx; K.impY = K.hy; K.impR = 9; }
-    if (tt >= S.PREP + GO + S.REC) { K.ab = null; K.hz = 0; K.hL = Math.max(WP.DRAG, gd(K.x, K.y, K.hx, K.hy)); } }
+    if (tt >= S.PREP + GO + S.REC) { K.ab = null; K.hz = 0; K.hL = Math.max(WP.DRAG, gd(K.x, K.y, K.hx, K.hy)); if (K.swOut) { K.swOut = 0; K.hOut = WP.SL.HOLD; K.hL = WP.MAXC; } } }
   else if (K.ab === 'slam') { const S = WP.SL, hit = S.WIND + S.FLY, P = slamAt(K, Math.min(tt, hit)); K.hx = P[0]; K.hy = P[1]; K.hz = P[2];
     if (t0 < hit && tt >= hit) { K.hx = K.sx; K.hy = K.sy; K.hz = 0; slamImpact(); }
     if (tt >= hit + S.REC) K.ab = null; }
@@ -2547,7 +2549,7 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
 const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
