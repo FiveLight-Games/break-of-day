@@ -33,7 +33,7 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 #lobbyUI a{color:#a59c88;font-size:12px}
 #note{position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#000b;border-radius:10px;padding:6px 12px;font-size:12px;display:none;pointer-events:none}
 #layEd{position:fixed;left:50%;top:max(58px,12vh);transform:translateX(-50%);transition:opacity .15s;z-index:15;background:#14120ff2;border:1px solid #3a332a;border-radius:14px;padding:12px 14px;display:none;flex-direction:column;gap:8px;width:min(320px,calc(100vw - 32px));font-size:13px;color:#efe7d6}#layEd b{font:700 15px system-ui;color:#f0c419}#layHint{color:#a59c88;font-size:12px}#layEd .lrow{display:flex;gap:8px;align-items:center}#layEd input{flex:1;accent-color:#f0c419}#layEd .lnum{font:600 12px ui-monospace,monospace;min-width:30px;text-align:right}#layWarn{color:#ff6a4d;font-size:12px}#layEd button{flex:1}#layEd .pri2{border-color:#f0c419;color:#f0c419}
-body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.editing #spin{cursor:move;outline:2px dashed #ffffff55;outline-offset:2px}body.editing .lsel{outline:2px dashed #f0c419 !important}@media (orientation:portrait){#layEd{top:26vh}}body.fire #dash,body.fire #aoe,body.fire #ult{display:none}body.dragging #layEd{opacity:.25;pointer-events:none}body.editing .lbad{box-shadow:0 0 0 3px #ff6a4d}
+body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.editing #spin{cursor:move;outline:2px dashed #ffffff55;outline-offset:2px}body.editing .lsel{outline:2px dashed #f0c419 !important}@media (orientation:portrait){#layEd{top:26vh}}body.fire #aoe,body.fire #ult{display:none}body.dragging #layEd{opacity:.25;pointer-events:none}body.editing .lbad{box-shadow:0 0 0 3px #ff6a4d}
 #exitQ{position:fixed;inset:0;z-index:20;background:#0008;display:none;align-items:center;justify-content:center}#exitQ.open{display:flex}#exitQ>div{background:#14120f;border:1px solid #3a332a;border-radius:14px;padding:18px 20px;text-align:center}#exitQ p{margin:0 0 14px;font:700 16px system-ui;color:#efe7d6}#exitQ .row{display:flex;gap:10px;justify-content:center}#exitQ button{padding:10px 18px;font-size:14px}#exitYes{border-color:#f0c419;color:#f0c419}
 #menuBtn{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;text-decoration:none}
 #dash{position:fixed;right:calc(10vw + 11px);bottom:172px;width:96px;height:96px;border-radius:50%;background:#9fd3ff14;border:2px solid #9fd3ff80;touch-action:none;overflow:hidden}
@@ -966,7 +966,7 @@ function tone(type, f0, f1, t, a, dec, vol) { const c = AU.ctx, p = PF(), o = c.
 function noise(t, dur, vol, ftype, f0, f1, q, a) { const c = AU.ctx, p = PF(), s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); dur /= p; a = (a || 0.005) / p; s.buffer = AU.noise; s.loop = true; f.type = ftype; f.frequency.setValueAtTime(f0 * p, t); if (f1 && f1 !== f0) f.frequency.exponentialRampToValueAtTime(f1 * p, t + a + dur); f.Q.value = q || 1; aenv(g, t, a, vol, dur); s.connect(f); f.connect(g); g.connect(AU.out); s.start(t, Math.random()); s.stop(t + a + dur + 0.05); }
 // metal: a few inharmonic partials ringing out
 function ring(t, f, dur, vol) { for (const [m, v] of [[1, 1], [2.76, 0.5], [5.4, 0.25], [8.93, 0.12]]) tone('sine', f * m, f * m * 0.995, t, 0.002, dur / Math.sqrt(m), vol * v); }
-const SGAP = { fire: 0.11, gswing: 0.05, swing: 0.04, spin: 0.05, gore: 0.03, bones: 0.05, hit: 0.035, clank: 0.05, boom: 0.06, ouch: 0.08 };
+const SGAP = { roar: 0.1, fire: 0.11, gswing: 0.05, swing: 0.04, spin: 0.05, gore: 0.03, bones: 0.05, hit: 0.035, clank: 0.05, boom: 0.06, ouch: 0.08 };
 // v: 0..1 loudness from where it happened (louder near my knight, silent well off screen)
 function snd(k, wx, wy, big) {
   if (!AU.ctx || !AU.on || AU.ctx.state !== 'running') return;
@@ -993,6 +993,8 @@ function snd(k, wx, wy, big) {
     case 'gslam': tone('sine', 70, 22, t, 0.005, 1.1, 0.95 * v); noise(t, 1.1, 0.55 * v, 'lowpass', 1600, 90, 0.6); noise(t, 0.12, 0.35 * v, 'bandpass', 2200, 900, 1.2); for (let i = 0; i < 10; i++) noise(t + 0.1 + Math.random() * 0.6, 0.05, 0.08 * v, 'bandpass', 500 + Math.random() * 1400, 0, 3); break;
     case 'gcharge': tone('sawtooth', 45, 120, t, 0.9, 0.15, 0.06 * v); noise(t, 1.0, 0.22 * v, 'lowpass', 150, 900, 0.8, 0.9); tone('sine', 220, 660, t, 0.9, 0.1, 0.05 * v); break;
     case 'fwave': noise(t, 0.22, 0.3 * v, 'bandpass', 300 * j, 1400 * j, 1.1, 0.03); noise(t + 0.08, 0.25, 0.16 * v, 'lowpass', 900, 300, 0.8, 0.05); for (let i = 0; i < 3; i++) noise(t + 0.1 + Math.random() * 0.15, 0.02, 0.06 * v, 'bandpass', 1200 + Math.random() * 2000, 0, 4); break;
+    case 'plume': tone('sine', 80, 30, t, 0.005, 0.6, 0.7 * v); noise(t, 0.6, 0.45 * v, 'lowpass', 1400, 200, 0.7); noise(t, 0.5, 0.25 * v, 'bandpass', 300, 1200, 1, 0.05); break;
+    case 'roar': noise(t, 0.2, 0.32 * v, 'bandpass', 220 * j, 520 * j, 0.8, 0.03); noise(t, 0.18, 0.18 * v, 'lowpass', 300, 160, 0.7, 0.03); for (let i = 0; i < 3; i++) noise(t + Math.random() * 0.12, 0.025, 0.08 * v, 'bandpass', 900 + Math.random() * 2400, 0, 4); break;
     case 'fire': noise(t, 0.2, 0.2 * v, 'bandpass', 380 * j, 700 * j, 0.9, 0.04); for (let i = 0; i < 3; i++) noise(t + Math.random() * 0.12, 0.025, 0.07 * v, 'bandpass', 900 + Math.random() * 2400, 0, 4); break;
     case 'ouch': ring(t, 430 * j, 0.3, 0.09 * v); noise(t, 0.08, 0.28 * v, 'lowpass', 900, 300, 1); tone('sine', 120, 70, t, 0.002, 0.12, 0.25 * v); break;
   }
@@ -1003,7 +1005,7 @@ function hitSnd(w) { snd(ARMOR[w.k] ? 'clank' : 'hit', w.x, w.y); }
 // knight sounds follow each knight's state, so both screens hear both knights without extra netcode
 function sndWatch() {
   for (const kn of KN) {
-    if (kn.kind === 'fire') { if (kn.cone > 0.3) snd('fire', kn.x, kn.y); if ((kn.tswN || 0) !== (kn.sndSw || 0)) { kn.sndSw = kn.tswN; snd('fwave', kn.x, kn.y); } if (kn.hits > (kn.snd ? kn.snd.hits : 0)) snd('ouch', kn.x, kn.y); kn.snd = { hits: kn.hits }; continue; }
+    if (kn.kind === 'fire') { if (kn.plT >= 0 && !(kn.sndPl >= 0)) snd('plume', kn.x, kn.y); kn.sndPl = kn.plT; if (kn.cone > 0.3) snd(kn.plT >= 0 ? 'roar' : 'fire', kn.x, kn.y); if ((kn.tswN || 0) !== (kn.sndSw || 0)) { kn.sndSw = kn.tswN; snd('fwave', kn.x, kn.y); } if (kn.hits > (kn.snd ? kn.snd.hits : 0)) snd('ouch', kn.x, kn.y); kn.snd = { hits: kn.hits }; continue; }
     const S = kn.snd || (kn.snd = { sw: 0, half: 0, glow: 0, ab: 0, abP: 0, pull: 0, hits: kn.hits }); K = kn;
     if (kn.swing >= 0) { if (!S.sw && kn.swing >= SWING * 0.28) { S.sw = 1; snd(kn.ultPh >= 0 ? 'gswing' : 'swing', kn.x, kn.y); } } else S.sw = 0;
     if (kn.preGlow && kn.spin < 0) { if (!S.glow) { S.glow = 1; snd('glow', kn.x, kn.y); } } else if (!kn.preGlow) S.glow = 0;
@@ -1127,7 +1129,7 @@ function man(c, s, dance, att, aim, t, P, L, rl = -1, pit = [0, -1], wk = null) 
   const torches = () => { for (let i = 0; i < (two ? 2 : 1); i++) torchTo(c, hands[i][0], hands[i][1], tips[i][0], tips[i][1], t, P, i + 3, L, Math.max(att, relit), out); };
   const arms = () => { const lh = hands[0][0] <= hands[1][0] ? hands[0] : hands[1], rh = lh === hands[0] ? hands[1] : hands[0]; arm(shL, lh); arm(shR, rh); }; // each shoulder takes the hand on its own side, so the arms never cross
   const back = ay < -0.05 && att > 0.5 || dip > 0.3 && dvy < -0.2; // aiming up the screen (or dipping into a fire behind him): torches go behind him
-  c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(lx * 0.3, 0.4, 4 + att, 1.4, 0, 0, 7); c.fill();
+  if (!(wk && wk.z)) { c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(lx * 0.3, 0.4, 4 + att, 1.4, 0, 0, 7); c.fill(); }
   if (back) { torches(); arms(); }
   // legs: hopping dance or a wide, bent, braced stance
   const lk = Math.sin(dance * 2) * (1 - att) * (1 - wmv); let lf = [-2.2 - att * 1.2 + lk * 1.2, -Math.max(0, lk) * 2.4], rf = [2.2 + att * 1.2 + lk * 1.2, -Math.max(0, -lk) * 2.4];
@@ -1187,8 +1189,10 @@ function drawBreath(c, T, t) {
 
 // the Firebreather as a player: walks (and keeps walking while he breathes), right stick aims a cone of fire that burns everything in it
 const FIRE = { R: 54, HALF: 0.4, DPS: 240, BURN: 5, BURN_DPS: 28, RUN: 0.92, ATK: 0.8, BACK: 0.65, S: 1.0, TSW: 0.45, WAVE_DMG: 75, WAVE_T: 0.38, BR_T: 5, BR_CD: 6, BR_LEN: 1.65, BR_WIDE: 1.35, CORE: 7 };
+// Plume (the dash stick): he blasts fire at the ground, rides it into the air for 3s and is pushed away from where he aims it
+const PL = { T: 3, CD: 12, Z: 18, SPD: 48, R: 26, DPS: 320, KB: 140 };
 let CHAR = 'knight'; try { CHAR = localStorage.getItem('kn_char') === 'fire' ? 'fire' : 'knight'; } catch (e) { }
-function makeFire(kn) { Object.assign(kn, { tsw: -1, tswN: 0, brT: 0, brCd: 0, waves: [], kind: 'fire', st: 'fight', hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
+function makeFire(kn) { Object.assign(kn, { plT: -1, plCd: 0, tsw: -1, tswN: 0, brT: 0, brCd: 0, waves: [], kind: 'fire', st: 'fight', hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
 const mouthOf = kn => kn.mouthW || [kn.x + kn.f * 3, kn.y - 12];
 function fireStep(dt, t) {
   if (K.lvl !== 5) Object.assign(K, { lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: K.fp || [], st: 'fight', hold: 1, kn: 0 });
@@ -1198,6 +1202,9 @@ function fireStep(dt, t) {
   if (K.brT > 0) { K.brT -= dt; if (K.brT <= 0) { K.brT = 0; K.brCd = FIRE.BR_CD; } } else if (K.brCd > 0) K.brCd -= dt;
   if (mine && IN.spin && !K.spinHeld && !(K.brT > 0) && !(K.brCd > 0)) { K.brT = FIRE.BR_T; K.tsw = -1; }
   K.spinHeld = IN.spin;
+  if (!(K.plT >= 0) && K.plCd > 0) K.plCd -= dt;
+  if (mine && IN.pl && !(K.plT >= 0) && !(K.plCd > 0)) startPlume();
+  if (K.plT >= 0) { plumeStep(dt, IN); FBX.emitBreath(K, dt); FBX.stepBreath(K, dt); K.st = 'fight'; return; }
   const breath = K.brT > 0; K.reach = FIRE.R * (breath ? FIRE.BR_LEN : 1); K.half = FIRE.HALF * (breath ? FIRE.BR_WIDE : 1);
   if (breath && IN.aim) { const want = Math.atan2(IN.aim[1], IN.aim[0]); let d = want - K.aimS; d = Math.atan2(Math.sin(d), Math.cos(d)); K.aimS += d * Math.min(1, dt * (K.att > 0.5 ? 9 : 30)); K.att = Math.min(1, K.att + dt * 5); K.cone = K.att >= 0.8 ? Math.min(1, K.cone + dt * 4) : 0; }
   else { K.att = Math.max(0, K.att - dt * 3); K.cone = Math.max(0, K.cone - dt * 6); }
@@ -1230,6 +1237,24 @@ function fireStep(dt, t) {
   FBX.emitBreath(K, dt); FBX.stepBreath(K, dt);
   K.st = 'fight';
 }
+function startPlume() { Object.assign(K, { plT: 0, tsw: -1, att: 0, cone: 0, pdx: 0, pdy: 0 }); for (let i = 0; i < 20; i++) { const a = rr(0, 6.28), v = rr(20, 50); dust.push({ x: K.x, y: K.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.45, r: rr(1, 2), t: 0, max: rr(0.4, 0.8) }); } }
+function plumeStep(dt, IN) {
+  K.plT += dt; const T = K.plT, up = Math.min(1, T / 0.35), down = Math.min(1, Math.max(0, (PL.T - T) / 0.35));
+  K.z = PL.Z * Math.min(sm(up), sm(down)) + Math.sin(T * 6) * 0.8 * Math.min(up, down);
+  // the stick points the fire; he's pushed the opposite way
+  const d = IN.pl || [0, 0], k = Math.min(1, dt * 6); K.pdx = lerp(K.pdx || 0, d[0], k); K.pdy = lerp(K.pdy || 0, d[1], k);
+  K.vx = -K.pdx * PL.SPD; K.vy = -K.pdy * PL.SPD * 0.8; const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); K.spd = Math.hypot(K.x - ox, K.y - oy) / Math.max(dt, 1e-4);
+  // the plume hits the ground a little out from under him, on the side he's blasting
+  const g = [K.x + K.pdx * 16, K.y + 1 + K.pdy * 8], m = mouthOf(K); K.plG = g;
+  K.aimS = Math.atan2(g[1] - m[1], g[0] - m[0]); K.aim = K.aimS; K.att = 1; K.cone = T < PL.T - 0.15 ? 1 : 0; K.half = 0.22; K.reach = Math.max(8, Math.hypot(g[0] - m[0], g[1] - m[1]) * 0.85);
+  K.f = Math.cos(K.aimS) >= 0 ? 1 : -1;
+  // fire spreading out across the ground where it lands
+  if (K.cone > 0) { K.fp = K.fp || []; for (let i = 0; i < Math.ceil(dt * 260); i++) { const a = rr(0, 6.28), v = rr(25, 70); K.fp.push({ x: g[0] + rr(-2, 2), y: g[1] + rr(-1, 1), vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.45 - 6, life: rr(0.05, 0.15), max: rr(0.3, 0.45), sd: Math.random() * 6 }); } }
+  if (AUTH() && K.cone > 0) for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k], dx = w.x - g[0], dy = (w.y - g[1]) * 1.3, dd = Math.hypot(dx, dy); if (dd > PL.R + U.r) continue; const a = Math.atan2(dy / 1.3, dx);
+    w.bd = FIRE.BURN; w.bsrc = K.i; w.atk = -1; w.kx += Math.cos(a) * PL.KB * dt; w.ky += Math.sin(a) * PL.KB * 0.5 * dt; w.hp -= PL.DPS * dt; if (w.hp <= 0) { K.kills++; burnFx(w); } }
+  if (K.i === ME) shake = Math.max(shake, 0.08);
+  if (T >= PL.T) { K.plT = -1; K.plCd = PL.CD; K.z = 0; K.cone = 0; K.att = 0; for (let i = 0; i < 16; i++) { const a = rr(0, 6.28), v = rr(15, 40); dust.push({ x: K.x, y: K.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.45, r: rr(1, 2), t: 0, max: rr(0.4, 0.8) }); } }
+}
 // a wave of fire off the end of the torch: a burst of flame puffs through the breath's cone (both screens), and the damage front (host)
 function fireWave() {
   const m = K.tipW || mouthOf(K), n = 46; K.fp = K.fp || [];
@@ -1247,9 +1272,10 @@ function burnKill(w) {
 }
 function drawFire(c, t) {
   FBX.setCol(K.col); const mv = cl((K.spd || 0) / (RUN * FIRE.RUN * 0.6), 0, 1);
-  c.save(); c.translate(K.x, K.y); const sp = Math.hypot(K.vx || 0, K.vy || 0), ln = sp > 2 ? [K.vx / (RUN * FIRE.RUN), K.vy / (RUN * FIRE.RUN)] : [0, 0];
-  const m = FBX.man(c, FIRE.S, K.dph || 0, K.att || 0, K.aimS || 0, t, FBX.pal(5), 5, -1, [0, -1], { ph: 0, mv: 0, f: K.f, lean: ln, sw: K.tsw >= 0 ? { u: K.tsw / FIRE.TSW, side: (K.tswN || 0) % 2 } : null }); c.restore();
-  K.mouthW = [K.x + m.conv[0], K.y + m.conv[1]]; const tp = K.tsw >= 0 && m.tips[(K.tswN || 0) % 2]; if (tp) K.tipW = [K.x + tp[0], K.y + tp[1]];
+  const zz = K.z || 0; if (zz > 0.5) { const k = Math.max(0.35, 1 - zz / 40); c.fillStyle = `rgba(0,0,0,${0.3 * k})`; c.beginPath(); c.ellipse(K.x, K.y + 0.4, 4.5 * k, 1.5 * k, 0, 0, 7); c.fill(); }
+  c.save(); c.translate(K.x, K.y - zz); const sp = Math.hypot(K.vx || 0, K.vy || 0), ln = sp > 2 ? [K.vx / (RUN * FIRE.RUN), K.vy / (RUN * FIRE.RUN)] : [0, 0];
+  const m = FBX.man(c, FIRE.S, K.dph || 0, K.att || 0, K.aimS || 0, t, FBX.pal(5), 5, -1, [0, -1], { ph: 0, mv: 0, f: K.f, z: zz > 0.5, lean: ln, sw: K.tsw >= 0 ? { u: K.tsw / FIRE.TSW, side: (K.tswN || 0) % 2 } : null }); c.restore();
+  K.mouthW = [K.x + m.conv[0], K.y - zz + m.conv[1]]; const tp = K.tsw >= 0 && m.tips[(K.tswN || 0) % 2]; if (tp) K.tipW = [K.x + tp[0], K.y - zz + tp[1]];
 }
 // ---------- sim ----------
 let spawnT = 0;
@@ -1377,7 +1403,7 @@ function worldStep(dt, t) {
     if (w.atk < 0) { let bd = 1e9; KN.forEach((kn, i) => { const dd = Math.hypot(kn.x - w.x, kn.y - w.y); if (dd < bd) { bd = dd; w.tk = i; } }); }
     const T2 = KN[w.tk] || KN[0], dx = T2.x - w.x, dy = (T2.y - w.y), d = Math.hypot(dx, dy * 1.3) || 1;
     const U = UK[w.k], reach = 4.4 + U.r + ((T2.sz || 1) - 1) * 3.5;
-    if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5) { T2.hits += w.k === 'sapper' ? 3 : 1; if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
+    if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5 && !((T2.z || 0) > 4)) { T2.hits += w.k === 'sapper' ? 3 : 1; if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
     else if (d > reach) { w.x += dx / d * w.sp * dt; w.y += dy / d * w.sp * dt; }
     else if (w.cd <= 0 && T2.st !== 'kneel') w.atk = 0;
     w.x += w.kx * UK[w.k].kb * dt; w.y += w.ky * UK[w.k].kb * dt; w.kx *= 1 - dt * 6; w.ky *= 1 - dt * 6;
@@ -1459,8 +1485,8 @@ function draw() {
     ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live);
     const lab = live ? (K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (K.kills - (K.ultBase || 0)) + '/' + ULT_KILLS; if (ULS.textContent !== lab) ULS.textContent = lab;
     DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); }
-  { const fire = K.kind === 'fire'; if (document.body.classList.contains('fire') !== fire) { document.body.classList.toggle('fire', fire); document.querySelector('#rst small').textContent = fire ? 'torch' : 'swing'; document.querySelector('#spin span').textContent = fire ? 'BREATH' : 'SPIN'; } }
-  DASHI.style.height = (K.ab === 'dash' ? 100 : cl((K.dashCd || 0) / DASH_CD, 0, 1) * 100) + '%'; AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
+  { const fire = K.kind === 'fire'; if (document.body.classList.contains('fire') !== fire) { document.body.classList.toggle('fire', fire); document.querySelector('#rst small').textContent = fire ? 'torch' : 'swing'; document.querySelector('#spin span').textContent = fire ? 'BREATH' : 'SPIN'; document.querySelector('#dash small').textContent = fire ? 'plume' : 'dash'; } }
+  if (K.kind === 'fire') DASHI.style.height = (K.plT >= 0 ? 100 * (1 - K.plT / PL.T) : cl((K.plCd || 0) / PL.CD, 0, 1) * 100) + '%'; else DASHI.style.height = (K.ab === 'dash' ? 100 : cl((K.dashCd || 0) / DASH_CD, 0, 1) * 100) + '%'; AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
 }
 function frame(ms) {
   const dt = Math.min(0.05, (ms - last) / 1000) * speed; last = ms; t += dt; step(dt, t); sndWatch(); draw();
@@ -1532,10 +1558,10 @@ function doLeap(v) { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN
 // dash aim: a stick whose centre is where the thumb lands; drag to aim (the path shows on the field), release to dash
 let dashId = null, dashO = null;
 const dashUpd = e => { const r = DASHE.getBoundingClientRect(), R = r.width / 2; let dx = e.clientX - dashO[0], dy = e.clientY - dashO[1]; const d = Math.hypot(dx, dy); if (d > R * 0.7) { dx *= R * 0.7 / d; dy *= R * 0.7 / d; }
-  DASHAIM = d > 8 ? [dx, dy] : null; DASHD.style.transform = `translate(${dashO[0] - r.left - R + dx}px,${dashO[1] - r.top - R + dy}px)`; };
+  DASHAIM = d > 8 ? [dx, dy] : null; if (KN[ME] && KN[ME].kind === 'fire') { KN[ME].in.pl = [Math.round(dx / (R * 0.7) * 100) / 100, Math.round(dy / (R * 0.7) * 100) / 100]; markIn(); DASHAIM = null; } DASHD.style.transform = `translate(${dashO[0] - r.left - R + dx}px,${dashO[1] - r.top - R + dy}px)`; };
 DASHE.addEventListener('pointerdown', e => { dashId = e.pointerId; DASHE.setPointerCapture(dashId); dashO = [e.clientX, e.clientY]; dashUpd(e); e.preventDefault(); });
 DASHE.addEventListener('pointermove', e => { if (e.pointerId === dashId) dashUpd(e); });
-const dashEnd = (e, go) => { if (e.pointerId !== dashId) return; dashId = null; if (go && DASHAIM) doDash(DASHAIM); DASHAIM = null; DASHD.style.transition = 'transform .12s'; DASHD.style.transform = ''; setTimeout(() => DASHD.style.transition = '', 130); };
+const dashEnd = (e, go) => { if (e.pointerId !== dashId) return; dashId = null; if (KN[ME] && KN[ME].kind === 'fire') { KN[ME].in.pl = null; markIn(); } else if (go && DASHAIM) doDash(DASHAIM); DASHAIM = null; DASHD.style.transition = 'transform .12s'; DASHD.style.transform = ''; setTimeout(() => DASHD.style.transition = '', 130); };
 DASHE.addEventListener('pointerup', e => dashEnd(e, true)); DASHE.addEventListener('pointercancel', e => dashEnd(e, false));
 // leap aim: where the thumb sits in the circle maps to a spot within LEAP_R of the knight; release to jump there
 let aoeId = null;
@@ -1589,9 +1615,9 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brT', 'brCd'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brT', 'brCd', 'plT', 'plCd', 'pdx', 'pdy', 'z'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
-const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight' });
+const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', pl: n.pl || null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in) });
 const packW = w => [w.id, UKEYS.indexOf(w.k), Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10, Math.round(w.hp), w.max, Math.round(w.atk * 100) / 100, w.hit > 0 ? 1 : 0, w.tk, w.bd > 0 ? 1 : 0];
 const LC = document.getElementById('lcard'), LUI = document.getElementById('lobbyUI'), NOTE = document.getElementById('note');
@@ -1732,7 +1758,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '765fef';
+const KBUILD = '44bb49';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || location.protocol === 'file:' || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
