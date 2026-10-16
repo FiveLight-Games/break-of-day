@@ -53,5 +53,6 @@
   {"v": "0.52", "build": "ed8b85", "commit": "a5d215c", "date": "2026-10-16", "notes": "Volcano: molten rock drawn 20% bigger, blast radius 25% bigger."},
   {"v": "0.53", "build": "0825eb", "commit": "59af443", "date": "2026-10-16", "notes": "Knight Brawl: open-games list like Hold the Line (tap to join, shows host, characters and n/4; games stay listed while running so people can drop in); players named by character."},
   {"v": "0.54", "build": "a48252", "commit": "aaa65d8", "date": "2026-10-16", "notes": "Knight Brawl: lava opens into a 60-degree cone at the end of its window, growing headdress flames and fire aura, golden form on press, lava breaks off and cools away, Restart button; performance after big blasts (cached body-part sprites, fewer parts/splats, no sprite rebuilds during zooms, cheaper smoke and burn flames)."},
-  {"v": "0.55", "build": "8aae27", "commit": "", "date": "2026-10-16", "notes": "Knight Brawl: the giant knight takes 65% less damage."}
+  {"v": "0.55", "build": "8aae27", "commit": "4afeaea", "date": "2026-10-16", "notes": "Knight Brawl: the giant knight takes 65% less damage."},
+  {"v": "0.56", "build": "44250e", "commit": "", "date": "2026-10-16", "notes": "Knight Brawl: new character Warpriest (spiked flail dragged on a chain, censer swing, sweep, slam with go to / bring in, holy flame, Penance ult)."}
 ]
