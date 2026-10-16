@@ -20,7 +20,7 @@ const { chromium } = require('playwright');
       if (!nn) { IN.mv = [1, 0]; return; }
       const dir = (x, y) => { const dx = x - K.x, dy = y - K.y, l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; };
       if (K.kind !== 'fire') {
-        if (!(K.ultPh >= 0) && K.kills - (K.ultBase || 0) >= 250) { window.__ult(); use('ult'); }
+        if (!(K.ultPh >= 0) && K.kills - (K.ultBase || 0) >= 450) { window.__ult(); use('ult'); }
         const c = dense(K, W, 26, 80);
         // leap onto the densest group
         if (c && c.n >= 6 && !(K.leapCd > 0) && !K.ab && (K.ultPh < 0 || (K.ultPh === 1 && !K.ultLeapt))) { const LR = K.ultPh === 1 ? 78 * 2.25 : 78; let v = [(c.p[0] - K.x) / LR, (c.p[1] - K.y) / (LR * 0.8)]; const m = Math.hypot(...v); if (m > 1) v = v.map(q => q / m); window.__leap(v); use('leap'); }
@@ -30,7 +30,7 @@ const { chromium } = require('playwright');
         if (nd < 22 * (K.sz || 1)) IN.aim = dir(nn.x, nn.y); else IN.mv = dir(nn.x, nn.y);
         if (nd < 30 * (K.sz || 1)) IN.aim = dir(nn.x, nn.y);
       } else {
-        const ready = K.kills - (K.ultBase || 0) >= 250;
+        const ready = K.kills - (K.ultBase || 0) >= 300;
         if (!(K.vPh >= 0) && ready && !(K.plT >= 0) && !(K.coT >= 0)) { IN.ultN = (IN.ultN || 0) + 1; use('volcano'); }
         if ((K.vPh === 1 || (K.vPh === 0 && K.vT >= 0.5)) && !(K.vBel >= 0) && K.vSh < 5) { const c = dense(K, W, 38, 200); if (c) { IN.vtN = (IN.vtN || 0) + 1; IN.vtP = c.p; use('rock'); } }
         if (K.vPh >= 0) return;
