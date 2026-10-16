@@ -1634,7 +1634,8 @@ function draw() {
     DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); }
   if ((K.kind === 'fire') !== CHAR_UI) charUI(K.kind === 'fire');
   if (K.kind === 'fire') AOEI.style.height = (K.coT >= 0 ? 100 : cl((K.coCd || 0) / CO.CD, 0, 1) * 100) + '%';
-  if (K.kind === 'fire') { const rk = document.querySelector('#rst .knob'); rk.style.background = `linear-gradient(to top, #f0a04aaa ${100 * cl((K.brC ?? FIRE.BR_T) / FIRE.BR_T, 0, 1)}%, #ffffff30 0)`; } else document.querySelector('#rst .knob').style.background = '';
+  // breath charge fills the breath stick's ring with orange from the bottom
+  { const rs = document.getElementById('rst'); rs.style.background = K.kind === 'fire' ? `linear-gradient(to top, #f0a04a88 ${100 * cl((K.brC ?? FIRE.BR_T) / FIRE.BR_T, 0, 1)}%, #ffffff14 0)` : ''; }
   if (K.kind === 'fire') BSTI.style.height = (100 * (1 - cl((K.brC ?? FIRE.BR_T) / FIRE.BR_T, 0, 1))) + '%';
   if (K.kind === 'fire') DASHI.style.height = (K.plT >= 0 ? 100 * (1 - K.plT / PL.T) : cl((K.plCd || 0) / PL.CD, 0, 1) * 100) + '%'; else DASHI.style.height = (K.ab === 'dash' ? 100 : cl((K.dashCd || 0) / DASH_CD, 0, 1) * 100) + '%'; if (K.kind !== 'fire') AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
 }
