@@ -29,7 +29,7 @@ body.fire #dash{left:calc(50% - 48px);right:auto;top:auto;bottom:22px;width:96px
 #lobbyUI .card{background:#1a1713;border:1px solid #3a332a;border-radius:16px;padding:20px;max-width:360px;width:100%;display:flex;flex-direction:column;gap:10px;text-align:center}
 #lobbyUI .chars{display:flex;gap:6px}#lobbyUI .chars button{flex:1}#lobbyUI .chars .on{border-color:#f0c419;color:#f0c419;background:#2a2416}
 #lobbyUI h1{margin:0;font:800 26px system-ui;color:#f0c419}#lobbyUI p{margin:0;color:#a59c88;font-size:13px}
-#lobbyUI .big{font-size:16px;padding:12px}#lobbyUI .pri{background:#f0c419;color:#1a1713;border-color:#f0c419}
+#lobbyUI .games{display:flex;flex-direction:column;gap:6px;max-height:34vh;overflow:auto}#lobbyUI .games button{display:flex;justify-content:space-between;align-items:center;text-align:left;padding:10px 12px}#lobbyUI .games small{color:#a59c88}#lobbyUI .gh{display:flex;justify-content:space-between;color:#a59c88;font-size:12px;margin-top:4px}#lobbyUI .big{font-size:16px;padding:12px}#lobbyUI .pri{background:#f0c419;color:#1a1713;border-color:#f0c419}
 #lobbyUI input{background:#0d0c0a;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:12px;font:800 22px system-ui;text-align:center;letter-spacing:6px;text-transform:uppercase}
 #lobbyUI .code{font:800 40px system-ui;letter-spacing:10px;color:#efe7d6}#lobbyUI .err{color:#ff7b6b}
 #lobbyUI a{color:#a59c88;font-size:12px}
@@ -2023,10 +2023,26 @@ const pName = i => { const kn = KN[i], n = cName(kn), same = LIVE().filter(o => 
 const packW = w => [w.id, UKEYS.indexOf(w.k), Math.round(w.x * 2) / 2, Math.round(w.y * 2) / 2, Math.round(w.hp), w.max, Math.round(w.atk * 10) / 10, w.hit > 0 ? 1 : 0, w.tk, w.bd > 0 ? 1 : 0];
 const LC = document.getElementById('lcard'), LUI = document.getElementById('lobbyUI'), NOTE = document.getElementById('note');
 let noteT = 0; const note = (msg, sec = 3) => { NOTE.textContent = msg; NOTE.style.display = 'block'; noteT = sec; };
+// ---------- lobby directory: the same Supabase table as Hold the Line (rows tagged mode 'brawl', codes prefixed KN) ----------
+let DIR = { list: [], ready: false }, dirT = null, beatT = null, advertised = null;
+const DIRV = () => KBUILD.startsWith('__') ? 'dev' : KBUILD;
+async function fetchGames() { const sb = getSB(); if (!sb) return; try { const { data, error } = await sb.rpc('bod_open_lobbies', { p_version: DIRV() }); DIR.ready = true; if (!error) DIR.list = (data || []).filter(r => r.mode === 'brawl' && String(r.code).startsWith('KN')); } catch (e) { } renderGames(); }
+function renderGames() { const el = document.getElementById('lGames'), nt = document.getElementById('lDirNote'); if (!el) return; if (nt) nt.textContent = DIR.ready ? (DIR.list.length ? '' : 'None right now — host one!') : 'Looking…';
+  el.innerHTML = DIR.list.map(r => { const [who, cnt] = String(r.heroes || '').split('|'); return `<button data-code="${String(r.code).slice(2)}"><span>${(r.name || 'Knight Brawl').replace(/[<>&]/g, '')}<br><small>${(who || '').replace(/[<>&]/g, '')}</small></span><b>${(cnt || '').replace(/[<>&]/g, '')} · Join</b></button>`; }).join('');
+  el.querySelectorAll('[data-code]').forEach(b => b.onclick = () => join(b.dataset.code)); }
+function browse(on) { if (dirT) clearInterval(dirT); dirT = null; if (on) { fetchGames(); dirT = setInterval(fetchGames, 5000); } }
+// the host lists its game while it has room, the whole time it's running (people can join mid-fight)
+function gameRow() { const L2 = NET.started ? LIVE() : [], j = Math.max(1, L2.length), open = j < MAXP, chars = NET.started ? L2.map(kn => cName(kn)).join(', ') : (CHAR === 'fire' ? 'Firebreather' : 'Knight');
+  return { code: 'KN' + NET.code, name: ((myName !== 'Knight' ? myName + "'s" : 'Open') + ' brawl').slice(0, 40), host: myName.slice(0, 20), mode: 'brawl', n: MAXP, joined: open ? Math.min(j, MAXP - 1) : MAXP, heroes: (chars + '|' + j + '/' + MAXP).slice(0, 120), version: DIRV() }; }
+function advertise() { const sb = getSB(); if (!sb || !NET || NET.mode !== 'host') return; advertised = 'KN' + NET.code;
+  const beat = () => { if (!NET || NET.mode !== 'host') return unadvertise(); sb.from('bod_lobbies').upsert(gameRow(), { onConflict: 'code' }).then(() => { }, () => { }); }; NET.beat = beat; beat(); if (!beatT) beatT = setInterval(beat, 5000); }
+function unadvertise() { if (beatT) clearInterval(beatT); beatT = null; const sb = getSB(); if (advertised && sb) { const c = advertised; advertised = null; sb.from('bod_lobbies').delete().eq('code', c).then(() => { }, () => { }); } }
+addEventListener('pagehide', () => { if (advertised) unadvertise(); });
 function lobby(screen, extra) {
-  LUI.style.display = 'flex';
+  LUI.style.display = 'flex'; browse(screen === 'home');
   const back = '<a href="./">← Back to Hold the Line</a>';
   if (screen === 'home') LC.innerHTML = `<h1>Knight Brawl</h1><p>Up to four players, one horde. Play together online or practise alone.</p>
+    <div class="gh"><b>Open games</b><span id="lDirNote">${DIR.ready ? '' : 'Looking…'}</span></div><div class="games" id="lGames"></div>
     <button class="big pri" id="lHost" ${getSB() ? '' : 'disabled'}>Host a game</button>
     <input id="lCode" maxlength="4" placeholder="CODE" autocomplete="off"><button class="big" id="lJoin" ${getSB() ? '' : 'disabled'}>Join with code</button>
     <div class="chars"><button id="cKnight" class="${CHAR === 'knight' ? 'on' : ''}">Knight</button><button id="cFire" class="${CHAR === 'fire' ? 'on' : ''}">Firebreather</button></div><button class="big" id="lSolo">Play solo</button><button id="lLay">Control layout</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
@@ -2035,12 +2051,13 @@ function lobby(screen, extra) {
   else if (screen === 'joining') LC.innerHTML = `<h1>Knight Brawl</h1><p>Joining <b>${NET.code}</b>…</p><button id="lCancel">Cancel</button>`;
   const on = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
   on('lHost', host); on('lLay', () => layOpen(true)); const pick = c => { CHAR = c; try { localStorage.setItem('kn_char', c); } catch (e) { } charUI(c === 'fire'); applyLayout(); lobby('home'); }; on('cKnight', () => pick('knight')); on('cFire', () => pick('fire')); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
+  if (screen === 'home') renderGames();
   on('lJoin', () => { const c = (document.getElementById('lCode').value || '').toUpperCase().replace(/[^A-Z]/g, ''); if (c.length !== 4) return lobby('home', 'Enter the 4-letter code.'); join(c); });
   on('lCancel', () => { leave(); lobby('home'); });
   const ci = document.getElementById('lCode'); if (ci) ci.onkeydown = e => { if (e.key === 'Enter') document.getElementById('lJoin').click(); };
 }
-function leave() { if (NET && NET.ch) { try { NET.ch.untrack(); sbc.removeChannel(NET.ch); } catch (e) { } } NET = null; }
-function startGame(np, me) { NP = np; ME = me; setup(); LUI.style.display = 'none'; syncIn(); if (NET) NET.started = 1; }
+function leave() { unadvertise(); if (NET && NET.ch) { try { NET.ch.untrack(); sbc.removeChannel(NET.ch); } catch (e) { } } NET = null; }
+function startGame(np, me) { NP = np; ME = me; setup(); LUI.style.display = 'none'; browse(false); syncIn(); if (NET) NET.started = 1; }
 function openRoom(code, mode) {
   const ch = getSB().channel('kn-' + code, { config: { presence: { key: myPid }, broadcast: { self: false, ack: false } } });
   NET = { mode, code, ch, acc: 0, inAcc: 0, inDirty: 1, lastSnap: performance.now(), started: 0, seats: {}, names: { 0: mode === 'host' ? myName : 'Host' } };
@@ -2051,7 +2068,7 @@ function openRoom(code, mode) {
     for (const [pid, st] of Object.entries(NET.seats)) if (!pids.includes(pid)) { delete NET.seats[pid]; const kn = KN[st]; if (kn) Object.assign(kn, { on: 0, vPh: -1, ultPh: -1, sz: 1 }); note(pName(st) + ' left', 4); }
     for (const pid of pids) if (NET.seats[pid] === undefined) { const used = new Set(Object.values(NET.seats)); let st = 1; while (used.has(st)) st++; if (st >= MAXP) continue;
       NET.seats[pid] = st; NET.names[st] = (pres[pid][0] || {}).name || 'P' + (st + 1); if (!NET.started) startGame(1, 0); seatKnight(st); note(NET.names[st] + ' joined'); }
-    sendStart();
+    sendStart(); if (NET.beat) setTimeout(() => NET && NET.beat && NET.beat(), 300);
   });
   ch.on('broadcast', { event: 'start' }, ({ payload }) => { if (!NET || NET.mode !== 'guest') return; NET.names = payload.names || NET.names; const st = (payload.seats || {})[myPid];
     if (st === undefined) { if (!NET.started && Object.keys(payload.seats || {}).length >= MAXP - 1) { leave(); lobby('home', 'That game is full (4 players).'); } return; }
@@ -2067,7 +2084,7 @@ function sendStart() { if (NET && NET.mode === 'host') NET.ch.send({ type: 'broa
 // a seat's knight: a fresh one at a new stone behind the player furthest along (or the usual spot before anyone has moved)
 function seatKnight(st) { while (KN.length < st) KN.push(Object.assign(mkKnight(KN.length), { on: 0 })); const lead = LIVE().reduce((a, b) => !a || b.x > a.x ? b : a, null), moved = lead && Math.abs(lead.x - lead.T.x) > 60;
   NP = Math.max(NP, st + 1); KN[st] = mkKnight(st, moved ? lead : null); }
-function host() { const A = 'ABCDEFGHJKMNPQRSTUVWXYZ'; let c = ''; for (let i = 0; i < 4; i++) c += A[Math.floor(Math.random() * A.length)]; openRoom(c, 'host'); lobby('hosting'); }
+function host() { const A = 'ABCDEFGHJKMNPQRSTUVWXYZ'; let c = ''; for (let i = 0; i < 4; i++) c += A[Math.floor(Math.random() * A.length)]; openRoom(c, 'host'); lobby('hosting'); advertise(); }
 function join(c) {
   openRoom(c, 'guest'); lobby('joining');
   const n0 = NET; setTimeout(() => { if (NET === n0 && !NET.started) { NET.ch.send({ type: 'broadcast', event: 'hi', payload: {} }); } }, 1500);

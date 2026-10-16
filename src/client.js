@@ -74,7 +74,7 @@ async function fetchLobbies() {
   const s = getSB(); if (!s) return [];
   const { data, error } = await s.rpc('bod_open_lobbies', { p_version: BUILD });
   dir.ready = true;
-  if (error) dir.err = "Couldn't load lobbies. Retrying…"; else { dir.err = ''; dir.list = (data || []).filter(l => l.code !== L.code); }
+  if (error) dir.err = "Couldn't load lobbies. Retrying…"; else { dir.err = ''; dir.list = (data || []).filter(l => l.code !== L.code && l.mode !== 'brawl'); }
   if (homeScreen === 'browse' && !$('menu').classList.contains('hidden')) renderMenu();
   return dir.list;
 }

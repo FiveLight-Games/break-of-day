@@ -14,7 +14,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const A = await mk('A', { width: 844, height: 390 }), Bp = await mk('B', { width: 412, height: 820 }, '#cFire'), C = await mk('C', { width: 412, height: 820 });
   await A.click('#lHost'); await sleep(300); const code = await A.evaluate(() => document.querySelector('.code').textContent);
   const join = async p => { await p.fill('#lCode', code); await p.click('#lJoin'); await sleep(1500); };
-  await join(Bp); await join(C);
+  await join(Bp);
+  // C joins from the open-games list instead of typing the code
+  await sleep(5500); const rows = await C.evaluate(() => [...document.querySelectorAll('#lGames [data-code]')].map(b => b.textContent));
+  console.log('C sees open games:', rows); await C.click('#lGames [data-code]'); await sleep(1500);
   const st = p => p.evaluate(() => document.getElementById('stats').textContent);
   console.log('3 in:', await st(A));
   // everyone walks right a bit, then MAX horde
