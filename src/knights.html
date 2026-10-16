@@ -1697,10 +1697,10 @@ function drawLava(c, kn, t) { const dtv = Math.min(0.1, Math.max(0, t - (kn.lvT0
   c.restore(); }
 // ---------- Warpriest (playable): a big plate-armoured priest in a great helm, a censer in his left hand and a huge spiked flail dragged behind him on a chain ----------
 // the flail head lies where it was last dragged: walking toward it leaves it be; once he's further than the chain allows (hL, normally DRAG) it's dragged after him, gouging the ground
-const WP = { S: KS * 1.3, RUN: 0.82, ATK: 0.7, DRAG: 48.6, HR: 6.3, REEL: 45, MAXC: 156, SLOWK: 0.45, IMP: 0.4,
+const WP = { S: KS * 1.3, RUN: 0.82, ATK: 0.7, DRAG: 65.6, HR: 6.3, REEL: 45, MAXC: 156, SLOWK: 0.45, IMP: 0.4,
   TOUCH: { DMG: 35, DRAG: 70, CD: 0.5 },
   CEN: { T: 0.58, R: 26, ARC: 1.35, COCK: 0.4, DMG: 70, KB: 230 },
-  SW: { PREP: 0.12, GO: 0.45, REC: 0.25, ARC: Math.PI * 4 / 3, RMAX: 48.6 * 1.35, RMIN: 12, DMG: 90, HEAD: 180, SLOW: 2.5, CD: 6 },
+  SW: { PREP: 0.12, GO: 0.45, REC: 0.25, ARC: Math.PI * 4 / 3, RMAX: 65.6, RMIN: 12, DMG: 90, HEAD: 180, SLOW: 2.5, CD: 6 },
   SL: { WIND: 0.2, FLY: 0.4, REC: 0.3, RANGE: 104, WAVE: 32, DMG: 220, WDMG: 60, SLOW: 3, BIND: 3, BINDR: 9, HOLD: 1.75, RET: 0.55, CD: 9, REEL: 0.45, RDMG: 90, PDMG: 110, PKB: 280, LAND: 16, LDMG: 80 },
   HO: { T: 6, CD: 15, R: 20, DPS: 70 },
   PEN: { RISE: 1, T: 12, END: 0.8, Z: 18, ACC: 300, DRAG: 0.55, MAXV: 170, R: 154, SMR0: 12, SMR1: 52, DMG0: 150, DMG1: 650, DROP: 0.14, UP: 0.3, CD: 0.45, BURN: 11, BDPS: 40 } };
@@ -1786,6 +1786,8 @@ function flailRope(dt, t) {
   if (K.hRet >= 0) { flailReturn(dt); return; }
   if (K.hz > 0) K.hz = Math.max(0, K.hz - dt * 50);
   const d = gd(K.x, K.y, K.hx, K.hy);
+  // while he pulls himself along the chain the head stays exactly where it is
+  if (K.ab === 'reel') { K.hL = Math.max(K.hL, d); return; }
   if (K.hOut > 0) { K.hOut -= dt; if (K.hOut <= 0) { K.hRet = 0; K.hrx = K.hx; K.hry = K.hy; K.retN = (K.retN || 0) + 1; } K.hL = WP.MAXC; }
   else K.hL = Math.max(WP.DRAG, Math.min(K.hL, Math.max(d, WP.DRAG)) - WP.REEL * dt);
   if (d > K.hL) { const k = K.hL / d; K.hx = K.x + (K.hx - K.x) * k; K.hy = K.y + (K.hy - K.y) * k; }
@@ -1810,9 +1812,11 @@ const ring2 = (x, y, a, r) => [x + Math.cos(a) * r, y + Math.sin(a) * r / 1.25];
 // ---- Ability 1: the sweep. He hauls the head from wherever it lies round to a spot he picks: up to 120 degrees either way round him from where the head is,
 // within the drag radius. The chain sweeps everything between: enemies further out than the chosen spot are gathered along with it and dumped in a clump
 // where the head lands; the ones closer in are just knocked aside.
+// the sweep reaches as far as the drag range, or out to the head when a slam has left it further away (a mega sweep)
+const sweepR = kn => Math.max(WP.SW.RMAX, kn.hOut > 0 || kn.hRet >= 0 ? gd(kn.x, kn.y, kn.hx, kn.hy) : 0);
 function sweepTarget(kn, v) {
-  const S = WP.SW, px = kn.x + v[0] * S.RMAX, py = kn.y + v[1] * S.RMAX * 0.8, ah = Math.atan2((kn.hy - kn.y) * 1.25, kn.hx - kn.x), rh = Math.max(8, gd(kn.x, kn.y, kn.hx, kn.hy));
-  let a = Math.atan2((py - kn.y) * 1.25, px - kn.x); const r = cl(gd(kn.x, kn.y, px, py), S.RMIN, S.RMAX), da = cl(wrapA(a - ah), -S.ARC, S.ARC); a = ah + da;
+  const S = WP.SW, RM = sweepR(kn), px = kn.x + v[0] * RM, py = kn.y + v[1] * RM * 0.8, ah = Math.atan2((kn.hy - kn.y) * 1.25, kn.hx - kn.x), rh = Math.max(8, gd(kn.x, kn.y, kn.hx, kn.hy));
+  let a = Math.atan2((py - kn.y) * 1.25, px - kn.x); const r = cl(gd(kn.x, kn.y, px, py), S.RMIN, RM), da = cl(wrapA(a - ah), -S.ARC, S.ARC); a = ah + da;
   return { a, r, ah, rh };
 }
 function startSweep(v) {
@@ -1881,7 +1885,7 @@ const canImpale = w => { const U = UK[w.k]; return U.sc <= 1.05 && w.k !== 'warg
 // the slam: a shockwave that slows everyone round it; anyone right under the head takes it full, and the small and medium ones that live are chained to it
 function slamImpact() {
   const S = WP.SL; K.impN = (K.impN || 0) + 1; K.impX = K.hx; K.impY = K.hy; K.impR = S.WAVE;
-  const d0 = gd(K.x, K.y, K.hx, K.hy); if (d0 > WP.DRAG + 2) K.hOut = S.HOLD; else K.hL = Math.max(WP.DRAG, d0);
+  const d0 = gd(K.x, K.y, K.hx, K.hy); if (d0 > WP.DRAG + 2) { K.hOut = S.HOLD; K.hL = WP.MAXC; } else K.hL = Math.max(WP.DRAG, d0);
   if (!AUTH()) return;
   for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k], dx = w.x - K.hx, dy = w.y - K.hy, d = gd(K.hx, K.hy, w.x, w.y); if (d > S.WAVE + U.r) continue; const a = Math.atan2(dy, dx);
     w.atk = -1; w.sl = Math.max(w.sl || 0, S.SLOW);
@@ -2130,8 +2134,8 @@ function drawFlail(c, kn, t) {
   K = k0;
 }
 // aim previews: the sweep's reach (120 degrees either way of the head, within the drag radius), the path and the landing spot; the slam's ring (or the pull, when the head is out)
-function drawSweepPreview(c, t) { const kn = KN[ME]; if (!DASHAIM || !kn || kn.kind !== 'priest' || kn.st === 'kneel') return; const T = sweepTarget(kn, DASHAIM), A = Math.min(Math.PI, WP.SW.ARC), R = WP.SW.RMAX;
-  c.save(); c.beginPath(); c.moveTo(kn.x, kn.y); for (let i = 0; i <= 24; i++) { const p = ring2(kn.x, kn.y, T.ah - A + 2 * A * i / 24, R); c.lineTo(p[0], p[1]); } c.closePath(); c.fillStyle = 'rgba(255,220,120,.08)'; c.fill(); c.strokeStyle = 'rgba(255,240,190,.3)'; c.lineWidth = 0.4; c.stroke();
+function drawSweepPreview(c, t) { const kn = KN[ME]; if (!DASHAIM || !kn || kn.kind !== 'priest' || kn.st === 'kneel') return; const T = sweepTarget(kn, DASHAIM), A = Math.min(Math.PI, WP.SW.ARC), R = sweepR(kn);
+  c.save(); c.beginPath(); if (A >= Math.PI - 1e-3) c.ellipse(kn.x, kn.y, R, R / 1.25, 0, 0, 7); else { c.moveTo(kn.x, kn.y); for (let i = 0; i <= 24; i++) { const p = ring2(kn.x, kn.y, T.ah - A + 2 * A * i / 24, R); c.lineTo(p[0], p[1]); } c.closePath(); } c.fillStyle = 'rgba(255,220,120,.08)'; c.fill(); c.strokeStyle = 'rgba(255,240,190,.3)'; c.lineWidth = 0.4; c.stroke();
   c.strokeStyle = 'rgba(255,240,190,.85)'; c.lineWidth = 0.6; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 10; c.beginPath(); const da = wrapA(T.a - T.ah); for (let i = 0; i <= 20; i++) { const q = i / 20, p = ring2(kn.x, kn.y, T.ah + da * smt(q), lerp(T.rh, T.r, smt(q))); i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); } c.stroke(); c.setLineDash([]);
   const e = ring2(kn.x, kn.y, T.a, T.r), pul = 0.5 + 0.5 * Math.sin(t * 8); c.translate(e[0], e[1]); c.scale(1, 0.5); c.fillStyle = `rgba(255,220,120,${0.25 + 0.1 * pul})`; c.beginPath(); c.arc(0, 0, WP.HR + 2, 0, 7); c.fill(); c.strokeStyle = 'rgba(255,240,190,.9)'; c.lineWidth = 0.6; c.stroke(); c.restore(); }
 // guest-side flags for chained / slowed enemies; host keeps the real timers
@@ -2495,7 +2499,7 @@ const ARROW = { arrowup: 'w', arrowleft: 'a', arrowdown: 's', arrowright: 'd' },
 const isFire = () => KN[ME] && KN[ME].kind === 'fire', isPriest = () => KN[ME] && KN[ME].kind === 'priest';
 addEventListener('keydown', e => { if (e.target && e.target.closest && e.target.closest('input')) return; const k = keyOf(e); if ('wasd '.includes(k) && k) { keys.add(k); keyUpd(); e.preventDefault(); }
   if (k === ' ' && !e.repeat && isPriest() && KN[ME].pPh >= 0) doSmash();
-  if (k === 'shift' && !e.repeat && isPriest()) { const v = mousePos ? (() => { const sc = viewScale() / DPR, kn = KN[ME], [kx, ky] = w2s(kn.x, kn.y); let q = [(mousePos[0] - kx) / (WP.SW.RMAX * sc), (mousePos[1] - ky) / (WP.SW.RMAX * 0.8 * sc)]; const m = Math.hypot(...q); return m > 1 ? q.map(z => z / m) : q; })() : [KN[ME].f * 0.8, 0]; doDash(v); } else if (k === 'shift' && !e.repeat) { if (isFire()) { keys.add('shift'); keyUpd(); } else { const m = keyMv[0] || keyMv[1] ? keyMv : [KN[ME].f, 0]; doDash(m); } }
+  if (k === 'shift' && !e.repeat && isPriest()) { const v = mousePos ? (() => { const sc = viewScale() / DPR, kn = KN[ME], [kx, ky] = w2s(kn.x, kn.y); const RM = sweepR(kn); let q = [(mousePos[0] - kx) / (RM * sc), (mousePos[1] - ky) / (RM * 0.8 * sc)]; const m = Math.hypot(...q); return m > 1 ? q.map(z => z / m) : q; })() : [KN[ME].f * 0.8, 0]; doDash(v); } else if (k === 'shift' && !e.repeat) { if (isFire()) { keys.add('shift'); keyUpd(); } else { const m = keyMv[0] || keyMv[1] ? keyMv : [KN[ME].f, 0]; doDash(m); } }
   if (k === 'q') { if (!e.repeat) keys.add('q'); if (isFire()) COAIM = kbCoal(); else LEAPAIM = kbLeap(); }
   if (k === 'e' && !e.repeat && (isFire() || isPriest())) { const IN = KN[ME].in; IN.lvN = (IN.lvN || 0) + 1; markIn(); }
   if (k === 'r' && !e.repeat) doUlt(); });
