@@ -16,7 +16,7 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 .stick small{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:11px;color:#fffa}
 #spin{position:fixed;right:22px;top:calc(50% - 39px);width:78px;height:78px;border-radius:50%;padding:0;font:800 13px system-ui;background:#f0c41933;border:2px solid #f0c419;color:#f0c419;overflow:hidden}
 #bst{left:calc(50% - 48px);right:auto;bottom:22px;top:auto;width:96px;height:96px;overflow:hidden;border-color:#f0a04a88;background:#f0a04a14}#bst .knob{width:32px;height:32px;margin:-16px 0 0 -16px;background:#f0a04a66;border-color:#f0a04a}#bst small{bottom:6px;color:#f0a04acc}#bst i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0;pointer-events:none}
-body.fire #dash{left:44px;right:auto}body.fire #aoe{left:auto;right:calc(10vw + 11px);top:auto;bottom:172px;width:96px;height:96px;background:#ff6a2a14;border-color:#ff6a2a88}body.fire #aoe .dot{background:#ff6a2a88;border-color:#ff8a3a}body.fire #aoe small{color:#ff8a3acc}
+body.fire #dash{left:calc(50% - 48px);right:auto;top:auto;bottom:22px;width:96px;height:96px}body.fire #aoe{left:auto;right:calc(10vw + 11px);top:auto;bottom:172px;width:96px;height:96px;background:#ff6a2a14;border-color:#ff6a2a88}body.fire #aoe .dot{background:#ff6a2a88;border-color:#ff8a3a}body.fire #aoe small{color:#ff8a3acc}
 #spin i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0}
 #spin span{position:relative}
 #ult{position:fixed;right:29px;top:calc(50% - 112px);width:64px;height:64px;border-radius:50%;padding:0;font:800 13px system-ui;background:#2a2416cc;border:2px solid #8a7a50;color:#cbb98a;overflow:hidden}
@@ -46,7 +46,7 @@ body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.ed
 #aoe .dot{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:#f0c41980;border:2px solid #f0c419}
 #aoe i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0}
 #aoe small{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;color:#f0c419c0}
-@media (orientation:portrait){#dash{right:calc(8vw + 6.5px);bottom:140px;width:84px;height:84px}#aoe{left:auto;right:calc(8vw + 118px);bottom:calc(150px - 8vw);width:84px;height:84px}#spin{bottom:276px !important;top:auto !important}#ult{right:12px;top:auto;bottom:356px;width:64px;height:64px}#bst{left:calc(50% - 40px);right:auto;top:auto;bottom:27px;width:80px;height:80px}body.fire #dash{left:calc(50% - 12px);right:auto;top:auto;bottom:126px;width:84px;height:84px}body.fire #aoe{left:auto;right:25px;top:auto;bottom:154px;width:76px;height:76px}}
+@media (orientation:portrait){#dash{right:calc(8vw + 6.5px);bottom:140px;width:84px;height:84px}#aoe{left:auto;right:calc(8vw + 118px);bottom:calc(150px - 8vw);width:84px;height:84px}#spin{bottom:276px !important;top:auto !important}#ult{right:12px;top:auto;bottom:356px;width:64px;height:64px}#bst{left:calc(50% - 40px);right:auto;top:auto;bottom:27px;width:80px;height:80px}body.fire #dash{left:calc(50% - 40px);right:auto;top:auto;bottom:27px;width:80px;height:80px}body.fire #aoe{left:auto;right:25px;top:auto;bottom:154px;width:76px;height:76px}}
 .pnl{position:fixed;left:8px;top:54px;z-index:5;background:#14120fee;border:1px solid #3a332a;border-radius:12px;padding:10px;display:none;flex-direction:column;gap:8px;max-width:min(380px,calc(100vw - 16px));max-height:calc(100vh - 70px);overflow:auto}
 .pnl.open{display:flex}.pnl .hrow{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pnl b,.pnl span{font-size:12px;color:#a59c88;margin-right:4px}
 .pnl button{padding:6px 10px;font-size:12px}.pnl button.on{border-color:#f0c419;color:#f0c419}
@@ -1862,6 +1862,8 @@ function charUI(fire) { CHAR_UI = fire; document.getElementById('help').textCont
 let LAY = {}; try { LAY = JSON.parse(localStorage.getItem('kn_layout') || '{}') || {}; } catch (e) { }
 // plume and coals swapped places: carry a Firebreather layout saved before that over, so his saved spots swap too
 if (LAY.fire && !LAY.fire.sw1) { for (const o of ['landscape', 'portrait']) { const L = LAY.fire[o]; if (L) { const d = L.dash; L.dash = L.leap; L.leap = d; if (!L.dash) delete L.dash; if (!L.leap) delete L.leap; } } LAY.fire.sw1 = 1; try { localStorage.setItem('kn_layout', JSON.stringify(LAY)); } catch (e) { } }
+// plume moved to the old breath-stick spot (bottom centre): drop his saved plume spot once so it lands there
+if (LAY.fire && !LAY.fire.pl2) { for (const o of ['landscape', 'portrait']) if (LAY.fire[o]) delete LAY.fire[o].dash; LAY.fire.pl2 = 1; try { localStorage.setItem('kn_layout', JSON.stringify(LAY)); } catch (e) { } }
 const orient = () => innerWidth > innerHeight ? 'landscape' : 'portrait';
 const layNow = () => (LAY[layCh()] || {})[orient()];
 const LPROPS = ['left', 'top', 'right', 'bottom', 'width', 'height'];
