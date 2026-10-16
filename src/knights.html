@@ -1348,6 +1348,8 @@ function drawVolcFloor(c, t) {
     for (const [x, y, hh, w, ph] of fl) { const hf = hh * (0.75 + 0.25 * Math.sin(t * 11 + ph)) * (0.6 + 0.4 * life), sway = Math.sin(t * 7 + ph) * 0.9; const g = c.createLinearGradient(0, y, 0, y - hf); g.addColorStop(0, 'rgba(255,90,20,.9)'); g.addColorStop(0.5, 'rgba(255,170,50,.75)'); g.addColorStop(1, 'rgba(255,240,160,0)'); c.fillStyle = g;
       c.beginPath(); c.moveTo(x - w, y); c.quadraticCurveTo(x - w * 0.9, y - hf * 0.55, x + sway, y - hf); c.quadraticCurveTo(x + w * 0.9, y - hf * 0.55, x + w, y); c.closePath(); c.fill(); }
     c.restore(); }
+  // the reach of his shots: a faint dashed ring round the crater while he's on the volcano (taps beyond it land on its edge)
+  for (const kn of KN) if (kn.kind === 'fire' && (kn.vPh === 1 || (kn.vPh === 0 && kn.vT >= V.RISE - 1))) { c.save(); c.setLineDash([6, 5]); c.lineDashOffset = -t * 8; c.strokeStyle = 'rgba(255,170,90,.45)'; c.lineWidth = 1.2; c.beginPath(); c.arc(kn.vcx, kn.vcy, V.MAXD, 0, 7); c.stroke(); c.restore(); }
   for (const kn of KN) if (kn.kind === 'fire' && kn.vBel >= 0) volcMark(c, kn.vTX, kn.vTY, t, 0);
   for (const f of FX) if (f.k === 'vrock') { const k = Math.min(1, f.t / V.FLY); volcMark(c, f.x1, f.y1, t, k); const [gx, gy] = vrockPos(f, k); c.fillStyle = `rgba(0,0,0,${0.15 + 0.3 * k})`; c.beginPath(); c.ellipse(gx, gy, 2 + 4 * k, (2 + 4 * k) * 0.45, 0, 0, 7); c.fill(); }
 }
@@ -1781,7 +1783,11 @@ function paintGround() { ground.width = W * 3; ground.height = H * 3; const g = 
   grassT.width = ground.width; grassT.height = ground.height; grassT.getContext('2d').drawImage(ground, 0, 0); g.fillStyle = '#b08a5a'; g.fillRect(0, LANE_Y - 20, W, 40); g.fillStyle = '#3e2a18'; g.fillRect(0, LANE_Y - 21, W, 1.5); g.fillRect(0, LANE_Y + 20, W, 1.5); g.fillStyle = '#9a7748'; for (let i = 0; i < 70; i++) { g.beginPath(); g.arc(Math.random() * W, LANE_Y + rr(-17, 17), rr(0.6, 1.6), 0, 7); g.fill(); } }
 const ZMIN = 0.45 / 1.3; let ZOOM = ZMIN; // starts fully zoomed out
 let ultZoom = 1; const viewScale = () => Math.min(cv.height / 85, cv.width / 75) * ZOOM * (window.__zoom || 1) * ultZoom;
-function resize() { cv.width = Math.round(innerWidth * DPR); cv.height = Math.round(innerHeight * DPR); }
+// size the canvas to its real on-screen box (on iPhones 100vh is taller than innerHeight, which stretched the picture and threw taps off)
+function resize() { const r = cv.getBoundingClientRect(); cv.width = Math.round((r.width || innerWidth) * DPR); cv.height = Math.round((r.height || innerHeight) * DPR); }
+// screen (CSS px) <-> world, through the canvas's actual box
+const w2s = (wx, wy) => { const r = cv.getBoundingClientRect(), sc = viewScale() * r.width / cv.width; return [r.left + r.width / 2 + (wx - camX) * sc, r.top + r.height / 2 + (wy - camY) * sc]; };
+const s2w = (sx, sy) => { const r = cv.getBoundingClientRect(), sc = viewScale() * r.width / cv.width; return [camX + (sx - r.left - r.width / 2) / sc, camY + (sy - r.top - r.height / 2) / sc]; };
 addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 250));
 let last = performance.now(), t = 0;
 function draw() {
@@ -1942,16 +1948,16 @@ function doUlt() { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.u
 ub.addEventListener('pointerdown', e => { e.preventDefault(); doUlt(); });
 const sb = document.getElementById('spin'), VTAP = document.getElementById('vtap');
 // on the volcano a tap anywhere picks where the next rock lands
-cv.addEventListener('pointerdown', e => { const kn = KN[ME]; if (!kn || kn.kind !== 'fire' || !(kn.vPh === 1 || (kn.vPh === 0 && kn.vT >= V.RISE - 1))) return; const sc = viewScale() / DPR, wx = camX + (e.clientX - innerWidth / 2) / sc, wy = camY + (e.clientY - innerHeight / 2) / sc; const IN = kn.in; IN.vtN = (IN.vtN || 0) + 1; IN.vtP = [Math.round(wx * 10) / 10, Math.round(wy * 10) / 10]; markIn(); });
+cv.addEventListener('pointerdown', e => { const kn = KN[ME]; if (!kn || kn.kind !== 'fire' || !(kn.vPh === 1 || (kn.vPh === 0 && kn.vT >= V.RISE - 1))) return; const [wx, wy] = s2w(e.clientX, e.clientY); const IN = kn.in; IN.vtN = (IN.vtN || 0) + 1; IN.vtP = [Math.round(wx * 10) / 10, Math.round(wy * 10) / 10]; markIn(); });
 sb.addEventListener('pointerdown', e => { if (isFire()) { const IN = KN[ME].in; IN.lvN = (IN.lvN || 0) + 1; markIn(); } else { btnSpin = true; syncIn(); } e.preventDefault(); });
 const sbUp = () => { btnSpin = false; syncIn(); }; sb.addEventListener('pointerup', sbUp); sb.addEventListener('pointerleave', sbUp); sb.addEventListener('pointercancel', sbUp);
 // keyboard + mouse
 const keys = new Set();
 const keyUpd = () => { keyMv = [(keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0), (keys.has('s') ? 1 : 0) - (keys.has('w') ? 1 : 0)]; keySpin = keys.has(' ') && !isFire(); syncIn(); };
 // the cursor relative to my character, in screen pixels
-const cursorVec = () => { if (!mousePos || !KN[ME]) return null; const sc = viewScale() / DPR, kn = KN[ME], kx = innerWidth / 2 + (kn.x - camX) * sc, ky = innerHeight / 2 + (kn.y - 6 - camY) * sc; return [mousePos[0] - kx, mousePos[1] - ky]; };
+const cursorVec = () => { if (!mousePos || !KN[ME]) return null; const kn = KN[ME], [kx, ky] = w2s(kn.x, kn.y - 6); return [mousePos[0] - kx, mousePos[1] - ky]; };
 const kbCoal = () => { const v = cursorVec(); if (!v) return [KN[ME].f, 0]; const sc = viewScale() / DPR, L = Math.hypot(v[0], v[1]) / sc, m = cl((L - CO.L0) / CO.L1, 0.25, 1), d = Math.hypot(v[0], v[1]) || 1; return [v[0] / d * m, v[1] / d * m]; };
-const kbLeap = () => { if (!mousePos) return [KN[ME].f, 0]; const sc = viewScale() / DPR, kn = KN[ME], kx = innerWidth / 2 + (kn.x - camX) * sc, ky = innerHeight / 2 + (kn.y - 6 - camY) * sc; let v = [(mousePos[0] - kx) / (LEAP_R * sc), (mousePos[1] - ky) / (LEAP_R * 0.8 * sc)]; const d = Math.hypot(...v); if (d > 1) v = v.map(q => q / d); return v; };
+const kbLeap = () => { if (!mousePos) return [KN[ME].f, 0]; const sc = viewScale() / DPR, kn = KN[ME], [kx, ky] = w2s(kn.x, kn.y - 6); let v = [(mousePos[0] - kx) / (LEAP_R * sc), (mousePos[1] - ky) / (LEAP_R * 0.8 * sc)]; const d = Math.hypot(...v); if (d > 1) v = v.map(q => q / d); return v; };
 const ARROW = { arrowup: 'w', arrowleft: 'a', arrowdown: 's', arrowright: 'd' }, keyOf = e => { const k = e.key.toLowerCase(); return ARROW[k] || (k === 'spacebar' ? ' ' : k); };
 const isFire = () => KN[ME] && KN[ME].kind === 'fire';
 addEventListener('keydown', e => { if (e.target && e.target.closest && e.target.closest('input')) return; const k = keyOf(e); if ('wasd '.includes(k) && k) { keys.add(k); keyUpd(); e.preventDefault(); }
@@ -1966,7 +1972,7 @@ addEventListener('blur', () => { keys.clear(); keyUpd(); });
 // a clicked button keeps keyboard focus, and Space would then press it again: let go of focus after every click
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button'); if (b) b.blur(); });
 let mouseDown = false, mousePos = null;
-const mouseAimUpd = () => { if (!mouseDown || !mousePos) { mouseAim = null; return syncIn(); } const sc = viewScale() / DPR, kx = innerWidth / 2 + (K.x - camX) * sc, ky = innerHeight / 2 + (K.y - 6 - camY) * sc; mouseAim = [mousePos[0] - kx, mousePos[1] - ky]; syncIn(); };
+const mouseAimUpd = () => { if (!mouseDown || !mousePos) { mouseAim = null; return syncIn(); } const [kx, ky] = w2s(K.x, K.y - 6); mouseAim = [mousePos[0] - kx, mousePos[1] - ky]; syncIn(); };
 cv.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') return; mouseDown = true; mousePos = [e.clientX, e.clientY]; mouseAimUpd(); });
 addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') return; mousePos = [e.clientX, e.clientY]; if (mouseDown) mouseAimUpd(); });
 addEventListener('pointerup', e => { if (e.pointerType !== 'mouse') return; mouseDown = false; mouseAimUpd(); });
@@ -2140,7 +2146,7 @@ async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.te
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
 
 window.__KN = () => KN; window.__pose = t2 => pose(t2); window.__W = () => walkers; window.__spinSw = () => spinSwept(); window.__SPT = SPIN_T; window.__SPO = SPIN_O; window.__PRT = PRE_T;
-window.__still = 0; window.__stop = () => { window.__still = 1; };
+window.__w2s = (a, b) => w2s(a, b); window.__cam = () => [camX, camY, viewScale(), cv.width, cv.height, cv.getBoundingClientRect().height, shake]; window.__still = 0; window.__stop = () => { window.__still = 1; };
 window.__spawn = (x0, n, sp) => { for (let i = 0; i < n; i++) spawnWalker(x0 - i * 4, sp); };
 })();
 </script></body></html>
