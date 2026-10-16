@@ -37,5 +37,6 @@
   {"v": "0.36", "build": "e02d8c", "commit": "79dcb5b", "date": "2026-10-16", "notes": "Knight Brawl: endless path with horde spawner (A few / Dozens / Hundreds, pick enemy mix), 8 new enemy types incl. exploding sapper, bigger + 40% stronger basic swings, smoother dash/leap/spin chaining, dash runs straight into movement."},
   {"v": "0.37", "build": "091832", "commit": "9900c87", "date": "2026-10-16", "notes": "Knight Brawl: health bars only on damaged enemies."},
   {"v": "0.38", "build": "5e37bb", "commit": "8b24aa5", "date": "2026-10-16", "notes": "Knight Brawl: sound effects (swings, spin, dash, leap slam, sword pull, hits, kills, sapper blasts), looping music, Sound/Music toggles, Spawn now +50."},
-  {"v": "0.39", "build": "232bf0", "commit": "", "date": "2026-10-16", "notes": "Knight Brawl: music starts when the first knight pulls his sword."}
+  {"v": "0.39", "build": "232bf0", "commit": "c9c3ce6", "date": "2026-10-16", "notes": "Knight Brawl: music starts when the first knight pulls his sword."},
+  {"v": "0.40", "build": "ab8a3b", "commit": "", "date": "2026-10-16", "notes": "Knight Brawl: music volume slider, leap button moved right next to swing, swing/dash closer to the edge, no clink on sword pull or dash."}
 ]
