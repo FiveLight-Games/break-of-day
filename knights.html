@@ -794,7 +794,10 @@ function walkerLive(c, w, t, fx, u, white) {
 }
 const PB = { outer: '#d9431e', mid: '#f2891c', core: '#ffd23f', white: 0, blue: 0 };
 // enemies on fire: a couple of flames licking up the body
-function burnFlames(c, w, t) { const sc = UK[w.k].sc; for (let i = 0; i < 2; i++) FBX.flame(c, w.x + (i ? 1.4 : -1.2) * sc, w.y - (i ? 3 : 5.5) * sc, (i ? 4.5 : 6) * sc, (i ? 1.3 : 1.7) * sc, t, PB, w.id * 3 + i, 0, true); }
+// burning enemies: two cheap two-tongue flames each (hundreds can be alight at once, so no gradients and few paths)
+function burnFlames(c, w, t) { const sc = UK[w.k].sc;
+  for (let i = 0; i < 2; i++) { const fx = w.x + (i ? 1.4 : -1.2) * sc, fy = w.y - (i ? 3 : 5.5) * sc, h = (i ? 4.5 : 6) * sc * (0.85 + 0.15 * Math.sin(t * 11 + w.id + i * 2)), ww = (i ? 1.3 : 1.7) * sc, sw = Math.sin(t * 9 + w.id * 1.7 + i) * ww * 0.5;
+    for (const [hk, wk, col] of [[1, 1, PB.outer], [0.55, 0.5, PB.core]]) { const hh = h * hk, w2 = ww * wk; c.fillStyle = col; c.beginPath(); c.moveTo(fx - w2, fy); c.quadraticCurveTo(fx - w2, fy - hh * 0.6, fx + sw * hk, fy - hh); c.quadraticCurveTo(fx + w2, fy - hh * 0.6, fx + w2, fy); c.closePath(); c.fill(); } } }
 function walker(c, w, t) {
   if (w.bd > 0) { walkerBody(c, w, t); burnFlames(c, w, t); return; }
   walkerBody(c, w, t);
@@ -1231,7 +1234,7 @@ function log(c, x1, y1, x2, y2, w) { c.strokeStyle = '#5b3a1f'; c.lineWidth = w;
 function drawBreath(c, T, t) {
   if (!T.fp || !T.fp.length) return;
   // smoke trails off the far end
-  for (const p of T.fp) { const u = p.life / p.max; if (u < 0.85) continue; const k = Math.min(1, (u - 0.85) / 0.75); c.fillStyle = `rgba(55,45,40,${0.13 * (1 - k)})`; c.beginPath(); c.arc(p.x, p.y - k * 4, (2.5 + k * 3) * SC, 0, 7); c.fill(); }
+  c.save(); c.fillStyle = 'rgb(55,45,40)'; let si = 0; for (const p of T.fp) { const u = p.life / p.max; if (u < 0.85 || (si++ & 1)) continue; const k = Math.min(1, (u - 0.85) / 0.75); c.globalAlpha = 0.2 * (1 - k); c.beginPath(); c.arc(p.x, p.y - k * 4, (2.8 + k * 3.3) * SC, 0, 7); c.fill(); } c.restore();
   // burning tongues: stretched along their flight, hottest colour at the torch tips
   const list = T.fp.filter(p => p.life < p.max).sort((a, b) => b.life / b.max - a.life / a.max);
   for (const p of list) {
@@ -1352,11 +1355,11 @@ function drawVolc(c, kn, t) { const h = volcH(kn); if (h < 0.3) return;
   c.strokeStyle = '#4a3026'; c.lineWidth = 1.3; c.beginPath(); c.ellipse(X, top, LL, ly, 0, 0, Math.PI); c.stroke();
   c.globalCompositeOperation = 'lighter'; const gr = 10 + 10 * bel + Math.sin(t * 3) * 0.8, cg = c.createRadialGradient(X, top, 0, X, top, gr); cg.addColorStop(0, `rgba(255,170,60,${0.45 + 0.4 * bel})`); cg.addColorStop(1, 'rgba(255,90,20,0)'); c.fillStyle = cg; c.beginPath(); c.arc(X, top, gr, 0, 7); c.fill(); c.globalCompositeOperation = 'source-over';
   // a steady smoke plume from the crater
-  for (let i = 0; i < 9; i++) { const ph = (t * 0.3 + i / 9) % 1, px = X + Math.sin(i * 2.3 + t * 0.5) * 2.5 * ph + ph * 9, py = top - 3 - ph * 42, r = 2 + ph * 8; c.fillStyle = `rgba(68,58,56,${0.32 * (1 - ph) * Math.min(1, ph * 5) * hk})`; c.beginPath(); c.arc(px, py, r, 0, 7); c.fill(); }
+  c.fillStyle = 'rgb(68,58,56)'; for (let i = 0; i < 7; i++) { const ph = (t * 0.3 + i / 7) % 1, px = X + Math.sin(i * 2.3 + t * 0.5) * 2.5 * ph + ph * 9, py = top - 3 - ph * 42, r = 2.2 + ph * 9; c.globalAlpha = 0.36 * (1 - ph) * Math.min(1, ph * 5) * hk; c.beginPath(); c.arc(px, py, r, 0, 7); c.fill(); } c.globalAlpha = 1;
   c.restore(); }
 function drawVolcAir(c, t) {
   for (const f of FX) {
-    if (f.k === 'vpuff') { const k = f.t / f.max, B = f.big ? 1.6 : 1; for (let i = 0; i < 10; i++) { const a = i / 10 * 6.28 + (f.x % 3), r = (3 + 14 * sm(Math.min(1, k * 1.6))) * B, px = f.x + Math.cos(a) * r * 0.7, py = f.y + Math.sin(a) * r * 0.35 - k * 26 * B; c.fillStyle = `rgba(52,44,42,${0.45 * (1 - k) ** 1.2})`; c.beginPath(); c.arc(px, py, (3.5 + k * 7) * B, 0, 7); c.fill(); } }
+    if (f.k === 'vpuff') { const k = f.t / f.max, B = f.big ? 1.6 : 1; c.fillStyle = 'rgb(52,44,42)'; c.globalAlpha = 0.45 * (1 - k) ** 1.2; for (let i = 0; i < 7; i++) { const a = i / 7 * 6.28 + (f.x % 3), r = (3 + 14 * sm(Math.min(1, k * 1.6))) * B, px = f.x + Math.cos(a) * r * 0.7, py = f.y + Math.sin(a) * r * 0.35 - k * 26 * B; c.beginPath(); c.arc(px, py, (4 + k * 7.5) * B, 0, 7); c.fill(); } c.globalAlpha = 1; }
     else if (f.k === 'vrock') { const k = Math.min(1, f.t / V.FLY), [gx, gy, zz] = vrockPos(f, k), px = gx, py = gy - zz;
       c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
       for (let i = 1; i < f.tr.length; i++) { const u = i / f.tr.length; c.strokeStyle = `rgba(255,${(90 + 130 * u) | 0},30,${0.6 * u})`; c.lineWidth = 1 + 6 * u; c.beginPath(); c.moveTo(...f.tr[i - 1]); c.lineTo(...f.tr[i]); c.stroke(); }
@@ -1605,7 +1608,7 @@ const burnFx = w => { EV.push([w.id, 5, 0, K.i, r1(w.x), r1(w.y)]); burnKill(w);
 function burnKill(w) {
   w.dead = 1; killSnd(w); const U = UK[w.k] || UK.foot, n = 3 + Math.round(U.sc * 2);
   for (let i = 0; i < n; i++) parts.push({ kind: 'ash', uk: w.k, sc: U.sc * rr(0.7, 1.2), x: w.x + rr(-2, 2), y: w.y + rr(-1, 1), z: rr(2, 8) * U.sc, vx: rr(-14, 14), vy: rr(-6, 6), vz: rr(8, 22), rot: rr(0, 6), spin: rr(-8, 8), t: 0, rest: 0, side: 1 });
-  for (let i = 0; i < 8; i++) dust.push({ x: w.x + rr(-2, 2), y: w.y - rr(2, 8) * U.sc, vx: rr(-4, 4), vy: -rr(6, 14), r: rr(1, 2), t: 0, max: rr(0.6, 1.2) });
+  for (let i = 0; i < 4; i++) dust.push({ x: w.x + rr(-2, 2), y: w.y - rr(2, 8) * U.sc, vx: rr(-4, 4), vy: -rr(6, 14), r: rr(1.2, 2.4), t: 0, max: rr(0.6, 1.2) });
   for (let i = 0; i < 6; i++) sparks.push({ x: w.x + rr(-3, 3), y: w.y - rr(2, 8), vx: rr(-10, 10), vy: -rr(10, 30), t: 0, max: rr(0.4, 0.9) });
   splats.push({ x: w.x, y: w.y, r: 2.4 * U.sc, t: 0, ash: 1 });
 }
@@ -1816,8 +1819,8 @@ function worldStep(dt, t) {
   if (splats.length > 900) splats.splice(0, splats.length - 900);
   for (const f of FX) f.t += dt;
   FX = FX.filter(f => f.t < f.max); shake = Math.max(0, shake - dt);
-  for (const p of dust) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 5; p.vy *= 1 - dt * 5; } dust = dust.filter(p => p.t < p.max);
-  for (const p of sparks) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 30 * dt; } sparks = sparks.filter(p => p.t < p.max);
+  for (const p of dust) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 5; p.vy *= 1 - dt * 5; } dust = dust.filter(p => p.t < p.max); if (dust.length > 260) dust.splice(0, dust.length - 260); // smoke/dust budget
+  for (const p of sparks) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 30 * dt; } sparks = sparks.filter(p => p.t < p.max); if (sparks.length > 320) sparks.splice(0, sparks.length - 320);
   walkers = walkers.filter(w => !w.dead);
 }
 let ground = document.createElement('canvas');
@@ -1857,9 +1860,10 @@ function draw() {
   }
   K = KN[ME];
   // stone blade covered by the boulder's front: redraw the boulder lip over the buried part
-  for (const b of blood) { x.fillStyle = '#9c1c12'; x.beginPath(); x.arc(b.x, b.y - b.z, 0.38, 0, 7); x.fill(); }
-  for (const p of dust) { const k = p.t / p.max; x.fillStyle = `rgba(150,140,120,${0.5 * (1 - k)})`; x.beginPath(); x.arc(p.x, p.y - k * 2.5, p.r * (1 + k * 1.6), 0, 7); x.fill(); }
-  x.save(); x.globalCompositeOperation = 'lighter'; for (const p of sparks) { const k = p.t / p.max; x.fillStyle = `rgba(255,230,150,${1 - k})`; x.beginPath(); x.arc(p.x, p.y, 0.45, 0, 7); x.fill(); } x.restore();
+  // blood droplets are tiny: squares are far cheaper than round paths when a mass kill throws hundreds
+  x.fillStyle = '#9c1c12'; for (const b of blood) { if (b.x < VL || b.x > VR) continue; x.fillRect(b.x - 0.38, b.y - b.z - 0.38, 0.76, 0.76); }
+  x.fillStyle = 'rgb(150,140,120)'; for (const p of dust) { const k = p.t / p.max; x.globalAlpha = 0.5 * (1 - k); x.beginPath(); x.arc(p.x, p.y - k * 2.5, p.r * (1 + k * 1.6), 0, 7); x.fill(); } x.globalAlpha = 1;
+  x.save(); x.globalCompositeOperation = 'lighter'; x.fillStyle = 'rgb(255,230,150)'; for (const p of sparks) { x.globalAlpha = 1 - p.t / p.max; x.fillRect(p.x - 0.4, p.y - 0.4, 0.8, 0.8); } x.restore();
   for (const kn of KN) if (kn.ab === 'dash' && kn.slice && kn.slice.length > 1) drawSlice(x, kn.slice, 1);
   for (const f of FX) if (f.k === 'slice') drawSlice(x, f.pts, 1 - f.t / f.max);
   for (const f of FX) if (f.k === 'lick') drawLick(x, f, t);
@@ -2218,13 +2222,13 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR === 'fire'); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '49fc76';
+const KBUILD = 'ee7c3e';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
 
 window.__KN = () => KN; window.__pose = t2 => pose(t2); window.__W = () => walkers; window.__spinSw = () => spinSwept(); window.__SPT = SPIN_T; window.__SPO = SPIN_O; window.__PRT = PRE_T;
-window.__leave = () => leave(); window.__w2s = (a, b) => w2s(a, b); window.__cam = () => [camX, camY, viewScale(), cv.width, cv.height, cv.getBoundingClientRect().height, shake]; window.__still = 0; window.__stop = () => { window.__still = 1; };
+window.__arr = () => ({ blood: blood.length, dust: dust.length, sparks: sparks.length, parts: parts.length, splats: splats.length, fx: FX.length, fp: KN.reduce((a, k) => a + (k.fp ? k.fp.length : 0), 0), burning: walkers.filter(w => w.bd > 0).length }); window.__leave = () => leave(); window.__w2s = (a, b) => w2s(a, b); window.__cam = () => [camX, camY, viewScale(), cv.width, cv.height, cv.getBoundingClientRect().height, shake]; window.__still = 0; window.__stop = () => { window.__still = 1; };
 window.__spawn = (x0, n, sp) => { for (let i = 0; i < n; i++) spawnWalker(x0 - i * 4, sp); };
 })();
 </script></body></html>
