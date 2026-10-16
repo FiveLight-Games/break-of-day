@@ -25,6 +25,16 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 #lobbyUI .code{font:800 40px system-ui;letter-spacing:10px;color:#efe7d6}#lobbyUI .err{color:#ff7b6b}
 #lobbyUI a{color:#a59c88;font-size:12px}
 #note{position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#000b;border-radius:10px;padding:6px 12px;font-size:12px;display:none;pointer-events:none}
+#menuBtn{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;text-decoration:none}
+#dpad{position:fixed;right:calc(20vw + 7px);bottom:172px;display:grid;grid-template-columns:repeat(3,40px);grid-template-rows:repeat(3,40px);gap:3px;touch-action:none}
+#dpad button{padding:0;font:800 18px system-ui;border-radius:9px;background:#211d18c0}#dpad span{display:flex;align-items:center;justify-content:center;font:800 10px system-ui;color:#fff8}
+#dpad.cd button{opacity:.35}
+#aoe{position:fixed;left:44px;bottom:172px;width:96px;height:96px;border-radius:50%;background:#f0c41914;border:2px solid #f0c41980;touch-action:none;overflow:hidden}
+#aoe .dot{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:#f0c41980;border:2px solid #f0c419}
+#aoe i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0}
+#aoe small{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;color:#f0c419c0}
+#spawnUI .kinds{flex-direction:row !important}
+@media (orientation:portrait){#dpad{right:calc(16vw - 8px);bottom:140px}#aoe{left:27px;bottom:140px;width:84px;height:84px}#spin{bottom:276px !important}#spawnUI .kinds{flex-direction:column !important}}
 #spawnUI{position:fixed;left:8px;top:54px;display:flex;flex-direction:column;gap:6px;z-index:2}#spawnUI .kinds,#spawnUI .counts{display:flex;flex-direction:column;gap:4px}#spawnUI .counts{flex-direction:row}#spawnUI button{padding:6px 9px;font-size:12px}#spawnUI .on{border-color:#f0c419;color:#f0c419}
 @media (orientation:portrait){#spawnUI{top:92px}}
 #help{position:fixed;left:50%;transform:translateX(-50%);bottom:6px;font-size:11px;color:#fff9;text-align:center;pointer-events:none}
@@ -33,11 +43,13 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 <div id="lobbyUI"><div class="card" id="lcard"></div></div>
 <div id="note"></div>
 <div id="spawnUI"><div class="kinds"><button data-k="foot" class="on">Footman</button><button data-k="zombie">Zombie</button><button data-k="ogre">Ogre</button><button data-k="warg">Warg rider</button></div><div class="counts"><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button></div></div>
-<div id="top"><button id="clear">Clear</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><div id="stats"></div></div>
+<div id="top"><a id="menuBtn" href="./">&#8962; Menu</a><button id="clear">Clear</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><div id="stats"></div></div>
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
 <div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
 <button id="spin"><i></i><span>SPIN</span></button>
-<div id="help">WASD move · hold mouse to swing toward cursor · Space spin</div>
+<div id="dpad"><button data-d="5">&#8598;</button><button data-d="6">&#8593;</button><button data-d="7">&#8599;</button><button data-d="4">&#8592;</button><span>DASH</span><button data-d="0">&#8594;</button><button data-d="3">&#8601;</button><button data-d="2">&#8595;</button><button data-d="1">&#8600;</button></div>
+<div id="aoe"><i></i><div class="dot"></div><small>leap</small></div>
+<div id="help">WASD move · hold mouse to swing toward cursor · Space spin · Shift dash · hold Q to aim the leap at the cursor, release to jump · wheel zoom</div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 (() => {
@@ -128,7 +140,7 @@ const KCOLS = ['#3a7bd5', '#d64541'];
 let KN = [], ME = 0, NP = 1, wid = 1;
 function mkKnight(i) {
   const T = { x: W / 2 + (NP > 1 ? (i ? 36 : -36) : 0), y: LANE_Y - 45 };
-  return { i, col: KCOLS[i], in: { mv: [0, 0], aim: null, spin: false }, kills: 0, hits: 0, T, x: T.x + HOME.x, y: T.y + HOME.y, f: 1, st: 'kneel', u: 0, kn: 1, wk: 0, wp: 0, hold: 0, swing: -1, swN: 0, spinCd: 0, spin: -1, glow: 0, slotGlow: 0, look: 0, lookT: 3 + i, post: 0, spd: 0, gp: 0 };
+  return { i, col: KCOLS[i], dashSeen: 0, leapSeen: 0, in: { mv: [0, 0], aim: null, spin: false, dashN: 0, leapN: 0 }, kills: 0, hits: 0, T, x: T.x + HOME.x, y: T.y + HOME.y, f: 1, st: 'kneel', u: 0, kn: 1, wk: 0, wp: 0, hold: 0, swing: -1, swN: 0, spinCd: 0, spin: -1, glow: 0, slotGlow: 0, look: 0, lookT: 3 + i, post: 0, spd: 0, gp: 0 };
 }
 function setup() {
   KN = []; for (let i = 0; i < NP; i++) KN.push(mkKnight(i)); K = KN[ME];
@@ -149,6 +161,131 @@ const G_ = [0, 0.5, 0.08, 0, 1.6, 3.0, -1.1, 0.8]; // [u, crouch, lean, twist, h
 const SW_A = [G_, [0.26, 1.0, -0.22, -0.95, -1.4, -2.6, -2.75, 0.1], [0.34, 1.2, 0.1, 0.0, 1.6, -4.2, -1.2, 0.9], [0.41, 1.7, 0.5, 0.9, 3.4, 2.6, 0.45, 1.7], [0.56, 1.8, 0.6, 1.05, 1.4, 4.6, 0.3, 1.8], [1, ...G_.slice(1)]];
 const T2 = Math.PI * 2, SW_B = [G_, [0.26, 1.5, 0.38, 0.95, -1.2, 4.4, 2.75 - T2, 0.3], [0.34, 1.2, 0.2, 0.1, 1.8, 4.2, 0.2 - T2, 1.0], [0.41, 0.7, -0.08, -0.8, 3.7, -0.5, -0.7 - T2, 1.5], [0.56, 0.45, -0.2, -0.9, 3.4, -2.4, -1.3 - T2, 1.4], [1, 0.5, 0.08, 0, 1.6, 3.0, -1.1 - T2, 0.8]];
 const PRE = [0, 1.3, 0.25, -1.0, -1.6, 4.0, 2.75, 0.6];
+// ---------------- abilities: dashing slice (8-way pad) and leap slam (aimed circle) ----------------
+const DASH_D = 52, DASH_CD = 1.2, DASH_DMG = 200, DASH_R = 11, LEAP_R = 78, LEAP_CD = 3, SLAM_R = 26, SLAM_DMG = 320;
+const DIR8 = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]].map(([a, b]) => { const l = Math.hypot(a, b); return [a / l, b / l]; });
+const DT_PREP = 0.2, DT_GO = 0.26, DT_REC = 0.24, LT_CR = 0.28, LT_AIR = 0.85, LT_LAND = 0.4;
+const lerpA = (A, B, k) => A.map((v, j) => j ? lerp(v, B[j], k) : 0);
+// [u, crouch, lean, twist, hand x, hand y, sword angle, step]
+const DP_PREP = [0, 1.5, 0.35, 0.5, 2.2, 4.4, 1.25, 1.2], DP_GO = [0, 0.6, 0.55, -0.9, 2.6, -2.6, -2.3, 1.6];
+const LP_CR = [0, 1.9, 0.4, 0.2, 1.8, 4.6, 1.3, 0.6], LP_TUCK = [0, 1.6, 0.25, 0, 1.2, 1.0, 0.7, 0], LP_EXT = [0, 0, -0.25, 0, 0.4, -6.2, -1.75, 0], LP_SLAM = [0, 0.9, 0.5, 0, 2.4, 3.4, 1.15, 0.8], LP_LAND = [0, 1.7, 0.55, 0, 2.4, 4.2, 1.3, 0.8];
+let FX = [], shake = 0, LEAPAIM = null;
+function abilityPose() {
+  const t = K.abT;
+  if (K.ab === 'dash') { // tip down + squat, then a rising slash as he launches, then back to guard
+    if (t < DT_PREP) return lerpA(G_, DP_PREP, sm(t / DT_PREP));
+    if (t < DT_PREP + DT_GO) return lerpA(DP_PREP, DP_GO, sm((t - DT_PREP) / DT_GO));
+    return lerpA(DP_GO, G_, sm(Math.min(1, (t - DT_PREP - DT_GO) / DT_REC)));
+  }
+  if (K.ab === 'leap') { // crouch, tucked flips on the way up, stretch with the sword overhead after the apex, slam down
+    if (t < LT_CR) return lerpA(G_, LP_CR, sm(t / LT_CR));
+    const q = (t - LT_CR) / LT_AIR;
+    if (q < 1) { if (q < 0.55) return lerpA(LP_CR, LP_TUCK, sm(Math.min(1, q / 0.12))); let A = lerpA(LP_TUCK, LP_EXT, sm(Math.min(1, (q - 0.55) / 0.15))); if (q > 0.8) A = lerpA(A, LP_SLAM, sm((q - 0.8) / 0.2)); return A; }
+    const r = (t - LT_CR - LT_AIR) / LT_LAND; return r < 0.35 ? LP_LAND : lerpA(LP_LAND, G_, sm((r - 0.35) / 0.65));
+  }
+  return null;
+}
+// height, flips and tuck all follow from the ability clock, so both screens draw the same jump
+function abilityBody() {
+  K.z = 0; K.flipA = 0; K.tuck = 0; K.straight = 0;
+  if (K.ab !== 'leap') return;
+  const q = (K.abT - LT_CR) / LT_AIR; if (q <= 0 || q >= 1) return;
+  const dist = Math.hypot(K.ax1 - K.ax0, K.ay1 - K.ay0), Hh = 22 + dist * 0.15;
+  K.z = Hh * 4 * q * (1 - q);
+  if (q < 0.55) { const e = q / 0.55; K.flipA = e * e * (3 - 2 * e) * Math.PI * 4; K.tuck = sm(Math.min(1, q / 0.1)) * (1 - sm(cl((q - 0.45) / 0.1, 0, 1))); }
+  else K.straight = sm(Math.min(1, (q - 0.55) / 0.15));
+}
+function startDash(di) {
+  const d = DIR8[di]; Object.assign(K, { lastWave: 0, ab: 'dash', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: cl(K.x + d[0] * DASH_D, 8, W - 8), ay1: cl(K.y + d[1] * DASH_D * 0.8, 16, H - 4), dashCd: DASH_CD + DT_PREP + DT_GO + DT_REC });
+  if (Math.abs(d[0]) > 0.2) K.f = d[0] > 0 ? 1 : -1;
+}
+function leapTarget(kn, v) { return [cl(kn.x + v[0] * LEAP_R, 8, W - 8), cl(kn.y + v[1] * LEAP_R * 0.8, 16, H - 4)]; }
+function startLeap(v) {
+  const tg = leapTarget(K, v); Object.assign(K, { ab: 'leap', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: tg[0], ay1: tg[1], leapCd: LEAP_CD + LT_CR + LT_AIR + LT_LAND });
+  if (Math.abs(tg[0] - K.x) > 2) K.f = tg[0] > K.x ? 1 : -1;
+}
+// distance from a point to a segment, in the game's squashed ground space
+function segDist(px, py, a, b) { const dx = b[0] - a[0], dy = (b[1] - a[1]) * 1.3, l2 = dx * dx + dy * dy || 1e-6, q = cl(((px - a[0]) * dx + (py - a[1]) * 1.3 * dy) / l2, 0, 1); return Math.hypot(px - (a[0] + dx * q), (py - a[1]) * 1.3 - dy * q); }
+function stepAbility(dt) {
+  const t0 = K.abT; K.abT += dt; const t = K.abT;
+  if (K.ab === 'dash') {
+    const g0 = DT_PREP, g1 = DT_PREP + DT_GO;
+    if (t > g0 && t0 < g1) {
+      const ease = q => 1 - (1 - q) * (1 - q), qa = ease(cl((t0 - g0) / DT_GO, 0, 1)), qb = ease(cl((t - g0) / DT_GO, 0, 1));
+      const pa = [lerp(K.ax0, K.ax1, qa), lerp(K.ay0, K.ay1, qa)], pb = [lerp(K.ax0, K.ax1, qb), lerp(K.ay0, K.ay1, qb)], ang = Math.atan2(K.ay1 - K.ay0, K.ax1 - K.ax0);
+      K.x = pb[0]; K.y = pb[1];
+      if (!K.lastWave || t - K.lastWave > 0.055) { K.lastWave = t; FX.push({ k: 'wave', x: K.x + Math.cos(ang) * 6, y: K.y - 6 + Math.sin(ang) * 4, ang, t: 0, max: 0.24, s: 0.75 + 0.5 * Math.sin(Math.PI * qb) }); }
+      if (AUTH()) for (const w of walkers) { if (w.hp <= 0 || w.dashed === K.i * 1e6 + K.abId) continue; if (segDist(w.x, w.y, pa, pb) < DASH_R + UK[w.k].r) { w.dashed = K.i * 1e6 + K.abId; w.atk = -1; w.kx += Math.cos(ang) * 90; w.ky += Math.sin(ang) * 50; hurt(w, DASH_DMG, ww => dashFx(ww, ang)); } }
+    }
+    if (t >= g1 + DT_REC) K.ab = null;
+  } else if (K.ab === 'leap') {
+    const a0 = LT_CR, a1 = LT_CR + LT_AIR;
+    if (t > a0 && t0 < a1) { const q = cl((t - a0) / LT_AIR, 0, 1); K.x = lerp(K.ax0, K.ax1, q); K.y = lerp(K.ay0, K.ay1, q); }
+    if (t0 < a1 && t >= a1) { K.x = K.ax1; K.y = K.ay1; slam(); }
+    if (t >= a1 + LT_LAND) K.ab = null;
+  }
+}
+function slam() {
+  const cx = K.x, cy = K.y;
+  FX.push({ k: 'ring', x: cx, y: cy, t: 0, max: 0.45 }, { k: 'crater', x: cx, y: cy, t: 0, max: 6, seed: Math.random() * 1e4 });
+  for (let i = 0; i < 34; i++) { const a = rr(0, 6.28), v = rr(18, 55); dust.push({ x: cx + Math.cos(a) * 3, y: cy + Math.sin(a) * 1.5, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1, 2.2), t: 0, max: rr(0.4, 0.9) }); }
+  if (K.i === ME) shake = 0.35;
+  if (!AUTH()) return;
+  for (const w of walkers) {
+    if (w.hp <= 0) continue; const dx = w.x - cx, dy = (w.y - cy) * 1.3, d = Math.hypot(dx, dy), R = SLAM_R + UK[w.k].r; if (d > R * 1.7) continue; const a = Math.atan2(dy / 1.3, dx);
+    w.atk = -1;
+    if (d < R) { w.kx += Math.cos(a) * 230; w.ky += Math.sin(a) * 130; hurt(w, SLAM_DMG * (1 - 0.4 * d / R), ww => slamFx(ww, a)); }
+    else { w.kx += Math.cos(a) * 120; w.ky += Math.sin(a) * 70; } // the shockwave shoves anyone just outside the circle
+  }
+}
+const r1 = v => Math.round(v * 10) / 10;
+const dashFx = (w, a) => { EV.push([w.id, 2, Math.round(a * 100) / 100, K.i, r1(w.x), r1(w.y)]); dashKill(w, a); };
+const slamFx = (w, a) => { EV.push([w.id, 3, Math.round(a * 100) / 100, K.i, r1(w.x), r1(w.y)]); slamKill(w, a); };
+function dashKill(w, a) { // cut clean through: everything flies the way he was going
+  w.dead = 1; const dx = Math.cos(a), dy = Math.sin(a), s = Math.sign(dx) || 1; wolfBits(w, s);
+  const pw = rr(50, 80); for (const kd of ['head', 'torso', 'legs', 'arm']) gib(w, kd, dx * pw * rr(0.7, 1.2) + rr(-10, 10), dy * pw * 0.6 * rr(0.7, 1.2) + rr(-8, 8), rr(18, 34), rr(-20, 20));
+  spray(w.x, w.y, 7, s, 20, 1.3);
+}
+function slamKill(w, a) { // blown apart outward from the impact, guts and all
+  w.dead = 1; const dx = Math.cos(a), dy = Math.sin(a), s = Math.sign(dx) || 1; wolfBits(w, s);
+  const pw = rr(80, 120); for (const kd of ['head', 'torso', 'legs', 'arm', 'arm']) gib(w, kd, dx * pw * rr(0.7, 1.3) + rr(-14, 14), dy * pw * 0.7 * rr(0.7, 1.3) + rr(-10, 10), rr(40, 62), rr(-24, 24));
+  for (let i = 0; i < 4; i++) gib(w, 'gut', dx * pw * rr(0.5, 1.4) + rr(-25, 25), dy * pw * 0.7 * rr(0.5, 1.4) + rr(-18, 18), rr(30, 60), rr(-18, 18));
+  spray(w.x, w.y, 5, s, 34, 1.8);
+}
+function drawFxGround(c) {
+  for (const f of FX) if (f.k === 'crater') { const k = f.t / f.max, al = Math.min(1, (1 - k) * 2.5); const R = srand(Math.floor(f.seed));
+    c.save(); c.globalAlpha = al * 0.75; c.fillStyle = '#3d2b1c'; c.beginPath(); c.ellipse(f.x, f.y, 13, 5.5, 0, 0, 7); c.fill();
+    c.fillStyle = '#2a1d13'; c.beginPath(); c.ellipse(f.x, f.y + 0.4, 8, 3.2, 0, 0, 7); c.fill();
+    c.strokeStyle = '#24180f'; c.lineWidth = 0.5; c.beginPath(); for (let i = 0; i < 7; i++) { const a = i / 7 * 6.283 + R(), r0 = 8 + R() * 3, r1x = 15 + R() * 6; c.moveTo(f.x + Math.cos(a) * r0, f.y + Math.sin(a) * r0 * 0.42); c.lineTo(f.x + Math.cos(a + 0.2) * r1x, f.y + Math.sin(a + 0.2) * r1x * 0.42); } c.stroke(); c.restore(); }
+}
+function drawFxAir(c) {
+  c.save(); c.globalCompositeOperation = 'lighter';
+  for (const f of FX) {
+    const k = f.t / f.max;
+    if (f.k === 'ring') { const r = SLAM_R * 1.25 * (0.25 + 0.75 * sm(Math.min(1, k * 1.3))), al = (1 - k) ** 1.3; c.save(); c.translate(f.x, f.y); c.scale(1, 0.5);
+      const g = c.createRadialGradient(0, 0, r * 0.55, 0, 0, r); g.addColorStop(0, 'rgba(255,230,160,0)'); g.addColorStop(0.85, `rgba(255,236,180,${0.55 * al})`); g.addColorStop(1, 'rgba(255,250,230,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, r, 0, 7); c.fill();
+      if (k < 0.25) { c.fillStyle = `rgba(255,245,210,${0.5 * (1 - k / 0.25)})`; c.beginPath(); c.arc(0, 0, r * 0.6, 0, 7); c.fill(); } c.restore(); }
+    else if (f.k === 'wave') { // a crescent of light ahead of him, fading behind as he travels
+      const al = 0.42 * (1 - k) ** 1.8, s = f.s * (1 + k * 0.35); c.save(); c.translate(f.x, f.y); c.rotate(f.ang); c.scale(1, 1.15);
+      const g = c.createRadialGradient(-3 * s, 0, 4 * s, -3 * s, 0, 13 * s); g.addColorStop(0, 'rgba(255,230,160,0)'); g.addColorStop(0.75, `rgba(255,236,170,${al * 0.55})`); g.addColorStop(1, `rgba(255,252,235,${al})`);
+      c.fillStyle = g; c.beginPath(); c.arc(-3 * s, 0, 13 * s, -1.15, 1.15); c.arc(-7 * s, 0, 10 * s, 1.0, -1.0, true); c.closePath(); c.fill(); c.restore(); }
+  }
+  c.restore();
+}
+// aimed preview for the leap: a lit circle where he'll land, joined by an arc
+function drawLeapPreview(c, t) {
+  const kn = KN[ME]; if (!LEAPAIM || !kn || kn.st === 'kneel') return;
+  const [tx, ty] = leapTarget(kn, LEAPAIM), pul = 0.5 + 0.5 * Math.sin(t * 8);
+  c.save();
+  c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 0.4; c.setLineDash([1.5, 1.5]); c.beginPath(); c.ellipse(kn.x, kn.y, LEAP_R, LEAP_R * 0.8, 0, 0, 7); c.stroke();
+  const g = c.createRadialGradient(tx, ty, 0, tx, ty, SLAM_R); g.addColorStop(0, `rgba(255,220,120,${0.35 + 0.1 * pul})`); g.addColorStop(0.8, 'rgba(255,200,90,.18)'); g.addColorStop(1, 'rgba(255,200,90,0)');
+  c.setLineDash([]); c.save(); c.translate(tx, ty); c.scale(1, 0.5); c.translate(-tx, -ty); c.fillStyle = g; c.beginPath(); c.arc(tx, ty, SLAM_R, 0, 7); c.fill();
+  c.strokeStyle = `rgba(255,236,170,${0.7 + 0.3 * pul})`; c.lineWidth = 0.7; c.beginPath(); c.arc(tx, ty, SLAM_R, 0, 7); c.stroke(); c.restore();
+  const dist = Math.hypot(tx - kn.x, ty - kn.y), Hh = 22 + dist * 0.15, mx = (kn.x + tx) / 2, my = (kn.y + ty) / 2 - Hh * 2;
+  c.strokeStyle = 'rgba(255,240,190,.85)'; c.lineWidth = 0.6; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 8; c.beginPath(); c.moveTo(kn.x, kn.y - 6); c.quadraticCurveTo(mx, my, tx, ty); c.stroke();
+  c.restore();
+}
+
 // total angle the blade has swept: steady turns, a short wind-in and wind-down
 const spinSector = a => ((Math.floor((a + Math.PI / 8) / (Math.PI / 4)) % 8) + 8) % 8;
 function spinSwept() { const u = cl(K.spin / SPIN_T, 0, 1), e1 = 0.001, e2 = 0.08, A = 1 - e1 / 2 - e2 / 2, v = u < e1 ? u * u / (2 * e1) : u < 1 - e2 ? e1 / 2 + (u - e1) : A - (1 - u) * (1 - u) / (2 * e2); return v / A * (SPIN_O + SPIN_TURNS * Math.PI * 2); }
@@ -174,6 +311,7 @@ function pose(t) {
   if (K.preGlow && K.spin < 0) { const PW = 0.45, WIND = SW_A[1], START = [0, 1.25, 0.22, 0, 2.5, 1.3, 0, 0];
     if (kp < PW) { const k = sm(kp / PW); A = G_.map((v, j) => j ? lerp(v, WIND[j], k) : 0); }
     else { const q = (kp - PW) / (1 - PW), m = 0.7; ps = (m - 2) * q * q * q + (3 - m) * q * q; A = WIND.map((v, j) => j ? lerp(v, START[j], ps) : 0); } }
+  if (K.ab) { const AB = abilityPose(); if (AB) A = AB; }
   let [, cr, lean, tw, hx, hy, a, stepA] = A;
   // directional swing: the whole strike tilts by the aim's elevation (up = negative)
   let elw = 0;
@@ -200,6 +338,7 @@ function pose(t) {
   const spinStance = a => { const pp = [-Math.sin(a), Math.cos(a) * 0.45]; return [0, 1].map(i => [(i ? 1 : -1) * pp[0] * 1.9, (i ? 1 : -1) * pp[1] * 1.9]); };
   if (th !== null) stance = spinStance(th); else if (kb || ps) { const ss = spinStance(thB), wb = Math.max(kb, ps); stance = stance.map((p2, i) => L2(p2, ss[i], wb)); }
   const feetS = [0, 1].map(i => L2(stance[i], loco[i], mv));
+  if (K.tuck > 0 || K.straight > 0) for (let i = 0; i < 2; i++) { const s2 = i ? 1 : -1, tk = [s2 * 0.7 + f * 1.6, -3.6], sg = [s2 * 0.5 - f * 0.4, 0.2]; feetS[i] = L2(L2(feetS[i], sg, K.straight || 0), tk, K.tuck || 0); }
   const bob = mv * (Math.abs(Math.cos(gp)) * 0.55 - 0.3);
   const pel = [f * (stepA * 0.55 * (1 - mv) + run * 0.35), -5.9 + cr * 0.95 + bob];
   lean += run * 0.28 * (K.swing >= 0 ? 0.4 : 1); tw += Math.sin(gp) * 0.25 * mv;
@@ -250,7 +389,9 @@ function drawKnight(c, t) {
   const clipSlot = K.hold && (K.st === 'pull' || K.st === 'sheathe'), slotY = (stoneW()[1] - 4.3 - K.y) / KS;
   const L = 10.5 * (P.th != null ? P.blade : 1);
   const drawBlade = () => { if (!K.hold || !P.g) return; c.save(); if (clipSlot) { c.beginPath(); c.rect(-40, -60, 80, 60 + slotY); c.clip(); } lightSword(c, P.g, P.a, L, K.glow, t); sword(c, P.g, P.a, L); c.restore(); };
-  c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(P.pel[0] * 0.5, 0.4, 4.4 + K.kn * 1.0, 1.5, 0, 0, 7); c.fill();
+  const zs = Math.max(0.35, 1 - (K.z || 0) / 50); c.fillStyle = `rgba(0,0,0,${0.3 * zs})`; c.beginPath(); c.ellipse(P.pel[0] * 0.5, 0.4, (4.4 + K.kn * 1.0) * zs, 1.5 * zs, 0, 0, 7); c.fill();
+  if (K.z) c.translate(0, -K.z / KS);
+  if (K.flipA) { c.translate(P.pel[0], -6); c.rotate(K.flipA * f); c.translate(-P.pel[0], 6); }
   // ---- depth ----
   // A = the arm on the shoulder at his facing side (hand nearest the crossguard), B = the other one.
   // Turned toward the camera, B is the arm nearest the camera: order is A, head, sword, B.
@@ -517,7 +658,7 @@ function drawWarg(c, w, t, U, fx, u, white) {
 }
 // ---------- dismemberment ----------
 // kinds: head, torso, arm, legs; each flies with z, spins, bleeds, then lies on the ground and fades
-function gib(w, kind, vx, vy, vz, spin) { const U = UK[w.k] || UK.foot, sc = kind === 'chunk' || kind === 'wolfhead' ? 1 : U.sc, kb = Math.max(0.55, U.kb); parts.push({ kind, uk: w.k || 'foot', sc, x: w.x, y: w.y, z: ({ head: 9.2, torso: 5, arm: 6, legs: 1.5, chunk: 4, wolfhead: 4.5 })[kind] * (w.k === 'warg' && kind !== 'chunk' && kind !== 'wolfhead' ? 1.5 : sc), vx: vx * kb, vy: vy * kb, vz, rot: 0, spin, t: 0, rest: 0, side: Math.random() < 0.5 ? -1 : 1 }); }
+function gib(w, kind, vx, vy, vz, spin) { const U = UK[w.k] || UK.foot, sc = kind === 'chunk' || kind === 'wolfhead' ? 1 : U.sc, kb = Math.max(0.55, U.kb); parts.push({ kind, uk: w.k || 'foot', sc, x: w.x, y: w.y, z: ({ head: 9.2, torso: 5, arm: 6, legs: 1.5, chunk: 4, wolfhead: 4.5, gut: 5 })[kind] * (w.k === 'warg' && kind !== 'chunk' && kind !== 'wolfhead' ? 1.5 : sc), vx: vx * kb, vy: vy * kb, vz, rot: 0, spin, t: 0, rest: 0, side: Math.random() < 0.5 ? -1 : 1 }); }
 const wolfBits = (w, dir) => { if (w.k !== 'warg') return; gib(w, 'wolfhead', dir * rr(14, 24), rr(-5, 5), rr(12, 20), rr(-12, 12)); for (let i = 0; i < 3; i++) gib(w, 'chunk', dir * rr(4, 18), rr(-6, 6), rr(8, 18), rr(-14, 14)); };
 function spray(px, py, pz, dx, n, pow) { for (let i = 0; i < n; i++) blood.push({ x: px, y: py, z: pz, vx: dx * rr(8, 26) * pow + rr(-8, 8), vy: rr(-6, 6), vz: rr(6, 24) * pow, t: 0 }); }
 function cleaveKill(w, dir) {
@@ -540,6 +681,7 @@ function drawPart(c, p) {
   else if (p.kind === 'torso') { c.fillStyle = p.uk === 'ogre' ? U.skin : U.body; c.beginPath(); c.ellipse(0, 0, 2.6, 3, 0, 0, 7); c.fill(); c.fillStyle = '#c95f4a'; c.beginPath(); c.ellipse(0, -2.6, 1.3, 0.55, 0, 0, 7); c.fill(); c.fillStyle = BL; c.beginPath(); c.ellipse(0, -2.6, 0.8, 0.3, 0, 0, 7); c.fill(); }
   else if (p.kind === 'arm') { c.strokeStyle = U.skin; c.lineWidth = 1; c.lineCap = 'round'; c.beginPath(); c.moveTo(0, -1.6); c.lineTo(0, 1.6); c.stroke(); c.fillStyle = U.body; c.fillRect(-0.6, -1.9, 1.2, 1.0); c.fillStyle = BL; c.beginPath(); c.arc(0, -1.9, 0.5, 0, 7); c.fill(); }
   else if (p.kind === 'chunk') { c.fillStyle = U.fur; c.beginPath(); c.ellipse(0, 0, 2.2, 1.4, 0, 0, 7); c.fill(); c.fillStyle = '#9c2a1e'; c.beginPath(); c.ellipse(0.8, 0, 1.0, 1.1, 0, 0, 7); c.fill(); c.fillStyle = '#efe0d0'; c.beginPath(); c.arc(1.1, 0, 0.3, 0, 7); c.fill(); }
+  else if (p.kind === 'gut') { c.fillStyle = '#b8494a'; c.beginPath(); c.ellipse(0, 0, 1.3, 0.8, 0, 0, 7); c.ellipse(1.0, 0.4, 0.9, 0.6, 0.5, 0, 7); c.ellipse(-0.9, 0.3, 0.7, 0.55, -0.4, 0, 7); c.fill(); c.fillStyle = '#d97a76'; c.beginPath(); c.ellipse(-0.2, -0.3, 0.6, 0.3, 0, 0, 7); c.fill(); c.fillStyle = '#7a1a12'; c.beginPath(); c.arc(0.4, 0.3, 0.35, 0, 7); c.fill(); }
   else if (p.kind === 'wolfhead') { c.fillStyle = U.fur; c.beginPath(); c.ellipse(0, 0, 1.6, 1.25, 0, 0, 7); c.fill(); c.beginPath(); c.moveTo(0.8, -0.5); c.lineTo(3, 0.1); c.lineTo(0.9, 0.5); c.fill(); c.fillStyle = U.furD; c.beginPath(); c.moveTo(-0.6, -0.9); c.lineTo(-0.2, -2.3); c.lineTo(0.4, -1); c.fill(); c.fillStyle = BL; c.beginPath(); c.ellipse(-1.4, 0.2, 0.5, 0.9, 0, 0, 7); c.fill(); }
   else { c.strokeStyle = U.legs; c.lineWidth = 1.2; c.lineCap = 'round'; c.beginPath(); c.moveTo(-0.8, -1.8); c.lineTo(-1.0, 1.8); c.moveTo(0.8, -1.8); c.lineTo(1.1, 1.8); c.stroke(); c.fillStyle = U.body; c.beginPath(); c.ellipse(0, -2, 1.6, 0.8, 0, 0, 7); c.fill(); c.fillStyle = BL; c.beginPath(); c.ellipse(0, -2.2, 1.0, 0.4, 0, 0, 7); c.fill(); }
   c.restore();
@@ -586,6 +728,13 @@ function stepK(dt, t) {
     if (K.u >= 1) { K.st = 'fight'; }
   } else {
     K.kn = ap(K.kn, 0, dt * 5);
+    if (K.dashCd > 0) K.dashCd -= dt;
+    if (K.leapCd > 0) K.leapCd -= dt;
+    const mayStart = K.spin < 0 && !K.preGlow && !K.ab, mine = AUTH() || K.i === ME;
+    if (mine && IN.dashN !== K.dashSeen) { const fresh = K.dashSeen !== undefined; K.dashSeen = IN.dashN; if (fresh && mayStart && !(K.dashCd > 0) && IN.dashD != null) startDash(IN.dashD); }
+    if (mine && IN.leapN !== K.leapSeen) { const fresh = K.leapSeen !== undefined; K.leapSeen = IN.leapN; if (fresh && mayStart && !(K.leapCd > 0) && IN.leapT) startLeap(IN.leapT); }
+    if (K.ab) { stepAbility(dt); abilityBody(); K.st = 'fight'; return; }
+    abilityBody();
     // movement: full speed, slower mid-swing, a bit slower while spinning
     const v = RUN * (K.spin >= 0 ? 0.6 : K.swing >= 0 ? 0.55 : K.preGlow ? 0.3 : 1);
     if (mvL > 0.12) { const k = Math.min(1, mvL); K.x += IN.mv[0] / mvL * k * v * dt; K.y += IN.mv[1] / mvL * k * v * dt; if (K.spd > RUN * 0.6 && Math.random() < dt * 10) dust.push({ x: K.x - K.f * 1.5, y: K.y, vx: -K.f * rr(4, 10), vy: rr(-2, 1), r: rr(0.7, 1.3), t: 0, max: rr(0.3, 0.6) }); }
@@ -640,21 +789,26 @@ function worldStep(dt, t) {
   for (const b of blood) { b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; b.vz -= 100 * dt; if (b.z <= 0 && !b.done) { b.done = 1; if (Math.random() < 0.5) splats.push({ x: b.x, y: b.y, r: rr(0.4, 1.1), t: 0 }); } }
   blood = blood.filter(b => !b.done);
   splats.forEach(s2 => s2.t += dt); splats = splats.filter(s2 => s2.t < 5);
+  for (const f of FX) f.t += dt;
+  FX = FX.filter(f => f.t < f.max); shake = Math.max(0, shake - dt);
   for (const p of dust) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 5; p.vy *= 1 - dt * 5; } dust = dust.filter(p => p.t < p.max);
   for (const p of sparks) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 30 * dt; } sparks = sparks.filter(p => p.t < p.max);
   walkers = walkers.filter(w => !w.dead);
 }
 let ground = document.createElement('canvas');
 function paintGround() { ground.width = W * 3; ground.height = H * 3; const g = ground.getContext('2d'); g.scale(3, 3); g.fillStyle = '#4e8a3a'; g.fillRect(0, 0, W, H); g.fillStyle = '#56953f'; for (let i = 0; i < 60; i++) { g.beginPath(); g.ellipse(Math.random() * W, Math.random() * H, rr(6, 18), rr(4, 9), rr(0, 3), 0, 7); g.fill(); } g.fillStyle = '#b08a5a'; g.fillRect(0, LANE_Y - 20, W, 40); g.fillStyle = '#3e2a18'; g.fillRect(0, LANE_Y - 21, W, 1.5); g.fillRect(0, LANE_Y + 20, W, 1.5); g.fillStyle = '#9a7748'; for (let i = 0; i < 70; i++) { g.beginPath(); g.arc(Math.random() * W, LANE_Y + rr(-17, 17), rr(0.6, 1.6), 0, 7); g.fill(); } }
+let ZOOM = 1;
+const viewScale = () => Math.min(cv.height / 85, cv.width / 75) * ZOOM * (window.__zoom || 1);
 function resize() { cv.width = Math.round(innerWidth * DPR); cv.height = Math.round(innerHeight * DPR); }
 addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 250));
 let last = performance.now(), t = 0;
 function draw() {
-  const sc = Math.min(cv.height / 85, cv.width / 75) * (window.__zoom || 1); camX = lerp(camX, K.x, 0.12); camY = lerp(camY, K.y - 6, 0.12);
+  const sc = viewScale(); camX = lerp(camX, K.x, 0.12); camY = lerp(camY, K.y - 6 - (K.z || 0) * 0.5, 0.12); const shx = shake ? rr(-1, 1) * shake * 5 : 0, shy = shake ? rr(-1, 1) * shake * 5 : 0;
   x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#000'; x.fillRect(0, 0, cv.width, cv.height);
-  x.setTransform(sc, 0, 0, sc, cv.width / 2 - camX * sc, cv.height / 2 - camY * sc); x.drawImage(ground, 0, 0, W, H);
+  x.setTransform(sc, 0, 0, sc, cv.width / 2 - (camX + shx) * sc, cv.height / 2 - (camY + shy) * sc); x.drawImage(ground, 0, 0, W, H);
   for (const sp of splats) { x.globalAlpha = Math.max(0, 1 - sp.t / 5) * 0.85; x.fillStyle = '#6a1610'; x.beginPath(); x.ellipse(sp.x, sp.y, sp.r, sp.r * 0.5, 0, 0, 7); x.fill(); } x.globalAlpha = 1;
   for (const kn of KN) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
+  drawFxGround(x); drawLeapPreview(x, t);
   for (const p of parts) if (p.rest) { x.globalAlpha = Math.max(0, 1 - (p.t - p.rest) / 4); drawPart(x, p); } x.globalAlpha = 1;
   const list = KN.flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(walkers.map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).sort((a, b) => a[0] - b[0]);
   for (const [, k, o] of list) {
@@ -669,7 +823,7 @@ function draw() {
   for (const b of blood) { x.fillStyle = '#9c1c12'; x.beginPath(); x.arc(b.x, b.y - b.z, 0.38, 0, 7); x.fill(); }
   for (const p of dust) { const k = p.t / p.max; x.fillStyle = `rgba(150,140,120,${0.5 * (1 - k)})`; x.beginPath(); x.arc(p.x, p.y - k * 2.5, p.r * (1 + k * 1.6), 0, 7); x.fill(); }
   x.save(); x.globalCompositeOperation = 'lighter'; for (const p of sparks) { const k = p.t / p.max; x.fillStyle = `rgba(255,230,150,${1 - k})`; x.beginPath(); x.arc(p.x, p.y, 0.45, 0, 7); x.fill(); } x.restore();
-  // spin: a ring of light following the blade
+  drawFxAir(x);
   // blade trail: a short ribbon the length of the light blade, fading behind it
   for (const kn of KN) { K = kn; if (K.trail && K.trail.length > 1) { x.save(); const now = K.trail[K.trail.length - 1].t, TL = 0.11;
     for (let i = K.trail.length - 1; i > 0; i--) { const A2 = K.trail[i], B2 = K.trail[i - 1], age = now - B2.t; if (age > TL) break; const al = 0.42 * (1 - age / TL) ** 1.6;
@@ -684,6 +838,7 @@ function draw() {
   if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
   ST.textContent = NP > 1 ? `Enemies ${walkers.length} · ` + KN.map(kn => `${kn.i === ME ? 'You' : (NET && NET.otherName) || 'P' + (kn.i + 1)} ${kn.kills}k/${kn.hits}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${K.hits}`;
   const cdk = K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
+  DPAD.classList.toggle('cd', K.ab === 'dash' || K.dashCd > 0); AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
 }
 function frame(ms) {
   const dt = Math.min(0.05, (ms - last) / 1000) * speed; last = ms; t += dt; step(dt, t); draw();
@@ -726,16 +881,41 @@ let stickMv = [0, 0], stickAim = null, keyMv = [0, 0], mouseAim = null, keySpin 
 const syncIn = () => { const IN = KN[ME].in; IN.mv = Math.hypot(...stickMv) > 0.05 ? stickMv : keyMv; IN.aim = stickAim || mouseAim; IN.spin = keySpin || btnSpin; if (NET && NET.mode === 'guest') NET.inDirty = 1; };
 stick(document.getElementById('lst'), v => { stickMv = v || [0, 0]; syncIn(); });
 stick(document.getElementById('rst'), v => { stickAim = v && Math.hypot(...v) > 0.35 ? v : null; syncIn(); }, true);
+const DPAD = document.getElementById('dpad'), AOE = document.getElementById('aoe'), AOEI = AOE.querySelector('i'), AOED = AOE.querySelector('.dot');
+const markIn = () => { if (NET && NET.mode === 'guest') NET.inDirty = 1; };
+function doDash(di) { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.dashN = (IN.dashN || 0) + 1; IN.dashD = di; markIn(); }
+function doLeap(v) { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.leapN = (IN.leapN || 0) + 1; IN.leapT = [Math.round(v[0] * 100) / 100, Math.round(v[1] * 100) / 100]; markIn(); }
+DPAD.querySelectorAll('[data-d]').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); doDash(+b.dataset.d); }));
+// leap aim: where the thumb sits in the circle maps to a spot within LEAP_R of the knight; release to jump there
+let aoeId = null;
+const aoeUpd = e => { const r = AOE.getBoundingClientRect(), R = r.width / 2; let dx = (e.clientX - r.left - R) / R, dy = (e.clientY - r.top - R) / R; const d = Math.hypot(dx, dy); if (d > 1) { dx /= d; dy /= d; } LEAPAIM = [dx, dy]; AOED.style.transform = `translate(${dx * (R - 13)}px,${dy * (R - 13)}px)`; };
+AOE.addEventListener('pointerdown', e => { aoeId = e.pointerId; AOE.setPointerCapture(aoeId); aoeUpd(e); e.preventDefault(); });
+AOE.addEventListener('pointermove', e => { if (e.pointerId === aoeId) aoeUpd(e); });
+AOE.addEventListener('pointerup', e => { if (e.pointerId !== aoeId) return; aoeId = null; if (LEAPAIM) doLeap(LEAPAIM); LEAPAIM = null; AOED.style.transform = ''; });
+AOE.addEventListener('pointercancel', e => { if (e.pointerId !== aoeId) return; aoeId = null; LEAPAIM = null; AOED.style.transform = ''; });
+// pinch to zoom on the field (two fingers that aren't on a control), mouse wheel on desktop
+const pinch = new Map(); let pinchD = 0, pinchZ = 1;
+cv.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') return; pinch.set(e.pointerId, [e.clientX, e.clientY]); if (pinch.size === 2) { const [a, b] = [...pinch.values()]; pinchD = Math.hypot(a[0] - b[0], a[1] - b[1]); pinchZ = ZOOM; } });
+cv.addEventListener('pointermove', e => { if (!pinch.has(e.pointerId)) return; pinch.set(e.pointerId, [e.clientX, e.clientY]); if (pinch.size === 2 && pinchD > 10) { const [a, b] = [...pinch.values()]; ZOOM = cl(pinchZ * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinchD, 0.45, 2.6); } });
+const pinchEnd = e => { pinch.delete(e.pointerId); pinchD = 0; };
+cv.addEventListener('pointerup', pinchEnd); cv.addEventListener('pointercancel', pinchEnd);
+cv.addEventListener('wheel', e => { ZOOM = cl(ZOOM * Math.exp(-e.deltaY * 0.0012), 0.45, 2.6); e.preventDefault(); }, { passive: false });
+window.__dash = doDash; window.__leap = doLeap; window.__aimLeap = v => { LEAPAIM = v; };
 const sb = document.getElementById('spin');
 sb.addEventListener('pointerdown', e => { btnSpin = true; syncIn(); e.preventDefault(); });
 const sbUp = () => { btnSpin = false; syncIn(); }; sb.addEventListener('pointerup', sbUp); sb.addEventListener('pointerleave', sbUp); sb.addEventListener('pointercancel', sbUp);
 // keyboard + mouse
 const keys = new Set();
 const keyUpd = () => { keyMv = [(keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0), (keys.has('s') ? 1 : 0) - (keys.has('w') ? 1 : 0)]; keySpin = keys.has(' '); syncIn(); };
-addEventListener('keydown', e => { const k = e.key.toLowerCase(); if ('wasd '.includes(k)) { keys.add(k); keyUpd(); e.preventDefault(); } });
+const kbLeap = () => { if (!mousePos) return [KN[ME].f, 0]; const sc = viewScale() / DPR, kn = KN[ME], kx = innerWidth / 2 + (kn.x - camX) * sc, ky = innerHeight / 2 + (kn.y - 6 - camY) * sc; let v = [(mousePos[0] - kx) / (LEAP_R * sc), (mousePos[1] - ky) / (LEAP_R * 0.8 * sc)]; const d = Math.hypot(...v); if (d > 1) v = v.map(q => q / d); return v; };
+addEventListener('keydown', e => { const k = e.key.toLowerCase(); if ('wasd '.includes(k)) { keys.add(k); keyUpd(); e.preventDefault(); }
+  if (k === 'shift' && !e.repeat) { const m = keyMv[0] || keyMv[1] ? keyMv : [KN[ME].f, 0]; doDash(((Math.round(Math.atan2(m[1], m[0]) / (Math.PI / 4)) % 8) + 8) % 8); }
+  if (k === 'q') { if (!e.repeat) keys.add('q'); LEAPAIM = kbLeap(); } });
+addEventListener('pointermove', e => { if (keys.has('q') && e.pointerType === 'mouse') { mousePos = [e.clientX, e.clientY]; LEAPAIM = kbLeap(); } });
+addEventListener('keyup', e => { if (e.key.toLowerCase() === 'q' && keys.has('q')) { keys.delete('q'); if (LEAPAIM) doLeap(LEAPAIM); LEAPAIM = null; } });
 addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); keyUpd(); });
 let mouseDown = false, mousePos = null;
-const mouseAimUpd = () => { if (!mouseDown || !mousePos) { mouseAim = null; return syncIn(); } const sc = Math.min(cv.height / 85, cv.width / 75) * (window.__zoom || 1) / DPR, kx = innerWidth / 2 + (K.x - camX) * sc, ky = innerHeight / 2 + (K.y - 6 - camY) * sc; mouseAim = [mousePos[0] - kx, mousePos[1] - ky]; syncIn(); };
+const mouseAimUpd = () => { if (!mouseDown || !mousePos) { mouseAim = null; return syncIn(); } const sc = viewScale() / DPR, kx = innerWidth / 2 + (K.x - camX) * sc, ky = innerHeight / 2 + (K.y - 6 - camY) * sc; mouseAim = [mousePos[0] - kx, mousePos[1] - ky]; syncIn(); };
 cv.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') return; mouseDown = true; mousePos = [e.clientX, e.clientY]; mouseAimUpd(); });
 addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') return; mousePos = [e.clientX, e.clientY]; if (mouseDown) mouseAimUpd(); });
 addEventListener('pointerup', e => { if (e.pointerType !== 'mouse') return; mouseDown = false; mouseAimUpd(); });
@@ -750,9 +930,9 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
-const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin });
+const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD ?? null, leapN: n.leapN || 0, leapT: n.leapT || null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in) });
 const packW = w => [w.id, UKEYS.indexOf(w.k), Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10, Math.round(w.hp), w.max, Math.round(w.atk * 100) / 100, w.hit > 0 ? 1 : 0, w.tk];
 const LC = document.getElementById('lcard'), LUI = document.getElementById('lobbyUI'), NOTE = document.getElementById('note');
@@ -823,7 +1003,7 @@ function applySnap(S) {
   for (const a of S.w) { const [id, ki, wx, wy, hp, mx, atk, hit, tk] = a; seen.add(id); let w = byId.get(id);
     if (!w) { w = mkWalker(UKEYS[ki] || 'foot', wx, wy); w.id = id; walkers.push(w); }
     w.tx = wx; w.ty = wy; w.hp = hp; w.max = mx; w.tk = tk; if (hit) w.hit = 0.1; if (atk < 0) w.atk = -1; else if (w.atk < 0 || Math.abs(w.atk - atk) > 0.15) w.atk = atk; }
-  for (const e of S.e) { const [id, kind, dir, ki, ex, ey] = e; let w = byId.get(id) || walkers.find(o => o.id === id); if (!w) { w = mkWalker('foot', ex, ey); w.id = id; } w.x = ex; w.y = ey; const k0 = K; K = KN[ki] || KN[0]; if (kind) spinKill(w); else cleaveKill(w, dir); K = k0; }
+  for (const e of S.e) { const [id, kind, dir, ki, ex, ey] = e; let w = byId.get(id) || walkers.find(o => o.id === id); if (!w) { w = mkWalker('foot', ex, ey); w.id = id; } w.x = ex; w.y = ey; const k0 = K; K = KN[ki] || KN[0]; if (kind === 1) spinKill(w); else if (kind === 2) dashKill(w, dir); else if (kind === 3) slamKill(w, dir); else cleaveKill(w, dir); K = k0; }
   walkers = walkers.filter(w => w.dead || seen.has(w.id));
 }
 lobby('home');
