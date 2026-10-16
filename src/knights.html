@@ -857,7 +857,7 @@ function drawPart(c, p) {
 const AU = { ctx: null, on: true, mus: true, last: {} };
 try { AU.on = localStorage.getItem('kn_sfx') !== '0'; AU.mus = localStorage.getItem('kn_mus') !== '0'; } catch (e) { }
 function audioInit() {
-  if (AU.ctx) { if (AU.ctx.state === 'suspended') AU.ctx.resume().catch(() => { }); if (AU.mus && AU.el && AU.el.paused) AU.el.play().catch(() => { }); return; }
+  if (AU.ctx) { if (AU.ctx.state === 'suspended') AU.ctx.resume().catch(() => { }); if (AU.mus && AU.go && AU.el && AU.el.paused) AU.el.play().catch(() => { }); return; }
   const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
   const c = AU.ctx = new AC(), comp = c.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 6; comp.connect(c.destination);
   AU.out = c.createGain(); AU.out.gain.value = AU.on ? 0.7 : 0; AU.out.connect(comp);
@@ -865,9 +865,11 @@ function audioInit() {
   // music: the track loops quietly underneath; routed through a gain node because iOS ignores <audio>.volume
   const el = AU.el = new Audio('audio/baroque-breakdown.mp3'); el.loop = true; el.preload = 'auto';
   try { const src = c.createMediaElementSource(el); AU.musG = c.createGain(); AU.musG.gain.value = AU.mus ? 0.22 : 0; src.connect(AU.musG); AU.musG.connect(c.destination); } catch (e) { el.volume = 0.22; }
-  if (AU.mus) el.play().catch(() => { });
+  if (AU.mus && AU.go) el.play().catch(() => { });
 }
-function setMusic(on) { AU.mus = on; try { localStorage.setItem('kn_mus', on ? '1' : '0'); } catch (e) { } if (!AU.el) return; if (AU.musG) AU.musG.gain.setTargetAtTime(on ? 0.22 : 0, AU.ctx.currentTime, 0.1); if (on) AU.el.play().catch(() => { }); else AU.el.pause(); }
+// the music starts when the first knight pulls his sword from the stone
+function musGo() { AU.go = 1; if (AU.el && AU.mus && AU.el.paused) AU.el.play().catch(() => { }); }
+function setMusic(on) { AU.mus = on; try { localStorage.setItem('kn_mus', on ? '1' : '0'); } catch (e) { } if (!AU.el) return; if (AU.musG) AU.musG.gain.setTargetAtTime(on ? 0.22 : 0, AU.ctx.currentTime, 0.1); if (on && AU.go) AU.el.play().catch(() => { }); else if (!on) AU.el.pause(); }
 ['pointerdown', 'keydown'].forEach(ev => window.addEventListener(ev, audioInit, { passive: true }));
 document.addEventListener('visibilitychange', () => { if (!AU.ctx) return; if (document.hidden) AU.ctx.suspend().catch(() => { }); else AU.ctx.resume().catch(() => { }); });
 function setSound(on) { AU.on = on; try { localStorage.setItem('kn_sfx', on ? '1' : '0'); } catch (e) { } if (AU.out) AU.out.gain.setTargetAtTime(on ? 0.7 : 0, AU.ctx.currentTime, 0.05); }
@@ -914,7 +916,7 @@ function sndWatch() {
     if (kn.ab) { const id = kn.abId, P = kn.ab === 'dash' ? (kn.abT >= DT_PREP ? 1 : 0) : (kn.abT >= LT_CR + LT_AIR ? 2 : kn.abT >= LT_CR ? 1 : 0);
       if (S.ab !== id) { S.ab = id; S.abP = 0; }
       if (P > S.abP) { S.abP = P; if (kn.ab === 'dash') snd('dash', kn.x, kn.y); else if (P === 1) snd('jump', kn.x, kn.y); else snd('slam', kn.sx ?? kn.x, kn.sy ?? kn.y); } }
-    if (kn.st === 'pull' && kn.hold) { if (!S.pull) { S.pull = 1; snd('pull', kn.x, kn.y); } } else if (kn.st === 'kneel') S.pull = 0;
+    if (kn.st === 'pull' && kn.hold) { if (!S.pull) { S.pull = 1; snd('pull', kn.x, kn.y); musGo(); } } else if (kn.st === 'kneel') S.pull = 0;
     if (kn.hits > S.hits) snd('ouch', kn.x, kn.y); S.hits = kn.hits;
   }
   K = KN[ME];
