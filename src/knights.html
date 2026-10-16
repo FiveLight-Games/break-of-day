@@ -1136,7 +1136,10 @@ function man(c, s, dance, att, aim, t, P, L, rl = -1, pit = [0, -1], wk = null) 
     const hI = hands[i], tI = tips[i] || [hI[0], hI[1] - 6.5], angHI = Math.atan2(hI[1] - shp[1], hI[0] - shp[0]), rHI = Math.hypot(hI[0] - shp[0], hI[1] - shp[1]), angTI = Math.atan2(tI[1] - hI[1], tI[0] - hI[0]);
     const angH = angHI + wr(angS - angHI) * w, rH = rHI + (3.4 - rHI) * w, angT = angTI + wr(angS - angTI) * w;
     hands[i] = [shp[0] + Math.cos(angH) * rH, shp[1] + Math.sin(angH) * rH]; tips[i] = [hands[i][0] + Math.cos(angT) * 6.5, hands[i][1] + Math.sin(angT) * 6.5]; }
-  const arm = (shp, hand) => { c.strokeStyle = SK; c.lineWidth = 1.3; c.lineCap = 'round'; c.beginPath(); c.moveTo(shp[0], shp[1]); c.quadraticCurveTo((shp[0] + hand[0]) / 2 + (hand[0] > shp[0] ? -0.6 : 0.6), (shp[1] + hand[1]) / 2 + 1, hand[0], hand[1]); c.stroke(); };
+  // lava mode (wk.lv 0..1): tattoos glow like embers, pulsing
+  const LV = wk && wk.lv > 0.01 ? wk.lv : 0, ember = (path, ph, dash) => { if (!LV) return; const pu = 0.65 + 0.35 * Math.sin(t * 5 + ph); c.save(); c.lineCap = 'round'; c.lineJoin = 'round'; if (dash) c.setLineDash(dash);
+    c.globalCompositeOperation = 'lighter'; c.strokeStyle = `rgba(255,70,10,${0.3 * LV * pu})`; c.lineWidth = 0.75; path(); c.stroke(); c.strokeStyle = `rgba(255,${(160 + 70 * pu) | 0},80,${0.9 * LV * pu})`; c.lineWidth = 0.2; path(); c.stroke(); c.restore(); };
+  const arm = (shp, hand) => { const cx = (shp[0] + hand[0]) / 2 + (hand[0] > shp[0] ? -0.6 : 0.6), cy = (shp[1] + hand[1]) / 2 + 1, p = () => { c.beginPath(); c.moveTo(shp[0], shp[1]); c.quadraticCurveTo(cx, cy, hand[0], hand[1]); }; c.strokeStyle = SK; c.lineWidth = 1.3; c.lineCap = 'round'; p(); c.stroke(); ember(p, shp[0], [0.35, 0.9]); };
   const torches = () => { for (let i = 0; i < (two ? 2 : 1); i++) torchTo(c, hands[i][0], hands[i][1], tips[i][0], tips[i][1], t, P, i + 3, L, Math.max(att, relit), out); };
   const arms = () => { const lh = hands[0][0] <= hands[1][0] ? hands[0] : hands[1], rh = lh === hands[0] ? hands[1] : hands[0]; arm(shL, lh); arm(shR, rh); }; // each shoulder takes the hand on its own side, so the arms never cross
   const back = ay < -0.05 && att > 0.5 || dip > 0.3 && dvy < -0.2; // aiming up the screen (or dipping into a fire behind him): torches go behind him
@@ -1146,10 +1149,12 @@ function man(c, s, dance, att, aim, t, P, L, rl = -1, pit = [0, -1], wk = null) 
   const lk = Math.sin(dance * 2) * (1 - att) * (1 - wmv); let lf = [-2.2 - att * 1.2 + lk * 1.2, -Math.max(0, lk) * 2.4], rf = [2.2 + att * 1.2 + lk * 1.2, -Math.max(0, -lk) * 2.4];
   if (wmv > 0.01) { const ph = wk.ph, W = (a, b) => [a[0] + (b[0] - a[0]) * wmv, a[1] + (b[1] - a[1]) * wmv]; lf = W(lf, [-1.1 + f * Math.sin(ph) * 2.8, -Math.max(0, Math.cos(ph)) * 1.5]); rf = W(rf, [1.1 - f * Math.sin(ph) * 2.8, -Math.max(0, -Math.cos(ph)) * 1.5]); } // walking: a striding gait, even while he breathes
   c.strokeStyle = SKD; c.lineWidth = 1.5; c.lineCap = 'round';
-  c.beginPath(); c.moveTo(-1, hipY); c.quadraticCurveTo(-2.4 - att, hipY + 2.4, lf[0], lf[1]); c.moveTo(1, hipY); c.quadraticCurveTo(2.4 + att, hipY + 2.4, rf[0], rf[1]); c.stroke();
+  const legs = () => { c.beginPath(); c.moveTo(-1, hipY); c.quadraticCurveTo(-2.4 - att, hipY + 2.4, lf[0], lf[1]); c.moveTo(1, hipY); c.quadraticCurveTo(2.4 + att, hipY + 2.4, rf[0], rf[1]); }; legs(); c.stroke(); ember(legs, 1.3, [0.35, 1.0]);
   // torso (leaning), war paint, bone necklace
   c.fillStyle = SK; c.beginPath(); c.moveTo(-2, hipY); c.lineTo(-2.6 + lx, sh + 0.6 + ly); c.quadraticCurveTo(lx, sh - 0.8 + ly, 2.6 + lx, sh + 0.6 + ly); c.lineTo(2, hipY); c.closePath(); c.fill();
   c.strokeStyle = PAINT; c.lineWidth = 0.6; c.beginPath(); c.moveTo(-1.6 + lx * 0.3, hipY - 1.6 + ly * 0.3); c.lineTo(1.6 + lx * 0.3, hipY - 2.4 + ly * 0.3); c.moveTo(-1.8 + lx * 0.55, hipY - 3 + ly * 0.55); c.lineTo(1.8 + lx * 0.55, hipY - 3.8 + ly * 0.55); c.stroke();
+  // ember tattoos on the chest: two chevrons and a spine line
+  ember(() => { c.beginPath(); for (const [y0, k] of [[hipY - 1.2, 0.3], [hipY - 3.4, 0.6]]) { c.moveTo(-1.7 + lx * k, y0 + ly * k); c.lineTo(lx * k, y0 - 1.3 + ly * k); c.lineTo(1.7 + lx * k, y0 + ly * k); } c.moveTo(lx * 0.1, hipY - 0.4 + ly * 0.1); c.lineTo(lx * 0.75, sh + 1.2 + ly * 0.75); }, 0.6);
   c.fillStyle = '#efe6cf'; for (let i = -2; i <= 2; i++) { c.beginPath(); c.arc(i * 0.9 + lx * 0.9, sh + 1.6 - Math.abs(i) * 0.25 + ly * 0.9, 0.38, 0, 7); c.fill(); }
   c.fillStyle = COL; c.beginPath(); c.moveTo(-2.3, hipY - 0.6); c.lineTo(2.3, hipY - 0.6); c.lineTo(1.5, hipY + 2.6); c.lineTo(-1.5, hipY + 2.6); c.closePath(); c.fill();
   c.fillStyle = '#6b4a2a'; c.fillRect(-2.4, hipY - 1, 4.8, 0.8);
@@ -1157,7 +1162,17 @@ function man(c, s, dance, att, aim, t, P, L, rl = -1, pit = [0, -1], wk = null) 
   c.fillStyle = SK; c.beginPath(); c.arc(hx, hy, 2.1, 0, 7); c.fill();
   c.fillStyle = '#21140c'; c.beginPath(); c.arc(hx, hy - 0.4, 2.2, Math.PI * 1.02, Math.PI * 1.98); c.fill(); c.beginPath(); c.arc(hx - f * 0.6, hy - 2.4, 0.9, 0, 7); c.fill();
   c.strokeStyle = PAINT; c.lineWidth = 0.5; c.beginPath(); c.moveTo(hx + f * 0.5, hy - 0.2); c.lineTo(hx + f * 1.8, hy - 0.2); c.stroke();
-  headdress(c, hx, hy, f, L, t);
+  ember(() => { c.beginPath(); c.moveTo(hx + f * 0.5, hy + 0.6); c.lineTo(hx + f * 1.5, hy + 1.3); c.moveTo(hx - f * 0.2, hy - 1.2); c.lineTo(hx + f * 1.2, hy - 1.0); }, 2.1);
+  // lava mode: the headdress grows and its feathers lick with flame
+  if (LV) { const by = hy - 1.6, S2 = 1 + 0.45 * LV; c.save(); c.translate(hx, by); c.scale(S2, S2); c.translate(-hx, -by); headdress(c, hx, hy, f, L, t);
+    c.globalCompositeOperation = 'lighter'; const sway = Math.sin(t * 3) * 0.04;
+    for (let i = 0; i < 9; i++) { const k = i / 8 - 0.5, ang = -Math.PI / 2 - f * 0.35 + k * 1.9 + sway, ln = 5.6 * (1 - Math.abs(k) * 0.45), x0 = hx + k * 2.2 + Math.cos(ang) * ln * 0.8, y0 = by + Math.abs(k) * 0.8 + Math.sin(ang) * ln * 0.8;
+      for (const [sz, off] of [[1, 0], [0.55, 0.5]]) { if (off && i === 8) continue; const j = i + off, fl = (2.4 + 1.8 * Math.abs(Math.sin(t * 8.5 + j * 1.7))) * LV * sz, a2 = ang * 0.55 - Math.PI / 2 * 0.45 + Math.sin(t * 6 + j) * 0.18;
+        const xs = off ? x0 + Math.cos(ang) * 0.4 + 0.5 : x0, ys = off ? y0 - 0.3 : y0, ex = xs + Math.cos(a2) * (fl + 0.8), ey = ys + Math.sin(a2) * (fl + 0.8), nx = -Math.sin(a2) * 0.42 * sz, ny = Math.cos(a2) * 0.42 * sz, cu = Math.sin(t * 11 + j * 2.3) * 0.9 * sz;
+        const g = c.createLinearGradient(xs, ys, ex, ey); g.addColorStop(0, `rgba(255,245,190,${0.95 * LV})`); g.addColorStop(0.3, `rgba(255,170,50,${0.85 * LV})`); g.addColorStop(0.7, `rgba(240,70,15,${0.55 * LV})`); g.addColorStop(1, 'rgba(200,30,10,0)'); c.fillStyle = g;
+        c.beginPath(); c.moveTo(xs + nx, ys + ny); c.quadraticCurveTo((xs + ex) / 2 + nx * 1.3 + cu * -Math.sin(a2), (ys + ey) / 2 + ny * 1.3 + cu * Math.cos(a2), ex, ey); c.quadraticCurveTo((xs + ex) / 2 - nx * 1.3 + cu * -Math.sin(a2), (ys + ey) / 2 - ny * 1.3 + cu * Math.cos(a2), xs - nx, ys - ny); c.closePath(); c.fill(); } }
+    const hg = c.createRadialGradient(hx, by - 3, 0, hx, by - 3, 6); hg.addColorStop(0, `rgba(255,150,50,${0.35 * LV})`); hg.addColorStop(1, 'rgba(255,80,20,0)'); c.fillStyle = hg; c.beginPath(); c.arc(hx, by - 3, 6, 0, 7); c.fill(); c.restore(); }
+  else headdress(c, hx, hy, f, L, t);
   c.fillStyle = SKD; c.beginPath(); c.arc(hx + f * 1.9, hy + 0.3, 0.55 + att * 0.35, 0, 7); c.fill();
   if (!back) { arms(); torches(); }
   c.restore();
@@ -1223,7 +1238,7 @@ const FIRE = { R: 54, HALF: 0.4, DPS: 240, BURN: 5, BURN_DPS: 14, RUN: 0.92, ATK
 // Plume (the dash stick): he blasts fire at the ground, rides it into the air for 3s and is pushed away from where he aims it
 // Coals (the leap circle): lay a rectangle of hot coals along the aim, then sprint down it throwing flames out past both sides
 // Lava (the button): refills the breath charge in gold; that one charge breathes a tight lava beam, full breath length, x3 damage, slower to turn
-const LAVA = { CD: 20, DMG: 3, LEN: 1.25, W: 5, TURN: 5, KB: 60 };
+const LAVA = { T: 5, CD: 20, DMG: 3, LEN: 1.25, W: 5, TURN: 5, KB: 60 };
 // Volcano (his ult, 250 kills): a volcano rises under him and lifts him out of reach; tap to belch a molten rock (max 3, 8s), then it sinks
 const V = { RISE: 1.5, CRACK: 0.25, T: 12, SINK: 0.7, H: 42, BASE: 40, LIP: 11, SHOTS: 5, BELCH: 0.5, FLY: 1.0, R: 48, DMG: 650, KB: 280, FT: 4.5, FDPS: 45, FR: 24, MAXD: 320, RING: 14, RDPS: 60 };
 const vBack = u => { const c1 = 1.4, c3 = c1 + 1; return 1 + c3 * (u - 1) ** 3 + c1 * (u - 1) ** 2; };
@@ -1387,14 +1402,15 @@ function fireStep(dt, t) {
   if (mine && (IN.ultN || 0) !== (K.ultSeen || 0)) { K.ultSeen = IN.ultN || 0; if (!(K.vPh >= 0) && ultReady(K) && !(K.plT >= 0) && !(K.coT >= 0)) startVolc(); }
   if (K.vPh >= 0) { volcStep(dt, IN, mine); FBX.stepBreath(K, dt); K.st = 'fight'; return; }
   if (K.lvCd > 0) K.lvCd -= dt;
-  // the lava charge (lvC) is its own: it doesn't refill, and the breath charge keeps refilling underneath it
-  if (mine && lvPress && !K.lava && !(K.lvCd > 0)) { K.lava = 1; K.lvC = FIRE.BR_T; K.brLock = 0; K.brOn = 0; K.brH = 0; }
+  // Lava: the press arms it; the 5s lava window (lvW) starts the first time he breathes, and runs out whether or not he keeps breathing; the breath charge keeps refilling underneath
+  if (mine && lvPress && !K.lava && !(K.lvCd > 0)) { K.lava = 1; K.lvW = 0; K.lvC = FIRE.BR_T; K.brLock = 0; K.brOn = 0; K.brH = 0; }
   if (K.lvQ > 0) K.lvQ -= dt;
-  const chg = K.lava ? (K.lvC || 0) : K.brC;
+  const chg = K.lava ? 1 : K.brC;
   if (brIn && !K.brLock && chg > (K.brOn || K.lava ? 0 : FIRE.BR_MIN)) { if (!K.brOn) { K.tsw = -1; K.brH = 0; } K.brOn = 1; K.brH = (K.brH || 0) + dt;
-    if (K.lava) { K.lvC = Math.max(0, K.lvC - dt); if (K.lvC <= 0) { K.lava = 0; K.lvCd = LAVA.CD; K.brLock = 1; K.brOn = 0; K.brH = 0; K.lvQ = 0.5; } }
+    if (K.lava) { if (!(K.lvW > 0)) K.lvW = LAVA.T; }
     else { K.brC = Math.max(0, K.brC - dt); if (K.brC <= 0) K.brLock = 1; } }
   else if (K.brOn) { if (K.lava) K.lvQ = 0.5; K.brOn = 0; K.brH = 0; }
+  if (K.lava && K.lvW > 0) { K.lvW = Math.max(0, K.lvW - dt); K.lvC = K.lvW; if (K.lvW <= 0) { K.lava = 0; K.lvCd = LAVA.CD; if (K.brOn) { K.brLock = 1; K.lvQ = 0.5; } K.brOn = 0; K.brH = 0; } }
   if (!K.brOn || K.lava) K.brC = Math.min(FIRE.BR_T, K.brC + dt * FIRE.BR_REGEN);
   K.lvOn = K.lava && K.brOn ? 1 : 0;
   K.heat = K.brOn && !K.lvOn ? Math.min(1, (K.brH || 0) / FIRE.BR_HEAT) : undefined;
@@ -1584,8 +1600,9 @@ function drawFire(c, t) {
   if (K.vPh >= 0) drawVolc(c, K, t);
   const zz = K.z || 0; if (zz > 0.5 && !(K.vPh >= 0)) { const k = Math.max(0.35, 1 - zz / 40); c.fillStyle = `rgba(0,0,0,${0.3 * k})`; c.beginPath(); c.ellipse(K.x, K.y + 0.4, 4.5 * k, 1.5 * k, 0, 0, 7); c.fill(); }
   c.save(); c.translate(K.x, K.y - zz); const sp = Math.hypot(K.vx || 0, K.vy || 0), ln = sp > 2 ? [K.vx / (RUN * FIRE.RUN), K.vy / (RUN * FIRE.RUN)] : [0, 0];
+  { const dv = Math.min(0.1, Math.max(0, t - (K.lvVt ?? t))); K.lvVt = t; K.lvVis = cl((K.lvVis || 0) + (K.lava && K.lvW > 0 ? dv * 2.5 : -dv * 1.5), 0, 1); }
   const pit = pitOf(K), rl = K.st === 'kneel' ? 0.05 : K.st === 'pull' ? (K.u || 0) : -1, lc = K.landT > 0 ? Math.sin(Math.min(1, K.landT / 0.35) * Math.PI) : 0;
-  const m = FBX.man(c, FIRE.S, K.dph || 0, K.att || 0, K.aimS || 0, t, FBX.pal(5), 5, rl, [pit[0] - K.x, pit[1] - 6.5 - K.y], { crouch: lc, ph: K.wph || 0, mv: (K.att || 0) > 0.3 && !(K.plT >= 0) ? mv * Math.min(1, K.att * 1.5) : 0, f: K.f, z: zz > 0.5, lean: ln, sw: K.tsw >= 0 ? { u: K.tsw / FIRE.TSW, side: (K.tswN || 0) % 2 } : null }); c.restore();
+  const m = FBX.man(c, FIRE.S, K.dph || 0, K.att || 0, K.aimS || 0, t, FBX.pal(5), 5, rl, [pit[0] - K.x, pit[1] - 6.5 - K.y], { crouch: lc, ph: K.wph || 0, mv: (K.att || 0) > 0.3 && !(K.plT >= 0) ? mv * Math.min(1, K.att * 1.5) : 0, f: K.f, z: zz > 0.5, lean: ln, lv: sm(K.lvVis || 0), sw: K.tsw >= 0 ? { u: K.tsw / FIRE.TSW, side: (K.tswN || 0) % 2 } : null }); c.restore();
   K.mouthW = [K.x + m.conv[0], K.y - zz + m.conv[1]]; const tp = K.tsw >= 0 && m.tips[(K.tswN || 0) % 2]; if (tp) K.tipW = [K.x + tp[0], K.y - zz + tp[1]];
 }
 // lava texture: molten core banded out to a dark crust, crust plates and bright seams wrapped so it tiles along the beam
@@ -1844,7 +1861,7 @@ function draw() {
   if ((K.kind === 'fire') !== CHAR_UI) charUI(K.kind === 'fire');
   if (K.kind === 'fire') AOEI.style.height = (K.coT >= 0 ? 100 : cl((K.coCd || 0) / CO.CD, 0, 1) * 100) + '%';
   // breath charge fills the breath stick's ring with orange from the bottom
-  { const rs = document.getElementById('rst'); rs.style.background = K.kind === 'fire' ? `linear-gradient(to top, ${K.lava ? '#f5c518cc' : '#f0a04a88'} ${100 * cl((K.lava ? K.lvC || 0 : K.brC ?? FIRE.BR_T) / FIRE.BR_T, 0, 1)}%, #ffffff14 0)` : ''; }
+  { const rs = document.getElementById('rst'); rs.style.background = K.kind === 'fire' ? `linear-gradient(to top, ${K.lava ? '#f5c518cc' : '#f0a04a88'} ${100 * cl((K.lava ? (K.lvW > 0 ? K.lvW / LAVA.T : 1) : (K.brC ?? FIRE.BR_T) / FIRE.BR_T), 0, 1)}%, #ffffff14 0)` : ''; }
   if (K.kind === 'fire') BSTI.style.height = (100 * (1 - cl((K.brC ?? FIRE.BR_T) / FIRE.BR_T, 0, 1))) + '%';
   if (K.kind === 'fire') DASHI.style.height = (K.plT >= 0 ? 100 * (1 - K.plT / PL.T) : cl((K.plCd || 0) / PL.CD, 0, 1) * 100) + '%'; else DASHI.style.height = (K.ab === 'dash' ? 100 : cl((K.dashCd || 0) / DASH_CD, 0, 1) * 100) + '%'; if (K.kind !== 'fire') AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
 }
@@ -1988,7 +2005,7 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
 const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in) });
