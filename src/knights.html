@@ -1862,11 +1862,12 @@ function priestAb(dt) {
     if (AUTH()) { const ang = Math.atan2(K.y - py, K.x - px); for (const w of walkers) { if (w.hp <= 0 || w.reeled === K.i * 1e6 + K.abId) continue; if (segDist(w.x, w.y, [px, py], [K.x, K.y]) < 7 + UK[w.k].r) { w.reeled = K.i * 1e6 + K.abId; w.atk = -1; const s = ((w.x - K.x) * -Math.sin(ang) + (w.y - K.y) * Math.cos(ang)) >= 0 ? 1 : -1, ka = Math.atan2(Math.cos(ang) * s * 0.75 + Math.sin(ang) * 0.6, -Math.sin(ang) * s * 0.75 + Math.cos(ang) * 0.6); w.kx += Math.cos(ka) * WP.SL.PKB; w.ky += Math.sin(ka) * WP.SL.PKB * 0.55; hurt(w, WP.SL.PDMG, ww => flingFx(ww, ka)); } } }
     if (q >= 1) { K.ab = null; K.z = 0; K.hL = WP.DRAG; } }
 }
-// what the chain catches is hooked and hauled along with it all the way to the clump where the head lands
+// what the chain catches sticks to it where it was caught (the same fraction of the way out along it) and is carried round with it until the sweep ends;
+// the head's own catches ride just outside the ball
 function sweepHit(pa, p, B, dt) {
   const id = K.i * 1e6 + K.abId, s = Math.sign(wrapA(K.sa1 - K.sa0)) || 1, base = [K.x, K.y], a = B.a, tang = [-Math.sin(a) * s, Math.cos(a) * s];
   for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k];
-    if (w.hook === K.i && w.hId === id) { w.ha += wrapA(a + w.hja - w.ha) * Math.min(1, dt * 12); const k = sm(cl((B.q - w.hq) / Math.max(0.05, 1 - w.hq), 0, 1)), q = ring2(K.x, K.y, w.ha, lerp(w.hr0, K.sr1 + w.hoff, k)); w.x = q[0]; w.y = q[1]; w.atk = -1; continue; }
+    if (w.hook === K.i && w.hId === id) { w.ha += wrapA(a - w.ha) * Math.min(1, dt * 25); const q = ring2(K.x, K.y, w.ha, w.hu * B.r + w.hoff); w.x = q[0]; w.y = q[1]; w.atk = -1; continue; }
     if (w.swpd === id || w.bT > 0) continue; const pt = [w.x, w.y - 3 * U.sc];
     const onHead = gd(p[0], p[1], w.x, w.y) < WP.HR + U.r + 1.5;
     if (!onHead && !(inTri(pt, base, pa, p) || ptSeg(pt, base, p) < U.r + 1.2)) continue;
@@ -1874,7 +1875,7 @@ function sweepHit(pa, p, B, dt) {
     const rw = gd(K.x, K.y, w.x, w.y);
     hurt(w, onHead ? WP.SW.HEAD : WP.SW.DMG, ww => onHead && canImpale(ww) && Math.random() < WP.IMP ? impaleFx(ww, Math.atan2(ww.y - K.hy, ww.x - K.hx)) : dashFx(ww, Math.atan2(tang[1], tang[0])));
     if (w.hp <= 0) continue;
-    w.hook = K.i; w.hId = id; w.hr0 = rw; w.hq = B.q; w.ha = Math.atan2((w.y - K.y) * 1.25, w.x - K.x); w.hja = rr(-0.12, 0.12); w.hoff = rr(-3, 3) + (onHead ? WP.HR + U.r : rr(0, WP.HR)); }
+    w.hook = K.i; w.hId = id; w.ha = Math.atan2((w.y - K.y) * 1.25, w.x - K.x); w.hu = onHead ? 1 : cl(rw / Math.max(B.r, 1), 0.15, 1); w.hoff = onHead ? WP.HR + U.r : 0; }
 }
 function sweepRelease() {
   const id = K.i * 1e6 + K.abId;
