@@ -1214,7 +1214,7 @@ function drawBreath(c, T, t) {
 })();
 
 // the Firebreather as a player: walks (and keeps walking while he breathes), right stick aims a cone of fire that burns everything in it
-const FIRE = { R: 54, HALF: 0.4, DPS: 240, BURN: 5, BURN_DPS: 28, RUN: 0.92, ATK: 0.8, BACK: 0.65, S: 1.0, TSW: 0.5, WAVE_DMG: 75, WAVE_T: 0.38, BR_DPS: 180, BR_SZ0: 0.55, BR_W0: 0.65, BR_T: 5, BR_REGEN: 5 / 7, BR_MIN: 0.25, BR_HEAT: 3, BR_LO: 0.35, BR_KB: 190, BR_LEN: 1.65, BR_WIDE: 1.35, CORE: 7 };
+const FIRE = { R: 54, HALF: 0.4, DPS: 240, BURN: 5, BURN_DPS: 28, RUN: 0.92, ATK: 0.8, BACK: 0.65, S: 1.0, TSW: 0.5, WAVE_DMG: 60, WAVE_WIDE: 1.3, WAVE_T: 0.38, BR_DPS: 180, BR_SZ0: 0.55, BR_W0: 0.65, BR_T: 5, BR_REGEN: 5 / 7, BR_MIN: 0.25, BR_HEAT: 3, BR_LO: 0.35, BR_KB: 190, BR_LEN: 1.65, BR_WIDE: 1.35, CORE: 7 };
 // Plume (the dash stick): he blasts fire at the ground, rides it into the air for 3s and is pushed away from where he aims it
 // Coals (the leap circle): lay a rectangle of hot coals along the aim, then sprint down it throwing flames out past both sides
 const CO = { FRONT: 220, SPD: 150, W: 16, SIDE: 24, L0: 40, L1: 75, DMG: 110, DPS: 70, LIFE: 5, CD: 10 };
@@ -1274,7 +1274,7 @@ function fireStep(dt, t) {
         if (!hit) { const ex = w.x - K.x, ey = (w.y - K.y) * 1.3; hit = Math.hypot(ex, ey) < FIRE.CORE + U.r && ex * ad[0] + ey * ad[1] > 0; }
         if (!hit) continue; w.bd = FIRE.BURN; w.bsrc = K.i; w.atk = -1; const hk = K.brK || 1; w.kx += ad[0] * FIRE.BR_KB * hk * dt; w.ky += ad[1] * FIRE.BR_KB * 0.5 * hk * dt; w.hp -= FIRE.BR_DPS * dt * K.cone * hk; if (w.hp <= 0) { K.kills++; burnFx(w); } } }
     // torch waves: a front that rolls out through the cone and hits each enemy once
-    for (const wv of K.waves || []) { wv.t += dt; const r = K.reach * Math.min(1, wv.t / FIRE.WAVE_T);
+    for (const wv of K.waves || []) { wv.t += dt; const r = FIRE.R * Math.min(1, wv.t / FIRE.WAVE_T);
       for (const w of walkers) { if (w.hp <= 0 || wv.hit.has(w.id)) continue; const U = UK[w.k], dx = w.x - wv.x, dy = (w.y - 4 * U.sc) - wv.y, d = Math.hypot(dx, dy); if (d > r + U.r) continue; let da = Math.atan2(dy, dx) - wv.a; da = Math.atan2(Math.sin(da), Math.cos(da)); if (Math.abs(da) > wv.half + U.r / Math.max(d, 4) && d > FIRE.CORE + U.r) continue;
         wv.hit.add(w.id); w.bd = FIRE.BURN; w.bsrc = K.i; w.atk = -1; w.kx += Math.cos(wv.a) * 50; w.ky += Math.sin(wv.a) * 25; w.hp -= FIRE.WAVE_DMG; if (w.hp <= 0) { K.kills++; burnFx(w); } } }
     if (K.waves) K.waves = K.waves.filter(wv => wv.t < FIRE.WAVE_T);
@@ -1381,10 +1381,27 @@ function plumeStep(dt, IN) {
   if (T >= PL.T) { K.plT = -1; K.plCd = PL.CD; K.z = 0; K.cone = 0; K.att = 0; K.landT = 0.35; for (let i = 0; i < 16; i++) { const a = rr(0, 6.28), v = rr(15, 40); dust.push({ x: K.x, y: K.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.45, r: rr(1, 2), t: 0, max: rr(0.4, 0.8) }); } }
 }
 // a wave of fire off the end of the torch: a burst of flame puffs through the breath's cone (both screens), and the damage front (host)
+// the torch swing throws a lick of flame: a curved sheet that slaps outward from the torch, widening as it goes, licking at its front edge
 function fireWave() {
-  const m = mouthOf(K), tp = K.tipW || m, n = 52; K.fp = K.fp || []; // a sheet of flame from the torch down to his mouth, rolling out along the aim
-  for (let i = 0; i < n; i++) { const a = K.aimS + (Math.random() - 0.5) * 2 * K.half * 0.9, sp = K.reach / 0.5 * 1.2 * (0.7 + Math.random() * 0.5), q = Math.random() * 9, h = Math.random(); K.fp.push({ x: lerp(tp[0], m[0], h) + Math.cos(a) * q, y: lerp(tp[1], m[1], h) + Math.sin(a) * q, vx: Math.cos(a) * sp + (K.vx || 0), vy: Math.sin(a) * sp + (K.vy || 0), life: 0, max: (0.4 + Math.random() * 0.14) / 1.2, sd: Math.random() * 6 }); }
-  if (AUTH()) (K.waves = K.waves || []).push({ x: m[0], y: m[1], a: K.aimS, half: K.half, t: 0, hit: new Set() });
+  const m = mouthOf(K), half = FIRE.HALF * FIRE.WAVE_WIDE;
+  FX.push({ k: 'lick', x: m[0], y: m[1], a: K.aimS, half, R: FIRE.R, t: 0, max: FIRE.WAVE_T + 0.2, seed: Math.random() * 1000, side: (K.tswN || 0) % 2 ? 1 : -1 });
+  for (let i = 0; i < 10; i++) { const a = K.aimS + rr(-half, half); sparks.push({ x: m[0], y: m[1], vx: Math.cos(a) * rr(40, 90), vy: Math.sin(a) * rr(40, 90) - 10, t: 0, max: rr(0.3, 0.6) }); }
+  if (AUTH()) (K.waves = K.waves || []).push({ x: m[0], y: m[1], a: K.aimS, half, t: 0, hit: new Set() });
+}
+function drawLick(c, f, t) {
+  const k = Math.min(1, f.t / FIRE.WAVE_T), e = 1 - (1 - k) * (1 - k), fade = f.t > FIRE.WAVE_T ? 1 - (f.t - FIRE.WAVE_T) / 0.2 : 1, R = f.R * (0.12 + 0.88 * e), th = 5 + 8 * e, hw = f.half * (0.55 + 0.6 * e);
+  const N = 22, front = [], back = [], tw = f.side * 0.25 * (1 - e); // the sheet sweeps a little across as it goes, the way the torch swung
+  for (let i = 0; i <= N; i++) { const u = i / N, a = f.a + tw + (u - 0.5) * 2 * hw, edge = Math.sin(u * Math.PI), lick = 1 + 0.07 * edge * Math.sin(u * 7 + f.seed + f.t * 14) + 0.035 * Math.sin(u * 13 + f.seed * 2 - f.t * 18);
+    const rf = R * lick * (0.8 + 0.2 * edge), rb = Math.max(2, rf - th * (0.25 + 0.75 * edge));
+    front.push([f.x + Math.cos(a) * rf, f.y + Math.sin(a) * rf * 0.92]); back.push([f.x + Math.cos(a) * rb, f.y + Math.sin(a) * rb * 0.92]); }
+  const path = () => { c.beginPath(); front.forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); for (let i = back.length - 1; i >= 0; i--) c.lineTo(back[i][0], back[i][1]); c.closePath(); };
+  c.save(); c.globalAlpha = Math.max(0, fade) * (0.75 + 0.25 * (1 - k));
+  const g = c.createRadialGradient(f.x, f.y, Math.max(1, R - th * 1.4), f.x, f.y, R * 1.12); g.addColorStop(0, 'rgba(200,40,10,0)'); g.addColorStop(0.35, 'rgba(230,70,20,.85)'); g.addColorStop(0.7, 'rgba(255,150,40,.95)'); g.addColorStop(0.9, 'rgba(255,225,120,1)'); g.addColorStop(1, 'rgba(255,250,220,1)');
+  c.fillStyle = g; path(); c.fill();
+  c.globalCompositeOperation = 'lighter'; c.globalAlpha *= 0.5 * (1 - k * 0.6); c.fillStyle = 'rgba(255,200,90,.6)'; path(); c.fill();
+  c.restore();
+  // a few tongues breaking off the front edge
+  if (k < 0.95) { c.save(); c.globalAlpha = Math.max(0, fade) * (1 - k); const R2 = srand(Math.floor(f.seed) + 1); for (let i = 0; i < 5; i++) { const q = front[1 + Math.floor(R2() * (N - 2))]; FBX.flame(c, q[0], q[1], 3 + R2() * 3, 1.2, t, PB, i + f.seed, 0, true); } c.restore(); }
 }
 // burnt to a crisp: charred chunks, ash, smoke and embers
 const burnFx = w => { EV.push([w.id, 5, 0, K.i, r1(w.x), r1(w.y)]); burnKill(w); };
@@ -1591,6 +1608,7 @@ function draw() {
   x.save(); x.globalCompositeOperation = 'lighter'; for (const p of sparks) { const k = p.t / p.max; x.fillStyle = `rgba(255,230,150,${1 - k})`; x.beginPath(); x.arc(p.x, p.y, 0.45, 0, 7); x.fill(); } x.restore();
   for (const kn of KN) if (kn.ab === 'dash' && kn.slice && kn.slice.length > 1) drawSlice(x, kn.slice, 1);
   for (const f of FX) if (f.k === 'slice') drawSlice(x, f.pts, 1 - f.t / f.max);
+  for (const f of FX) if (f.k === 'lick') drawLick(x, f, t);
   for (const kn of KN) if (kn.kind === 'fire' && kn.fp && kn.fp.length) FBX.drawBreath(x, kn, t);
   drawFxAir(x);
   // blade trail: a short ribbon the length of the light blade, fading behind it
@@ -1688,7 +1706,8 @@ function doLeap(v) { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN
 let dashId = null, dashO = null;
 const dashUpd = e => { const r = DASHE.getBoundingClientRect(), R = r.width / 2; let dx = e.clientX - dashO[0], dy = e.clientY - dashO[1]; const d = Math.hypot(dx, dy); if (d > R * 0.7) { dx *= R * 0.7 / d; dy *= R * 0.7 / d; }
   DASHAIM = d > 8 ? [dx, dy] : null; if (KN[ME] && KN[ME].kind === 'fire') { stickPl = [Math.round(dx / (R * 0.7) * 100) / 100, Math.round(dy / (R * 0.7) * 100) / 100]; syncIn(); DASHAIM = null; } DASHD.style.transform = `translate(${dashO[0] - r.left - R + dx}px,${dashO[1] - r.top - R + dy}px)`; };
-DASHE.addEventListener('pointerdown', e => { dashId = e.pointerId; DASHE.setPointerCapture(dashId); dashO = [e.clientX, e.clientY]; dashUpd(e); e.preventDefault(); });
+// plume (the Firebreather's) is a fixed stick whose centre is the circle's centre; the knight's dash stick floats
+DASHE.addEventListener('pointerdown', e => { dashId = e.pointerId; DASHE.setPointerCapture(dashId); const r0 = DASHE.getBoundingClientRect(); dashO = KN[ME] && KN[ME].kind === 'fire' ? [r0.left + r0.width / 2, r0.top + r0.height / 2] : [e.clientX, e.clientY]; dashUpd(e); e.preventDefault(); });
 DASHE.addEventListener('pointermove', e => { if (e.pointerId === dashId) dashUpd(e); });
 const dashEnd = (e, go) => { if (e.pointerId !== dashId) return; dashId = null; if (KN[ME] && KN[ME].kind === 'fire') { stickPl = null; syncIn(); } else if (go && DASHAIM) doDash(DASHAIM); DASHAIM = null; DASHD.style.transition = 'transform .12s'; DASHD.style.transform = ''; setTimeout(() => DASHD.style.transition = '', 130); };
 DASHE.addEventListener('pointerup', e => dashEnd(e, true)); DASHE.addEventListener('pointercancel', e => dashEnd(e, false));
@@ -1836,6 +1855,8 @@ const layCh = () => CHAR === 'fire' ? 'fire' : 'knight';
 let CHAR_UI = null;
 function charUI(fire) { CHAR_UI = fire; document.getElementById('help').textContent = fire ? 'WASD/arrows move · hold mouse to swing the torch at the cursor · hold Space to breathe at the cursor · hold Shift to ride a plume the way you move · hold Q to aim the coals at the cursor, release to run them · R ult · wheel zoom' : 'WASD/arrows move · hold mouse to swing toward cursor · Space spin · Shift dash where you\'re moving · hold Q to aim the leap at the cursor, release to jump · R ult · wheel zoom'; document.body.classList.toggle('fire', fire); document.querySelector('#rst small').textContent = fire ? 'torch' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : 'leap'; }
 let LAY = {}; try { LAY = JSON.parse(localStorage.getItem('kn_layout') || '{}') || {}; } catch (e) { }
+// plume and coals swapped places: carry a Firebreather layout saved before that over, so his saved spots swap too
+if (LAY.fire && !LAY.fire.sw1) { for (const o of ['landscape', 'portrait']) { const L = LAY.fire[o]; if (L) { const d = L.dash; L.dash = L.leap; L.leap = d; if (!L.dash) delete L.dash; if (!L.leap) delete L.leap; } } LAY.fire.sw1 = 1; try { localStorage.setItem('kn_layout', JSON.stringify(LAY)); } catch (e) { } }
 const orient = () => innerWidth > innerHeight ? 'landscape' : 'portrait';
 const layNow = () => (LAY[layCh()] || {})[orient()];
 const LPROPS = ['left', 'top', 'right', 'bottom', 'width', 'height'];
@@ -1898,7 +1919,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR === 'fire'); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'a5c1d2';
+const KBUILD = '7db03c';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
