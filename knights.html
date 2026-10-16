@@ -33,7 +33,7 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 #lobbyUI a{color:#a59c88;font-size:12px}
 #note{position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#000b;border-radius:10px;padding:6px 12px;font-size:12px;display:none;pointer-events:none}
 #layEd{position:fixed;left:50%;top:max(58px,12vh);transform:translateX(-50%);transition:opacity .15s;z-index:15;background:#14120ff2;border:1px solid #3a332a;border-radius:14px;padding:12px 14px;display:none;flex-direction:column;gap:8px;width:min(320px,calc(100vw - 32px));font-size:13px;color:#efe7d6}#layEd b{font:700 15px system-ui;color:#f0c419}#layHint{color:#a59c88;font-size:12px}#layEd .lrow{display:flex;gap:8px;align-items:center}#layEd input{flex:1;accent-color:#f0c419}#layEd .lnum{font:600 12px ui-monospace,monospace;min-width:30px;text-align:right}#layWarn{color:#ff6a4d;font-size:12px}#layEd button{flex:1}#layEd .pri2{border-color:#f0c419;color:#f0c419}
-body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.editing #spin{cursor:move;outline:2px dashed #ffffff55;outline-offset:2px}body.editing .lsel{outline:2px dashed #f0c419 !important}@media (orientation:portrait){#layEd{top:26vh}}body.fire #spin,body.fire #dash,body.fire #aoe,body.fire #ult{display:none}body.dragging #layEd{opacity:.25;pointer-events:none}body.editing .lbad{box-shadow:0 0 0 3px #ff6a4d}
+body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.editing #spin{cursor:move;outline:2px dashed #ffffff55;outline-offset:2px}body.editing .lsel{outline:2px dashed #f0c419 !important}@media (orientation:portrait){#layEd{top:26vh}}body.fire #dash,body.fire #aoe,body.fire #ult{display:none}body.dragging #layEd{opacity:.25;pointer-events:none}body.editing .lbad{box-shadow:0 0 0 3px #ff6a4d}
 #exitQ{position:fixed;inset:0;z-index:20;background:#0008;display:none;align-items:center;justify-content:center}#exitQ.open{display:flex}#exitQ>div{background:#14120f;border:1px solid #3a332a;border-radius:14px;padding:18px 20px;text-align:center}#exitQ p{margin:0 0 14px;font:700 16px system-ui;color:#efe7d6}#exitQ .row{display:flex;gap:10px;justify-content:center}#exitQ button{padding:10px 18px;font-size:14px}#exitYes{border-color:#f0c419;color:#f0c419}
 #menuBtn{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;text-decoration:none}
 #dash{position:fixed;right:calc(10vw + 11px);bottom:172px;width:96px;height:96px;border-radius:50%;background:#9fd3ff14;border:2px solid #9fd3ff80;touch-action:none;overflow:hidden}
@@ -992,6 +992,7 @@ function snd(k, wx, wy, big) {
     case 'gswing': noise(t, 0.4, 0.5 * v, 'bandpass', 160 * j, 1100 * j, 1.1, 0.08); tone('sawtooth', 70, 40, t, 0.1, 0.3, 0.05 * v); break;
     case 'gslam': tone('sine', 70, 22, t, 0.005, 1.1, 0.95 * v); noise(t, 1.1, 0.55 * v, 'lowpass', 1600, 90, 0.6); noise(t, 0.12, 0.35 * v, 'bandpass', 2200, 900, 1.2); for (let i = 0; i < 10; i++) noise(t + 0.1 + Math.random() * 0.6, 0.05, 0.08 * v, 'bandpass', 500 + Math.random() * 1400, 0, 3); break;
     case 'gcharge': tone('sawtooth', 45, 120, t, 0.9, 0.15, 0.06 * v); noise(t, 1.0, 0.22 * v, 'lowpass', 150, 900, 0.8, 0.9); tone('sine', 220, 660, t, 0.9, 0.1, 0.05 * v); break;
+    case 'fwave': noise(t, 0.22, 0.3 * v, 'bandpass', 300 * j, 1400 * j, 1.1, 0.03); noise(t + 0.08, 0.25, 0.16 * v, 'lowpass', 900, 300, 0.8, 0.05); for (let i = 0; i < 3; i++) noise(t + 0.1 + Math.random() * 0.15, 0.02, 0.06 * v, 'bandpass', 1200 + Math.random() * 2000, 0, 4); break;
     case 'fire': noise(t, 0.2, 0.2 * v, 'bandpass', 380 * j, 700 * j, 0.9, 0.04); for (let i = 0; i < 3; i++) noise(t + Math.random() * 0.12, 0.025, 0.07 * v, 'bandpass', 900 + Math.random() * 2400, 0, 4); break;
     case 'ouch': ring(t, 430 * j, 0.3, 0.09 * v); noise(t, 0.08, 0.28 * v, 'lowpass', 900, 300, 1); tone('sine', 120, 70, t, 0.002, 0.12, 0.25 * v); break;
   }
@@ -1002,7 +1003,7 @@ function hitSnd(w) { snd(ARMOR[w.k] ? 'clank' : 'hit', w.x, w.y); }
 // knight sounds follow each knight's state, so both screens hear both knights without extra netcode
 function sndWatch() {
   for (const kn of KN) {
-    if (kn.kind === 'fire') { if (kn.cone > 0.3) snd('fire', kn.x, kn.y); if (kn.hits > (kn.snd ? kn.snd.hits : 0)) snd('ouch', kn.x, kn.y); kn.snd = { hits: kn.hits }; continue; }
+    if (kn.kind === 'fire') { if (kn.cone > 0.3) snd('fire', kn.x, kn.y); if ((kn.tswN || 0) !== (kn.sndSw || 0)) { kn.sndSw = kn.tswN; snd('fwave', kn.x, kn.y); } if (kn.hits > (kn.snd ? kn.snd.hits : 0)) snd('ouch', kn.x, kn.y); kn.snd = { hits: kn.hits }; continue; }
     const S = kn.snd || (kn.snd = { sw: 0, half: 0, glow: 0, ab: 0, abP: 0, pull: 0, hits: kn.hits }); K = kn;
     if (kn.swing >= 0) { if (!S.sw && kn.swing >= SWING * 0.28) { S.sw = 1; snd(kn.ultPh >= 0 ? 'gswing' : 'swing', kn.x, kn.y); } } else S.sw = 0;
     if (kn.preGlow && kn.spin < 0) { if (!S.glow) { S.glow = 1; snd('glow', kn.x, kn.y); } } else if (!kn.preGlow) S.glow = 0;
@@ -1096,7 +1097,8 @@ function man(c, s, dance, att, aim, t, P, L, rl = -1, pit = [0, -1], wk = null) 
   const wmv = wk ? wk.mv : 0, bob = (1 - wmv) * (1 - att) * Math.abs(Math.sin(dance * 2)) * 1.6 + wmv * Math.abs(Math.cos(wk ? wk.ph : 0)) * 0.7, hipY = -6 - bob + att * 0.9; // knees bend when he braces
   const SK = '#a5653c', SKD = '#7f4a2a', PAINT = '#d9552a';
   const pd = Math.hypot(pit[0], pit[1] + 9) || 1, dvx = pit[0] / pd, dvy = (pit[1] + 9) / pd; // direction from his chest to the fire
-  const lx = ax * 2.4 * att + dvx * 1.8 * dip, ly = (ay * 1.4 + 1.8) * att + 1.4 * dip; // the hunch: upper body leans toward the target (or the fire) and drops
+  const swu = wk && wk.sw && wk.sw.u >= 0 ? wk.sw.u : -1, bk = swu < 0 ? 0 : swu < 0.3 ? -0.7 * sm(swu / 0.3) : swu < 0.5 ? -0.7 + 2.3 * sm((swu - 0.3) / 0.2) : 1.6 * (1 - sm((swu - 0.5) / 0.5));
+  const lx = ax * 2.4 * att + dvx * 1.8 * dip + (wk && wk.lean ? wk.lean[0] * 1.3 : 0) + Math.cos(aim) * 1.3 * bk, ly = Math.max(0, bk) * 0.9 + Math.sin(aim) * 0.5 * Math.max(0, bk) + (ay * 1.4 + 1.8) * att + 1.4 * dip + (wk && wk.lean ? Math.abs(wk.lean[0]) * 0.3 + wk.lean[1] * 0.4 : 0); // the hunch: upper body leans toward the target (or the fire) and drops
   const sh = hipY - 5.2, hx = lx * 1.35, hy = sh - 2.2 + ly * 1.3;
   const mouth = [hx + f * 1.9 * (1 - att * 0.4) + ax * 1.3 * att, hy + 0.7 + ay * 1.1 * att];
   const conv = [mouth[0] + ax * 3.4, mouth[1] + ay * 3.4 + 0.3 * att]; // the torch tips cross here, just in front of the mouth
@@ -1115,6 +1117,12 @@ function man(c, s, dance, att, aim, t, P, L, rl = -1, pit = [0, -1], wk = null) 
     hands = hands.map((h, i) => D(h, dh[i])); tips = tips.map((p, i) => p ? D(p, dt2[i]) : null);
   }
   const shL = [-2.4 + lx, sh + 0.8 + ly], shR = [2.4 + lx, sh + 0.8 + ly];
+  // torch swing (wk.sw = {u, side}): one torch comes over the top from behind and chops down through the aim, the other stays up
+  if (wk && wk.sw && wk.sw.u >= 0) { const { u, side } = wk.sw, i = side, shp = i ? shR : shL, e = u < 0.42 ? sm(u / 0.42) * 0.85 : 0.85 + 0.15 * sm(Math.min(1, (u - 0.42) / 0.58));
+    // the torch comes over the top from behind his shoulder and is pointing straight down the aim (true screen angle) at the release, then follows through
+    const a0 = -Math.PI / 2 - f * 1.35; let aU = aim; if (f > 0) { while (aU < a0) aU += Math.PI * 2; while (aU > a0 + Math.PI * 2) aU -= Math.PI * 2; } else { while (aU > a0) aU -= Math.PI * 2; while (aU < a0 - Math.PI * 2) aU += Math.PI * 2; }
+    const a1 = a0 + (aU - a0) / 0.85, ang = a0 + (a1 - a0) * e, dd = [Math.cos(ang), Math.sin(ang)];
+    hands[i] = [shp[0] + dd[0] * 3.4, shp[1] + dd[1] * 3.4]; tips[i] = [hands[i][0] + dd[0] * 6.5, hands[i][1] + dd[1] * 6.5]; }
   const arm = (shp, hand) => { c.strokeStyle = SK; c.lineWidth = 1.3; c.lineCap = 'round'; c.beginPath(); c.moveTo(shp[0], shp[1]); c.quadraticCurveTo((shp[0] + hand[0]) / 2 + (hand[0] > shp[0] ? -0.6 : 0.6), (shp[1] + hand[1]) / 2 + 1, hand[0], hand[1]); c.stroke(); };
   const torches = () => { for (let i = 0; i < (two ? 2 : 1); i++) torchTo(c, hands[i][0], hands[i][1], tips[i][0], tips[i][1], t, P, i + 3, L, Math.max(att, relit), out); };
   const arms = () => { const lh = hands[0][0] <= hands[1][0] ? hands[0] : hands[1], rh = lh === hands[0] ? hands[1] : hands[0]; arm(shL, lh); arm(shR, rh); }; // each shoulder takes the hand on its own side, so the arms never cross
@@ -1140,7 +1148,7 @@ function man(c, s, dance, att, aim, t, P, L, rl = -1, pit = [0, -1], wk = null) 
   c.fillStyle = SKD; c.beginPath(); c.arc(hx + f * 1.9, hy + 0.3, 0.55 + att * 0.35, 0, 7); c.fill();
   if (!back) { arms(); torches(); }
   c.restore();
-  return { conv: [conv[0] * s, conv[1] * s] };
+  return { conv: [conv[0] * s, conv[1] * s], tips: tips.map(p => p ? [p[0] * s, p[1] * s] : null) };
 }
 const BREATH = {
   1: [[0, '#ffbe3a'], [0.22, '#f7861e'], [0.55, '#de4a1a'], [0.85, '#a82814']],                                   // deep orange-red
@@ -1158,7 +1166,7 @@ function mixC(a, b, k) { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i
 function emitBreath(T, dt) {
   T.fp = T.fp || []; if (T.cone < 0.3) return;
   const m = SPEED[T.lvl]; T.emit = (T.emit || 0) + dt * 150 * m * COUNT[T.lvl] * LEN[T.lvl] * capK; // longer flames get proportionally more licks, so density only ever goes up
-  while (T.emit >= 1) { T.emit--; const a = T.aim + (Math.random() - 0.5) * 2 * T.half * 0.85, sp = T.reach / 0.5 * m * (0.85 + Math.random() * 0.25); T.fp.push({ x: T.mouthW[0], y: T.mouthW[1], vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 0, max: (0.42 + Math.random() * 0.14) / m, sd: Math.random() * 6 }); }
+  while (T.emit >= 1) { T.emit--; const a = T.aim + (Math.random() - 0.5) * 2 * T.half * 0.85, sp = T.reach / 0.5 * m * (0.85 + Math.random() * 0.25); T.fp.push({ x: T.mouthW[0], y: T.mouthW[1], vx: Math.cos(a) * sp + (T.vx || 0), vy: Math.sin(a) * sp + (T.vy || 0), life: 0, max: (0.42 + Math.random() * 0.14) / m, sd: Math.random() * 6 }); }
 }
 function stepBreath(T, dt) { if (!T.fp) return; const m = SPEED[T.lvl]; for (const p of T.fp) { p.life += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 0.6 * m; p.vy *= 1 - dt * 0.6 * m; p.vy -= 6 * dt * m * m; } T.fp = T.fp.filter(p => p.life < p.max + 0.35 / m); }
 function drawBreath(c, T, t) {
@@ -1178,31 +1186,55 @@ function drawBreath(c, T, t) {
 })();
 
 // the Firebreather as a player: walks (and keeps walking while he breathes), right stick aims a cone of fire that burns everything in it
-const FIRE = { R: 54, HALF: 0.4, DPS: 240, BURN: 5, BURN_DPS: 28, RUN: 0.92, ATK: 0.8, S: 1.0 };
+const FIRE = { R: 54, HALF: 0.4, DPS: 240, BURN: 5, BURN_DPS: 28, RUN: 0.92, ATK: 0.8, BACK: 0.65, S: 1.0, TSW: 0.45, WAVE_DMG: 75, WAVE_T: 0.38, BR_T: 5, BR_CD: 6, BR_LEN: 1.65, BR_WIDE: 1.35, CORE: 7 };
 let CHAR = 'knight'; try { CHAR = localStorage.getItem('kn_char') === 'fire' ? 'fire' : 'knight'; } catch (e) { }
-function makeFire(kn) { Object.assign(kn, { kind: 'fire', st: 'fight', hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
+function makeFire(kn) { Object.assign(kn, { tsw: -1, tswN: 0, brT: 0, brCd: 0, waves: [], kind: 'fire', st: 'fight', hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
 const mouthOf = kn => kn.mouthW || [kn.x + kn.f * 3, kn.y - 12];
 function fireStep(dt, t) {
   if (K.lvl !== 5) Object.assign(K, { lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: K.fp || [], st: 'fight', hold: 1, kn: 0 });
-  const IN = K.in, mvL = Math.hypot(IN.mv[0], IN.mv[1]);
+  const IN = K.in, mvL = Math.hypot(IN.mv[0], IN.mv[1]), mine = AUTH() || K.i === ME;
   if (IN.ch && IN.ch !== K.kind) { if (IN.ch === 'fire') makeFire(K); }
-  // aim: the breath turns smoothly toward the stick, and he leans into it before the fire comes
-  if (IN.aim) { const want = Math.atan2(IN.aim[1], IN.aim[0]); let d = want - K.aimS; d = Math.atan2(Math.sin(d), Math.cos(d)); K.aimS += d * Math.min(1, dt * (K.att > 0.5 ? 9 : 30)); K.att = Math.min(1, K.att + dt * 5); K.cone = K.att >= 0.8 ? Math.min(1, K.cone + dt * 4) : 0; }
+  // Breath (the Spin button): for 5s the right stick breathes a long, wide cone instead of swinging the torches
+  if (K.brT > 0) { K.brT -= dt; if (K.brT <= 0) { K.brT = 0; K.brCd = FIRE.BR_CD; } } else if (K.brCd > 0) K.brCd -= dt;
+  if (mine && IN.spin && !K.spinHeld && !(K.brT > 0) && !(K.brCd > 0)) { K.brT = FIRE.BR_T; K.tsw = -1; }
+  K.spinHeld = IN.spin;
+  const breath = K.brT > 0; K.reach = FIRE.R * (breath ? FIRE.BR_LEN : 1); K.half = FIRE.HALF * (breath ? FIRE.BR_WIDE : 1);
+  if (breath && IN.aim) { const want = Math.atan2(IN.aim[1], IN.aim[0]); let d = want - K.aimS; d = Math.atan2(Math.sin(d), Math.cos(d)); K.aimS += d * Math.min(1, dt * (K.att > 0.5 ? 9 : 30)); K.att = Math.min(1, K.att + dt * 5); K.cone = K.att >= 0.8 ? Math.min(1, K.cone + dt * 4) : 0; }
   else { K.att = Math.max(0, K.att - dt * 3); K.cone = Math.max(0, K.cone - dt * 6); }
+  // torch swings: right, left, right... for as long as the stick is held; each one throws a wave of fire the size of his breath
+  if (!breath && (K.tsw ?? -1) < 0 && IN.aim) { K.tsw = 0; K.tswN = (K.tswN || 0) + 1; K.waveDone = 0; K.aimS = Math.atan2(IN.aim[1], IN.aim[0]); }
+  if (K.tsw >= 0) { K.tsw += dt; if (IN.aim) { const want = Math.atan2(IN.aim[1], IN.aim[0]); let d = want - K.aimS; d = Math.atan2(Math.sin(d), Math.cos(d)); K.aimS += d * Math.min(1, dt * 12); }
+    if (!K.waveDone && K.tsw >= FIRE.TSW * 0.42) { K.waveDone = 1; fireWave(); } if (K.tsw >= FIRE.TSW) K.tsw = -1; }
   K.aim = K.aimS;
-  // walking, at a slightly slower pace while breathing
-  const v = RUN * FIRE.RUN * (K.cone > 0.3 ? FIRE.ATK : 1);
-  if (mvL > 0.12) { const k = Math.min(1, mvL); K.vx = IN.mv[0] / mvL * k * v; K.vy = IN.mv[1] / mvL * k * v; if (Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1; } else { const dmp = Math.exp(-dt * 13); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
+  // walking: slower while attacking, and slower again walking backwards away from his own fire
+  const atk = K.cone > 0.3 || K.tsw >= 0, back = atk && mvL > 0.12 && (IN.mv[0] * Math.cos(K.aimS) + IN.mv[1] * Math.sin(K.aimS)) / mvL < -0.2;
+  const v = RUN * FIRE.RUN * (atk ? FIRE.ATK : 1) * (back ? FIRE.BACK : 1);
+  if (mvL > 0.12) { const k = Math.min(1, mvL); K.vx = IN.mv[0] / mvL * k * v; K.vy = IN.mv[1] / mvL * k * v; } else { const dmp = Math.exp(-dt * 13); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
   const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy);
-  K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.wph = (K.wph || 0) + md * 0.42;
-  if (K.att < 0.05 && K.spd < 4) K.dph += dt * 4.2; // idle: he dances
-  if (K.att > 0.5) K.f = Math.cos(K.aimS) >= 0 ? 1 : -1;
-  // everything inside the cone burns, and keeps burning for a few seconds
-  if (K.cone > 0.3 && AUTH()) { const m = mouthOf(K);
-    for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - m[0], dy = (w.y - 4 * UK[w.k].sc) - m[1], d = Math.hypot(dx, dy); if (d > FIRE.R + UK[w.k].r) continue; let da = Math.atan2(dy, dx) - K.aimS; da = Math.atan2(Math.sin(da), Math.cos(da)); if (Math.abs(da) > FIRE.HALF + UK[w.k].r / Math.max(d, 4)) continue;
-      w.bd = FIRE.BURN; w.bsrc = K.i; w.atk = -1; w.kx += Math.cos(K.aimS) * 30 * dt; w.ky += Math.sin(K.aimS) * 15 * dt; w.hp -= FIRE.DPS * dt * K.cone; if (w.hp <= 0) { K.kills++; burnFx(w); } } }
+  K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12));
+  if (K.att < 0.5) K.dph += dt * 4.2; // he keeps his fire dance going while he walks
+  K.f = K.att > 0.5 || K.tsw >= 0 ? (Math.cos(K.aimS) >= 0 ? 1 : -1) : (Math.cos(K.dph + Math.PI / 2) >= 0 ? 1 : -1);
+  if (AUTH()) {
+    // the breath: everything inside the cone burns, plus a small half-circle right in front of him so nothing slips under it
+    if (K.cone > 0.3) { const m = mouthOf(K), ad = [Math.cos(K.aimS), Math.sin(K.aimS)];
+      for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k], dx = w.x - m[0], dy = (w.y - 4 * U.sc) - m[1], d = Math.hypot(dx, dy); let hit = false;
+        if (d <= K.reach + U.r) { let da = Math.atan2(dy, dx) - K.aimS; da = Math.atan2(Math.sin(da), Math.cos(da)); hit = Math.abs(da) <= K.half + U.r / Math.max(d, 4); }
+        if (!hit) { const ex = w.x - K.x, ey = (w.y - K.y) * 1.3; hit = Math.hypot(ex, ey) < FIRE.CORE + U.r && ex * ad[0] + ey * ad[1] > 0; }
+        if (!hit) continue; w.bd = FIRE.BURN; w.bsrc = K.i; w.atk = -1; w.kx += ad[0] * 30 * dt; w.ky += ad[1] * 15 * dt; w.hp -= FIRE.DPS * dt * K.cone; if (w.hp <= 0) { K.kills++; burnFx(w); } } }
+    // torch waves: a front that rolls out through the cone and hits each enemy once
+    for (const wv of K.waves || []) { wv.t += dt; const r = K.reach * Math.min(1, wv.t / FIRE.WAVE_T);
+      for (const w of walkers) { if (w.hp <= 0 || wv.hit.has(w.id)) continue; const U = UK[w.k], dx = w.x - wv.x, dy = (w.y - 4 * U.sc) - wv.y, d = Math.hypot(dx, dy); if (d > r + U.r) continue; let da = Math.atan2(dy, dx) - wv.a; da = Math.atan2(Math.sin(da), Math.cos(da)); if (Math.abs(da) > wv.half + U.r / Math.max(d, 4) && d > FIRE.CORE + U.r) continue;
+        wv.hit.add(w.id); w.bd = FIRE.BURN; w.bsrc = K.i; w.atk = -1; w.kx += Math.cos(wv.a) * 50; w.ky += Math.sin(wv.a) * 25; w.hp -= FIRE.WAVE_DMG; if (w.hp <= 0) { K.kills++; burnFx(w); } } }
+    if (K.waves) K.waves = K.waves.filter(wv => wv.t < FIRE.WAVE_T);
+  }
   FBX.emitBreath(K, dt); FBX.stepBreath(K, dt);
   K.st = 'fight';
+}
+// a wave of fire off the end of the torch: a burst of flame puffs through the breath's cone (both screens), and the damage front (host)
+function fireWave() {
+  const m = K.tipW || mouthOf(K), n = 46; K.fp = K.fp || [];
+  for (let i = 0; i < n; i++) { const a = K.aimS + (Math.random() - 0.5) * 2 * K.half * 0.9, sp = K.reach / 0.5 * 1.2 * (0.7 + Math.random() * 0.5), q = Math.random() * 9; K.fp.push({ x: m[0] + Math.cos(a) * q, y: m[1] + Math.sin(a) * q, vx: Math.cos(a) * sp + (K.vx || 0), vy: Math.sin(a) * sp + (K.vy || 0), life: 0, max: (0.4 + Math.random() * 0.14) / 1.2, sd: Math.random() * 6 }); }
+  if (AUTH()) (K.waves = K.waves || []).push({ x: m[0], y: m[1], a: K.aimS, half: K.half, t: 0, hit: new Set() });
 }
 // burnt to a crisp: charred chunks, ash, smoke and embers
 const burnFx = w => { EV.push([w.id, 5, 0, K.i, r1(w.x), r1(w.y)]); burnKill(w); };
@@ -1215,8 +1247,9 @@ function burnKill(w) {
 }
 function drawFire(c, t) {
   FBX.setCol(K.col); const mv = cl((K.spd || 0) / (RUN * FIRE.RUN * 0.6), 0, 1);
-  c.save(); c.translate(K.x, K.y); const m = FBX.man(c, FIRE.S, K.dph || 0, K.att || 0, K.aimS || 0, t, FBX.pal(5), 5, -1, [0, -1], { ph: K.wph || 0, mv, f: K.f }); c.restore();
-  K.mouthW = [K.x + m.conv[0], K.y + m.conv[1]];
+  c.save(); c.translate(K.x, K.y); const sp = Math.hypot(K.vx || 0, K.vy || 0), ln = sp > 2 ? [K.vx / (RUN * FIRE.RUN), K.vy / (RUN * FIRE.RUN)] : [0, 0];
+  const m = FBX.man(c, FIRE.S, K.dph || 0, K.att || 0, K.aimS || 0, t, FBX.pal(5), 5, -1, [0, -1], { ph: 0, mv: 0, f: K.f, lean: ln, sw: K.tsw >= 0 ? { u: K.tsw / FIRE.TSW, side: (K.tswN || 0) % 2 } : null }); c.restore();
+  K.mouthW = [K.x + m.conv[0], K.y + m.conv[1]]; const tp = K.tsw >= 0 && m.tips[(K.tswN || 0) % 2]; if (tp) K.tipW = [K.x + tp[0], K.y + tp[1]];
 }
 // ---------- sim ----------
 let spawnT = 0;
@@ -1421,12 +1454,12 @@ function draw() {
     x.restore(); }
   if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
   ST.textContent = NP > 1 ? `Enemies ${walkers.length} · ` + KN.map(kn => `${kn.i === ME ? 'You' : (NET && NET.otherName) || 'P' + (kn.i + 1)} ${kn.kills}k/${kn.hits}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${K.hits}`;
-  const cdk = K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
+  const cdk = K.kind === 'fire' ? (K.brT > 0 ? 1 - K.brT / FIRE.BR_T : cl((K.brCd || 0) / FIRE.BR_CD, 0, 1)) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
   { const live = K.ultPh >= 0, pr = cl((K.kills - (K.ultBase || 0)) / ULT_KILLS, 0, 1);
     ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live);
     const lab = live ? (K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (K.kills - (K.ultBase || 0)) + '/' + ULT_KILLS; if (ULS.textContent !== lab) ULS.textContent = lab;
     DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); }
-  { const fire = K.kind === 'fire'; if (document.body.classList.contains('fire') !== fire) { document.body.classList.toggle('fire', fire); document.querySelector('#rst small').textContent = fire ? 'breathe' : 'swing'; } }
+  { const fire = K.kind === 'fire'; if (document.body.classList.contains('fire') !== fire) { document.body.classList.toggle('fire', fire); document.querySelector('#rst small').textContent = fire ? 'torch' : 'swing'; document.querySelector('#spin span').textContent = fire ? 'BREATH' : 'SPIN'; } }
   DASHI.style.height = (K.ab === 'dash' ? 100 : cl((K.dashCd || 0) / DASH_CD, 0, 1) * 100) + '%'; AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
 }
 function frame(ms) {
@@ -1556,7 +1589,7 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brT', 'brCd'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
 const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight' });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in) });
@@ -1699,7 +1732,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '3b8ca3';
+const KBUILD = '765fef';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || location.protocol === 'file:' || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
