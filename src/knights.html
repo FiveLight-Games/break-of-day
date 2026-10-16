@@ -26,6 +26,8 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 #lobbyUI .code{font:800 40px system-ui;letter-spacing:10px;color:#efe7d6}#lobbyUI .err{color:#ff7b6b}
 #lobbyUI a{color:#a59c88;font-size:12px}
 #note{position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#000b;border-radius:10px;padding:6px 12px;font-size:12px;display:none;pointer-events:none}
+#layEd{position:fixed;left:50%;top:max(58px,12vh);transform:translateX(-50%);transition:opacity .15s;z-index:15;background:#14120ff2;border:1px solid #3a332a;border-radius:14px;padding:12px 14px;display:none;flex-direction:column;gap:8px;width:min(320px,calc(100vw - 32px));font-size:13px;color:#efe7d6}#layEd b{font:700 15px system-ui;color:#f0c419}#layHint{color:#a59c88;font-size:12px}#layEd .lrow{display:flex;gap:8px;align-items:center}#layEd input{flex:1;accent-color:#f0c419}#layEd .lnum{font:600 12px ui-monospace,monospace;min-width:30px;text-align:right}#layWarn{color:#ff6a4d;font-size:12px}#layEd button{flex:1}#layEd .pri2{border-color:#f0c419;color:#f0c419}
+body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.editing #spin{cursor:move;outline:2px dashed #ffffff55;outline-offset:2px}body.editing .lsel{outline:2px dashed #f0c419 !important}@media (orientation:portrait){#layEd{top:26vh}}body.dragging #layEd{opacity:.25;pointer-events:none}body.editing .lbad{box-shadow:0 0 0 3px #ff6a4d}
 #exitQ{position:fixed;inset:0;z-index:20;background:#0008;display:none;align-items:center;justify-content:center}#exitQ.open{display:flex}#exitQ>div{background:#14120f;border:1px solid #3a332a;border-radius:14px;padding:18px 20px;text-align:center}#exitQ p{margin:0 0 14px;font:700 16px system-ui;color:#efe7d6}#exitQ .row{display:flex;gap:10px;justify-content:center}#exitQ button{padding:10px 18px;font-size:14px}#exitYes{border-color:#f0c419;color:#f0c419}
 #menuBtn{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;text-decoration:none}
 #dash{position:fixed;right:calc(10vw + 11px);bottom:172px;width:96px;height:96px;border-radius:50%;background:#9fd3ff14;border:2px solid #9fd3ff80;touch-action:none;overflow:hidden}
@@ -51,8 +53,9 @@ button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none
 
 <div id="horde" class="pnl"><div class="hrow"><b>Horde</b><button data-r="off" class="on">Off</button><button data-r="few">A few</button><button data-r="dozens">Dozens</button><button data-r="hundreds">Hundreds</button></div>
 <div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button><button data-n="50">+50</button></div></div>
+<div id="layEd"><b id="layTitle">Control layout</b><span id="layHint">Drag a button's middle to move it, its rim to resize it.</span><div class="lrow"><span id="layName">Move stick</span><input type="range" id="laySize" min="44" max="230" step="1"><span id="laySizeV" class="lnum"></span></div><span id="layWarn"></span><div class="lrow"><button id="layReset">Reset</button><button id="layDone" class="pri2">Done</button></div></div>
 <div id="exitQ"><div><p>Exit to main menu?</p><div class="row"><button id="exitNo">Stay</button><button id="exitYes">Exit</button></div></div></div>
-<div id="top"><a id="menuBtn" href="./">&#8962; Menu</a><button id="hordeBtn">&#9776; Horde</button><button id="clear">Clear</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><button id="sound">Sound: on</button><div id="vol" title="Music volume"><span>&#9835;</span><input type="range" min="0" max="100" step="1"></div><div id="stats"></div></div>
+<div id="top"><a id="menuBtn" href="./">&#8962; Menu</a><button id="hordeBtn">&#9776; Horde</button><button id="layBtn" title="Control layout" aria-label="Control layout">&#10021;</button><button id="clear">Clear</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><button id="sound">Sound: on</button><div id="vol" title="Music volume"><span>&#9835;</span><input type="range" min="0" max="100" step="1"></div><div id="stats"></div></div>
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
 <div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
 <button id="spin"><i></i><span>SPIN</span></button>
@@ -1234,12 +1237,12 @@ function lobby(screen, extra) {
   if (screen === 'home') LC.innerHTML = `<h1>Knight Brawl</h1><p>Two knights, one horde. Play together online or practise alone.</p>
     <button class="big pri" id="lHost" ${getSB() ? '' : 'disabled'}>Host a game</button>
     <input id="lCode" maxlength="4" placeholder="CODE" autocomplete="off"><button class="big" id="lJoin" ${getSB() ? '' : 'disabled'}>Join with code</button>
-    <button class="big" id="lSolo">Play solo</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
+    <button class="big" id="lSolo">Play solo</button><button id="lLay">Control layout</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
   else if (screen === 'hosting') LC.innerHTML = `<h1>Knight Brawl</h1><p>Give your friend this code</p><div class="code">${NET.code}</div><p>Waiting for player 2…</p>
     <button class="big" id="lSoloH">Start now (they can still join)</button><button id="lCancel">Cancel</button>`;
   else if (screen === 'joining') LC.innerHTML = `<h1>Knight Brawl</h1><p>Joining <b>${NET.code}</b>…</p><button id="lCancel">Cancel</button>`;
   const on = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
-  on('lHost', host); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
+  on('lHost', host); on('lLay', () => layOpen(true)); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
   on('lJoin', () => { const c = (document.getElementById('lCode').value || '').toUpperCase().replace(/[^A-Z]/g, ''); if (c.length !== 4) return lobby('home', 'Enter the 4-letter code.'); join(c); });
   on('lCancel', () => { leave(); lobby('home'); });
   const ci = document.getElementById('lCode'); if (ci) ci.onkeydown = e => { if (e.key === 'Enter') document.getElementById('lJoin').click(); };
@@ -1298,6 +1301,70 @@ function applySnap(S) {
   for (const e of S.e) { const [id, kind, dir, ki, ex, ey] = e; let w = byId.get(id) || walkers.find(o => o.id === id); if (!w) { w = mkWalker('foot', ex, ey); w.id = id; } w.x = ex; w.y = ey; const k0 = K; K = KN[ki] || KN[0]; if (kind === 4) boomFx(w); else if (kind === 1) spinKill(w); else if (kind === 2) dashKill(w, dir); else if (kind === 3) slamKill(w, dir); else cleaveKill(w, dir); K = k0; }
   walkers = walkers.filter(w => w.dead || seen.has(w.id));
 }
+// ---------- control layout: each player drags/resizes the touch controls, per character and orientation (saved on this device) ----------
+const CTLS = { move: ['lst', 'Move stick'], swing: ['rst', 'Swing stick'], dash: ['dash', 'Dash aim'], leap: ['aoe', 'Leap aim'], spin: ['spin', 'Spin button'] };
+const LAYCH = 'knight';
+let LAY = {}; try { LAY = JSON.parse(localStorage.getItem('kn_layout') || '{}') || {}; } catch (e) { }
+const orient = () => innerWidth > innerHeight ? 'landscape' : 'portrait';
+const layNow = () => (LAY[LAYCH] || {})[orient()];
+const LPROPS = ['left', 'top', 'right', 'bottom', 'width', 'height'];
+function applyLayout() {
+  const L = layNow();
+  for (const [k, [id]] of Object.entries(CTLS)) { const el = document.getElementById(id), p = L && L[k], kn = el.querySelector('.knob, .dot');
+    if (!p) { LPROPS.forEach(q => el.style.removeProperty(q)); el.style.removeProperty('box-sizing'); el.style.removeProperty('font-size'); if (kn) ['width', 'height', 'margin'].forEach(q => kn.style.removeProperty(q)); continue; }
+    const s = p.s, set = (q, v) => el.style.setProperty(q, v, 'important');
+    set('left', p.x * innerWidth - s / 2 + 'px'); set('top', p.y * innerHeight - s / 2 + 'px'); set('right', 'auto'); set('bottom', 'auto'); set('width', s + 'px'); set('height', s + 'px'); el.style.boxSizing = 'border-box';
+    if (k === 'spin') el.style.setProperty('font-size', Math.round(s / 6) + 'px');
+    if (kn) { const ks = Math.round(s * (k === 'move' || k === 'swing' ? 0.41 : 0.27)); kn.style.setProperty('width', ks + 'px'); kn.style.setProperty('height', ks + 'px'); kn.style.setProperty('margin', -ks / 2 + 'px 0 0 ' + -ks / 2 + 'px'); }
+  }
+  if (EDIT) layMarks();
+}
+function ctlBox(k) { const r = document.getElementById(CTLS[k][0]).getBoundingClientRect(); return { x: (r.left + r.width / 2) / innerWidth, y: (r.top + r.height / 2) / innerHeight, s: Math.round(r.width) }; }
+function layEnsure() { const o = orient(); LAY[LAYCH] = LAY[LAYCH] || {}; if (!LAY[LAYCH][o]) { const L = {}; for (const k in CTLS) L[k] = ctlBox(k); LAY[LAYCH][o] = L; } return LAY[LAYCH][o]; }
+function laySave() { try { localStorage.setItem('kn_layout', JSON.stringify(LAY)); } catch (e) { } }
+let EDIT = null; // { sel, back } while editing
+const LE = document.getElementById('layEd');
+function layOpen(fromLobby) {
+  EDIT = { sel: 'move', back: fromLobby ? 'lobby' : null }; if (fromLobby) LUI.style.display = 'none';
+  document.body.classList.add('editing'); LE.style.display = 'flex'; HZE.classList.remove('open'); layEnsure(); applyLayout(); layPanel();
+}
+function layClose() { EDIT && EDIT.back === 'lobby' ? (LUI.style.display = 'flex') : 0; EDIT = null; document.body.classList.remove('editing'); LE.style.display = 'none'; document.querySelectorAll('.lbad,.lsel').forEach(e => e.classList.remove('lbad', 'lsel')); }
+function layMarks() {
+  const L = layNow() || {}, ks = Object.keys(CTLS), bad = new Set();
+  for (let i = 0; i < ks.length; i++) for (let j = i + 1; j < ks.length; j++) { const a = L[ks[i]], b = L[ks[j]]; if (a && b && Math.hypot((a.x - b.x) * innerWidth, (a.y - b.y) * innerHeight) < (a.s + b.s) / 2) { bad.add(ks[i]); bad.add(ks[j]); } }
+  for (const k of ks) { const el = document.getElementById(CTLS[k][0]); el.classList.toggle('lbad', bad.has(k)); el.classList.toggle('lsel', EDIT && EDIT.sel === k); }
+  const w = document.getElementById('layWarn'); if (w) w.textContent = bad.size ? 'Red buttons overlap' : '';
+}
+function layPanel() {
+  const L = layEnsure(), p = L[EDIT.sel];
+  LE.querySelector('#layTitle').textContent = 'Control layout · ' + (orient() === 'landscape' ? 'Landscape' : 'Portrait');
+  LE.querySelector('#layName').textContent = CTLS[EDIT.sel][1]; const sz = LE.querySelector('#laySize'); sz.value = p.s; LE.querySelector('#laySizeV').textContent = p.s;
+  layMarks();
+}
+LE.querySelector('#laySize').addEventListener('input', e => { const L = layEnsure(); L[EDIT.sel].s = +e.target.value; LE.querySelector('#laySizeV').textContent = e.target.value; applyLayout(); laySave(); });
+LE.querySelector('#layDone').onclick = () => layClose();
+LE.querySelector('#layReset').onclick = () => { if (LAY[LAYCH]) delete LAY[LAYCH][orient()]; laySave(); applyLayout(); layEnsure(); layPanel(); };
+document.getElementById('layBtn').onclick = () => layOpen(false);
+// while editing, touches on the controls move them (drag the middle) or resize them (drag the rim); the game never sees them
+let ldrag = null;
+window.addEventListener('pointerdown', e => {
+  if (!EDIT || e.target.closest('#layEd, #top')) return;
+  e.stopImmediatePropagation(); e.preventDefault();
+  const k = Object.keys(CTLS).find(k2 => document.getElementById(CTLS[k2][0]).contains(e.target)); if (!k) return;
+  EDIT.sel = k; const L = layEnsure(), p = L[k], cx = p.x * innerWidth, cy = p.y * innerHeight, d = Math.hypot(e.clientX - cx, e.clientY - cy);
+  document.body.classList.add('dragging'); ldrag = { k, id: e.pointerId, rim: d > p.s * 0.36, sx: e.clientX, sy: e.clientY, p0: { ...p }, cx, cy }; layPanel();
+}, true);
+window.addEventListener('pointermove', e => {
+  if (!EDIT) return; if (!ldrag || e.pointerId !== ldrag.id) { if (!e.target.closest('#layEd, #top')) e.stopImmediatePropagation(); return; }
+  e.stopImmediatePropagation(); const p = layEnsure()[ldrag.k];
+  if (ldrag.rim) p.s = Math.round(cl(Math.hypot(e.clientX - ldrag.cx, e.clientY - ldrag.cy) * 2, 44, 230));
+  else { p.x = cl(ldrag.p0.x + (e.clientX - ldrag.sx) / innerWidth, 0, 1); p.y = cl(ldrag.p0.y + (e.clientY - ldrag.sy) / innerHeight, 0, 1); }
+  applyLayout(); layPanel();
+}, true);
+const lend = e => { if (!EDIT) return; if (!e.target.closest || !e.target.closest('#layEd, #top')) e.stopImmediatePropagation(); if (ldrag && e.pointerId === ldrag.id) { ldrag = null; document.body.classList.remove('dragging'); laySave(); } };
+window.addEventListener('pointerup', lend, true); window.addEventListener('pointercancel', lend, true);
+addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { layEnsure(); layPanel(); } }, 60));
+applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 const KBUILD = '__BUILD__';
