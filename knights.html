@@ -15,7 +15,8 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 #lst{left:22px} #rst{right:10vw}
 .stick small{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font-size:11px;color:#fffa}
 #spin{position:fixed;right:22px;top:calc(50% - 39px);width:78px;height:78px;border-radius:50%;padding:0;font:800 13px system-ui;background:#f0c41933;border:2px solid #f0c419;color:#f0c419;overflow:hidden}
-#bst{right:10px;top:calc(50% - 41px);bottom:auto;width:82px;height:82px;overflow:hidden;border-color:#f0a04a88;background:#f0a04a14}#bst .knob{width:32px;height:32px;margin:-16px 0 0 -16px;background:#f0a04a66;border-color:#f0a04a}#bst small{bottom:6px;color:#f0a04acc}#bst i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0;pointer-events:none}
+#bst{left:calc(50% - 48px);right:auto;bottom:22px;top:auto;width:96px;height:96px;overflow:hidden;border-color:#f0a04a88;background:#f0a04a14}#bst .knob{width:32px;height:32px;margin:-16px 0 0 -16px;background:#f0a04a66;border-color:#f0a04a}#bst small{bottom:6px;color:#f0a04acc}#bst i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0;pointer-events:none}
+body.fire #aoe{left:44px;right:auto;top:auto;bottom:172px;width:96px;height:96px;background:#ff6a2a14;border-color:#ff6a2a88}body.fire #aoe .dot{background:#ff6a2a88;border-color:#ff8a3a}body.fire #aoe small{color:#ff8a3acc}
 #spin i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0}
 #spin span{position:relative}
 #ult{position:fixed;right:29px;top:calc(50% - 112px);width:64px;height:64px;border-radius:50%;padding:0;font:800 13px system-ui;background:#2a2416cc;border:2px solid #8a7a50;color:#cbb98a;overflow:hidden}
@@ -34,7 +35,7 @@ button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius
 #lobbyUI a{color:#a59c88;font-size:12px}
 #note{position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#000b;border-radius:10px;padding:6px 12px;font-size:12px;display:none;pointer-events:none}
 #layEd{position:fixed;left:50%;top:max(58px,12vh);transform:translateX(-50%);transition:opacity .15s;z-index:15;background:#14120ff2;border:1px solid #3a332a;border-radius:14px;padding:12px 14px;display:none;flex-direction:column;gap:8px;width:min(320px,calc(100vw - 32px));font-size:13px;color:#efe7d6}#layEd b{font:700 15px system-ui;color:#f0c419}#layHint{color:#a59c88;font-size:12px}#layEd .lrow{display:flex;gap:8px;align-items:center}#layEd input{flex:1;accent-color:#f0c419}#layEd .lnum{font:600 12px ui-monospace,monospace;min-width:30px;text-align:right}#layWarn{color:#ff6a4d;font-size:12px}#layEd button{flex:1}#layEd .pri2{border-color:#f0c419;color:#f0c419}
-body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.editing #spin{cursor:move;outline:2px dashed #ffffff55;outline-offset:2px}body.editing .lsel{outline:2px dashed #f0c419 !important}@media (orientation:portrait){#layEd{top:26vh}}body.fire #aoe,body.fire #spin,body:not(.fire) #bst,body.fire #ult{display:none}body.dragging #layEd{opacity:.25;pointer-events:none}body.editing .lbad{box-shadow:0 0 0 3px #ff6a4d}
+body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.editing #spin{cursor:move;outline:2px dashed #ffffff55;outline-offset:2px}body.editing .lsel{outline:2px dashed #f0c419 !important}@media (orientation:portrait){#layEd{top:26vh}}body.fire #spin,body:not(.fire) #bst,body.fire #ult{display:none}body.dragging #layEd{opacity:.25;pointer-events:none}body.editing .lbad{box-shadow:0 0 0 3px #ff6a4d}
 #exitQ{position:fixed;inset:0;z-index:20;background:#0008;display:none;align-items:center;justify-content:center}#exitQ.open{display:flex}#exitQ>div{background:#14120f;border:1px solid #3a332a;border-radius:14px;padding:18px 20px;text-align:center}#exitQ p{margin:0 0 14px;font:700 16px system-ui;color:#efe7d6}#exitQ .row{display:flex;gap:10px;justify-content:center}#exitQ button{padding:10px 18px;font-size:14px}#exitYes{border-color:#f0c419;color:#f0c419}
 #menuBtn{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;text-decoration:none}
 #dash{position:fixed;right:calc(10vw + 11px);bottom:172px;width:96px;height:96px;border-radius:50%;background:#9fd3ff14;border:2px solid #9fd3ff80;touch-action:none;overflow:hidden}
@@ -45,7 +46,7 @@ body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.ed
 #aoe .dot{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:#f0c41980;border:2px solid #f0c419}
 #aoe i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0}
 #aoe small{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;color:#f0c419c0}
-@media (orientation:portrait){#dash{right:calc(8vw + 6.5px);bottom:140px;width:84px;height:84px}#aoe{left:auto;right:calc(8vw + 118px);bottom:calc(150px - 8vw);width:84px;height:84px}#spin{bottom:276px !important;top:auto !important}#ult{right:12px;top:auto;bottom:356px;width:64px;height:64px}#bst{right:12px;top:auto;bottom:262px;width:88px;height:88px}}
+@media (orientation:portrait){#dash{right:calc(8vw + 6.5px);bottom:140px;width:84px;height:84px}#aoe{left:auto;right:calc(8vw + 118px);bottom:calc(150px - 8vw);width:84px;height:84px}#spin{bottom:276px !important;top:auto !important}#ult{right:12px;top:auto;bottom:356px;width:64px;height:64px}#bst{left:calc(50% - 47px);right:auto;top:auto;bottom:22px;width:94px;height:94px}body.fire #aoe{left:27px;right:auto;top:auto;bottom:140px;width:84px;height:84px}}
 .pnl{position:fixed;left:8px;top:54px;z-index:5;background:#14120fee;border:1px solid #3a332a;border-radius:12px;padding:10px;display:none;flex-direction:column;gap:8px;max-width:min(380px,calc(100vw - 16px));max-height:calc(100vh - 70px);overflow:auto}
 .pnl.open{display:flex}.pnl .hrow{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pnl b,.pnl span{font-size:12px;color:#a59c88;margin-right:4px}
 .pnl button{padding:6px 10px;font-size:12px}.pnl button.on{border-color:#f0c419;color:#f0c419}
@@ -194,7 +195,7 @@ const lerpA = (A, B, k) => A.map((v, j) => j ? lerp(v, B[j], k) : 0);
 const DP_PREP = [0, 1.5, 0.35, 0.5, 2.2, 4.4, 1.25, 1.2], DP_GO = [0, 0.6, 0.55, -0.9, 2.6, -2.6, -2.3, 1.6];
 const LP_CR = [0, 1.9, 0.4, 0.2, 1.8, 4.6, 1.3, 0.6], LP_TUCK = [0, 1.6, 0.25, 0, 1.2, 1.0, 0.7, 0], LP_FALL = [0, -0.3, -0.15, 0, -0.2, -6.2, -3.35 + Math.PI * 2, 0], LP_LAND = [0, 2.1, 0.75, 0, 3.2, 4.6, 1.2, 1.0];
 const LAND_IN = 14, LP_LAND2 = LP_LAND.map((v, j) => j === 6 ? v + Math.PI * 2 : v); // he lands this far short of the slam centre, so the blade comes down on it
-let FX = [], shake = 0, LEAPAIM = null, DASHAIM = null;
+let FX = [], shake = 0, LEAPAIM = null, DASHAIM = null, COAIM = null;
 function abilityPose() {
   const t = K.abT;
   if (K.ab === 'dash') { // tip down + squat, then a rising slash as he launches, then back to guard
@@ -353,6 +354,7 @@ function slamKill(w, a) { // blown apart outward from the impact, guts and all
   spray(w.x, w.y, 5, s, 34, 1.8);
 }
 function drawFxGround(c) {
+  for (const f of FX) if (f.k === 'coals') drawCoals(c, f, f.t);
   for (const f of FX) if (f.k === 'crater') { const k = f.t / f.max, al = Math.min(1, (1 - k) * 2.5); const R = srand(Math.floor(f.seed));
     const S2 = f.s || 1; c.save(); c.translate(f.x, f.y); c.scale(S2, S2); c.translate(-f.x, -f.y); c.globalAlpha = al * 0.75; c.fillStyle = '#3d2b1c'; c.beginPath(); c.ellipse(f.x, f.y, 13, 5.5, 0, 0, 7); c.fill();
     c.fillStyle = '#2a1d13'; c.beginPath(); c.ellipse(f.x, f.y + 0.4, 8, 3.2, 0, 0, 7); c.fill();
@@ -1194,9 +1196,11 @@ function drawBreath(c, T, t) {
 // the Firebreather as a player: walks (and keeps walking while he breathes), right stick aims a cone of fire that burns everything in it
 const FIRE = { R: 54, HALF: 0.4, DPS: 240, BURN: 5, BURN_DPS: 28, RUN: 0.92, ATK: 0.8, BACK: 0.65, S: 1.0, TSW: 0.5, WAVE_DMG: 75, WAVE_T: 0.38, BR_T: 5, BR_CD: 6, BR_KB: 190, BR_LEN: 1.65, BR_WIDE: 1.35, CORE: 7 };
 // Plume (the dash stick): he blasts fire at the ground, rides it into the air for 3s and is pushed away from where he aims it
+// Coals (the leap circle): lay a rectangle of hot coals along the aim, then sprint down it throwing flames out past both sides
+const CO = { LAY: 0.45, SPD: 150, W: 16, SIDE: 24, L0: 40, L1: 75, DMG: 110, DPS: 70, LIFE: 5, CD: 10 };
 const PL = { T: 3, CD: 12, Z: 27, SPD: 60, R: 52, HALF: 0.44, DPS: 320, KB: 140 };
 let CHAR = 'knight'; try { CHAR = localStorage.getItem('kn_char') === 'fire' ? 'fire' : 'knight'; } catch (e) { }
-function makeFire(kn) { Object.assign(kn, { plT: -1, plCd: 0, tsw: -1, tswN: 0, brOn: 0, brUse: 0, brCd: 0, waves: [], kind: 'fire', st: 'fight', hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
+function makeFire(kn) { Object.assign(kn, { coSeen: kn.in.coN || 0, coT: -1, coCd: 0, plT: -1, plCd: 0, tsw: -1, tswN: 0, brOn: 0, brUse: 0, brCd: 0, waves: [], kind: 'fire', st: 'fight', hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
 const mouthOf = kn => kn.mouthW || [kn.x + kn.f * 3, kn.y - 12];
 function fireStep(dt, t) {
   if (K.lvl !== 5) Object.assign(K, { lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: K.fp || [], st: 'fight', hold: 1, kn: 0 });
@@ -1211,6 +1215,11 @@ function fireStep(dt, t) {
   K.spinHeld = IN.spin;
   if (!(K.plT >= 0) && K.plCd > 0) K.plCd -= dt;
   if (mine && IN.pl && !(K.plT >= 0) && !(K.plCd > 0)) startPlume();
+  if (!(K.coT >= 0) && K.coCd > 0) K.coCd -= dt;
+  if (mine && (IN.coN || 0) !== (K.coSeen || 0)) { const fresh = K.coSeen !== undefined; K.coSeen = IN.coN || 0; if (fresh && IN.coV && !(K.coT >= 0) && !(K.coCd > 0) && !(K.plT >= 0)) startCoals(IN.coV); }
+  if (K.coT >= 0 && K.coFx !== K.coId) { K.coFx = K.coId; FX.push({ k: 'coals', src: K.i, x0: K.cx0, y0: K.cy0, dx: K.cdx, dy: K.cdy, L: K.cL, t: 0, max: CO.LIFE, seed: K.coId * 977 % 10000 }); }
+  coalBurn(dt);
+  if (K.coT >= 0) { coalStep(dt); FBX.emitBreath(K, dt); FBX.stepBreath(K, dt); K.st = 'fight'; return; }
   if (K.plT >= 0) { plumeStep(dt, IN); FBX.emitBreath(K, dt); FBX.stepBreath(K, dt); K.st = 'fight'; return; }
   const breath = !!K.brOn; K.reach = FIRE.R * (breath ? FIRE.BR_LEN : 1); K.half = FIRE.HALF * (breath ? FIRE.BR_WIDE : 1);
   if (breath && brIn) { const want = Math.atan2(brIn[1], brIn[0]); let d = want - K.aimS; d = Math.atan2(Math.sin(d), Math.cos(d)); K.aimS += d * Math.min(1, dt * (K.att > 0.5 ? 9 : 30)); K.att = Math.min(1, K.att + dt * 5); K.cone = K.att >= 0.8 ? Math.min(1, K.cone + dt * 4) : 0; }
@@ -1243,6 +1252,47 @@ function fireStep(dt, t) {
   }
   FBX.emitBreath(K, dt); FBX.stepBreath(K, dt);
   K.st = 'fight';
+}
+// coal bed geometry: e1 runs along the bed, e2 across it (squashed for the 3/4 view); a point's (along, across) coordinates
+const coalBasis = (dx, dy) => [[dx, dy], [-dy, dx * 0.6]];
+function coalUV(px, py, f) { const [e1, e2] = coalBasis(f.dx, f.dy), X = px - f.x0, Y = py - f.y0, det = e1[0] * e2[1] - e1[1] * e2[0] || 1e-6; return [(X * e2[1] - Y * e2[0]) / det, (e1[0] * Y - e1[1] * X) / det]; }
+function startCoals(v) {
+  const m = Math.hypot(v[0], v[1]), d = m > 0.2 ? [v[0] / m, v[1] / m] : [K.f, 0], L = CO.L0 + CO.L1 * Math.min(1, m);
+  Object.assign(K, { coT: 0, coId: (K.coId || 0) + 1, cx0: K.x, cy0: K.y, cdx: d[0], cdy: d[1], cL: L, tsw: -1, att: 0, cone: 0 });
+}
+function coalStep(dt) {
+  K.coT += dt; const T = K.coT, run = Math.max(0, T - CO.LAY), dur = K.cL / CO.SPD, q = Math.min(1, run / dur), d = [K.cdx, K.cdy], p = [-d[1], d[0] * 0.6];
+  K.f = d[0] >= 0 ? 1 : -1;
+  if (T < CO.LAY) { K.vx = K.vy = 0; K.att = 0; K.dph += dt * 8; return; } // sweeps the torches low as the coals spread out ahead
+  const ox = K.x, oy = K.y; K.x = K.cx0 + d[0] * K.cL * q; K.y = cl(K.cy0 + d[1] * K.cL * q, 16, H - 4); K.vx = (K.x - ox) / Math.max(dt, 1e-4); K.vy = (K.y - oy) / Math.max(dt, 1e-4); K.spd = Math.hypot(K.vx, K.vy); K.wph = (K.wph || 0) + Math.hypot(K.x - ox, K.y - oy) * 0.42;
+  // flames thrown out past both long sides as he runs
+  K.fp = K.fp || []; const n = Math.ceil(dt * 220);
+  for (let i = 0; i < n; i++) { const sd = i % 2 ? 1 : -1, pl = Math.hypot(p[0], p[1]) || 1, ux = p[0] / pl * sd, uy = p[1] / pl * sd, sp = rr(110, 170); K.fp.push({ x: K.x + ux * 3, y: K.y - rr(3, 9), vx: ux * sp + d[0] * 40, vy: uy * sp + d[1] * 20, life: 0, max: rr(0.22, 0.32), sd: Math.random() * 6 }); }
+  if (AUTH()) { const s0 = K.cL * q;
+    for (const w of walkers) { if (w.hp <= 0 || w.coCut === K.coId) continue; const [a, b] = coalUV(w.x, w.y, { x0: K.cx0, y0: K.cy0, dx: d[0], dy: d[1] }); if (Math.abs(a - s0) > 6 || Math.abs(b) > CO.W / 2 + CO.SIDE + UK[w.k].r) continue;
+      w.coCut = K.coId; w.bd = FIRE.BURN; w.bsrc = K.i; w.atk = -1; const sd = b >= 0 ? 1 : -1; w.kx += p[0] * sd * 120; w.ky += p[1] * sd * 120; w.hp -= CO.DMG; if (w.hp <= 0) { K.kills++; burnFx(w); } } }
+  if (q >= 1) { K.coT = -1; K.coCd = CO.CD; K.vx = K.vy = 0; }
+}
+// the coals keep burning anyone standing on them until they fade
+function coalBurn(dt) {
+  if (!AUTH()) return;
+  for (const f of FX) { if (f.k !== 'coals' || f.src !== K.i) continue; const laid = f.L * Math.min(1, f.t / CO.LAY);
+    for (const w of walkers) { if (w.hp <= 0) continue; const [a, b] = coalUV(w.x, w.y, f); if (a < 0 || a > laid || Math.abs(b) > CO.W / 2 + UK[w.k].r * 0.5) continue; w.bd = FIRE.BURN; w.bsrc = K.i; w.hp -= CO.DPS * dt; if (w.hp <= 0) { K.kills++; burnFx(w); } } }
+}
+function drawCoals(c, f, t) {
+  const k = f.t / f.max, al = Math.min(1, (1 - k) * 4), laid = f.L * Math.min(1, f.t / CO.LAY), [e1, e2] = coalBasis(f.dx, f.dy), P = (a, b) => [f.x0 + e1[0] * a + e2[0] * b, f.y0 + e1[1] * a + e2[1] * b], hw = CO.W / 2;
+  c.save(); c.globalAlpha = al; c.fillStyle = '#2a1a12'; c.beginPath(); [P(0, -hw), P(laid, -hw), P(laid, hw), P(0, hw)].forEach((q, i) => i ? c.lineTo(...q) : c.moveTo(...q)); c.closePath(); c.fill();
+  c.globalCompositeOperation = 'lighter'; const R = srand(f.seed || 1), n = Math.floor(f.L * 1.6);
+  for (let i = 0; i < n; i++) { const a = R() * f.L, b = (R() - 0.5) * CO.W * 0.9, ph = R() * 6; if (a > laid) continue; const fl = 0.55 + 0.45 * Math.sin(t * 7 + ph), q = P(a, b); c.fillStyle = fl > 0.8 ? `rgba(255,220,120,${0.8 * al})` : `rgba(255,${90 + 60 * fl | 0},30,${0.75 * al})`; c.beginPath(); c.ellipse(q[0], q[1], 1 + R() * 0.9, 0.6 + R() * 0.4, 0, 0, 7); c.fill(); }
+  c.restore();
+  if (al > 0.3) { const R2 = srand((f.seed || 1) + 7); for (let i = 0; i < Math.floor(f.L / 14); i++) { const a = R2() * f.L, b = (R2() - 0.5) * CO.W * 0.6; if (a > laid) continue; const q = P(a, b); FBX.flame(c, q[0], q[1], 3.2 + R2() * 2, 1.1, t, PB, i + (f.seed || 0), 0, true); } }
+}
+function drawCoalPreview(c) {
+  const kn = KN[ME]; if (!COAIM || !kn || kn.kind !== 'fire') return; const m = Math.hypot(COAIM[0], COAIM[1]); if (m < 0.2) return;
+  const d = [COAIM[0] / m, COAIM[1] / m], L = CO.L0 + CO.L1 * Math.min(1, m), [e1, e2] = coalBasis(d[0], d[1]), P = (a, b) => [kn.x + e1[0] * a + e2[0] * b, kn.y + e1[1] * a + e2[1] * b];
+  c.save(); c.fillStyle = 'rgba(255,120,40,.14)'; c.strokeStyle = 'rgba(255,170,90,.7)'; c.lineWidth = 0.5; c.setLineDash([1.5, 1.2]);
+  for (const [b0, b1, fill] of [[-CO.W / 2, CO.W / 2, 1], [CO.W / 2, CO.W / 2 + CO.SIDE, 0], [-CO.W / 2 - CO.SIDE, -CO.W / 2, 0]]) { c.beginPath(); [P(0, b0), P(L, b0), P(L, b1), P(0, b1)].forEach((q, i) => i ? c.lineTo(...q) : c.moveTo(...q)); c.closePath(); if (fill) c.fill(); c.globalAlpha = fill ? 1 : 0.45; c.stroke(); c.globalAlpha = 1; }
+  c.restore();
 }
 function startPlume() { Object.assign(K, { plT: 0, tsw: -1, att: 0, cone: 0, pdx: 0, pdy: 0 }); for (let i = 0; i < 20; i++) { const a = rr(0, 6.28), v = rr(20, 50); dust.push({ x: K.x, y: K.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.45, r: rr(1, 2), t: 0, max: rr(0.4, 0.8) }); } }
 function plumeStep(dt, IN) {
@@ -1454,7 +1504,7 @@ function draw() {
   const VL = camX - cv.width / 2 / sc - 30, VR = camX + cv.width / 2 / sc + 30, inV = q => q.x > VL && q.x < VR;
   for (const sp of splats) { if (sp.x < VL || sp.x > VR) continue; x.globalAlpha = Math.max(0, 1 - sp.t / 5) * 0.85; x.fillStyle = sp.ash ? '#26201c' : '#6a1610'; x.beginPath(); x.ellipse(sp.x, sp.y, sp.r, sp.r * 0.5, 0, 0, 7); x.fill(); } x.globalAlpha = 1;
   for (const kn of KN) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
-  drawFxGround(x); drawLeapPreview(x, t); drawDashPreview(x, t);
+  drawFxGround(x); drawLeapPreview(x, t); drawDashPreview(x, t); drawCoalPreview(x);
   for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = Math.max(0, 1 - (p.t - p.rest) / 4); drawPart(x, p); } x.globalAlpha = 1;
   const list = KN.flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).sort((a, b) => a[0] - b[0]);
   for (const [, k, o] of list) {
@@ -1492,9 +1542,10 @@ function draw() {
     ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live);
     const lab = live ? (K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (K.kills - (K.ultBase || 0)) + '/' + ULT_KILLS; if (ULS.textContent !== lab) ULS.textContent = lab;
     DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); }
-  { const fire = K.kind === 'fire'; if (document.body.classList.contains('fire') !== fire) { document.body.classList.toggle('fire', fire); document.querySelector('#rst small').textContent = fire ? 'torch' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : 'dash'; } }
+  { const fire = K.kind === 'fire'; if (document.body.classList.contains('fire') !== fire) { document.body.classList.toggle('fire', fire); document.querySelector('#rst small').textContent = fire ? 'torch' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : 'leap'; } }
+  if (K.kind === 'fire') AOEI.style.height = (K.coT >= 0 ? 100 : cl((K.coCd || 0) / CO.CD, 0, 1) * 100) + '%';
   if (K.kind === 'fire') BSTI.style.height = (K.brOn ? 100 * (K.brUse / FIRE.BR_T) : cl((K.brCd || 0) / FIRE.BR_CD, 0, 1) * 100) + '%';
-  if (K.kind === 'fire') DASHI.style.height = (K.plT >= 0 ? 100 * (1 - K.plT / PL.T) : cl((K.plCd || 0) / PL.CD, 0, 1) * 100) + '%'; else DASHI.style.height = (K.ab === 'dash' ? 100 : cl((K.dashCd || 0) / DASH_CD, 0, 1) * 100) + '%'; AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
+  if (K.kind === 'fire') DASHI.style.height = (K.plT >= 0 ? 100 * (1 - K.plT / PL.T) : cl((K.plCd || 0) / PL.CD, 0, 1) * 100) + '%'; else DASHI.style.height = (K.ab === 'dash' ? 100 : cl((K.dashCd || 0) / DASH_CD, 0, 1) * 100) + '%'; if (K.kind !== 'fire') AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
 }
 function frame(ms) {
   const dt = Math.min(0.05, (ms - last) / 1000) * speed; last = ms; t += dt; step(dt, t); sndWatch(); draw();
@@ -1574,11 +1625,11 @@ const dashEnd = (e, go) => { if (e.pointerId !== dashId) return; dashId = null; 
 DASHE.addEventListener('pointerup', e => dashEnd(e, true)); DASHE.addEventListener('pointercancel', e => dashEnd(e, false));
 // leap aim: where the thumb sits in the circle maps to a spot within LEAP_R of the knight; release to jump there
 let aoeId = null;
-const aoeUpd = e => { const r = AOE.getBoundingClientRect(), R = r.width / 2; let dx = (e.clientX - r.left - R) / R, dy = (e.clientY - r.top - R) / R; const d = Math.hypot(dx, dy); if (d > 1) { dx /= d; dy /= d; } LEAPAIM = [dx, dy]; AOED.style.transform = `translate(${dx * (R - 13)}px,${dy * (R - 13)}px)`; };
+const aoeUpd = e => { const r = AOE.getBoundingClientRect(), R = r.width / 2; let dx = (e.clientX - r.left - R) / R, dy = (e.clientY - r.top - R) / R; const d = Math.hypot(dx, dy); if (d > 1) { dx /= d; dy /= d; } LEAPAIM = [dx, dy]; if (KN[ME] && KN[ME].kind === 'fire') { COAIM = LEAPAIM; LEAPAIM = null; } AOED.style.transform = `translate(${dx * (R - 13)}px,${dy * (R - 13)}px)`; };
 AOE.addEventListener('pointerdown', e => { aoeId = e.pointerId; AOE.setPointerCapture(aoeId); aoeUpd(e); e.preventDefault(); });
 AOE.addEventListener('pointermove', e => { if (e.pointerId === aoeId) aoeUpd(e); });
-AOE.addEventListener('pointerup', e => { if (e.pointerId !== aoeId) return; aoeId = null; if (LEAPAIM) doLeap(LEAPAIM); LEAPAIM = null; AOED.style.transform = ''; });
-AOE.addEventListener('pointercancel', e => { if (e.pointerId !== aoeId) return; aoeId = null; LEAPAIM = null; AOED.style.transform = ''; });
+AOE.addEventListener('pointerup', e => { if (e.pointerId !== aoeId) return; aoeId = null; if (COAIM) { const IN = KN[ME].in; IN.coN = (IN.coN || 0) + 1; IN.coV = [Math.round(COAIM[0] * 100) / 100, Math.round(COAIM[1] * 100) / 100]; markIn(); } else if (LEAPAIM) doLeap(LEAPAIM); LEAPAIM = null; COAIM = null; AOED.style.transform = ''; });
+AOE.addEventListener('pointercancel', e => { if (e.pointerId !== aoeId) return; aoeId = null; LEAPAIM = null; COAIM = null; AOED.style.transform = ''; });
 // pinch to zoom on the field (two fingers that aren't on a control), mouse wheel on desktop
 const pinch = new Map(); let pinchD = 0, pinchZ = 1;
 cv.addEventListener('pointerdown', e => { if (e.pointerType === 'mouse') return; pinch.set(e.pointerId, [e.clientX, e.clientY]); if (pinch.size === 2) { const [a, b] = [...pinch.values()]; pinchD = Math.hypot(a[0] - b[0], a[1] - b[1]); pinchZ = ZOOM; } });
@@ -1624,9 +1675,9 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brUse', 'brCd', 'plT', 'plCd', 'pdx', 'pdy', 'z'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brUse', 'brCd', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
-const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', pl: n.pl || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
+const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in) });
 const packW = w => [w.id, UKEYS.indexOf(w.k), Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10, Math.round(w.hp), w.max, Math.round(w.atk * 100) / 100, w.hit > 0 ? 1 : 0, w.tk, w.bd > 0 ? 1 : 0];
 const LC = document.getElementById('lcard'), LUI = document.getElementById('lobbyUI'), NOTE = document.getElementById('note');
@@ -1767,7 +1818,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 document.body.classList.toggle('fire', CHAR === 'fire'); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '2071fc';
+const KBUILD = '333225';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || location.protocol === 'file:' || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
