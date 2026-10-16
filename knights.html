@@ -1701,7 +1701,7 @@ const WP = { S: KS * 1.3, RUN: 0.82, ATK: 0.7, DRAG: 65.6, HR: 6.3, REEL: 45, MA
   TOUCH: { DMG: 35, DRAG: 70, CD: 0.5 },
   CEN: { T: 0.58, R: 26, ARC: 1.35, COCK: 0.4, DMG: 70, KB: 230 },
   SW: { PREP: 0.12, GO: 0.45, REC: 0.25, ARC: Math.PI * 4 / 3, RMAX: 65.6, RMIN: 12, DMG: 90, HEAD: 180, SLOW: 2.5, CD: 6 },
-  SL: { WIND: 0.2, FLY: 0.4, REC: 0.3, RANGE: 104, WAVE: 32, DMG: 220, WDMG: 60, SLOW: 3, BIND: 3, BINDR: 9, HOLD: 1.75, RET: 0.55, CD: 9, REEL: 0.45, RDMG: 90, PDMG: 110, PKB: 280, LAND: 16, LDMG: 80 },
+  SL: { WIND: 0.2, FLY: 0.4, REC: 0.3, RANGE: 104, WAVE: 32, DMG: 220, WDMG: 60, SLOW: 3, BIND: 3, BINDR: 9, HOLD: 1.75, RET: 0.55, CD: 1.75, REEL: 0.45, RDMG: 90, PDMG: 110, PKB: 280, LAND: 16, LDMG: 80 },
   HO: { T: 6, CD: 15, R: 20, DPS: 70 },
   PEN: { RISE: 1, T: 12, END: 0.8, Z: 18, ACC: 300, DRAG: 0.55, MAXV: 170, R: 154, SMR0: 12, SMR1: 52, DMG0: 150, DMG1: 650, DROP: 0.14, UP: 0.3, CD: 0.45, BURN: 11, BDPS: 40 } };
 const HOLYP = { outer: '#e8a020', mid: '#ffd34a', core: '#fff4b8', white: 0.8, blue: 0 };
@@ -2710,7 +2710,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '547da7';
+const KBUILD = '88205a';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
