@@ -1904,8 +1904,6 @@ function sweepHit(pa, p, B, dt) {
     const rw = gd(K.x, K.y, w.x, w.y);
     hurt(w, onHead ? WP.SW.HEAD : WP.SW.DMG, ww => onHead && canImpale(ww) && Math.random() < WP.IMP ? impaleFx(ww, Math.atan2(ww.y - K.hy, ww.x - K.hx)) : dashFx(ww, Math.atan2(tang[1], tang[0])));
     if (w.hp <= 0) continue;
-    // right by his body the chain hardly moves: those get shoved off instead of riding round him
-    if (!onHead && rw < WP.SW.NEAR) { const oa = Math.atan2((w.y - K.y) * 1.25, w.x - K.x); w.kx += (Math.cos(oa) * 0.8 + tang[0] * 0.6) * 150; w.ky += (Math.sin(oa) * 0.8 + tang[1] * 0.6) * 85; continue; }
     w.hook = K.i; w.hId = id; w.ha = Math.atan2((w.y - K.y) * 1.25, w.x - K.x); w.hu = onHead ? 1 : cl(rw / Math.max(B.r, 1), 0.15, 1); w.hoff = onHead ? WP.HR + U.r : 0; w.hj = rr(-1.8, 1.8); }
 }
 function sweepRelease() {
@@ -2859,7 +2857,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '0844cc';
+const KBUILD = '8503d0';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
