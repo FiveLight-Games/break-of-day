@@ -2137,14 +2137,20 @@ function drawFlail(c, kn, t) {
   const back = s => Math.sin(s.a) < -0.25 && Math.abs(Math.cos(s.a)) < 0.5;
   stuck.filter(back).forEach(drawStuck);
   // the head: dark iron ball, a band of rivets, spikes all round (side spikes on the silhouette, short ones facing us)
+  // tumbling: on the ground it rolls the way it's dragged; in the air it spins with its speed
+  { const pv = kn.hPv || [kn.hx, kn.hy, z, t], dtt = Math.max(1e-3, t - pv[3]), mvx = kn.hx - pv[0], mvy = kn.hy - pv[1], md = Math.hypot(mvx, mvy); kn.hPv = [kn.hx, kn.hy, z, t];
+    if (md < 30) { if (z < 1) kn.hRoll = (kn.hRoll || 0) + (Math.abs(mvx) > Math.abs(mvy) * 0.3 ? Math.sign(mvx) : Math.sign(mvy) || 1) * md / R; else kn.hSpin = lerp(kn.hSpin || 0, Math.min(14, md / dtt / R * 0.6) * (mvx >= 0 ? 1 : -1), Math.min(1, dtt * 6)); }
+    if (z >= 1) kn.hRoll = (kn.hRoll || 0) + (kn.hSpin || 0) * dtt; else kn.hSpin = 0; }
+  const roll = kn.hRoll || 0;
   c.save(); c.translate(bx, by);
   const SP = 12; c.fillStyle = '#4a4f57'; c.strokeStyle = '#1d2024'; c.lineWidth = 0.3;
-  for (let i = 0; i < SP; i++) { const a = i / SP * 6.283 + 0.2, ca = Math.cos(a), sa = Math.sin(a), n = [-sa, ca], bw = R * 0.21; c.beginPath(); c.moveTo(ca * R * 0.8 + n[0] * bw, sa * R * 0.8 + n[1] * bw); c.lineTo(ca * R * 1.5, sa * R * 1.5); c.lineTo(ca * R * 0.8 - n[0] * bw, sa * R * 0.8 - n[1] * bw); c.closePath(); c.fill(); c.stroke(); }
+  for (let i = 0; i < SP; i++) { const a = i / SP * 6.283 + 0.2 + roll, ca = Math.cos(a), sa = Math.sin(a), n = [-sa, ca], bw = R * 0.21; c.beginPath(); c.moveTo(ca * R * 0.8 + n[0] * bw, sa * R * 0.8 + n[1] * bw); c.lineTo(ca * R * 1.5, sa * R * 1.5); c.lineTo(ca * R * 0.8 - n[0] * bw, sa * R * 0.8 - n[1] * bw); c.closePath(); c.fill(); c.stroke(); }
   const g = c.createRadialGradient(-R * 0.35, -R * 0.4, R * 0.1, 0, 0, R); g.addColorStop(0, '#8e959f'); g.addColorStop(0.45, '#4f555e'); g.addColorStop(1, '#22262b'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, R, 0, 7); c.fill(); c.strokeStyle = '#17191c'; c.lineWidth = 0.35; c.stroke();
+  c.save(); c.beginPath(); c.arc(0, 0, R * 0.99, 0, 7); c.clip(); c.rotate(roll);
   c.strokeStyle = '#2b2f35'; c.lineWidth = 0.9; c.beginPath(); c.ellipse(0, 0, R * 0.98, R * 0.32, 0.25, 0, 7); c.stroke(); c.fillStyle = '#a7aeb8'; for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI + 0.1; c.beginPath(); c.arc(Math.cos(a) * R * 0.95 * Math.cos(0.25) - Math.sin(a) * R * 0.3 * Math.sin(0.25), Math.cos(a) * R * 0.95 * Math.sin(0.25) + Math.sin(a) * R * 0.3 * Math.cos(0.25), 0.24, 0, 7); c.fill(); }
   c.save(); c.scale(R / 4.2, R / 4.2);
   for (const [px, py, l, a] of [[-1.6, -1.8, 1.6, -2.3], [1.3, -1.2, 1.7, -0.6], [-0.4, 0.6, 1.4, 1.9], [1.9, 1.5, 1.5, 0.7], [-2.3, 1.2, 1.5, 2.6]]) { const ca = Math.cos(a), sa = Math.sin(a); c.fillStyle = '#5b616b'; c.beginPath(); c.moveTo(px - sa * 0.55, py + ca * 0.55); c.lineTo(px + ca * l, py + sa * l); c.lineTo(px + sa * 0.55, py - ca * 0.55); c.closePath(); c.fill(); c.fillStyle = '#b9c0c9'; c.beginPath(); c.moveTo(px, py); c.lineTo(px + ca * l, py + sa * l); c.lineTo(px + sa * 0.4, py - ca * 0.4); c.closePath(); c.fill(); }
-  c.restore();
+  c.restore(); c.restore();
   c.fillStyle = 'rgba(122,26,18,.55)'; if (stuck.length) { c.beginPath(); c.ellipse(-0.4, -R * 0.55, R * 0.5, R * 0.22, 0, 0, 7); c.fill(); }
   // ring where the chain fixes on
   c.strokeStyle = '#7f8893'; c.lineWidth = 0.5; c.beginPath(); c.arc((ax - bx) * 0.9, (ay - by) * 0.9 + 0.3, 0.8, 0, 7); c.stroke();
@@ -2740,7 +2746,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'e14b44';
+const KBUILD = '43ce64';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
