@@ -2668,7 +2668,9 @@ if (LAY.fire && !LAY.fire.pl2) { for (const o of ['landscape', 'portrait']) if (
 // coals moved to plume's old spot and the Lava button took the coals spot: drop those saved spots once
 if (LAY.fire && !LAY.fire.lv1) { for (const o of ['landscape', 'portrait']) if (LAY.fire[o]) { delete LAY.fire[o].leap; delete LAY.fire[o].spin; } LAY.fire.lv1 = 1; try { localStorage.setItem('kn_layout', JSON.stringify(LAY)); } catch (e) { } }
 const orient = () => innerWidth > innerHeight ? 'landscape' : 'portrait';
-const layNow = () => (LAY[layCh()] || {})[orient()];
+// built-in default layouts (used until the player saves their own): Warpriest portrait from Elijah's phone setup
+const DEFLAY = { priest: { portrait: { move: { x: 0.1723, y: 0.8739, s: 113 }, swing: { x: 0.7812, y: 0.8739, s: 113 }, dash: { x: 0.7963, y: 0.6888, s: 87 }, leap: { x: 0.5255, y: 0.7273, s: 87 }, bring: { x: 0.48, y: 0.9011, s: 88 }, spin: { x: 0.8917, y: 0.4781, s: 63 }, ult: { x: 0.8917, y: 0.3429, s: 63 } } } };
+const layNow = () => (LAY[layCh()] || {})[orient()] || (DEFLAY[layCh()] || {})[orient()];
 const LPROPS = ['left', 'top', 'right', 'bottom', 'width', 'height'];
 function applyLayout() {
   const L = layNow();
@@ -2682,7 +2684,7 @@ function applyLayout() {
   if (EDIT) layMarks();
 }
 function ctlBox(k) { const r = document.getElementById(CTLS[k][0]).getBoundingClientRect(); return { x: (r.left + r.width / 2) / innerWidth, y: (r.top + r.height / 2) / innerHeight, s: Math.round(r.width) }; }
-function layEnsure() { const o = orient(); LAY[layCh()] = LAY[layCh()] || {}; const S = LAY[layCh()][o]; if (S) { for (const k in CTLS) if (!S[k]) { const el = document.getElementById(CTLS[k][0]); if (getComputedStyle(el).display !== 'none') S[k] = ctlBox(k); } return S; } if (!S) { const L = {}; for (const k in CTLS) { const el = document.getElementById(CTLS[k][0]); if (el.offsetParent || getComputedStyle(el).position === 'fixed' && getComputedStyle(el).display !== 'none') L[k] = ctlBox(k); } LAY[layCh()][o] = L; } return LAY[layCh()][o]; }
+function layEnsure() { const o = orient(); LAY[layCh()] = LAY[layCh()] || {}; if (!LAY[layCh()][o] && (DEFLAY[layCh()] || {})[o]) LAY[layCh()][o] = JSON.parse(JSON.stringify(DEFLAY[layCh()][o])); const S = LAY[layCh()][o]; if (S) { for (const k in CTLS) if (!S[k]) { const el = document.getElementById(CTLS[k][0]); if (getComputedStyle(el).display !== 'none') S[k] = ctlBox(k); } return S; } if (!S) { const L = {}; for (const k in CTLS) { const el = document.getElementById(CTLS[k][0]); if (el.offsetParent || getComputedStyle(el).position === 'fixed' && getComputedStyle(el).display !== 'none') L[k] = ctlBox(k); } LAY[layCh()][o] = L; } return LAY[layCh()][o]; }
 function laySave() { try { localStorage.setItem('kn_layout', JSON.stringify(LAY)); } catch (e) { } }
 let EDIT = null; // { sel, back } while editing
 const LE = document.getElementById('layEd');
