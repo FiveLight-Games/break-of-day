@@ -1223,7 +1223,7 @@ const FIRE = { R: 54, HALF: 0.4, DPS: 240, BURN: 5, BURN_DPS: 14, RUN: 0.92, ATK
 // Lava (the button): refills the breath charge in gold; that one charge breathes a tight lava beam, full breath length, x3 damage, slower to turn
 const LAVA = { CD: 20, DMG: 3, LEN: 1.25, W: 5, TURN: 5, KB: 60 };
 // Volcano (his ult, 250 kills): a volcano rises under him and lifts him out of reach; tap to belch a molten rock (max 3, 8s), then it sinks
-const V = { RISE: 1.5, CRACK: 0.25, T: 12, SINK: 0.7, H: 42, BASE: 40, LIP: 11, SHOTS: 5, BELCH: 0.5, FLY: 1.0, R: 41.8, DMG: 650, KB: 280, FT: 4.5, FDPS: 45, FR: 24, MAXD: 200 };
+const V = { RISE: 1.5, CRACK: 0.25, T: 12, SINK: 0.7, H: 42, BASE: 40, LIP: 11, SHOTS: 5, BELCH: 0.5, FLY: 1.0, R: 41.8, DMG: 650, KB: 280, FT: 4.5, FDPS: 45, FR: 24, MAXD: 400 };
 const vBack = u => { const c1 = 1.4, c3 = c1 + 1; return 1 + c3 * (u - 1) ** 3 + c1 * (u - 1) ** 2; };
 const volcH = kn => kn.vPh === 0 ? V.H * Math.max(0, vBack(cl((kn.vT - V.CRACK) / (V.RISE - V.CRACK), 0, 1))) : kn.vPh === 1 ? V.H : kn.vPh === 2 ? V.H * (1 - sm(cl(kn.vT / V.SINK, 0, 1))) : 0;
 const volcBW = kn => V.BASE * (0.3 + 0.7 * sm(Math.min(1, volcH(kn) / V.H * 1.25)));
@@ -1249,7 +1249,7 @@ function volcStep(dt, IN, mine) {
 function volcFx(dt, t) {
   for (const kn of KN) { if (kn.kind !== 'fire') continue;
     if (kn.vSNs === undefined) kn.vSNs = kn.vSN || 0;
-    if ((kn.vSN || 0) > kn.vSNs) { kn.vSNs = kn.vSN; const d = Math.hypot(kn.vTX - kn.vcx, kn.vTY - kn.vcy); FX.push({ k: 'vrock', i: kn.i, x0: kn.vcx, y0: kn.vcy, h0: V.H, x1: kn.vTX, y1: kn.vTY, pk: 30 + d * 0.35, t: 0, max: V.FLY + 0.02, tr: [], sp: rr(-1, 1) });
+    if ((kn.vSN || 0) > kn.vSNs) { kn.vSNs = kn.vSN; const d = Math.hypot(kn.vTX - kn.vcx, kn.vTY - kn.vcy); FX.push({ k: 'vrock', i: kn.i, x0: kn.vcx, y0: kn.vcy, h0: V.H, x1: kn.vTX, y1: kn.vTY, pk: 30 + Math.min(d * 0.35, 90), t: 0, max: V.FLY + 0.02, tr: [], sp: rr(-1, 1) });
       snd('plume', kn.vcx, kn.vcy); for (let i = 0; i < 40; i++) { const a = rr(-2.6, -0.5); sparks.push({ x: kn.vcx + rr(-4, 4), y: kn.vcy - V.H - 1, vx: Math.cos(a) * rr(15, 70), vy: Math.sin(a) * rr(30, 90), t: 0, max: rr(0.5, 1.1) }); }
       FX.push({ k: 'vpuff', x: kn.vcx, y: kn.vcy - V.H - 3, t: 0, max: 2.2, big: 1 }); if (kn.i === ME) shake = Math.max(shake, 0.45); }
     if (kn.vPh >= 0) { const h = volcH(kn), bw = volcBW(kn);
@@ -1778,7 +1778,7 @@ function resize() { cv.width = Math.round(innerWidth * DPR); cv.height = Math.ro
 addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 250));
 let last = performance.now(), t = 0;
 function draw() {
-  ultZoom = lerp(ultZoom, KN[ME] && KN[ME].vPh >= 0 ? 0.5 : 1 / (1 + (((KN[ME] && KN[ME].sz) || 1) - 1) * 0.33), KN[ME] && KN[ME].vPh >= 0 ? 0.035 : 0.06); // pull the camera back while he's a giant
+  ultZoom = lerp(ultZoom, KN[ME] && KN[ME].vPh >= 0 ? (innerHeight > innerWidth ? 0.4 : 0.62) : 1 / (1 + (((KN[ME] && KN[ME].sz) || 1) - 1) * 0.33), KN[ME] && KN[ME].vPh >= 0 ? 0.035 : 0.06); // pull the camera back while he's a giant
   const sc = viewScale(); camX = lerp(camX, K.x, 0.12); camY = lerp(camY, K.y - 6 * (K.sz || 1) - (K.z || 0) * 0.5, 0.12); const shx = shake ? rr(-1, 1) * shake * 5 : 0, shy = shake ? rr(-1, 1) * shake * 5 : 0;
   x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#000'; x.fillRect(0, 0, cv.width, cv.height);
   x.setTransform(sc, 0, 0, sc, cv.width / 2 - (camX + shx) * sc, cv.height / 2 - (camY + shy) * sc); { const hw = cv.width / 2 / sc + 10, x0 = Math.floor((camX - hw) / W), x1 = Math.floor((camX + hw) / W); const hh = cv.height / 2 / sc + 10, y0 = Math.floor((camY - hh) / H), y1 = Math.floor((camY + hh) / H); for (let gi = x0; gi <= x1; gi++) for (let gj = y0; gj <= y1; gj++) x.drawImage(gj === 0 ? ground : grassT, gi * W, gj * H, W + 0.5, H + 0.5); }
