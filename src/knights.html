@@ -71,7 +71,7 @@ button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none
 <button id="ult"><i></i><span>ULT</span><small></small></button>
 <div id="dash" class="aim"><i></i><div class="dot"></div><small>dash</small></div>
 <div id="aoe"><i></i><div class="dot"></div><small>leap</small></div>
-<div id="help">WASD move · hold mouse to swing toward cursor · Space spin · Shift dash where you're moving · hold Q to aim the leap at the cursor, release to jump · wheel zoom</div>
+<div id="help"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 (() => {
@@ -1606,8 +1606,8 @@ function stick(el, onMove, dynamic) {
   const end = e => { if (e.pointerId !== id) return; id = null; knob.style.transition = 'transform .12s'; knob.style.transform = ''; setTimeout(() => knob.style.transition = '', 130); onMove(null); };
   el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
 }
-let stickBr = null, stickMv = [0, 0], stickAim = null, keyMv = [0, 0], mouseAim = null, keySpin = false, btnSpin = false;
-const syncIn = () => { const IN = KN[ME].in; IN.mv = Math.hypot(...stickMv) > 0.05 ? stickMv : keyMv; IN.aim = stickAim || mouseAim; IN.spin = keySpin || btnSpin; IN.br = stickBr; if (NET && NET.mode === 'guest') NET.inDirty = 1; };
+let stickPl = null, stickBr = null, stickMv = [0, 0], stickAim = null, keyMv = [0, 0], mouseAim = null, keySpin = false, btnSpin = false;
+const syncIn = () => { const IN = KN[ME].in; IN.mv = Math.hypot(...stickMv) > 0.05 ? stickMv : keyMv; IN.aim = stickAim || mouseAim; IN.spin = keySpin || btnSpin; IN.br = stickBr || (isFire() && keys.has(' ') ? cursorVec() : null); IN.pl = stickPl || (isFire() && keys.has('shift') ? [-keyMv[0], -keyMv[1]] : null); if (NET && NET.mode === 'guest') NET.inDirty = 1; };
 stick(document.getElementById('lst'), v => { stickMv = v || [0, 0]; syncIn(); });
 stick(document.getElementById('rst'), v => { stickAim = v && Math.hypot(...v) > 0.35 ? v : null; syncIn(); }, true);
 const BSTI = document.querySelector('#bst i'); stick(document.getElementById('bst'), v => { stickBr = v && Math.hypot(...v) > 0.3 ? v : null; syncIn(); }, true);
@@ -1618,10 +1618,10 @@ function doLeap(v) { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN
 // dash aim: a stick whose centre is where the thumb lands; drag to aim (the path shows on the field), release to dash
 let dashId = null, dashO = null;
 const dashUpd = e => { const r = DASHE.getBoundingClientRect(), R = r.width / 2; let dx = e.clientX - dashO[0], dy = e.clientY - dashO[1]; const d = Math.hypot(dx, dy); if (d > R * 0.7) { dx *= R * 0.7 / d; dy *= R * 0.7 / d; }
-  DASHAIM = d > 8 ? [dx, dy] : null; if (KN[ME] && KN[ME].kind === 'fire') { KN[ME].in.pl = [Math.round(dx / (R * 0.7) * 100) / 100, Math.round(dy / (R * 0.7) * 100) / 100]; markIn(); DASHAIM = null; } DASHD.style.transform = `translate(${dashO[0] - r.left - R + dx}px,${dashO[1] - r.top - R + dy}px)`; };
+  DASHAIM = d > 8 ? [dx, dy] : null; if (KN[ME] && KN[ME].kind === 'fire') { stickPl = [Math.round(dx / (R * 0.7) * 100) / 100, Math.round(dy / (R * 0.7) * 100) / 100]; syncIn(); DASHAIM = null; } DASHD.style.transform = `translate(${dashO[0] - r.left - R + dx}px,${dashO[1] - r.top - R + dy}px)`; };
 DASHE.addEventListener('pointerdown', e => { dashId = e.pointerId; DASHE.setPointerCapture(dashId); dashO = [e.clientX, e.clientY]; dashUpd(e); e.preventDefault(); });
 DASHE.addEventListener('pointermove', e => { if (e.pointerId === dashId) dashUpd(e); });
-const dashEnd = (e, go) => { if (e.pointerId !== dashId) return; dashId = null; if (KN[ME] && KN[ME].kind === 'fire') { KN[ME].in.pl = null; markIn(); } else if (go && DASHAIM) doDash(DASHAIM); DASHAIM = null; DASHD.style.transition = 'transform .12s'; DASHD.style.transform = ''; setTimeout(() => DASHD.style.transition = '', 130); };
+const dashEnd = (e, go) => { if (e.pointerId !== dashId) return; dashId = null; if (KN[ME] && KN[ME].kind === 'fire') { stickPl = null; syncIn(); } else if (go && DASHAIM) doDash(DASHAIM); DASHAIM = null; DASHD.style.transition = 'transform .12s'; DASHD.style.transform = ''; setTimeout(() => DASHD.style.transition = '', 130); };
 DASHE.addEventListener('pointerup', e => dashEnd(e, true)); DASHE.addEventListener('pointercancel', e => dashEnd(e, false));
 // leap aim: where the thumb sits in the circle maps to a spot within LEAP_R of the knight; release to jump there
 let aoeId = null;
@@ -1649,15 +1649,23 @@ sb.addEventListener('pointerdown', e => { btnSpin = true; syncIn(); e.preventDef
 const sbUp = () => { btnSpin = false; syncIn(); }; sb.addEventListener('pointerup', sbUp); sb.addEventListener('pointerleave', sbUp); sb.addEventListener('pointercancel', sbUp);
 // keyboard + mouse
 const keys = new Set();
-const keyUpd = () => { keyMv = [(keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0), (keys.has('s') ? 1 : 0) - (keys.has('w') ? 1 : 0)]; keySpin = keys.has(' '); syncIn(); };
+const keyUpd = () => { keyMv = [(keys.has('d') ? 1 : 0) - (keys.has('a') ? 1 : 0), (keys.has('s') ? 1 : 0) - (keys.has('w') ? 1 : 0)]; keySpin = keys.has(' ') && !isFire(); syncIn(); };
+// the cursor relative to my character, in screen pixels
+const cursorVec = () => { if (!mousePos || !KN[ME]) return null; const sc = viewScale() / DPR, kn = KN[ME], kx = innerWidth / 2 + (kn.x - camX) * sc, ky = innerHeight / 2 + (kn.y - 6 - camY) * sc; return [mousePos[0] - kx, mousePos[1] - ky]; };
+const kbCoal = () => { const v = cursorVec(); if (!v) return [KN[ME].f, 0]; const sc = viewScale() / DPR, L = Math.hypot(v[0], v[1]) / sc, m = cl((L - CO.L0) / CO.L1, 0.25, 1), d = Math.hypot(v[0], v[1]) || 1; return [v[0] / d * m, v[1] / d * m]; };
 const kbLeap = () => { if (!mousePos) return [KN[ME].f, 0]; const sc = viewScale() / DPR, kn = KN[ME], kx = innerWidth / 2 + (kn.x - camX) * sc, ky = innerHeight / 2 + (kn.y - 6 - camY) * sc; let v = [(mousePos[0] - kx) / (LEAP_R * sc), (mousePos[1] - ky) / (LEAP_R * 0.8 * sc)]; const d = Math.hypot(...v); if (d > 1) v = v.map(q => q / d); return v; };
-addEventListener('keydown', e => { const k = e.key.toLowerCase(); if ('wasd '.includes(k)) { keys.add(k); keyUpd(); e.preventDefault(); }
-  if (k === 'shift' && !e.repeat) { const m = keyMv[0] || keyMv[1] ? keyMv : [KN[ME].f, 0]; doDash(m); }
-  if (k === 'q') { if (!e.repeat) keys.add('q'); LEAPAIM = kbLeap(); }
+const ARROW = { arrowup: 'w', arrowleft: 'a', arrowdown: 's', arrowright: 'd' }, keyOf = e => { const k = e.key.toLowerCase(); return ARROW[k] || (k === 'spacebar' ? ' ' : k); };
+const isFire = () => KN[ME] && KN[ME].kind === 'fire';
+addEventListener('keydown', e => { if (e.target && e.target.closest && e.target.closest('input')) return; const k = keyOf(e); if ('wasd '.includes(k) && k) { keys.add(k); keyUpd(); e.preventDefault(); }
+  if (k === 'shift' && !e.repeat) { if (isFire()) { keys.add('shift'); keyUpd(); } else { const m = keyMv[0] || keyMv[1] ? keyMv : [KN[ME].f, 0]; doDash(m); } }
+  if (k === 'q') { if (!e.repeat) keys.add('q'); if (isFire()) COAIM = kbCoal(); else LEAPAIM = kbLeap(); }
   if (k === 'r' && !e.repeat) doUlt(); });
-addEventListener('pointermove', e => { if (keys.has('q') && e.pointerType === 'mouse') { mousePos = [e.clientX, e.clientY]; LEAPAIM = kbLeap(); } });
-addEventListener('keyup', e => { if (e.key.toLowerCase() === 'q' && keys.has('q')) { keys.delete('q'); if (LEAPAIM) doLeap(LEAPAIM); LEAPAIM = null; } });
-addEventListener('keyup', e => { keys.delete(e.key.toLowerCase()); keyUpd(); });
+addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') return; mousePos = [e.clientX, e.clientY]; if (keys.has('q')) { if (isFire()) COAIM = kbCoal(); else LEAPAIM = kbLeap(); } if (isFire() && keys.has(' ')) syncIn(); });
+addEventListener('keyup', e => { if (keyOf(e) === 'q' && keys.has('q')) { keys.delete('q'); if (COAIM) { const IN = KN[ME].in; IN.coN = (IN.coN || 0) + 1; IN.coV = [Math.round(COAIM[0] * 100) / 100, Math.round(COAIM[1] * 100) / 100]; markIn(); } else if (LEAPAIM) doLeap(LEAPAIM); LEAPAIM = null; COAIM = null; } });
+addEventListener('keyup', e => { keys.delete(keyOf(e)); keyUpd(); });
+addEventListener('blur', () => { keys.clear(); keyUpd(); });
+// a clicked button keeps keyboard focus, and Space would then press it again: let go of focus after every click
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('button'); if (b) b.blur(); });
 let mouseDown = false, mousePos = null;
 const mouseAimUpd = () => { if (!mouseDown || !mousePos) { mouseAim = null; return syncIn(); } const sc = viewScale() / DPR, kx = innerWidth / 2 + (K.x - camX) * sc, ky = innerHeight / 2 + (K.y - 6 - camY) * sc; mouseAim = [mousePos[0] - kx, mousePos[1] - ky]; syncIn(); };
 cv.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') return; mouseDown = true; mousePos = [e.clientX, e.clientY]; mouseAimUpd(); });
@@ -1757,7 +1765,7 @@ const CTLS = { move: ['lst', 'Move stick'], swing: ['rst', 'Swing stick'], dash:
 const layCh = () => CHAR === 'fire' ? 'fire' : 'knight';
 // the HUD for the character being played: which controls show and what they're called
 let CHAR_UI = null;
-function charUI(fire) { CHAR_UI = fire; document.body.classList.toggle('fire', fire); document.querySelector('#rst small').textContent = fire ? 'torch' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : 'leap'; }
+function charUI(fire) { CHAR_UI = fire; document.getElementById('help').textContent = fire ? 'WASD/arrows move · hold mouse to swing the torch at the cursor · hold Space to breathe at the cursor · hold Shift to ride a plume the way you move · hold Q to aim the coals at the cursor, release to run them · R ult · wheel zoom' : 'WASD/arrows move · hold mouse to swing toward cursor · Space spin · Shift dash where you\'re moving · hold Q to aim the leap at the cursor, release to jump · R ult · wheel zoom'; document.body.classList.toggle('fire', fire); document.querySelector('#rst small').textContent = fire ? 'torch' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : 'leap'; }
 let LAY = {}; try { LAY = JSON.parse(localStorage.getItem('kn_layout') || '{}') || {}; } catch (e) { }
 const orient = () => innerWidth > innerHeight ? 'landscape' : 'portrait';
 const layNow = () => (LAY[layCh()] || {})[orient()];
