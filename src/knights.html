@@ -1787,11 +1787,12 @@ function holyBurn(x, y, R, dps, dt) {
   for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k]; if (gd(x, y, w.x, w.y) > R + U.r) continue; w.bd = FIRE.BURN; w.bsrc = K.i; w.hp -= dps * dt; if (w.hp <= 0) { K.kills++; burnFx(w); } }
 }
 // whoever the idle head touches gets hurt (harder while it's being dragged); kills by the head can leave them impaled
-function flailTouch(t, moving) {
-  if (!AUTH() || K.hz > 3) return; const T = WP.TOUCH;
+// whoever walks into the resting head just drops dead where they stand; while it's being dragged it throws its kills, further the faster it's going
+function flailTouch(t, spd) {
+  if (!AUTH() || K.hz > 3) return; const T = WP.TOUCH, moving = spd > 6, k = cl(spd / 60, 0, 2);
   for (const w of walkers) { if (w.hp <= 0 || w.bT > 0) continue; const U = UK[w.k]; if (gd(K.hx, K.hy, w.x, w.y) > WP.HR + U.r + 0.8) continue; if (t - (w.ftT || -9) < T.CD) continue; w.ftT = t;
     const a = Math.atan2(w.y - K.hy, w.x - K.hx); w.kx += Math.cos(a) * (moving ? 90 : 40); w.ky += Math.sin(a) * (moving ? 50 : 22);
-    hurt(w, moving ? T.DRAG : T.DMG, ww => canImpale(ww) && Math.random() < WP.IMP ? impaleFx(ww, a) : slamFx(ww, a)); }
+    hurt(w, moving ? T.DRAG : T.DMG, ww => moving && canImpale(ww) && Math.random() < WP.IMP ? impaleFx(ww, a) : flingFx(ww, a, moving ? k : 0)); }
 }
 // the head lies where it was left; past the chain's length it's dragged after him. An ability can pay the chain out further (hL): he hauls it back in.
 function flailRope(dt, t) {
@@ -1806,7 +1807,7 @@ function flailRope(dt, t) {
   else K.hL = Math.max(WP.DRAG, Math.min(K.hL, Math.max(d, WP.DRAG)) - WP.REEL * dt);
   if (d > K.hL) { const k = K.hL / d; K.hx = K.x + (K.hx - K.x) * k; K.hy = K.y + (K.hy - K.y) * k; }
   K.hy = cl(K.hy, 14, H - 4);
-  if (K.st === 'fight') flailTouch(t, Math.hypot(K.hx - px, K.hy - py) > dt * 6);
+  if (K.st === 'fight') flailTouch(t, Math.hypot(K.hx - px, K.hy - py) / Math.max(dt, 1e-4));
 }
 // the head comes home: it arcs back, speeding up, hitting anyone in its path, and slams into the ground beside him
 function flailReturn(dt) {
@@ -1969,11 +1970,13 @@ function impaleKill(w, a) {
   spray(w.x, w.y, 6, Math.cos(a) >= 0 ? 1 : -1, 14, 1.1); if (kn.stuck.length > 6) stuckOff(kn, kn.stuck.shift());
 }
 // thrown aside whole (his pull along the chain): the body tumbles away in one piece
-const flingFx = (w, a) => { EV.push([w.id, 7, Math.round(a * 100) / 100, K.i, r1(w.x), r1(w.y)]); flingKill(w, a); };
-function flingKill(w, a) { killSnd(w); w.dead = 1; const U = UK[w.k] || UK.foot;
-  if (U.sc > 1.05) { gib(w, 'torso', Math.cos(a) * 60, Math.sin(a) * 35, 26, rr(-8, 8)); gib(w, 'legs', Math.cos(a) * 45, Math.sin(a) * 25, 18, rr(-8, 8)); gib(w, 'head', Math.cos(a) * 55, Math.sin(a) * 30, 30, rr(-10, 10)); spray(w.x, w.y, 5, Math.sign(Math.cos(a)) || 1, 10, 1); return; }
-  parts.push({ kind: 'corpse', uk: w.k, sc: 1, x: w.x, y: w.y, z: 1, vx: Math.cos(a) * rr(60, 85), vy: Math.sin(a) * rr(35, 50), vz: rr(26, 38), rot: 0, spin: (Math.cos(a) >= 0 ? 1 : -1) * rr(6, 10), t: 0, rest: 0, side: 1 });
-  spray(w.x, w.y, 6, Math.sign(Math.cos(a)) || 1, 6, 0.8); }
+const flingFx = (w, a, sp = 1) => { EV.push([w.id, 7, Math.round(a * 100) / 100, K.i, r1(w.x), r1(w.y), Math.round(sp * 100) / 100]); flingKill(w, a, sp); };
+// sp scales the throw: 0 = he just falls over where he stood
+function flingKill(w, a, sp = 1) { killSnd(w); w.dead = 1; const U = UK[w.k] || UK.foot, ca = Math.cos(a), sa = Math.sin(a);
+  if (U.sc > 1.05) { gib(w, 'torso', ca * 60 * sp, sa * 35 * sp, 4 + 22 * Math.min(1, sp), rr(-8, 8) * sp); gib(w, 'legs', ca * 45 * sp, sa * 25 * sp, 3 + 15 * Math.min(1, sp), rr(-8, 8) * sp); gib(w, 'head', ca * 55 * sp, sa * 30 * sp, 5 + 25 * Math.min(1, sp), rr(-10, 10) * sp); spray(w.x, w.y, 5, Math.sign(ca) || 1, 6 + 4 * sp, 0.5 + 0.5 * sp); return; }
+  const fall = sp < 0.05, dir = Math.cos(a) >= 0 ? 1 : -1;
+  parts.push({ kind: 'corpse', uk: w.k, sc: 1, x: w.x, y: w.y, z: fall ? 0.2 : 1, vx: fall ? dir * 3 : ca * rr(60, 85) * sp, vy: fall ? 0 : sa * rr(35, 50) * sp, vz: fall ? 6 : 8 + rr(18, 30) * Math.min(1, sp), rot: 0, spin: dir * (fall ? 5 : rr(6, 10) * Math.min(1.3, 0.4 + sp)), t: 0, rest: 0, side: 1 });
+  spray(w.x, w.y, fall ? 3 : 6, dir, fall ? 4 : 6, fall ? 0.4 : 0.8); }
 function stuckOff(kn, s) { const bx = kn.hx + Math.cos(s.a) * WP.HR * 1.2, by = kn.hy, w = { k: s.uk, x: bx, y: by + 0.5 };
   gib(w, 'torso', Math.cos(s.a) * 12, rr(-3, 3), 6, rr(-4, 4)); gib(w, 'legs', Math.cos(s.a) * 8, rr(-3, 3), 4, rr(-4, 4)); if (Math.random() < 0.6) gib(w, 'head', Math.cos(s.a) * 14, rr(-3, 3), 8, rr(-6, 6)); }
 // per frame on every screen: impact effects, ground gouges where the head drags, impaled bodies ageing
@@ -2755,7 +2758,7 @@ function applySnap(S) {
   for (const a of S.w) { const [id, ki, wx, wy, hp, mx, atk, hit, tk, brn] = a;  seen.add(id); let w = byId.get(id);
     if (!w) { w = mkWalker(UKEYS[ki] || 'foot', wx, wy); w.id = id; walkers.push(w); }
     if (hp < w.hp && hp > 0 && !(brn & 1)) hitSnd(w); w.bd = brn & 1 ? 1 : 0; w.bndF = brn & 2 ? 1 : 0; w.slF = brn & 4 ? 1 : 0; w.tx = wx; w.ty = wy; w.hp = hp; w.max = mx; w.tk = tk; if (hit) w.hit = 0.1; if (atk < 0) w.atk = -1; else if (w.atk < 0 || Math.abs(w.atk - atk) > 0.15) w.atk = atk; }
-  for (const e of S.e) { const [id, kind, dir, ki, ex, ey] = e; let w = byId.get(id) || walkers.find(o => o.id === id); if (!w) { w = mkWalker('foot', ex, ey); w.id = id; } w.x = ex; w.y = ey; const k0 = K; K = KN[ki] || KN[0]; if (kind === 7) flingKill(w, dir); else if (kind === 6) impaleKill(w, dir); else if (kind === 5) burnKill(w); else if (kind === 4) boomFx(w); else if (kind === 1) spinKill(w); else if (kind === 2) dashKill(w, dir); else if (kind === 3) slamKill(w, dir); else cleaveKill(w, dir); K = k0; }
+  for (const e of S.e) { const [id, kind, dir, ki, ex, ey, xs] = e; let w = byId.get(id) || walkers.find(o => o.id === id); if (!w) { w = mkWalker('foot', ex, ey); w.id = id; } w.x = ex; w.y = ey; const k0 = K; K = KN[ki] || KN[0]; if (kind === 7) flingKill(w, dir, xs ?? 1); else if (kind === 6) impaleKill(w, dir); else if (kind === 5) burnKill(w); else if (kind === 4) boomFx(w); else if (kind === 1) spinKill(w); else if (kind === 2) dashKill(w, dir); else if (kind === 3) slamKill(w, dir); else cleaveKill(w, dir); K = k0; }
   walkers = walkers.filter(w => w.dead || seen.has(w.id));
 }
 // ---------- control layout: each player drags/resizes the touch controls, per character and orientation (saved on this device) ----------
