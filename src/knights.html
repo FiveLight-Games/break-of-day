@@ -35,7 +35,7 @@ body.fire #dash{left:calc(50% - 48px);right:auto;top:auto;bottom:22px;width:96px
 #lobbyUI a{color:#a59c88;font-size:12px}
 #note{position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#000b;border-radius:10px;padding:6px 12px;font-size:12px;display:none;pointer-events:none}
 #layEd{position:fixed;left:50%;top:max(58px,12vh);transform:translateX(-50%);transition:opacity .15s;z-index:15;background:#14120ff2;border:1px solid #3a332a;border-radius:14px;padding:12px 14px;display:none;flex-direction:column;gap:8px;width:min(320px,calc(100vw - 32px));font-size:13px;color:#efe7d6}#layEd b{font:700 15px system-ui;color:#f0c419}#layHint{color:#a59c88;font-size:12px}#layEd .lrow{display:flex;gap:8px;align-items:center}#layEd input{flex:1;accent-color:#f0c419}#layEd .lnum{font:600 12px ui-monospace,monospace;min-width:30px;text-align:right}#layWarn{color:#ff6a4d;font-size:12px}#layEd button{flex:1}#layEd .pri2{border-color:#f0c419;color:#f0c419}
-body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.editing #spin{cursor:move;outline:2px dashed #ffffff55;outline-offset:2px}body.editing .lsel{outline:2px dashed #f0c419 !important}@media (orientation:portrait){#layEd{top:26vh}}#bst,body.fire #ult{display:none}body.dragging #layEd{opacity:.25;pointer-events:none}body.editing .lbad{box-shadow:0 0 0 3px #ff6a4d}
+body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.editing #spin{cursor:move;outline:2px dashed #ffffff55;outline-offset:2px}body.editing .lsel{outline:2px dashed #f0c419 !important}@media (orientation:portrait){#layEd{top:26vh}}#bst{display:none}#lst,#rst,#dash,#aoe,#spin,#ult{transition:opacity .45s}body.volc #lst,body.volc #rst,body.volc #dash,body.volc #aoe,body.volc #spin,body.volc #ult{opacity:0 !important;pointer-events:none !important}#vtap{position:fixed;left:0;right:0;bottom:34px;text-align:center;font:800 17px system-ui;color:#ffd9a0;text-shadow:0 0 10px #ff6a00,0 2px 3px #000;opacity:0;transition:opacity .35s;pointer-events:none;letter-spacing:.5px}#vtap.on{opacity:1;animation:vtp 1.2s ease-in-out infinite}@keyframes vtp{50%{transform:scale(1.07)}}body.dragging #layEd{opacity:.25;pointer-events:none}body.editing .lbad{box-shadow:0 0 0 3px #ff6a4d}
 #exitQ{position:fixed;inset:0;z-index:20;background:#0008;display:none;align-items:center;justify-content:center}#exitQ.open{display:flex}#exitQ>div{background:#14120f;border:1px solid #3a332a;border-radius:14px;padding:18px 20px;text-align:center}#exitQ p{margin:0 0 14px;font:700 16px system-ui;color:#efe7d6}#exitQ .row{display:flex;gap:10px;justify-content:center}#exitQ button{padding:10px 18px;font-size:14px}#exitYes{border-color:#f0c419;color:#f0c419}
 #menuBtn{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;text-decoration:none}
 #dash{position:fixed;right:calc(10vw + 11px);bottom:172px;width:96px;height:96px;border-radius:50%;background:#9fd3ff14;border:2px solid #9fd3ff80;touch-action:none;overflow:hidden}
@@ -66,7 +66,7 @@ button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none
 <div id="top"><a id="menuBtn" href="./">&#8962; Menu</a><button id="hordeBtn">&#9776; Horde</button><button id="layBtn" title="Control layout" aria-label="Control layout">&#10021;</button><button id="clear">Clear</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><button id="sound">Sound: on</button><button id="music">Music: on</button><div id="vol" title="Music volume"><span>&#9835;</span><input type="range" min="0" max="100" step="1"></div><div id="stats"></div></div>
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
 <div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
-<button id="spin"><i></i><span>SPIN</span></button>
+<div id="vtap"></div><button id="spin"><i></i><span>SPIN</span></button>
 <div class="stick" id="bst"><div class="knob"></div><small>breath</small><i></i></div>
 <button id="ult"><i></i><span>ULT</span><small></small></button>
 <div id="dash" class="aim"><i></i><div class="dot"></div><small>dash</small></div>
@@ -354,6 +354,7 @@ function slamKill(w, a) { // blown apart outward from the impact, guts and all
   spray(w.x, w.y, 5, s, 34, 1.8);
 }
 function drawFxGround(c) {
+  for (const kn of KN) if (kn.kind === 'fire' && kn.vPh >= 0) drawVolcGround(c, kn, performance.now() / 1000);
   for (const f of FX) if (f.k === 'coals') drawCoals(c, f, f.t);
   for (const f of FX) if (f.k === 'crater') { const k = f.t / f.max, al = Math.min(1, (1 - k) * 2.5); const R = srand(Math.floor(f.seed));
     const S2 = f.s || 1; c.save(); c.translate(f.x, f.y); c.scale(S2, S2); c.translate(-f.x, -f.y); c.globalAlpha = al * 0.75; c.fillStyle = '#3d2b1c'; c.beginPath(); c.ellipse(f.x, f.y, 13, 5.5, 0, 0, 7); c.fill();
@@ -995,6 +996,8 @@ function snd(k, wx, wy, big) {
     case 'unult': tone('sine', 520, 130, t, 0.05, 0.6, 0.08 * v); noise(t, 0.6, 0.08 * v, 'bandpass', 3000, 600, 1.5, 0.05); break;
     case 'gswing': noise(t, 0.4, 0.5 * v, 'bandpass', 160 * j, 1100 * j, 1.1, 0.08); tone('sawtooth', 70, 40, t, 0.1, 0.3, 0.05 * v); break;
     case 'gslam': tone('sine', 70, 22, t, 0.005, 1.1, 0.95 * v); noise(t, 1.1, 0.55 * v, 'lowpass', 1600, 90, 0.6); noise(t, 0.12, 0.35 * v, 'bandpass', 2200, 900, 1.2); for (let i = 0; i < 10; i++) noise(t + 0.1 + Math.random() * 0.6, 0.05, 0.08 * v, 'bandpass', 500 + Math.random() * 1400, 0, 3); break;
+    case 'rumble': tone('sine', 42, 30, t, 0.25, 1.5, 0.55 * v); noise(t, 1.6, 0.42 * v, 'lowpass', 260, 110, 0.6, 0.35); break;
+    case 'belch': noise(t, 0.6, 0.5 * v, 'lowpass', 520, 140, 0.7, 0.05); tone('sine', 62, 32, t, 0.03, 0.55, 0.6 * v); break;
     case 'gcharge': tone('sawtooth', 45, 120, t, 0.9, 0.15, 0.06 * v); noise(t, 1.0, 0.22 * v, 'lowpass', 150, 900, 0.8, 0.9); tone('sine', 220, 660, t, 0.9, 0.1, 0.05 * v); break;
     case 'fwave': noise(t, 0.22, 0.3 * v, 'bandpass', 300 * j, 1400 * j, 1.1, 0.03); noise(t + 0.08, 0.25, 0.16 * v, 'lowpass', 900, 300, 0.8, 0.05); for (let i = 0; i < 3; i++) noise(t + 0.1 + Math.random() * 0.15, 0.02, 0.06 * v, 'bandpass', 1200 + Math.random() * 2000, 0, 4); break;
     case 'plume': tone('sine', 80, 30, t, 0.005, 0.6, 0.7 * v); noise(t, 0.6, 0.45 * v, 'lowpass', 1400, 200, 0.7); noise(t, 0.5, 0.25 * v, 'bandpass', 300, 1200, 1, 0.05); break;
@@ -1219,13 +1222,141 @@ const FIRE = { R: 54, HALF: 0.4, DPS: 240, BURN: 5, BURN_DPS: 14, RUN: 0.92, ATK
 // Coals (the leap circle): lay a rectangle of hot coals along the aim, then sprint down it throwing flames out past both sides
 // Lava (the button): refills the breath charge in gold; that one charge breathes a tight lava beam, full breath length, x3 damage, slower to turn
 const LAVA = { CD: 20, DMG: 3, LEN: 1.25, W: 5, TURN: 5, KB: 60 };
+// Volcano (his ult, 250 kills): a volcano rises under him and lifts him out of reach; tap to belch a molten rock (max 3, 8s), then it sinks
+const V = { RISE: 1.5, CRACK: 0.25, T: 8, SINK: 0.7, H: 42, BASE: 40, LIP: 11, SHOTS: 3, BELCH: 0.5, FLY: 1.0, R: 38, DMG: 650, KB: 280, FT: 4.5, FDPS: 45, FR: 24, MAXD: 200 };
+const vBack = u => { const c1 = 1.4, c3 = c1 + 1; return 1 + c3 * (u - 1) ** 3 + c1 * (u - 1) ** 2; };
+const volcH = kn => kn.vPh === 0 ? V.H * Math.max(0, vBack(cl((kn.vT - V.CRACK) / (V.RISE - V.CRACK), 0, 1))) : kn.vPh === 1 ? V.H : kn.vPh === 2 ? V.H * (1 - sm(cl(kn.vT / V.SINK, 0, 1))) : 0;
+const volcBW = kn => V.BASE * (0.3 + 0.7 * sm(Math.min(1, volcH(kn) / V.H * 1.25)));
+function startVolc() { Object.assign(K, { vPh: 0, vT: 0, vcx: K.x, vcy: K.y - 4, vSh: 0, vBel: -1, vLast: 0, brOn: 0, brH: 0, cone: 0, att: 0, tsw: -1 }); }
+function volcStep(dt, IN, mine) {
+  K.vT += dt; const h = volcH(K); K.vx = K.vy = 0; K.spd = 0; K.x = K.vcx - 2.5; K.y = K.vcy + 4; const zr = 4 + V.LIP * 0.42 * 0.6; K.z = h + zr * Math.min(1, h / 6); K.dph += dt * 4.2;
+  // he faces and raises his torches toward the spot while the volcano belches
+  const aimT = K.vBel >= 0 ? Math.atan2(K.vTY - (K.vcy - V.H), K.vTX - K.vcx) : null;
+  if (aimT !== null) { let d = aimT - K.aimS; d = Math.atan2(Math.sin(d), Math.cos(d)); K.aimS += d * Math.min(1, dt * 10); K.att = Math.min(1, K.att + dt * 4); K.f = Math.cos(K.aimS) >= 0 ? 1 : -1; } else { K.att = Math.max(0, K.att - dt * 2.5); K.f = Math.cos(K.dph + Math.PI / 2) >= 0 ? 1 : -1; }
+  K.aim = K.aimS; if (K.landT > 0) K.landT -= dt;
+  if (K.vPh === 0 && K.vT >= V.RISE) { K.vPh = 1; K.vT = 0; }
+  else if (K.vPh === 1) {
+    if (mine && (IN.vtN || 0) !== (K.vtSeen || 0)) { K.vtSeen = IN.vtN || 0; if (K.vBel < 0 && K.vSh < V.SHOTS && IN.vtP) { let dx = IN.vtP[0] - K.vcx, dy = IN.vtP[1] - K.vcy; const d = Math.hypot(dx, dy); if (d > V.MAXD) { dx *= V.MAXD / d; dy *= V.MAXD / d; } K.vTX = K.vcx + dx; K.vTY = cl(K.vcy + dy, 16, H - 4); K.vBel = 0; } }
+    if (K.vBel >= 0) { K.vBel += dt; if (K.vBel >= V.BELCH) { K.vBel = -1; K.vSh++; K.vSN = (K.vSN || 0) + 1; K.vLast = K.vT; K.landT = 0.3; } }
+    if (K.vBel < 0 && (K.vT >= V.T || (K.vSh >= V.SHOTS && K.vT >= K.vLast + 0.7))) { K.vPh = 2; K.vT = 0; } }
+  else if (K.vPh === 2 && K.vT >= V.SINK) { K.vPh = -1; K.z = 0; K.vBel = -1; K.ultBase = K.kills; K.brLock = 1; }
+  // the cone shoulders enemies out of its way as it grows
+  if (AUTH() && K.vPh >= 0 && h > 0.5) { const bw = volcBW(K);
+    for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.vcx, dy = (w.y - K.vcy) / 0.42, d = Math.hypot(dx, dy) || 0.01, rr2 = bw + UK[w.k].r; if (d >= rr2) continue; const ux = dx / d, uy = dy / d; w.x = K.vcx + ux * rr2; w.y = K.vcy + uy * rr2 * 0.42; if (K.vPh === 0) { w.kx += ux * 160; w.ky += uy * 70; } } }
+}
+// every screen: rocks leave the crater when vSN ticks over, land after V.FLY; the host deals the damage
+function volcFx(dt, t) {
+  for (const kn of KN) { if (kn.kind !== 'fire') continue;
+    if (kn.vSNs === undefined) kn.vSNs = kn.vSN || 0;
+    if ((kn.vSN || 0) > kn.vSNs) { kn.vSNs = kn.vSN; const d = Math.hypot(kn.vTX - kn.vcx, kn.vTY - kn.vcy); FX.push({ k: 'vrock', i: kn.i, x0: kn.vcx, y0: kn.vcy, h0: V.H, x1: kn.vTX, y1: kn.vTY, pk: 30 + d * 0.35, t: 0, max: V.FLY + 0.02, tr: [], sp: rr(-1, 1) });
+      snd('plume', kn.vcx, kn.vcy); for (let i = 0; i < 40; i++) { const a = rr(-2.6, -0.5); sparks.push({ x: kn.vcx + rr(-4, 4), y: kn.vcy - V.H - 1, vx: Math.cos(a) * rr(15, 70), vy: Math.sin(a) * rr(30, 90), t: 0, max: rr(0.5, 1.1) }); }
+      FX.push({ k: 'vpuff', x: kn.vcx, y: kn.vcy - V.H - 3, t: 0, max: 2.2, big: 1 }); if (kn.i === ME) shake = Math.max(shake, 0.45); }
+    if (kn.vPh >= 0) { const h = volcH(kn), bw = volcBW(kn);
+      if (kn.vPh !== 1 && Math.random() < dt * 40) { const a = rr(0, 6.28); dust.push({ x: kn.vcx + Math.cos(a) * bw, y: kn.vcy + Math.sin(a) * bw * 0.42, vx: Math.cos(a) * rr(10, 40), vy: Math.sin(a) * rr(5, 18) - 6, r: rr(1.2, 2.6), t: 0, max: rr(0.6, 1.2) }); }
+      if (kn.vPh === 0 && h > 2 && Math.random() < dt * 14) { const sd = rr(-1, 1); dust.push({ x: kn.vcx + sd * V.LIP, y: kn.vcy - h + 2, vx: sd * rr(10, 25), vy: rr(15, 35), r: rr(0.8, 1.6), t: 0, max: rr(0.5, 0.9) }); }
+      if (kn.vPh === 0 && kn.i === ME) shake = Math.max(shake, 0.18 + 0.12 * Math.sin(kn.vT * 30));
+      if (kn.vBel >= 0 && Math.random() < dt * 60) sparks.push({ x: kn.vcx + rr(-5, 5), y: kn.vcy - h - 1, vx: rr(-25, 25), vy: -rr(20, 70), t: 0, max: rr(0.3, 0.7) });
+      if (kn.vBel >= 0 && !kn.vBelP) { kn.vBelP = 1; FX.push({ k: 'vpuff', x: kn.vcx, y: kn.vcy - h - 3, t: 0, max: 1.6 }); snd('belch', kn.vcx, kn.vcy); }
+      if (kn.vBel < 0) kn.vBelP = 0;
+      if (kn.vPh === 0 && !kn.vRum) { kn.vRum = 1; snd('rumble', kn.vcx, kn.vcy); } if (kn.vPh === 2 && kn.vRum === 1) { kn.vRum = 2; snd('rumble', kn.vcx, kn.vcy); } }
+    else kn.vRum = 0; }
+  for (const f of FX) {
+    if (f.k === 'vrock') { const k = Math.min(1, f.t / V.FLY), g = vrockPos(f, k); f.tr.push([g[0], g[1] - g[2]]); if (f.tr.length > 14) f.tr.shift();
+      if (Math.random() < dt * 50) dust.push({ x: g[0] + rr(-2, 2), y: g[1] - g[2] + rr(-2, 2), vx: rr(-6, 6), vy: rr(-10, -2), r: rr(1.2, 2.2), t: 0, max: rr(0.5, 0.9) });
+      if (f.t >= V.FLY && !f.done) { f.done = 1; volcImpact(f); } }
+    else if (f.k === 'vfire' && AUTH()) { const k0 = K; K = KN[f.i] || KN[0];
+      for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - f.x, dy = (w.y - f.y) / 0.45; if (Math.hypot(dx, dy) > V.FR + UK[w.k].r) continue; w.bd = FIRE.BURN; w.bsrc = K.i; w.hp -= V.FDPS * dt; if (w.hp <= 0 && !w.dead) { K.kills++; burnFx(w); } }
+      K = k0; } }
+}
+const vrockPos = (f, k) => [lerp(f.x0, f.x1, k), lerp(f.y0, f.y1, k), f.h0 * (1 - k) + f.pk * 4 * k * (1 - k)];
+function volcImpact(f) { const x = f.x1, y = f.y1;
+  FX.push({ k: 'ring', x, y, t: 0, max: 0.8, s: V.R * 1.3 / (SLAM_R * 1.25) }, { k: 'crater', x, y, t: 0, max: 9, seed: Math.random() * 1e4, s: 2.3 }, { k: 'vfire', i: f.i, x, y, t: 0, max: V.FT, seed: Math.random() * 1e4 }, { k: 'vflash', x, y, t: 0, max: 0.6 }, { k: 'vpuff', x, y: y - 4, t: 0, max: 2.4, big: 1 });
+  for (let i = 0; i < 70; i++) { const a = rr(3.3, 6.1); sparks.push({ x: x + rr(-4, 4), y: y - 2, vx: Math.cos(a) * rr(20, 110), vy: Math.sin(a) * rr(30, 110), t: 0, max: rr(0.5, 1.3) }); }
+  for (let i = 0; i < 70; i++) { const a = rr(0, 6.28), v = rr(30, 110); dust.push({ x: x + Math.cos(a) * 4, y: y + Math.sin(a) * 2, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1.4, 3), t: 0, max: rr(0.6, 1.3) }); }
+  const me = KN[ME]; if (me && Math.hypot(me.x - x, me.y - y) < 260) shake = Math.max(shake, 0.9); snd('gslam', x, y); snd('boom', x, y);
+  if (!AUTH()) return; const k0 = K; K = KN[f.i] || KN[0];
+  for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - x, dy = (w.y - y) * 1.3, d = Math.hypot(dx, dy), Rr = V.R + UK[w.k].r; if (d > Rr * 1.7) continue; const a = Math.atan2(dy / 1.3, dx);
+    w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i;
+    if (d < Rr) { w.kx += Math.cos(a) * V.KB; w.ky += Math.sin(a) * V.KB * 0.55; hurt(w, V.DMG * (1 - 0.4 * d / Rr), ww => slamFx(ww, a)); }
+    else { w.kx += Math.cos(a) * V.KB * 0.5; w.ky += Math.sin(a) * V.KB * 0.28; } }
+  K = k0; }
+// ---- volcano drawing
+function drawVolcGround(c, kn, t) { const h = volcH(kn), bw = volcBW(kn), X = kn.vcx, Y = kn.vcy, ck = kn.vPh === 0 ? Math.min(1, kn.vT / V.CRACK) : 1, al = kn.vPh === 2 ? 1 - sm(cl(kn.vT / V.SINK, 0, 1)) : 1;
+  c.save(); c.globalAlpha = al;
+  // churned, scorched ground ring and glowing cracks running out from the base
+  c.fillStyle = 'rgba(40,26,18,.55)'; c.beginPath(); c.ellipse(X, Y, (bw + 8) * ck, (bw + 8) * 0.42 * ck, 0, 0, 7); c.fill();
+  const RS = srand(Math.floor(X * 7 + Y)); c.lineCap = 'round';
+  for (let i = 0; i < 9; i++) { const a = i / 9 * 6.28 + RS() * 0.5, l = (bw + 6 + RS() * 14) * ck; let px = X, py = Y; c.beginPath(); c.moveTo(px, py); for (let j = 1; j <= 4; j++) { const r2 = l * j / 4, aa = a + (RS() - 0.5) * 0.5; px = X + Math.cos(aa) * r2; py = Y + Math.sin(aa) * r2 * 0.42; c.lineTo(px, py); }
+    c.strokeStyle = 'rgba(30,14,8,.8)'; c.lineWidth = 1.1; c.stroke(); c.strokeStyle = `rgba(255,${(120 + 60 * Math.sin(t * 4 + i)) | 0},30,${0.55 + 0.25 * Math.sin(t * 5 + i * 2)})`; c.lineWidth = 0.45; c.stroke(); }
+  c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(X + 3, Y + 1, bw * 1.02, bw * 0.45, 0, 0, 7); c.fill();
+  c.restore(); }
+function drawVolc(c, kn, t) { const h = volcH(kn); if (h < 0.3) return;
+  const hk = Math.min(1, h / V.H), bw = volcBW(kn), L = V.LIP * (0.45 + 0.55 * Math.min(1, hk * 1.4)), ly = L * 0.42, by = bw * 0.42, bel = kn.vBel >= 0 ? Math.sin(Math.min(1, kn.vBel / V.BELCH) * Math.PI) : 0;
+  const X = kn.vcx + (kn.vPh !== 1 ? Math.sin(t * 57) * 0.35 : 0) + bel * Math.sin(t * 70) * 0.3, Y = kn.vcy, top = Y - h, sw = 1 + bel * 0.05, LL = L * sw;
+  const wAt = v => LL + (bw * sw - LL) * Math.pow(v, 1.7); // half-width at depth v (0 lip .. 1 base): concave slopes
+  const body = () => { c.beginPath(); c.moveTo(X - bw * sw, Y); c.quadraticCurveTo(X - LL - (bw * sw - LL) * 0.12, Y - h * 0.38, X - LL, top); c.ellipse(X, top, LL, ly, 0, Math.PI, 0, true); c.quadraticCurveTo(X + LL + (bw * sw - LL) * 0.12, Y - h * 0.38, X + bw * sw, Y); c.ellipse(X, Y, bw * sw, by, 0, 0, Math.PI, false); c.closePath(); };
+  c.save(); body(); const g = c.createLinearGradient(X - bw, 0, X + bw, 0); g.addColorStop(0, '#24170f'); g.addColorStop(0.35, '#3d2a20'); g.addColorStop(0.68, '#5d4132'); g.addColorStop(0.86, '#6f4f3c'); g.addColorStop(1, '#2e1f17'); c.fillStyle = g; c.fill(); c.clip();
+  const gv = c.createLinearGradient(0, top, 0, Y + by); gv.addColorStop(0, 'rgba(255,120,40,.18)'); gv.addColorStop(0.25, 'rgba(0,0,0,0)'); gv.addColorStop(1, 'rgba(0,0,0,.35)'); c.fillStyle = gv; c.fillRect(X - bw - 2, top - 4, bw * 2 + 4, h + by + 6);
+  // strata and rock texture
+  const RS = srand(Math.floor(kn.vcx * 3 + kn.vcy)); c.lineWidth = 0.6;
+  for (let j = 1; j <= 5; j++) { const v = j / 6, w = wAt(v), yy = top + v * h; c.strokeStyle = `rgba(20,10,6,${0.28 + 0.1 * (j % 2)})`; c.beginPath(); c.ellipse(X, yy, w, w * 0.42, 0, 0.15, Math.PI - 0.15); c.stroke(); }
+  for (let i = 0; i < 46; i++) { const v = Math.pow(RS(), 0.8), u = RS() * 2 - 1, w = wAt(v), px = X + u * w * 0.95, py = top + v * h + Math.sqrt(Math.max(0, 1 - u * u)) * w * 0.42 * 0.8, r = 0.5 + RS() * 1.4; c.fillStyle = RS() < 0.5 ? 'rgba(20,10,6,.35)' : 'rgba(150,110,85,.22)'; c.beginPath(); c.ellipse(px, py, r * 1.4, r * 0.7, 0, 0, 7); c.fill(); }
+  // lava rivulets running down the front from the lip
+  for (const [u0, len, ph] of [[-0.55, 0.62, 0], [0.05, 0.9, 1.7], [0.5, 0.48, 3.1], [-0.15, 0.35, 4.4]]) { const pts = []; for (let i = 0; i <= 12; i++) { const v = i / 12 * len, w = wAt(v), u = u0 * (1 - v * 0.3) + Math.sin(v * 9 + ph) * 0.07; pts.push([X + u * w, top + v * h + Math.sqrt(Math.max(0, 1 - u * u)) * w * 0.42]); }
+    c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = '#3a0c04'; c.lineWidth = 2.2; c.beginPath(); pts.forEach((q, i) => i ? c.lineTo(...q) : c.moveTo(...q)); c.stroke();
+    c.globalCompositeOperation = 'lighter'; for (let i = 1; i < pts.length; i++) { const v = i / 12, b = 0.55 + 0.45 * Math.sin(v * 16 - t * 5 + ph), fade = 1 - v * 0.75; c.strokeStyle = `rgba(255,${(110 + 110 * b) | 0},${(20 + 60 * b) | 0},${(0.55 + 0.45 * b) * fade})`; c.lineWidth = 1.3 - v * 0.5; c.beginPath(); c.moveTo(...pts[i - 1]); c.lineTo(...pts[i]); c.stroke(); }
+    c.globalCompositeOperation = 'source-over'; }
+  c.restore();
+  // crater: dark bowl, lit lava pool, bubbles, bright rim
+  c.save(); c.fillStyle = '#170c08'; c.beginPath(); c.ellipse(X, top, LL, ly, 0, 0, 7); c.fill();
+  const pg = c.createRadialGradient(X, top + 0.4, 0, X, top + 0.4, LL * 0.75); pg.addColorStop(0, bel > 0.2 ? '#ffffff' : '#fff2a6'); pg.addColorStop(0.45, '#ffa22c'); pg.addColorStop(1, '#b8300a'); c.fillStyle = pg; c.beginPath(); c.ellipse(X, top + 0.5, LL * 0.74, ly * 0.62, 0, 0, 7); c.fill();
+  for (let i = 0; i < 5; i++) { const ph = (t * 0.9 + i * 0.37) % 1, bx = X + Math.sin(i * 2.7) * LL * 0.45, byy = top + 0.5 + Math.cos(i * 1.9) * ly * 0.3; c.strokeStyle = `rgba(255,240,170,${0.7 * (1 - ph)})`; c.lineWidth = 0.35; c.beginPath(); c.ellipse(bx, byy, 0.4 + ph * 1.3, (0.4 + ph * 1.3) * 0.5, 0, 0, 7); c.stroke(); }
+  c.strokeStyle = '#7a5848'; c.lineWidth = 1.1; c.beginPath(); c.ellipse(X, top, LL, ly, 0, Math.PI, 0); c.stroke();
+  c.strokeStyle = '#4a3026'; c.lineWidth = 1.3; c.beginPath(); c.ellipse(X, top, LL, ly, 0, 0, Math.PI); c.stroke();
+  c.globalCompositeOperation = 'lighter'; const gr = 10 + 10 * bel + Math.sin(t * 3) * 0.8, cg = c.createRadialGradient(X, top, 0, X, top, gr); cg.addColorStop(0, `rgba(255,170,60,${0.45 + 0.4 * bel})`); cg.addColorStop(1, 'rgba(255,90,20,0)'); c.fillStyle = cg; c.beginPath(); c.arc(X, top, gr, 0, 7); c.fill(); c.globalCompositeOperation = 'source-over';
+  // a steady smoke plume from the crater
+  for (let i = 0; i < 9; i++) { const ph = (t * 0.3 + i / 9) % 1, px = X + Math.sin(i * 2.3 + t * 0.5) * 2.5 * ph + ph * 9, py = top - 3 - ph * 42, r = 2 + ph * 8; c.fillStyle = `rgba(68,58,56,${0.32 * (1 - ph) * Math.min(1, ph * 5) * hk})`; c.beginPath(); c.arc(px, py, r, 0, 7); c.fill(); }
+  c.restore(); }
+function drawVolcAir(c, t) {
+  for (const f of FX) {
+    if (f.k === 'vpuff') { const k = f.t / f.max, B = f.big ? 1.6 : 1; for (let i = 0; i < 10; i++) { const a = i / 10 * 6.28 + (f.x % 3), r = (3 + 14 * sm(Math.min(1, k * 1.6))) * B, px = f.x + Math.cos(a) * r * 0.7, py = f.y + Math.sin(a) * r * 0.35 - k * 26 * B; c.fillStyle = `rgba(52,44,42,${0.45 * (1 - k) ** 1.2})`; c.beginPath(); c.arc(px, py, (3.5 + k * 7) * B, 0, 7); c.fill(); } }
+    else if (f.k === 'vrock') { const k = Math.min(1, f.t / V.FLY), [gx, gy, zz] = vrockPos(f, k), px = gx, py = gy - zz;
+      c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
+      for (let i = 1; i < f.tr.length; i++) { const u = i / f.tr.length; c.strokeStyle = `rgba(255,${(90 + 130 * u) | 0},30,${0.6 * u})`; c.lineWidth = 1 + 6 * u; c.beginPath(); c.moveTo(...f.tr[i - 1]); c.lineTo(...f.tr[i]); c.stroke(); }
+      const gg = c.createRadialGradient(px, py, 0, px, py, 16); gg.addColorStop(0, 'rgba(255,200,90,.7)'); gg.addColorStop(1, 'rgba(255,80,10,0)'); c.fillStyle = gg; c.beginPath(); c.arc(px, py, 16, 0, 7); c.fill();
+      c.globalCompositeOperation = 'source-over'; c.translate(px, py); c.rotate(f.t * 6 * (f.sp > 0 ? 1 : -1)); c.scale(1.5, 1.5);
+      const RS = srand(7); c.fillStyle = '#2b1a12'; c.beginPath(); for (let i = 0; i < 10; i++) { const a = i / 10 * 6.28, r = 4.6 * (0.82 + RS() * 0.3); c.lineTo(Math.cos(a) * r, Math.sin(a) * r); } c.closePath(); c.fill(); c.strokeStyle = '#120a06'; c.lineWidth = 0.5; c.stroke();
+      c.globalCompositeOperation = 'lighter'; c.strokeStyle = `rgba(255,${(160 + 60 * Math.sin(t * 20)) | 0},50,.95)`; c.lineWidth = 0.55;
+      for (const [a, b, d] of [[0.3, 2.2, 0.8], [2.6, 4.0, 1], [4.4, 5.9, 0.7], [1.2, 3.6, 0.3]]) { c.beginPath(); c.moveTo(Math.cos(a) * 3.8 * d, Math.sin(a) * 3.8 * d); c.quadraticCurveTo(0, 0, Math.cos(b) * 3.6, Math.sin(b) * 3.6); c.stroke(); }
+      const hg = c.createRadialGradient(-1, -1, 0, -1, -1, 3); hg.addColorStop(0, 'rgba(255,170,60,.5)'); hg.addColorStop(1, 'rgba(255,90,20,0)'); c.fillStyle = hg; c.beginPath(); c.arc(-1, -1, 3, 0, 7); c.fill(); c.restore(); }
+    else if (f.k === 'vflash') { const k = f.t / f.max, r = 10 + 34 * sm(Math.min(1, k * 2)), al = (1 - k) ** 1.5; c.save(); c.globalCompositeOperation = 'lighter'; const g = c.createRadialGradient(f.x, f.y - 6, 0, f.x, f.y - 6, r); g.addColorStop(0, `rgba(255,250,210,${al})`); g.addColorStop(0.35, `rgba(255,170,60,${0.8 * al})`); g.addColorStop(1, 'rgba(255,60,10,0)'); c.fillStyle = g; c.beginPath(); c.arc(f.x, f.y - 6, r, 0, 7); c.fill(); c.restore(); } }
+}
+function drawVolcFloor(c, t) {
+  // burning ground where rocks landed, plus each pending target's marker and the incoming rock's shadow
+  for (const f of FX) if (f.k === 'vfire') { const k = f.t / f.max, life = Math.min(1, f.t * 4) * Math.min(1, (f.max - f.t) / 1.2), RS = srand(Math.floor(f.seed));
+    c.save(); c.globalAlpha = life; c.fillStyle = 'rgba(25,14,8,.6)'; c.beginPath(); c.ellipse(f.x, f.y, V.FR * 1.05, V.FR * 0.47, 0, 0, 7); c.fill();
+    c.globalCompositeOperation = 'lighter'; const eg = c.createRadialGradient(f.x, f.y, 0, f.x, f.y, V.FR); eg.addColorStop(0, 'rgba(255,120,30,.35)'); eg.addColorStop(1, 'rgba(255,60,10,0)'); c.fillStyle = eg; c.save(); c.translate(f.x, f.y); c.scale(1, 0.45); c.translate(-f.x, -f.y); c.beginPath(); c.arc(f.x, f.y, V.FR, 0, 7); c.fill(); c.restore();
+    const fl = []; for (let i = 0; i < 16; i++) { const a = RS() * 6.28, r = Math.sqrt(RS()) * V.FR * 0.9; fl.push([f.x + Math.cos(a) * r, f.y + Math.sin(a) * r * 0.45, 6 + RS() * 10, 2 + RS() * 2, RS() * 9]); } fl.sort((a, b) => a[1] - b[1]);
+    for (const [x, y, hh, w, ph] of fl) { const hf = hh * (0.75 + 0.25 * Math.sin(t * 11 + ph)) * (0.6 + 0.4 * life), sway = Math.sin(t * 7 + ph) * 0.9; const g = c.createLinearGradient(0, y, 0, y - hf); g.addColorStop(0, 'rgba(255,90,20,.9)'); g.addColorStop(0.5, 'rgba(255,170,50,.75)'); g.addColorStop(1, 'rgba(255,240,160,0)'); c.fillStyle = g;
+      c.beginPath(); c.moveTo(x - w, y); c.quadraticCurveTo(x - w * 0.9, y - hf * 0.55, x + sway, y - hf); c.quadraticCurveTo(x + w * 0.9, y - hf * 0.55, x + w, y); c.closePath(); c.fill(); }
+    c.restore(); }
+  for (const kn of KN) if (kn.kind === 'fire' && kn.vBel >= 0) volcMark(c, kn.vTX, kn.vTY, t, 0);
+  for (const f of FX) if (f.k === 'vrock') { const k = Math.min(1, f.t / V.FLY); volcMark(c, f.x1, f.y1, t, k); const [gx, gy] = vrockPos(f, k); c.fillStyle = `rgba(0,0,0,${0.15 + 0.3 * k})`; c.beginPath(); c.ellipse(gx, gy, 2 + 4 * k, (2 + 4 * k) * 0.45, 0, 0, 7); c.fill(); }
+}
+// the target marker: a pulsing ring the size of the blast, with a ring closing in as the rock arrives
+function volcMark(c, x, y, t, k) { c.save(); c.translate(x, y); c.scale(1, 0.45); const R0 = V.R;
+  c.fillStyle = `rgba(255,70,20,${0.1 + 0.08 * Math.sin(t * 10)})`; c.beginPath(); c.arc(0, 0, R0, 0, 7); c.fill();
+  c.setLineDash([4, 3]); c.lineDashOffset = -t * 12; c.strokeStyle = 'rgba(255,120,40,.85)'; c.lineWidth = 1.1; c.beginPath(); c.arc(0, 0, R0, 0, 7); c.stroke(); c.setLineDash([]);
+  c.strokeStyle = `rgba(255,220,140,${0.5 + 0.4 * k})`; c.lineWidth = 1.4; c.beginPath(); c.arc(0, 0, R0 * (1 - 0.85 * k) + 2, 0, 7); c.stroke();
+  c.strokeStyle = 'rgba(255,200,120,.9)'; c.lineWidth = 0.9; for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + t * 0.8; c.beginPath(); c.moveTo(Math.cos(a) * 3, Math.sin(a) * 3); c.lineTo(Math.cos(a) * 7, Math.sin(a) * 7); c.stroke(); }
+  c.restore(); }
 const CO = { FRONT: 220, SPD: 150, W: 28, SIDE: 24, L0: 40, L1: 75, DMG: 110, DPS: 70, LIFE: 5, CD: 8 };
 // shorter beds are wider: full length is CO.W wide, the shortest about 1.75x
 const coW = L => CO.W * Math.pow((CO.L0 + CO.L1) / Math.max(L, 1), 0.53);
 const PL = { T: 3, CD: 12, Z: 27, SPD: 90, R: 41.6, HALF: 0.35, OFF: [34, 16], DPS: 320, KB: 140, DOWN: 0.6 };
 let CHAR = 'knight'; try { CHAR = localStorage.getItem('kn_char') === 'fire' ? 'fire' : 'knight'; } catch (e) { }
 const pitOf = kn => [kn.T.x + STONE.x, kn.T.y + STONE.y + 1.5];
-function makeFire(kn) { Object.assign(kn, { fpos: kn.i * 2.5, brC: FIRE.BR_T, brH: 0, lvSeen: kn.in.lvN || 0, lvC: 0, lvQ: 0, lava: 0, lvCd: 0, lvOn: 0, landT: 0, coSeen: kn.in.coN || 0, coT: -1, coCd: 0, plT: -1, plCd: 0, tsw: -1, tswN: 0, brOn: 0, brUse: 0, brCd: 0, waves: [], kind: 'fire', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
+function makeFire(kn) { Object.assign(kn, { fpos: kn.i * 2.5, brC: FIRE.BR_T, brH: 0, vPh: -1, vBel: -1, vSh: 0, ultSeen: kn.in.ultN || 0, vtSeen: kn.in.vtN || 0, lvSeen: kn.in.lvN || 0, lvC: 0, lvQ: 0, lava: 0, lvCd: 0, lvOn: 0, landT: 0, coSeen: kn.in.coN || 0, coT: -1, coCd: 0, plT: -1, plCd: 0, tsw: -1, tswN: 0, brOn: 0, brUse: 0, brCd: 0, waves: [], kind: 'fire', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
 const mouthOf = kn => kn.mouthW || [kn.x + kn.f * 3, kn.y - 12];
 function fireStep(dt, t) {
   if (K.lvl !== 5) Object.assign(K, { lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: K.fp || [], hold: 1, kn: 0 });
@@ -1243,6 +1374,8 @@ function fireStep(dt, t) {
   // breath runs on a charge that refills over time; it heats up the longer one breath lasts (orange -> white-hot -> blue) and hits harder as it does
   const brIn = IN.aim || IN.br || null; if (K.brC === undefined) K.brC = FIRE.BR_T;
   if (!brIn) K.brLock = 0;
+  if (mine && (IN.ultN || 0) !== (K.ultSeen || 0)) { K.ultSeen = IN.ultN || 0; if (!(K.vPh >= 0) && ultReady(K) && !(K.plT >= 0) && !(K.coT >= 0)) startVolc(); }
+  if (K.vPh >= 0) { volcStep(dt, IN, mine); FBX.stepBreath(K, dt); K.st = 'fight'; return; }
   if (K.lvCd > 0) K.lvCd -= dt;
   // the lava charge (lvC) is its own: it doesn't refill, and the breath charge keeps refilling underneath it
   if (mine && lvPress && !K.lava && !(K.lvCd > 0)) { K.lava = 1; K.lvC = FIRE.BR_T; K.brLock = 0; K.brOn = 0; K.brH = 0; }
@@ -1438,7 +1571,8 @@ function burnKill(w) {
 }
 function drawFire(c, t) {
   FBX.setCol(K.col); const mv = cl((K.spd || 0) / (RUN * FIRE.RUN * 0.6), 0, 1);
-  const zz = K.z || 0; if (zz > 0.5) { const k = Math.max(0.35, 1 - zz / 40); c.fillStyle = `rgba(0,0,0,${0.3 * k})`; c.beginPath(); c.ellipse(K.x, K.y + 0.4, 4.5 * k, 1.5 * k, 0, 0, 7); c.fill(); }
+  if (K.vPh >= 0) drawVolc(c, K, t);
+  const zz = K.z || 0; if (zz > 0.5 && !(K.vPh >= 0)) { const k = Math.max(0.35, 1 - zz / 40); c.fillStyle = `rgba(0,0,0,${0.3 * k})`; c.beginPath(); c.ellipse(K.x, K.y + 0.4, 4.5 * k, 1.5 * k, 0, 0, 7); c.fill(); }
   c.save(); c.translate(K.x, K.y - zz); const sp = Math.hypot(K.vx || 0, K.vy || 0), ln = sp > 2 ? [K.vx / (RUN * FIRE.RUN), K.vy / (RUN * FIRE.RUN)] : [0, 0];
   const pit = pitOf(K), rl = K.st === 'kneel' ? 0.05 : K.st === 'pull' ? (K.u || 0) : -1, lc = K.landT > 0 ? Math.sin(Math.min(1, K.landT / 0.35) * Math.PI) : 0;
   const m = FBX.man(c, FIRE.S, K.dph || 0, K.att || 0, K.aimS || 0, t, FBX.pal(5), 5, rl, [pit[0] - K.x, pit[1] - 6.5 - K.y], { crouch: lc, ph: K.wph || 0, mv: (K.att || 0) > 0.3 && !(K.plT >= 0) ? mv * Math.min(1, K.att * 1.5) : 0, f: K.f, z: zz > 0.5, lean: ln, sw: K.tsw >= 0 ? { u: K.tsw / FIRE.TSW, side: (K.tswN || 0) % 2 } : null }); c.restore();
@@ -1487,6 +1621,7 @@ function step(dt, t) {
   worldStep(dt, t);
   for (const kn of KN) { K = kn; if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else knightStep(dt, t); }
   K = KN[ME];
+  volcFx(dt, t);
   if (K.hits > lastHits) { hurtT = 0.12; } lastHits = K.hits; hurtT = Math.max(0, hurtT - dt);
   netTick(dt, t);
 }
@@ -1632,21 +1767,24 @@ function worldStep(dt, t) {
   walkers = walkers.filter(w => !w.dead);
 }
 let ground = document.createElement('canvas');
-function paintGround() { ground.width = W * 3; ground.height = H * 3; const g = ground.getContext('2d'); g.scale(3, 3); g.fillStyle = '#4e8a3a'; g.fillRect(0, 0, W, H); g.fillStyle = '#56953f'; for (let i = 0; i < 60; i++) { const bx = Math.random() * W, by = Math.random() * H, rx = rr(6, 18), ry = rr(4, 9), ra = rr(0, 3); for (const o of [-W, 0, W]) { g.beginPath(); g.ellipse(bx + o, by, rx, ry, ra, 0, 7); g.fill(); } } g.fillStyle = '#b08a5a'; g.fillRect(0, LANE_Y - 20, W, 40); g.fillStyle = '#3e2a18'; g.fillRect(0, LANE_Y - 21, W, 1.5); g.fillRect(0, LANE_Y + 20, W, 1.5); g.fillStyle = '#9a7748'; for (let i = 0; i < 70; i++) { g.beginPath(); g.arc(Math.random() * W, LANE_Y + rr(-17, 17), rr(0.6, 1.6), 0, 7); g.fill(); } }
+const grassT = document.createElement('canvas');
+function paintGround() { ground.width = W * 3; ground.height = H * 3; const g = ground.getContext('2d'); g.scale(3, 3); g.fillStyle = '#4e8a3a'; g.fillRect(0, 0, W, H); g.fillStyle = '#56953f'; for (let i = 0; i < 60; i++) { const bx = Math.random() * W, by = Math.random() * H, rx = rr(6, 18), ry = rr(4, 9), ra = rr(0, 3); for (const o of [-W, 0, W]) for (const oy of [-H, 0, H]) { g.beginPath(); g.ellipse(bx + o, by + oy, rx, ry, ra, 0, 7); g.fill(); } }
+  // a road-free copy fills the view above and below the field when the camera pulls far back
+  grassT.width = ground.width; grassT.height = ground.height; grassT.getContext('2d').drawImage(ground, 0, 0); g.fillStyle = '#b08a5a'; g.fillRect(0, LANE_Y - 20, W, 40); g.fillStyle = '#3e2a18'; g.fillRect(0, LANE_Y - 21, W, 1.5); g.fillRect(0, LANE_Y + 20, W, 1.5); g.fillStyle = '#9a7748'; for (let i = 0; i < 70; i++) { g.beginPath(); g.arc(Math.random() * W, LANE_Y + rr(-17, 17), rr(0.6, 1.6), 0, 7); g.fill(); } }
 const ZMIN = 0.45 / 1.3; let ZOOM = ZMIN; // starts fully zoomed out
 let ultZoom = 1; const viewScale = () => Math.min(cv.height / 85, cv.width / 75) * ZOOM * (window.__zoom || 1) * ultZoom;
 function resize() { cv.width = Math.round(innerWidth * DPR); cv.height = Math.round(innerHeight * DPR); }
 addEventListener('resize', resize); addEventListener('orientationchange', () => setTimeout(resize, 250));
 let last = performance.now(), t = 0;
 function draw() {
-  ultZoom = lerp(ultZoom, 1 / (1 + (((KN[ME] && KN[ME].sz) || 1) - 1) * 0.33), 0.06); // pull the camera back while he's a giant
+  ultZoom = lerp(ultZoom, KN[ME] && KN[ME].vPh >= 0 ? 0.62 : 1 / (1 + (((KN[ME] && KN[ME].sz) || 1) - 1) * 0.33), KN[ME] && KN[ME].vPh >= 0 ? 0.035 : 0.06); // pull the camera back while he's a giant
   const sc = viewScale(); camX = lerp(camX, K.x, 0.12); camY = lerp(camY, K.y - 6 * (K.sz || 1) - (K.z || 0) * 0.5, 0.12); const shx = shake ? rr(-1, 1) * shake * 5 : 0, shy = shake ? rr(-1, 1) * shake * 5 : 0;
   x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#000'; x.fillRect(0, 0, cv.width, cv.height);
-  x.setTransform(sc, 0, 0, sc, cv.width / 2 - (camX + shx) * sc, cv.height / 2 - (camY + shy) * sc); { const hw = cv.width / 2 / sc + 10, x0 = Math.floor((camX - hw) / W), x1 = Math.floor((camX + hw) / W); for (let gi = x0; gi <= x1; gi++) x.drawImage(ground, gi * W, 0, W + 0.5, H); }
+  x.setTransform(sc, 0, 0, sc, cv.width / 2 - (camX + shx) * sc, cv.height / 2 - (camY + shy) * sc); { const hw = cv.width / 2 / sc + 10, x0 = Math.floor((camX - hw) / W), x1 = Math.floor((camX + hw) / W); const hh = cv.height / 2 / sc + 10, y0 = Math.floor((camY - hh) / H), y1 = Math.floor((camY + hh) / H); for (let gi = x0; gi <= x1; gi++) for (let gj = y0; gj <= y1; gj++) x.drawImage(gj === 0 ? ground : grassT, gi * W, gj * H, W + 0.5, H + 0.5); }
   const VL = camX - cv.width / 2 / sc - 30, VR = camX + cv.width / 2 / sc + 30, inV = q => q.x > VL && q.x < VR;
   for (const sp of splats) { if (sp.x < VL || sp.x > VR) continue; x.globalAlpha = Math.max(0, 1 - sp.t / 5) * 0.85; x.fillStyle = sp.ash ? '#26201c' : '#6a1610'; x.beginPath(); x.ellipse(sp.x, sp.y, sp.r, sp.r * 0.5, 0, 0, 7); x.fill(); } x.globalAlpha = 1;
   for (const kn of KN) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
-  drawFxGround(x); drawLeapPreview(x, t); drawDashPreview(x, t); drawCoalPreview(x);
+  drawFxGround(x); drawVolcFloor(x, t); drawLeapPreview(x, t); drawDashPreview(x, t); drawCoalPreview(x);
   for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = Math.max(0, 1 - (p.t - p.rest) / 4); drawPart(x, p); } x.globalAlpha = 1;
   const list = KN.flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).sort((a, b) => a[0] - b[0]);
   for (const [, k, o] of list) {
@@ -1667,7 +1805,7 @@ function draw() {
   for (const f of FX) if (f.k === 'lick') drawLick(x, f, t);
   for (const kn of KN) if (kn.kind === 'fire' && kn.fp && kn.fp.length) FBX.drawBreath(x, kn, t);
   for (const kn of KN) if (kn.kind === 'fire') drawLava(x, kn, t);
-  drawFxAir(x);
+  drawFxAir(x); drawVolcAir(x, t);
   // blade trail: a short ribbon the length of the light blade, fading behind it
   for (const kn of KN) { K = kn; if (K.trail && K.trail.length > 1) { x.save(); const now = K.trail[K.trail.length - 1].t, TL = 0.11;
     for (let i = K.trail.length - 1; i > 0; i--) { const A2 = K.trail[i], B2 = K.trail[i - 1], age = now - B2.t; if (age > TL) break; const al = 0.42 * (1 - age / TL) ** 1.6;
@@ -1682,10 +1820,11 @@ function draw() {
   if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
   ST.textContent = NP > 1 ? `Enemies ${walkers.length} · ` + KN.map(kn => `${kn.i === ME ? 'You' : (NET && NET.otherName) || 'P' + (kn.i + 1)} ${kn.kills}k/${kn.hits}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${K.hits}`;
   const cdk = K.kind === 'fire' ? (K.lava ? 1 : cl((K.lvCd || 0) / LAVA.CD, 0, 1)) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
-  { const live = K.ultPh >= 0, pr = cl((K.kills - (K.ultBase || 0)) / ULT_KILLS, 0, 1);
-    ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live);
-    const lab = live ? (K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (K.kills - (K.ultBase || 0)) + '/' + ULT_KILLS; if (ULS.textContent !== lab) ULS.textContent = lab;
-    DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); }
+  { const FV = K.kind === 'fire', live = FV ? K.vPh >= 0 : K.ultPh >= 0, pr = cl((K.kills - (K.ultBase || 0)) / ULT_KILLS, 0, 1);
+    document.body.classList.toggle('volc', FV && live); VTAP.classList.toggle('on', FV && K.vPh === 1 && K.vSh < V.SHOTS && !(K.vBel >= 0)); if (FV && K.vPh === 1) { const tx = `Tap the screen to erupt · ${V.SHOTS - K.vSh} left`; if (VTAP.textContent !== tx) VTAP.textContent = tx; }
+    if (FV) ULI.style.height = (live ? (K.vPh === 1 ? 1 - K.vT / V.T : K.vPh === 0 ? 1 : 0) : pr) * 100 + '%'; else ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live);
+    const lab = live ? (FV ? (K.vPh === 1 ? Math.ceil(V.T - K.vT) + 's' : '') : K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (K.kills - (K.ultBase || 0)) + '/' + ULT_KILLS; if (ULS.textContent !== lab) ULS.textContent = lab;
+    if (!FV) { DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); } else { DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); } }
   if ((K.kind === 'fire') !== CHAR_UI) charUI(K.kind === 'fire');
   if (K.kind === 'fire') AOEI.style.height = (K.coT >= 0 ? 100 : cl((K.coCd || 0) / CO.CD, 0, 1) * 100) + '%';
   // breath charge fills the breath stick's ring with orange from the bottom
@@ -1791,7 +1930,9 @@ window.__horde = (r, k) => setHorde(r, k); window.__dash = v => doDash(typeof v 
 const ub = document.getElementById('ult'), ULI = ub.querySelector('i'), ULS = ub.querySelector('small');
 function doUlt() { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.ultN = (IN.ultN || 0) + 1; markIn(); }
 ub.addEventListener('pointerdown', e => { e.preventDefault(); doUlt(); });
-const sb = document.getElementById('spin');
+const sb = document.getElementById('spin'), VTAP = document.getElementById('vtap');
+// on the volcano a tap anywhere picks where the next rock lands
+cv.addEventListener('pointerdown', e => { const kn = KN[ME]; if (!kn || kn.kind !== 'fire' || kn.vPh !== 1) return; const sc = viewScale() / DPR, wx = camX + (e.clientX - innerWidth / 2) / sc, wy = camY + (e.clientY - innerHeight / 2) / sc; const IN = kn.in; IN.vtN = (IN.vtN || 0) + 1; IN.vtP = [Math.round(wx * 10) / 10, Math.round(wy * 10) / 10]; markIn(); });
 sb.addEventListener('pointerdown', e => { if (isFire()) { const IN = KN[ME].in; IN.lvN = (IN.lvN || 0) + 1; markIn(); } else { btnSpin = true; syncIn(); } e.preventDefault(); });
 const sbUp = () => { btnSpin = false; syncIn(); }; sb.addEventListener('pointerup', sbUp); sb.addEventListener('pointerleave', sbUp); sb.addEventListener('pointercancel', sbUp);
 // keyboard + mouse
@@ -1831,9 +1972,9 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
-const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
+const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in) });
 const packW = w => [w.id, UKEYS.indexOf(w.k), Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10, Math.round(w.hp), w.max, Math.round(w.atk * 100) / 100, w.hit > 0 ? 1 : 0, w.tk, w.bd > 0 ? 1 : 0];
 const LC = document.getElementById('lcard'), LUI = document.getElementById('lobbyUI'), NOTE = document.getElementById('note');
@@ -1913,7 +2054,7 @@ const CTLS = { move: ['lst', 'Move stick'], swing: ['rst', 'Swing stick'], dash:
 const layCh = () => CHAR === 'fire' ? 'fire' : 'knight';
 // the HUD for the character being played: which controls show and what they're called
 let CHAR_UI = null;
-function charUI(fire) { CHAR_UI = fire; document.getElementById('help').textContent = fire ? 'WASD/arrows move · hold mouse to breathe at the cursor · E lava · hold Shift to ride a plume the way you move · hold Q to aim the coals at the cursor, release to run them · R ult · wheel zoom' : 'WASD/arrows move · hold mouse to swing toward cursor · Space spin · Shift dash where you\'re moving · hold Q to aim the leap at the cursor, release to jump · R ult · wheel zoom'; document.body.classList.toggle('fire', fire); document.querySelector('#rst small').textContent = fire ? 'breath' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : 'leap'; document.querySelector('#spin span').textContent = fire ? 'LAVA' : 'SPIN'; }
+function charUI(fire) { CHAR_UI = fire; document.getElementById('help').textContent = fire ? 'WASD/arrows move · hold mouse to breathe at the cursor · E lava · hold Shift to ride a plume the way you move · hold Q to aim the coals at the cursor, release to run them · R volcano, then click to erupt · wheel zoom' : 'WASD/arrows move · hold mouse to swing toward cursor · Space spin · Shift dash where you\'re moving · hold Q to aim the leap at the cursor, release to jump · R ult · wheel zoom'; document.body.classList.toggle('fire', fire); document.querySelector('#rst small').textContent = fire ? 'breath' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : 'leap'; document.querySelector('#spin span').textContent = fire ? 'LAVA' : 'SPIN'; }
 let LAY = {}; try { LAY = JSON.parse(localStorage.getItem('kn_layout') || '{}') || {}; } catch (e) { }
 // plume and coals swapped places: carry a Firebreather layout saved before that over, so his saved spots swap too
 if (LAY.fire && !LAY.fire.sw1) { for (const o of ['landscape', 'portrait']) { const L = LAY.fire[o]; if (L) { const d = L.dash; L.dash = L.leap; L.leap = d; if (!L.dash) delete L.dash; if (!L.leap) delete L.leap; } } LAY.fire.sw1 = 1; try { localStorage.setItem('kn_layout', JSON.stringify(LAY)); } catch (e) { } }
