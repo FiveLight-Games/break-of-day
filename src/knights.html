@@ -1697,13 +1697,13 @@ function drawLava(c, kn, t) { const dtv = Math.min(0.1, Math.max(0, t - (kn.lvT0
   c.restore(); }
 // ---------- Warpriest (playable): a big plate-armoured priest in a great helm, a censer in his left hand and a huge spiked flail dragged behind him on a chain ----------
 // the flail head lies where it was last dragged: walking toward it leaves it be; once he's further than the chain allows (hL, normally DRAG) it's dragged after him, gouging the ground
-const WP = { S: KS * 1.3, RUN: 0.82, ATK: 0.7, DRAG: 40.5, HR: 6.3, REEL: 45, MAXC: 156, SLOWK: 0.45, IMP: 0.4,
+const WP = { S: KS * 1.3, RUN: 0.82, ATK: 0.7, DRAG: 48.6, HR: 6.3, REEL: 45, MAXC: 156, SLOWK: 0.45, IMP: 0.4,
   TOUCH: { DMG: 35, DRAG: 70, CD: 0.5 },
-  CEN: { T: 0.74, R: 26, ARC: 1.6, DMG: 70, KB: 230 },
-  SW: { PREP: 0.42, GO: 0.4, REC: 0.32, R: 71.4, HALF: Math.PI / 8 * 1.35, WIND: 0.8, WR: 0.5, DMG: 90, HEAD: 180, SLOW: 2.5, CD: 6 },
-  SL: { WIND: 0.55, FLY: 0.22, REC: 0.3, RANGE: 104, WAVE: 32, DMG: 220, WDMG: 60, SLOW: 3, BIND: 3, BINDR: 9, HOLD: 1.75, RET: 0.55, CD: 9, REEL: 0.45, RDMG: 90, PDMG: 110, PKB: 280, LAND: 16, LDMG: 80 },
+  CEN: { T: 0.58, R: 26, ARC: 1.35, COCK: 0.4, DMG: 70, KB: 230 },
+  SW: { PREP: 0.18, GO: 0.45, REC: 0.25, ARC: Math.PI * 2 / 3, RMIN: 12, DMG: 90, HEAD: 180, SLOW: 2.5, CD: 6 },
+  SL: { WIND: 0.2, FLY: 0.4, REC: 0.3, RANGE: 104, WAVE: 32, DMG: 220, WDMG: 60, SLOW: 3, BIND: 3, BINDR: 9, HOLD: 1.75, RET: 0.55, CD: 9, REEL: 0.45, RDMG: 90, PDMG: 110, PKB: 280, LAND: 16, LDMG: 80 },
   HO: { T: 6, CD: 15, R: 20, DPS: 70 },
-  PEN: { RISE: 1, T: 12, END: 0.8, Z: 18, ACC: 300, DRAG: 0.55, MAXV: 170, R: 110, SMR0: 12, SMR1: 52, DMG0: 150, DMG1: 650, DROP: 0.14, UP: 0.3, CD: 0.45, BURN: 11, BDPS: 40 } };
+  PEN: { RISE: 1, T: 12, END: 0.8, Z: 18, ACC: 300, DRAG: 0.55, MAXV: 170, R: 154, SMR0: 12, SMR1: 52, DMG0: 150, DMG1: 650, DROP: 0.14, UP: 0.3, CD: 0.45, BURN: 11, BDPS: 40 } };
 const HOLYP = { outer: '#e8a020', mid: '#ffd34a', core: '#fff4b8', white: 0.8, blue: 0 };
 let GOUGE = [];
 // distance on the ground, with the depth squash the rest of the game uses
@@ -1760,9 +1760,10 @@ function priestStep(dt, t) {
   flailRope(dt, t); K.st = 'fight';
 }
 // the censer's angle (world, round him) at swing progress u: wind back, sweep across, follow through
-const cenAng = (kn, u) => { const s = (kn.cenN || 0) % 2 ? 1 : -1; return kn.cenA - s * WP.CEN.ARC + s * 2 * WP.CEN.ARC * sm(cl((u - 0.15) / 0.55, 0, 1)); };
+// a short wind-up (cocked back past the start), then a fast swing across, easing into the follow-through
+const cenAng = (kn, u) => { const s = (kn.cenN || 0) % 2 ? 1 : -1, C = WP.CEN, a0 = kn.cenA - s * C.ARC; if (u < 0.3) return a0 - s * C.COCK * sm(u / 0.3); const q = cl((u - 0.3) / 0.42, 0, 1); return a0 - s * C.COCK + s * (2 * C.ARC + C.COCK) * q * q * q * (q * (q * 6 - 15) + 10); };
 function censerHit(u0, u1) {
-  if (u1 < 0.15 || u0 > 0.7) return; const a0 = cenAng(K, u0), a1 = cenAng(K, u1), s = (K.cenN || 0) % 2 ? 1 : -1, span = Math.abs(a1 - a0), id = K.i * 1e6 + K.cenN;
+  if (u1 < 0.3 || u0 > 0.75) return; const a0 = cenAng(K, u0), a1 = cenAng(K, u1), s = (K.cenN || 0) % 2 ? 1 : -1, span = Math.abs(a1 - a0), id = K.i * 1e6 + K.cenN;
   for (const w of walkers) { if (w.hp <= 0 || w.cenCut === id) continue; const U = UK[w.k], dx = w.x - K.x, dy = w.y - K.y, d = Math.hypot(dx, dy * 1.25); if (d > WP.CEN.R + U.r) continue;
     let da = wrapA((Math.atan2(dy, dx) - a0) * s); if (d > 7 + U.r && (da < -0.12 - U.r / Math.max(d, 4) || da > span + 0.12 + U.r / Math.max(d, 4))) continue;
     if (d <= 7 + U.r && Math.cos(Math.atan2(dy, dx) - K.cenA) < 0) continue;
@@ -1806,22 +1807,29 @@ function flailReturn(dt) {
 }
 // head position on a circle of ground radius r round (x, y) at angle a
 const ring2 = (x, y, a, r) => [x + Math.cos(a) * r, y + Math.sin(a) * r / 1.25];
-// ---- Ability 1: a wide sweep of the flail. He draws it back behind him (the wind-up), then whips it round through the cone; the chain slows, damages and drags whoever it catches ----
-function startSweep(v) {
-  const a = Math.atan2(v[1], v[0]), s = Math.cos(a) >= 0 ? 1 : -1;
-  Object.assign(K, { ab: 'sweep', abT: 0, abId: (K.abId || 0) + 1, cen: -1, sa0: a - s * WP.SW.HALF, sa1: a + s * WP.SW.HALF, ax0: K.hx, ay0: K.hy, az0: K.hz, swCd: WP.SW.CD + WP.SW.PREP + WP.SW.GO + WP.SW.REC, hOut: 0, hRet: -1 });
-  if (Math.abs(Math.cos(a)) > 0.2) K.f = Math.cos(a) > 0 ? 1 : -1;
+// ---- Ability 1: the sweep. He hauls the head from wherever it lies round to a spot he picks: up to 120 degrees either way round him from where the head is,
+// within the drag radius. The chain sweeps everything between: enemies further out than the chosen spot are gathered along with it and dumped in a clump
+// where the head lands; the ones closer in are just knocked aside.
+function sweepTarget(kn, v) {
+  const S = WP.SW, px = kn.x + v[0] * WP.DRAG, py = kn.y + v[1] * WP.DRAG * 0.8, ah = Math.atan2((kn.hy - kn.y) * 1.25, kn.hx - kn.x), rh = Math.max(8, gd(kn.x, kn.y, kn.hx, kn.hy));
+  let a = Math.atan2((py - kn.y) * 1.25, px - kn.x); const r = cl(gd(kn.x, kn.y, px, py), S.RMIN, WP.DRAG), da = cl(wrapA(a - ah), -S.ARC, S.ARC); a = ah + da;
+  return { a, r, ah, rh };
 }
-// the sweep's head path as one smooth curve: from where it lay, back to the wind-up spot behind him, then accelerating through the cone and easing off past its far edge
-function sweepAt(kn, tt) { const S = WP.SW, s = Math.sign(kn.sa1 - kn.sa0) || 1, ang0 = Math.atan2((kn.ay0 - kn.y) * 1.25, kn.ax0 - kn.x), r0 = gd(kn.x, kn.y, kn.ax0, kn.ay0), aw = kn.sa0 - s * S.WIND, rw = S.R * S.WR;
-  if (tt < S.PREP) { const q = sm(tt / S.PREP); let da = wrapA(aw - ang0); return { a: ang0 + da * q, r: lerp(r0, rw, q), z: lerp(kn.az0 || 0, 7, q) }; }
-  const end = kn.sa1 + s * 0.22;
-  if (tt < S.PREP + S.GO) { const q = (tt - S.PREP) / S.GO, e = q * q * (3 - 2 * q); return { a: lerp(aw, end, e), r: lerp(rw, S.R, sm(Math.min(1, q * 1.8))), z: lerp(7, 3, q) }; }
-  const q = cl((tt - S.PREP - S.GO) / S.REC, 0, 1); return { a: end, r: S.R, z: 3 * (1 - q) * (1 - q) }; }
-// ---- Ability 2: he whirls the flail over his head and slams it down where aimed ----
+function startSweep(v) {
+  const T = sweepTarget(K, v);
+  Object.assign(K, { ab: 'sweep', abT: 0, abId: (K.abId || 0) + 1, cen: -1, sa0: T.ah, sa1: T.a, sr0: T.rh, sr1: T.r, ax0: K.hx, ay0: K.hy, az0: K.hz, swCd: WP.SW.CD + WP.SW.PREP + WP.SW.GO + WP.SW.REC, hOut: 0, hRet: -1 });
+  const ex = Math.cos(T.a); if (Math.abs(ex) > 0.2) K.f = ex > 0 ? 1 : -1;
+}
+// the head's path: a brace and a yank (it lifts where it lies), then one smooth haul round and in (or out) to the spot, landing there
+const smt = q => q * q * q * (q * (q * 6 - 15) + 10);
+function sweepAt(kn, tt) { const S = WP.SW, da = wrapA(kn.sa1 - kn.sa0);
+  if (tt < S.PREP) { const q = sm(tt / S.PREP); return { a: kn.sa0, r: kn.sr0, z: lerp(kn.az0 || 0, 3, q), q: 0 }; }
+  if (tt < S.PREP + S.GO) { const q = (tt - S.PREP) / S.GO, e = smt(q); return { a: kn.sa0 + da * e, r: lerp(kn.sr0, kn.sr1, e), z: 3 * (1 - q) + Math.sin(q * Math.PI) * 5, q: e }; }
+  return { a: kn.sa0 + da, r: kn.sr1, z: 0, q: 1 }; }
+// ---- Ability 2: he whips the chain and the head flies from wherever it is to the chosen spot and slams down ----
 function slamTarget(kn, v) { return [kn.x + v[0] * WP.SL.RANGE, cl(kn.y + v[1] * WP.SL.RANGE * 0.8, 16, H - 4)]; }
 function startSlam(v) {
-  const tg = slamTarget(K, v); Object.assign(K, { ab: 'slam', abT: 0, abId: (K.abId || 0) + 1, cen: -1, sx: tg[0], sy: tg[1], ax0: K.hx, ay0: K.hy, az0: K.hz, slCd: WP.SL.CD + WP.SL.WIND + WP.SL.FLY, hRet: -1 });
+  const tg = slamTarget(K, v); Object.assign(K, { ab: 'slam', abT: 0, abId: (K.abId || 0) + 1, cen: -1, sx: tg[0], sy: tg[1], ax0: K.hx, ay0: K.hy, az0: K.hz, slCd: WP.SL.CD + WP.SL.WIND + WP.SL.FLY, hRet: -1, hOut: 0 });
   if (Math.abs(tg[0] - K.x) > 2) K.f = tg[0] > K.x ? 1 : -1;
 }
 // with the head out past the chain's reach, the slam button hauls him along the chain to it
@@ -1831,41 +1839,43 @@ function startReel() {
   Object.assign(K, { ab: 'reel', abT: 0, abId: (K.abId || 0) + 1, cen: -1, ax0: K.x, ay0: K.y, ax1: K.hx - dx / d * back, ay1: cl(K.hy - dy / d * back * 0.8, 16, H - 4), hOut: 0 });
   if (Math.abs(dx) > 2) K.f = dx > 0 ? 1 : -1;
 }
-const whirl = (kn, tt) => { const a = tt * 13 * (kn.f || 1); return [kn.x + Math.cos(a) * 9, kn.y + Math.sin(a) * 4.5, 19 + Math.sin(a) * 2]; };
+// the slam's head path: lifted off the ground by the whip, then a high arc to the spot
+function slamAt(kn, tt) { const S = WP.SL;
+  if (tt < S.WIND) { const q = sm(tt / S.WIND); return [kn.ax0, kn.ay0, lerp(kn.az0 || 0, 4, q)]; }
+  const q = cl((tt - S.WIND) / S.FLY, 0, 1), d = Math.hypot(kn.sx - kn.ax0, kn.sy - kn.ay0), e = q * q * (2 - q) * 0.4 + q * 0.6;
+  return [lerp(kn.ax0, kn.sx, e), lerp(kn.ay0, kn.sy, e), 4 * (1 - q) + Math.sin(q * Math.PI) * (8 + d * 0.18)]; }
 function priestAb(dt) {
   const t0 = K.abT; K.abT += dt; const tt = K.abT;
   if (K.ab === 'sweep') { const S = WP.SW, A = sweepAt(K, t0), B = sweepAt(K, tt), p = ring2(K.x, K.y, B.a, B.r); K.hx = p[0]; K.hy = p[1]; K.hz = B.z;
-    if (tt > S.PREP && t0 < S.PREP + S.GO && AUTH()) sweepHit(ring2(K.x, K.y, A.a, A.r), p, B.a, B.r, dt);
-    if (t0 < S.PREP + S.GO && tt >= S.PREP + S.GO) sweepRelease();
+    if (tt > S.PREP && t0 < S.PREP + S.GO && AUTH()) sweepHit(ring2(K.x, K.y, A.a, A.r), p, B, dt);
+    if (t0 < S.PREP + S.GO && tt >= S.PREP + S.GO) { sweepRelease(); K.impN = (K.impN || 0) + 1; K.impX = K.hx; K.impY = K.hy; K.impR = 9; }
     if (tt >= S.PREP + S.GO + S.REC) { K.ab = null; K.hz = 0; K.hL = Math.max(WP.DRAG, gd(K.x, K.y, K.hx, K.hy)); } }
-  else if (K.ab === 'slam') { const S = WP.SL, hit = S.WIND + S.FLY;
-    if (tt < S.WIND) { const q = sm(cl(tt / 0.28, 0, 1)), w = whirl(K, tt); K.hx = lerp(K.ax0, w[0], q); K.hy = lerp(K.ay0, w[1], q); K.hz = lerp(K.az0 || 0, w[2], q); }
-    else if (tt < hit) { const q = (tt - S.WIND) / S.FLY, w = whirl(K, S.WIND); K.hx = lerp(w[0], K.sx, q); K.hy = lerp(w[1], K.sy, q); K.hz = lerp(w[2], 0, q) + Math.sin(q * Math.PI) * 10; }
-    else { if (t0 < hit) { K.hx = K.sx; K.hy = K.sy; K.hz = 0; slamImpact(); } }
+  else if (K.ab === 'slam') { const S = WP.SL, hit = S.WIND + S.FLY, P = slamAt(K, Math.min(tt, hit)); K.hx = P[0]; K.hy = P[1]; K.hz = P[2];
+    if (t0 < hit && tt >= hit) { K.hx = K.sx; K.hy = K.sy; K.hz = 0; slamImpact(); }
     if (tt >= hit + S.REC) K.ab = null; }
   else if (K.ab === 'reel') { const q = cl(tt / WP.SL.REEL, 0, 1), e = q * q * (3 - 2 * q), px = K.x, py = K.y; K.x = lerp(K.ax0, K.ax1, e); K.y = lerp(K.ay0, K.ay1, e); K.z = Math.sin(q * Math.PI) * 5;
     // he hits like a battering ram: everyone in the way is thrown aside, whole
     if (AUTH()) { const ang = Math.atan2(K.y - py, K.x - px); for (const w of walkers) { if (w.hp <= 0 || w.reeled === K.i * 1e6 + K.abId) continue; if (segDist(w.x, w.y, [px, py], [K.x, K.y]) < 7 + UK[w.k].r) { w.reeled = K.i * 1e6 + K.abId; w.atk = -1; const s = ((w.x - K.x) * -Math.sin(ang) + (w.y - K.y) * Math.cos(ang)) >= 0 ? 1 : -1, ka = Math.atan2(Math.cos(ang) * s * 0.75 + Math.sin(ang) * 0.6, -Math.sin(ang) * s * 0.75 + Math.cos(ang) * 0.6); w.kx += Math.cos(ka) * WP.SL.PKB; w.ky += Math.sin(ka) * WP.SL.PKB * 0.55; hurt(w, WP.SL.PDMG, ww => flingFx(ww, ka)); } } }
     if (q >= 1) { K.ab = null; K.z = 0; K.hL = WP.DRAG; } }
 }
-// what the chain catches it carries: hooked enemies ride along the chain (at the fraction of its length where they were caught) until the sweep ends
-function sweepHit(pa, p, a, r, dt) {
-  const id = K.i * 1e6 + K.abId, s = Math.sign(K.sa1 - K.sa0) || 1, base = [K.x, K.y], tang = [-Math.sin(a) * s, Math.cos(a) * s];
-  // only inside the cone (a little slack at its edges); the wind-up behind him doesn't hit
-  const inCone = (wrapA(a - K.sa0) * s) > -0.15 && (wrapA(K.sa1 - a) * s) > -0.3;
+// what the chain catches: anyone further out than the chosen spot is hooked and hauled along to the clump where the head lands; anyone closer in is knocked aside
+function sweepHit(pa, p, B, dt) {
+  const id = K.i * 1e6 + K.abId, s = Math.sign(wrapA(K.sa1 - K.sa0)) || 1, base = [K.x, K.y], a = B.a, tang = [-Math.sin(a) * s, Math.cos(a) * s];
   for (const w of walkers) { if (w.hp <= 0) continue; const U = UK[w.k];
-    if (w.hook === K.i && w.hId === id) { const q = ring2(K.x, K.y, a, w.hu * r); w.x = lerp(w.x, q[0], Math.min(1, dt * 30)); w.y = lerp(w.y, q[1], Math.min(1, dt * 30)); w.atk = -1; continue; }
-    if (!inCone || w.swpd === id || w.bT > 0) continue; const pt = [w.x, w.y - 3 * U.sc];
+    if (w.hook === K.i && w.hId === id) { w.ha += wrapA(a + w.hja - w.ha) * Math.min(1, dt * 12); const k = sm(cl((B.q - w.hq) / Math.max(0.05, 1 - w.hq), 0, 1)), q = ring2(K.x, K.y, w.ha, lerp(w.hr0, K.sr1 + w.hoff, k)); w.x = q[0]; w.y = q[1]; w.atk = -1; continue; }
+    if (w.swpd === id || w.bT > 0) continue; const pt = [w.x, w.y - 3 * U.sc];
     const onHead = gd(p[0], p[1], w.x, w.y) < WP.HR + U.r + 1.5;
     if (!onHead && !(inTri(pt, base, pa, p) || ptSeg(pt, base, p) < U.r + 1.2)) continue;
     w.swpd = id; w.atk = -1; w.sl = Math.max(w.sl || 0, WP.SW.SLOW);
-    const dd = gd(K.x, K.y, w.x, w.y);
+    const rw = gd(K.x, K.y, w.x, w.y), far = rw > K.sr1 + 2;
     hurt(w, onHead ? WP.SW.HEAD : WP.SW.DMG, ww => onHead && canImpale(ww) && Math.random() < WP.IMP ? impaleFx(ww, Math.atan2(ww.y - K.hy, ww.x - K.hx)) : dashFx(ww, Math.atan2(tang[1], tang[0])));
-    if (w.hp > 0) { w.hook = K.i; w.hId = id; w.hu = onHead ? (r + WP.HR + U.r) / r : cl(dd / r, 0.3, 0.97); } }
+    if (w.hp <= 0) continue;
+    if (far) { w.hook = K.i; w.hId = id; w.hr0 = rw; w.hq = B.q; w.ha = Math.atan2((w.y - K.y) * 1.25, w.x - K.x); w.hja = rr(-0.12, 0.12); w.hoff = rr(-3, 3) + (onHead ? WP.HR + U.r : rr(0, WP.HR)); }
+    else { w.kx += tang[0] * 130; w.ky += tang[1] * 75; } }
 }
 function sweepRelease() {
-  const id = K.i * 1e6 + K.abId, s = Math.sign(K.sa1 - K.sa0) || 1, a = K.sa1, tang = [-Math.sin(a) * s, Math.cos(a) * s];
-  for (const w of walkers) if (w.hook === K.i && w.hId === id) { w.hook = null; w.kx += tang[0] * 110; w.ky += tang[1] * 60; }
+  const id = K.i * 1e6 + K.abId;
+  for (const w of walkers) if (w.hook === K.i && w.hId === id) { w.hook = null; w.kx += rr(-15, 15); w.ky += rr(-8, 8); }
 }
 const canImpale = w => { const U = UK[w.k]; return U.sc <= 1.05 && w.k !== 'warg' && w.k !== 'ogre'; };
 // the slam: a shockwave that slows everyone round it; anyone right under the head takes it full, and the small and medium ones that live are chained to it
@@ -1897,8 +1907,8 @@ function penStep(dt, t, IN, mine, smP) {
   K.hvx += ax * dt; K.hvy += ay * dt; const dmp = Math.exp(-P.DRAG * dt); K.hvx *= dmp; K.hvy *= dmp;
   const sp = Math.hypot(K.hvx, K.hvy); if (sp > P.MAXV) { K.hvx *= P.MAXV / sp; K.hvy *= P.MAXV / sp; }
   K.hx += K.hvx * dt; K.hy += K.hvy * dt; if (K.hy < 14 || K.hy > H - 4) { K.hy = cl(K.hy, 14, H - 4); K.hvy *= -0.4; }
-  // the chain is long but not endless: he floats along after the head
-  const d = gd(K.x, K.y, K.hx, K.hy); if (d > P.R) { const k = P.R / d; K.x = K.hx - (K.hx - K.x) * k; K.y = cl(K.hy - (K.hy - K.y) * k, 16, H - 4); }
+  // the chain is long but not endless: the head stops at its end (he stays put)
+  { const dx = K.hx - K.x, dy = (K.hy - K.y) * 1.25, d = Math.hypot(dx, dy); if (d > P.R) { const nx = dx / d, ny = dy / d, k = P.R / d; K.hx = K.x + dx * k; K.hy = K.y + dy * k / 1.25; const vo = K.hvx * nx + K.hvy * ny * 1.25; if (vo > 0) { K.hvx -= nx * vo; K.hvy -= ny * vo / 1.25; } } }
   K.f = K.hx >= K.x ? 1 : -1;
   if (mine && smP && !(K.smCd > 0) && K.smT < 0) { K.smT = 0; K.smK = Math.min(1, sp / P.MAXV); }
   if (K.smT >= 0) { const t0 = K.smT; K.smT += dt; if (K.smT < P.DROP) K.hz = 5 * (1 - sm(K.smT / P.DROP)); else { if (t0 < P.DROP) penSmash(); K.hz = 5 * sm(cl((K.smT - P.DROP) / P.UP, 0, 1)); if (K.smT >= P.DROP + P.UP) K.smT = -1; } }
@@ -2015,7 +2025,7 @@ function drawPriest(c, t) {
   const aBehind = P.hA[1] - P.C[1] > 3.8;
   const u = K.cen >= 0 ? K.cen / WP.CEN.T : -1, ca = u >= 0 ? cenAng(K, u) : null;
   let cp = ca !== null ? add(P.hA, [Math.cos(ca) * 3.3, Math.sin(ca) * 1.5 + 0.5]) : add(P.hA, [Math.sin(t * 2.3) * 0.5, 2.8]);
-  K.pCen = K.pCen ? L2(K.pCen, cp, 1 - Math.exp(-dt * (ca !== null ? 30 : 10))) : cp; cp = K.pCen;
+  K.pCen = K.pCen ? L2(K.pCen, cp, 1 - Math.exp(-dt * (ca !== null ? 40 : 10))) : cp; cp = K.pCen;
   // the censer is behind him when it's further from the camera than his chest (swung round the back)
   const cenBack = cp[1] < P.hA[1] - 0.6 && Math.abs(cp[0] - P.C[0]) < 3.2;
   const hd = [P.hB[0] - P.shB[0], P.hB[1] - P.shB[1]], hl = Math.hypot(...hd) || 1, hu = [hd[0] / hl, hd[1] / hl], he = add(P.hB, [hu[0] * 2.6, hu[1] * 2.6]);
@@ -2054,9 +2064,6 @@ function drawPriest(c, t) {
   // incense smoke and the odd ember off the censer
   { const sw = u >= 0; if (Math.random() < dt * (sw ? 30 : 7)) dust.push({ x: K.cenW[0], y: K.cenW[1] - 1, vx: rr(-2, 2) - (sw ? Math.cos(ca) * 8 : 0), vy: -rr(4, 9), r: rr(0.6, 1.1), t: 0, max: rr(0.8, 1.6) });
     if (sw && u < 0.75 && Math.random() < dt * 40) sparks.push({ x: K.cenW[0], y: K.cenW[1], vx: rr(-6, 6), vy: -rr(4, 14), t: 0, max: rr(0.2, 0.45) }); }
-  // the censer's arc: a smoky, glowing ribbon behind it while it swings
-  const ct = K.cTr || (K.cTr = []); if (K.cen >= 0 && K.cenW) ct.push([K.cenW[0], K.cenW[1], t]); while (ct.length && (t - ct[0][2] > 0.18 || ct.length > 24)) ct.shift();
-  if (ct.length > 2) { c.save(); c.lineCap = 'round'; for (let i = 1; i < ct.length; i++) { const q = i / ct.length; c.strokeStyle = `rgba(255,${(150 + 80 * q) | 0},70,${0.5 * q})`; c.lineWidth = 2.4 * q; c.beginPath(); c.moveTo(ct[i - 1][0], ct[i - 1][1]); c.lineTo(ct[i][0], ct[i][1]); c.stroke(); } c.restore(); }
 }
 function drawCenser(c, h, cp, t) {
   c.strokeStyle = GOLDD; c.lineWidth = 0.18; c.beginPath(); c.moveTo(h[0], h[1]); c.lineTo(cp[0], cp[1] - 0.9); c.stroke();
@@ -2065,16 +2072,12 @@ function drawCenser(c, h, cp, t) {
   c.fillStyle = `rgba(255,${(150 + Math.random() * 80) | 0},60,.95)`; for (const o of [-0.45, 0, 0.45]) { c.beginPath(); c.arc(o, 0.15, 0.14, 0, 7); c.fill(); }
   c.fillStyle = GOLDD; c.beginPath(); c.moveTo(-0.5, -0.8); c.lineTo(0, -1.5); c.lineTo(0.5, -0.8); c.fill(); c.restore();
 }
-// the censer's cone: a faint haze of incense and warm light over the ground it has swept, fading after the swing
+// the censer's arc: a line of very small golden flames left along the path it swept, dying out quickly
 function censerCone(c, t, dt) {
-  if (K.cen >= 0) { const u = K.cen / WP.CEN.T; if (u >= 0.15) { const a0 = cenAng(K, 0.15), a1 = cenAng(K, Math.min(u, 0.7)); K.ccF = { a0, a1, k: 1 }; } }
-  else if (K.ccF) { K.ccF.k -= dt * 3; if (K.ccF.k <= 0) K.ccF = null; }
-  const F = K.ccF; if (!F) return; const R = WP.CEN.R, n = 18, al = 0.22 * F.k;
-  c.save(); c.translate(K.x, K.y); c.scale(1, 0.8);
-  const g = c.createRadialGradient(0, 0, 3, 0, 0, R); g.addColorStop(0, `rgba(255,214,130,${al * 0.2})`); g.addColorStop(0.7, `rgba(255,200,110,${al})`); g.addColorStop(1, 'rgba(255,190,100,0)');
-  c.fillStyle = g; c.beginPath(); c.moveTo(0, 0); for (let i = 0; i <= n; i++) { const a = lerp(F.a0, F.a1, i / n); c.lineTo(Math.cos(a) * R, Math.sin(a) * R); } c.closePath(); c.fill();
-  c.strokeStyle = `rgba(255,230,170,${al * 1.4})`; c.lineWidth = 0.5; c.beginPath(); for (let i = 0; i <= n; i++) { const a = lerp(F.a0, F.a1, i / n), r = R * (0.92 + 0.05 * Math.sin(i * 1.7 + t * 6)); i ? c.lineTo(Math.cos(a) * r, Math.sin(a) * r) : c.moveTo(Math.cos(a) * r, Math.sin(a) * r); } c.stroke();
-  c.restore();
+  const L = K.cFl || (K.cFl = []);
+  if (K.cen >= 0) { const u = K.cen / WP.CEN.T; if (u >= 0.32 && u <= 0.74) { const a = cenAng(K, u); if (!L.length || Math.abs(wrapA(a - L[L.length - 1].a)) > 0.14) { const p = ring2(K.x, K.y, a, WP.CEN.R * 0.72); L.push({ x: p[0], y: p[1], a, t, s: rr(0.8, 1.15) }); } } }
+  while (L.length && (t - L[0].t > 0.45 || L.length > 24)) L.shift(); if (!L.length) return;
+  c.save(); for (const f of L) { const k = 1 - (t - f.t) / 0.45; c.globalAlpha = Math.min(1, k * 1.6); FBX.flame(c, f.x, f.y, 2.6 * f.s * (0.6 + 0.4 * k), 0.75 * f.s, t, HOLYP, f.a * 7, 1, true); } c.restore();
 }
 // penance: a shaft of golden light from above, a glow round him, motes rising
 function penLight(c, t) { const k = K.pPh === 0 ? sm(cl(K.pT / WP.PEN.RISE, 0, 1)) : K.pPh === 2 ? 1 - sm(cl(K.pT / WP.PEN.END, 0, 1)) : 1, z = K.z || 0, cy = K.y - z - 12;
@@ -2126,10 +2129,11 @@ function drawFlail(c, kn, t) {
     if (kn.hoT > 0 && kn.hz < 10) { c.save(); c.globalAlpha = 0.18 * hot; c.strokeStyle = '#ffd34a'; c.lineWidth = 0.6; c.setLineDash([1.5, 1.2]); c.lineDashOffset = -t * 6; c.beginPath(); c.ellipse(kn.hx, kn.hy, WP.HO.R, WP.HO.R / 1.25, 0, 0, 7); c.stroke(); c.restore(); } }
   K = k0;
 }
-// aim previews: the sweep's wedge; the slam's landing ring (or the pull, when the head is out)
-function drawSweepPreview(c, t) { const kn = KN[ME]; if (!DASHAIM || !kn || kn.kind !== 'priest' || kn.st === 'kneel') return; const a = Math.atan2(DASHAIM[1], DASHAIM[0]), R = WP.SW.R;
-  c.save(); c.beginPath(); c.moveTo(kn.x, kn.y); for (let i = 0; i <= 16; i++) { const p = ring2(kn.x, kn.y, a - WP.SW.HALF + 2 * WP.SW.HALF * i / 16, R); c.lineTo(p[0], p[1]); } c.closePath();
-  c.fillStyle = 'rgba(255,220,120,.16)'; c.fill(); c.strokeStyle = 'rgba(255,240,190,.8)'; c.lineWidth = 0.5; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 10; c.stroke(); c.restore(); }
+// aim previews: the sweep's reach (120 degrees either way of the head, within the drag radius), the path and the landing spot; the slam's ring (or the pull, when the head is out)
+function drawSweepPreview(c, t) { const kn = KN[ME]; if (!DASHAIM || !kn || kn.kind !== 'priest' || kn.st === 'kneel') return; const T = sweepTarget(kn, DASHAIM), A = WP.SW.ARC, R = WP.DRAG;
+  c.save(); c.beginPath(); c.moveTo(kn.x, kn.y); for (let i = 0; i <= 24; i++) { const p = ring2(kn.x, kn.y, T.ah - A + 2 * A * i / 24, R); c.lineTo(p[0], p[1]); } c.closePath(); c.fillStyle = 'rgba(255,220,120,.08)'; c.fill(); c.strokeStyle = 'rgba(255,240,190,.3)'; c.lineWidth = 0.4; c.stroke();
+  c.strokeStyle = 'rgba(255,240,190,.85)'; c.lineWidth = 0.6; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 10; c.beginPath(); const da = wrapA(T.a - T.ah); for (let i = 0; i <= 20; i++) { const q = i / 20, p = ring2(kn.x, kn.y, T.ah + da * smt(q), lerp(T.rh, T.r, smt(q))); i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1]); } c.stroke(); c.setLineDash([]);
+  const e = ring2(kn.x, kn.y, T.a, T.r), pul = 0.5 + 0.5 * Math.sin(t * 8); c.translate(e[0], e[1]); c.scale(1, 0.5); c.fillStyle = `rgba(255,220,120,${0.25 + 0.1 * pul})`; c.beginPath(); c.arc(0, 0, WP.HR + 2, 0, 7); c.fill(); c.strokeStyle = 'rgba(255,240,190,.9)'; c.lineWidth = 0.6; c.stroke(); c.restore(); }
 // guest-side flags for chained / slowed enemies; host keeps the real timers
 function slowMark(c, w) { if (!(w.sl > 0 || w.slF) || w.hp <= 0) return; const U = UK[w.k]; c.strokeStyle = 'rgba(235,215,150,.6)'; c.lineWidth = 0.35; c.beginPath(); c.ellipse(w.x, w.y + 0.3, 2.6 * U.sc, 0.9 * U.sc, 0, 0, 7); c.stroke(); }
 // ---------- sim ----------
@@ -2447,10 +2451,10 @@ function doDash(v) { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN
 function doLeap(v) { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.leapN = (IN.leapN || 0) + 1; IN.leapT = [Math.round(v[0] * 100) / 100, Math.round(v[1] * 100) / 100]; markIn(); }
 // dash aim: a stick whose centre is where the thumb lands; drag to aim (the path shows on the field), release to dash
 let dashId = null, dashO = null;
-const dashUpd = e => { const r = DASHE.getBoundingClientRect(), R = r.width / 2; let dx = e.clientX - dashO[0], dy = e.clientY - dashO[1]; const d = Math.hypot(dx, dy); if (d > R * 0.7) { dx *= R * 0.7 / d; dy *= R * 0.7 / d; }
-  DASHAIM = d > 8 ? [dx, dy] : null; if (KN[ME] && KN[ME].kind === 'fire') { stickPl = [Math.round(dx / (R * 0.7) * 100) / 100, Math.round(dy / (R * 0.7) * 100) / 100]; syncIn(); DASHAIM = null; } DASHD.style.transform = `translate(${dashO[0] - r.left - R + dx}px,${dashO[1] - r.top - R + dy}px)`; };
+const dashUpd = e => { const r = DASHE.getBoundingClientRect(), R = r.width / 2, PRI = isPriest(); let dx = e.clientX - dashO[0], dy = e.clientY - dashO[1]; const d = Math.hypot(dx, dy); if (d > R * 0.7) { dx *= R * 0.7 / d; dy *= R * 0.7 / d; }
+  DASHAIM = d > 8 ? (PRI ? [dx / (R * 0.7), dy / (R * 0.7)] : [dx, dy]) : null; if (KN[ME] && KN[ME].kind === 'fire') { stickPl = [Math.round(dx / (R * 0.7) * 100) / 100, Math.round(dy / (R * 0.7) * 100) / 100]; syncIn(); DASHAIM = null; } DASHD.style.transform = `translate(${dashO[0] - r.left - R + dx}px,${dashO[1] - r.top - R + dy}px)`; };
 // plume (the Firebreather's) is a fixed stick whose centre is the circle's centre; the knight's dash stick floats
-DASHE.addEventListener('pointerdown', e => { dashId = e.pointerId; DASHE.setPointerCapture(dashId); const r0 = DASHE.getBoundingClientRect(); dashO = KN[ME] && KN[ME].kind === 'fire' ? [r0.left + r0.width / 2, r0.top + r0.height / 2] : [e.clientX, e.clientY]; dashUpd(e); e.preventDefault(); });
+DASHE.addEventListener('pointerdown', e => { dashId = e.pointerId; DASHE.setPointerCapture(dashId); const r0 = DASHE.getBoundingClientRect(); dashO = KN[ME] && (KN[ME].kind === 'fire' || KN[ME].kind === 'priest') ? [r0.left + r0.width / 2, r0.top + r0.height / 2] : [e.clientX, e.clientY]; dashUpd(e); e.preventDefault(); });
 DASHE.addEventListener('pointermove', e => { if (e.pointerId === dashId) dashUpd(e); });
 const dashEnd = (e, go) => { if (e.pointerId !== dashId) return; dashId = null; if (KN[ME] && KN[ME].kind === 'fire') { stickPl = null; syncIn(); } else if (go && DASHAIM) doDash(DASHAIM); DASHAIM = null; DASHD.style.transition = 'transform .12s'; DASHD.style.transform = ''; setTimeout(() => DASHD.style.transition = '', 130); };
 DASHE.addEventListener('pointerup', e => dashEnd(e, true)); DASHE.addEventListener('pointercancel', e => dashEnd(e, false));
@@ -2491,7 +2495,7 @@ const ARROW = { arrowup: 'w', arrowleft: 'a', arrowdown: 's', arrowright: 'd' },
 const isFire = () => KN[ME] && KN[ME].kind === 'fire', isPriest = () => KN[ME] && KN[ME].kind === 'priest';
 addEventListener('keydown', e => { if (e.target && e.target.closest && e.target.closest('input')) return; const k = keyOf(e); if ('wasd '.includes(k) && k) { keys.add(k); keyUpd(); e.preventDefault(); }
   if (k === ' ' && !e.repeat && isPriest() && KN[ME].pPh >= 0) doSmash();
-  if (k === 'shift' && !e.repeat && isPriest()) { const v = cursorVec() || (keyMv[0] || keyMv[1] ? keyMv : [KN[ME].f, 0]); doDash(v); } else if (k === 'shift' && !e.repeat) { if (isFire()) { keys.add('shift'); keyUpd(); } else { const m = keyMv[0] || keyMv[1] ? keyMv : [KN[ME].f, 0]; doDash(m); } }
+  if (k === 'shift' && !e.repeat && isPriest()) { const v = mousePos ? (() => { const sc = viewScale() / DPR, kn = KN[ME], [kx, ky] = w2s(kn.x, kn.y); let q = [(mousePos[0] - kx) / (WP.DRAG * sc), (mousePos[1] - ky) / (WP.DRAG * 0.8 * sc)]; const m = Math.hypot(...q); return m > 1 ? q.map(z => z / m) : q; })() : [KN[ME].f * 0.8, 0]; doDash(v); } else if (k === 'shift' && !e.repeat) { if (isFire()) { keys.add('shift'); keyUpd(); } else { const m = keyMv[0] || keyMv[1] ? keyMv : [KN[ME].f, 0]; doDash(m); } }
   if (k === 'q') { if (!e.repeat) keys.add('q'); if (isFire()) COAIM = kbCoal(); else LEAPAIM = kbLeap(); }
   if (k === 'e' && !e.repeat && (isFire() || isPriest())) { const IN = KN[ME].in; IN.lvN = (IN.lvN || 0) + 1; markIn(); }
   if (k === 'r' && !e.repeat) doUlt(); });
@@ -2519,7 +2523,7 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
 const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
