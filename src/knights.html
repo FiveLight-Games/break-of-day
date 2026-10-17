@@ -2960,7 +2960,7 @@ function ttAlienArt(c, h, a, open, t, part = 'all') { const o = [h[0] + Math.cos
     c.fillStyle = '#5c3270'; for (const [sx, sy] of [[0.6, 0.6], [-0.7, 0.4], [0.2, 0.9]]) { c.beginPath(); c.arc(sx, sy, 0.16, 0, 7); c.fill(); } }
   if (open > 0.02) { c.save(); c.translate(ca * r * 0.55, sa * r * 0.4); c.rotate(a);
     if (back) { c.fillStyle = '#c45a7a'; c.beginPath(); c.ellipse(0, 0, R * 0.42, R, 0, 0, 7); c.fill(); c.fillStyle = '#2a0c1a'; c.beginPath(); c.ellipse(0.1, 0, R * 0.3, R * 0.85, 0, 0, 7); c.fill(); }
-    if (front) { // the lips' near rim and a ring of teeth over the tentacles' roots
+    if (back) { // the lips' near rim and a ring of teeth, under the tentacles (they come out over them)
       c.strokeStyle = '#c45a7a'; c.lineWidth = R * 0.16; c.beginPath(); c.ellipse(0.1, 0, R * 0.34, R * 0.9, 0, -Math.PI / 2, Math.PI / 2); c.stroke(); c.strokeStyle = '#8e3352'; c.lineWidth = R * 0.05; c.beginPath(); c.ellipse(0.1, 0, R * 0.27, R * 0.8, 0, -Math.PI / 2, Math.PI / 2); c.stroke();
       c.fillStyle = '#f1e8d0'; for (let i = 0; i < 12; i++) { const b = i / 12 * T2, px = Math.cos(b) * R * 0.3, py = Math.sin(b) * R * 0.85; c.beginPath(); c.moveTo(px, py); c.lineTo(px * 0.62, py * 0.74); c.lineTo(px + 0.1, py * 0.8 + 0.12); c.fill(); } }
     c.restore(); }
