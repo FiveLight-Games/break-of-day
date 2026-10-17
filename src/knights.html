@@ -2315,8 +2315,8 @@ function slowMark(c, w) { if (!(w.sl > 0 || w.slF) || w.hp <= 0) return; const U
 // Each hand holds its own curved blade. Stick held = a running three-cut combo; each blade cuts on any frame it moves fast.
 const SM = { RUN: 1.04, ATK: 0.72, T: [0.56, 0.52, 0.66], DMG: 75, KB: 26, LEN: 9.2, FAST: 6, GAP: 0.25 };
 // action keys (chest-relative, facing right, y down): [u, crouch, lean, twist, A hand x, y, A blade angle, B hand x, y, B blade angle, step]
-const SMG = [0, 0.5, 0.1, 0, 1.9, 2.4, 0.35, -1.0, 2.6, 2.4, 0.6];
-const SMRUN = [0, 0.45, 0.3, 0.1, -0.4, 2.6, 2.8, -1.6, 2.3, 2.95, 0];
+const SMG = [0, 0.12, 0.05, 0, 1.9, 2.4, 0.35, -1.0, 2.6, 2.4, 0.35];
+const SMRUN = [0, 0.25, 0.26, 0.1, -0.4, 2.6, 2.8, -1.6, 2.3, 2.95, 0];
 const SMCUTS = [
   // 1: B (near the camera) cocks high behind, cuts down across his front, follows through low
   [SMG, [0.3, 0.8, -0.15, -0.8, 1.6, 1.8, 0.5, -1.6, -2.8, -2.3, 0.3], [0.5, 1.4, 0.45, 0.9, 1.0, 2.6, 1.3, 3.2, 1.4, 0.9, 1.4], [0.68, 1.5, 0.5, 1.0, 0.6, 2.4, 2.0, 2.2, 3.4, 1.9, 1.5], [1, ...SMG.slice(1)]],
@@ -2330,7 +2330,7 @@ function smPose(kn, t) {
   let A = SMG.map((v, j) => j === 5 || j === 8 ? v + br * 0.1 : v);
   const cutting = kn.cut >= 0, v = (kn.cutN || 0) % 3;
   if (!cutting) A = A.map((x, j) => j ? lerp(x, SMRUN[j], run) : 0);
-  else A = kfnS(cl(kn.cut / SM.T[v], 0, 1), SMCUTS[v]);
+  else A = kfnS(cl(kn.cut / SM.T[v], 0, 1), SMCUTS[v]).map((x, j) => j === 1 ? x * 0.45 : j === 10 ? x * 0.6 : x); // a looser stance than the Knight: about half his crouch, smaller steps
   let [, cr, lean, tw, ax, ay, aa, bx, by, ba, stepA] = A;
   // aiming up or down tilts the cut round his shoulders (eased in and out over the cut, like the Knight's swings)
   if (cutting && kn.cutTl) { const u = kn.cut / SM.T[v], w = (u < 0.35 ? sm(u / 0.35) : u < 0.7 ? 1 : 1 - sm((u - 0.7) / 0.3)) * kn.cutTl, sp = [0, -0.6];
@@ -2339,7 +2339,7 @@ function smPose(kn, t) {
   // ---- legs: the Knight's gait and stance ----
   const front = f > 0 ? 1 : 0, stride = lerp(2.0, 3.6, run);
   const loco = [0, 1].map(i => { const ph = gp + i * Math.PI; return [(i ? 0.9 : -0.9) + f * Math.sin(ph) * stride * mv, -Math.max(0, Math.cos(ph)) * lerp(1.0, 1.8, run) * mv]; });
-  const stance = [0, 1].map(i => { const fr = i === front; return [fr ? f * (1.5 + stepA * 1.3) : -f * 1.5, fr ? 0 : -0.25]; });
+  const stance = [0, 1].map(i => { const fr = i === front; return [fr ? f * (1.0 + stepA * 1.1) : -f * 1.0, fr ? 0 : -0.25]; });
   const feet = [0, 1].map(i => L2(stance[i], loco[i], mv));
   const bob = mv * (Math.abs(Math.cos(gp)) * 0.55 - 0.3), pel = [f * (stepA * 0.55 * (1 - mv) + run * 0.35), -6.1 + cr * 0.95 + bob];
   lean += run * 0.28 * (cutting ? 0.4 : 1); tw += Math.sin(gp) * 0.25 * mv;
@@ -2397,15 +2397,17 @@ function smArm(c, s, h, f, far) { const C = SMC, e1 = ik(s, h, 2.6, 2.6, 1), e2 
   c.lineCap = 'round'; c.lineJoin = 'round'; for (const [col, w] of [[shade(COL, dk - 0.22), 1.5], [shade(COL, dk), 1.15]]) { c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.lineTo(...wr); c.stroke(); }
   c.strokeStyle = shade(C.CREAM, dk); c.lineWidth = 1.25; c.beginPath(); c.moveTo(...L2(el, h, 0.66)); c.lineTo(...L2(el, h, 0.8)); c.stroke(); }
 function smTorso(c, P, f, t) { const C = SMC, hip = P.pel, [Ls, Rs] = P.sh, mx = (Ls[0] + Rs[0]) / 2, my = (Ls[1] + Rs[1]) / 2, hw = 1.75 * (1 - 0.1 * Math.abs(P.tw)), hl = [hip[0] - hw, hip[1]], hr = [hip[0] + hw, hip[1]];
-  const sway = -f * cl((K.spd || 0) / RUN, 0, 1) * 1.6 + Math.sin(t * 1.9) * 0.12, hem = hip[1] + 4.3 - P.cr * 0.4;
+  const sway = -f * cl((K.spd || 0) / RUN, 0, 1) * 1.2 + Math.sin(t * 1.9) * 0.12;
   // dark under-robe from shoulders to hips
   c.fillStyle = C.ROBE; c.beginPath(); c.moveTo(hl[0], hl[1]); c.lineTo(Ls[0] + 0.2, Ls[1] + 0.3); c.quadraticCurveTo(mx, my - 0.6, Rs[0] - 0.2, Rs[1] + 0.3); c.lineTo(hr[0], hr[1]); c.closePath(); c.fill();
-  // the open coat: two panels from the shoulders, parting down the middle to show the robe, flaring into skirts to the knee
-  const panel = (S, side) => { const H0 = side < 0 ? hl : hr, inner = [lerp(mx, hip[0], 0.5) + side * 0.35, lerp(my, hip[1], 0.5)];
+  // the robe skirt and the open coat over it reach just past the knees and span both of them, so his thighs stay inside it
+  const kx0 = Math.min(P.knees[0][0], P.knees[1][0]) - 1.0, kx1 = Math.max(P.knees[0][0], P.knees[1][0]) + 1.0, hemY = Math.max(P.knees[0][1], P.knees[1][1]) + 1.3;
+  c.fillStyle = C.ROBE; c.beginPath(); c.moveTo(hl[0], hl[1] - 0.3); c.lineTo(hr[0], hr[1] - 0.3); c.lineTo(kx1 + sway * 0.5, hemY); c.lineTo(kx0 + sway * 0.5, hemY); c.closePath(); c.fill();
+  const panel = (S, side) => { const H0 = side < 0 ? hl : hr, inner = [lerp(mx, hip[0], 0.5) + side * 0.35, lerp(my, hip[1], 0.5)], ox = (side < 0 ? kx0 : kx1) + sway, ix = lerp(hip[0], side < 0 ? kx0 : kx1, 0.3) + sway * 0.7;
     c.fillStyle = side * f < 0 ? shade(COL, -0.16) : COL; c.beginPath(); c.moveTo(S[0] - side * 0.1, S[1] + 0.2); c.lineTo(mx + side * 0.25, my + 0.15); c.lineTo(inner[0], inner[1]); c.lineTo(hip[0] + side * 0.45, hip[1] - 0.1);
-    c.lineTo(hip[0] + side * 0.55 + sway * 0.6, hem); c.quadraticCurveTo(H0[0] + side * 1.3 + sway, hem + 0.2, H0[0] + side * 1.0 + sway * 1.1, hem - 0.3); c.lineTo(H0[0] + side * 0.25, H0[1]); c.lineTo(S[0] + side * 0.55, S[1] + 0.6); c.closePath(); c.fill();
-    c.strokeStyle = C.CREAM; c.lineWidth = 0.32; c.beginPath(); c.moveTo(mx + side * 0.25, my + 0.15); c.lineTo(inner[0], inner[1]); c.lineTo(hip[0] + side * 0.45, hip[1] - 0.1); c.lineTo(hip[0] + side * 0.55 + sway * 0.6, hem); c.stroke();
-    c.strokeStyle = GOLD; c.lineWidth = 0.25; c.beginPath(); c.moveTo(hip[0] + side * 0.55 + sway * 0.6, hem); c.quadraticCurveTo(H0[0] + side * 1.3 + sway, hem + 0.2, H0[0] + side * 1.0 + sway * 1.1, hem - 0.3); c.stroke(); };
+    c.lineTo(ix, hemY + 0.1); c.quadraticCurveTo((ix + ox) / 2, hemY + 0.45, ox, hemY - 0.1); c.lineTo(H0[0] + side * 0.25, H0[1]); c.lineTo(S[0] + side * 0.55, S[1] + 0.6); c.closePath(); c.fill();
+    c.strokeStyle = C.CREAM; c.lineWidth = 0.32; c.beginPath(); c.moveTo(mx + side * 0.25, my + 0.15); c.lineTo(inner[0], inner[1]); c.lineTo(hip[0] + side * 0.45, hip[1] - 0.1); c.lineTo(ix, hemY + 0.1); c.stroke();
+    c.strokeStyle = GOLD; c.lineWidth = 0.25; c.beginPath(); c.moveTo(ix, hemY + 0.1); c.quadraticCurveTo((ix + ox) / 2, hemY + 0.45, ox, hemY - 0.1); c.stroke(); };
   panel(Ls, -1); panel(Rs, 1);
   // sash at the waist, its ends hanging on the far side
   const wy = lerp(my, hip[1], 0.78), wx = lerp(mx, hip[0], 0.78); c.fillStyle = C.SASH; c.beginPath(); c.moveTo(wx - hw - 0.1, wy - 0.45); c.lineTo(wx + hw + 0.1, wy - 0.45); c.lineTo(wx + hw, wy + 0.4); c.lineTo(wx - hw, wy + 0.4); c.closePath(); c.fill();
