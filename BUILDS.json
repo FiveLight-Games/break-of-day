@@ -62,5 +62,6 @@
   {"v": "0.61", "build": "710855", "commit": "addc41a", "date": "2026-10-16", "notes": "Knight: third swing (clockwise twirl), bigger light blade on swings 2 and 3, smoother swings, swings cut wherever the blade moves fast; Hit zones shows each swing's damage area."},
   {"v": "0.62", "build": "2798ae", "commit": "454561a", "date": "2026-10-17", "notes": "Firebreather's volcano only zooms out his own screen; Warpriest chain meets the head's centre."},
   {"v": "0.63", "build": "084bb3", "commit": "77313e9", "date": "2026-10-17", "notes": "Enemies keep a little more room between each other"},
-  {"v": "0.64", "build": "283113", "commit": "", "date": "2026-10-17", "notes": "Changelog button on the main menu; switching character in Knight Brawl now loads that character's control layout"}
+  {"v": "0.64", "build": "283113", "commit": "d987a87", "date": "2026-10-17", "notes": "Changelog button on the main menu; switching character in Knight Brawl now loads that character's control layout"},
+  {"v": "0.65", "build": "0af344", "commit": "", "date": "2026-10-17", "notes": "Changelog's Close button stays at the top; Warpriest Penance: enemies in the area beneath him are slowed 90% instead of pushed out, and the area is 35% bigger"}
 ]
