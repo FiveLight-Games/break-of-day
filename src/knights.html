@@ -53,7 +53,7 @@ body.editing #bring,body.editing #lst,body.editing #rst,body.editing #dash,body.
 .pnl .kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px}.pnl label{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0}.pnl input{width:18px;height:18px;accent-color:#f0c419}
 @media (orientation:portrait){.pnl{top:92px}.pnl .kgrid{grid-template-columns:repeat(2,1fr)}}
 button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none}
-body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !important}body.time #aoe,body.time #ult{display:none !important}#pst{display:none;right:10vw;border-color:#ffd34a99;background:#ffd34a1a}#pst .knob{background:#ffd34a66;border-color:#ffe28a}#pst small{color:#ffe28acc}#smash{display:none;position:fixed;left:22px;bottom:22px;width:140px;height:140px;border-radius:50%;padding:0;font:800 20px system-ui;letter-spacing:1px;background:#f0c41933;border:3px solid #ffd34a;color:#fff0b0;overflow:hidden;text-shadow:0 0 8px #ff9a00}#smash i{position:absolute;left:0;right:0;bottom:0;background:#ffd34a66;height:0}#smash span{position:relative}body.pen #pst,body.pen #smash{display:block}body.pen #lst,body.pen #rst,body.pen #dash,body.pen #aoe,body.pen #spin{display:none}body.priest #spin{background:#ffd34a26;border-color:#ffd34a;color:#ffe28a}body.priest #aoe.out{border-color:#fff3c4;box-shadow:0 0 12px #f0c419aa}@media (orientation:portrait){#smash{left:14px;bottom:18px;width:110px;height:110px;font-size:17px}#pst{right:8vw}}
+body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !important}body.time #aoe,body.time #ult{display:none !important}#ttTest{display:none;position:fixed;left:8px;top:32vh;flex-direction:column;gap:6px;z-index:6}body.time #ttTest{display:flex}body.editing #ttTest,body.volc #ttTest{display:none}#ttTest b{font:800 9px system-ui;color:#ffffff88;letter-spacing:1px;text-align:center}#ttTest button{background:#000a;color:#fff;border:1px solid #ffffff44;border-radius:8px;font:700 12px system-ui;padding:8px 10px;min-width:74px}#pst{display:none;right:10vw;border-color:#ffd34a99;background:#ffd34a1a}#pst .knob{background:#ffd34a66;border-color:#ffe28a}#pst small{color:#ffe28acc}#smash{display:none;position:fixed;left:22px;bottom:22px;width:140px;height:140px;border-radius:50%;padding:0;font:800 20px system-ui;letter-spacing:1px;background:#f0c41933;border:3px solid #ffd34a;color:#fff0b0;overflow:hidden;text-shadow:0 0 8px #ff9a00}#smash i{position:absolute;left:0;right:0;bottom:0;background:#ffd34a66;height:0}#smash span{position:relative}body.pen #pst,body.pen #smash{display:block}body.pen #lst,body.pen #rst,body.pen #dash,body.pen #aoe,body.pen #spin{display:none}body.priest #spin{background:#ffd34a26;border-color:#ffd34a;color:#ffe28a}body.priest #aoe.out{border-color:#fff3c4;box-shadow:0 0 12px #f0c419aa}@media (orientation:portrait){#smash{left:14px;bottom:18px;width:110px;height:110px;font-size:17px}#pst{right:8vw}}
 #bring{display:none;position:fixed;right:calc(10vw + 128px);bottom:150px;width:62px;height:62px;border-radius:50%;padding:0;font:800 10px/1.1 system-ui;background:#f0c4191a;border:2px solid #f0c41966;color:#f0c41999;opacity:.45;transition:opacity .2s,box-shadow .2s}body.priest #bring{display:block}body.priest #aoe.dim,#dash.dim{opacity:.45;pointer-events:none;transition:none}#bring.ready{opacity:1;background:#f0c41940;border-color:#fff3c4;color:#fff8e0;box-shadow:0 0 12px #f0c419aa}body.pen #bring,body.volc #bring{display:none}@media (orientation:portrait){#bring{right:calc(8vw + 44px);bottom:228px;width:52px;height:52px}}
 #help{position:fixed;left:50%;transform:translateX(-50%);bottom:6px;font-size:11px;color:#fff9;text-align:center;pointer-events:none}
 </style></head><body>
@@ -74,7 +74,7 @@ body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !
 <div id="vtap"></div><button id="spin"><i></i><span>SPIN</span></button>
 <div class="stick" id="pst"><div class="knob"></div><small>flail</small></div><button id="smash"><i></i><span>SMASH</span></button>
 <div class="stick" id="bst"><div class="knob"></div><small>breath</small><i></i></div>
-<button id="bring">BRING IN</button>
+<button id="bring">BRING IN</button><div id="ttTest"><b>TEST</b><button data-tw="1">Saber</button><button data-tw="2">Shotgun</button><button data-tw="3">Alien</button><button data-tw="4">Saw gun</button></div>
 <button id="ult"><i></i><span>ULT</span><small></small></button>
 <div id="dash" class="aim"><i></i><div class="dot"></div><small>dash</small></div>
 <div id="aoe"><i></i><div class="dot"></div><small>leap</small></div>
@@ -1088,7 +1088,7 @@ function sndWatch() {
     if (kn.kind === 'fire') { if (kn.st === 'pull' && !kn.sndLit) { kn.sndLit = 1; snd('pull', kn.x, kn.y); musGo(); } if (kn.plT >= 0 && !(kn.sndPl >= 0)) snd('plume', kn.x, kn.y); kn.sndPl = kn.plT; if (kn.cone > 0.3) snd(kn.plT >= 0 ? 'roar' : 'fire', kn.x, kn.y); if ((kn.tswN || 0) !== (kn.sndSw || 0)) { kn.sndSw = kn.tswN; snd('fwave', kn.x, kn.y); } if (kn.hits > (kn.snd ? kn.snd.hits : 0)) snd('ouch', kn.x, kn.y); kn.snd = { hits: kn.hits }; continue; }
     if (kn.kind === 'time') { const S = kn.snd && kn.snd.tt ? kn.snd : (kn.snd = { tt: 1, cs: kn.csN, hits: kn.hits, wp: kn.wpS });
       if (kn.st !== 'kneel' && !S.lit) { S.lit = 1; snd('pull', kn.x, kn.y); musGo(); }
-      if ((kn.csN || 0) !== (S.cs || 0)) { S.cs = kn.csN; const w = kn.csW; if (w === 0) snd('cane', kn.x, kn.y); else if (w === 1) snd('saber', kn.x, kn.y); else if (w === 3) snd('alien', kn.x, kn.y); }
+      if ((kn.csN || 0) !== (S.cs || 0)) { S.cs = kn.csN; const w = kn.csW; if (w === 0) snd('cane', kn.x, kn.y); else if (w === 1) snd('saber', kn.x, kn.y); } if ((kn.alG || 0) !== (S.alG ?? kn.alG ?? 0)) snd('alien', kn.x, kn.y); S.alG = kn.alG || 0;
       if (kn.wpS !== S.wp) { if (kn.wpS === 1 || kn.wpS === 3) snd('portal', kn.x, kn.y); S.wp = kn.wpS; }
       if (kn.bk === 1) snd('engine', kn.x, kn.y, cl(kn.bv / TT.BIKE.MAXV, 0, 1));
       if (kn.hits > S.hits) snd('ouch', kn.x, kn.y); S.hits = kn.hits; continue; }
@@ -2493,10 +2493,10 @@ function drawSword(c, t) {
 // motorcycle bursts through and he lands on it as it passes under him; 5s of heavy, leaning, sliding riding that runs enemies down.
 const TT = {
   RUN: 1.0, ATK: 0.8, CLEN: 7.4,
-  CANE: { T: 0.3, HIT: 0.4, R: 16, HALF: 0.8, DMG: 46, KB: 34 },
+  CANE: { T: 0.3, HIT: 0.4, R: 16, HALF: 0.8, DMG: 46, KB: 13.6 },
   SABER: { T: 0.56, HIT: 0.4, R: 25, HALF: 1.0, DMG: 230, KB: 20, LEN: 10.5 },
   GUN: { T: 0.34, R: 54, HALF: 0.42, DMG: 180, KB: 8, AMMO: 2, RELOAD: 1.75 },
-  ALIEN: { T: 1.6, R: 60, HALF: 0.62, N: 12, OUT: 0.2, GRAB: 0.45, TOSS: 0.78, SQZ: 1.05, BACK: 1.5, DMG: 420, TDMG: 70, LDMG: 140, TOSSP: 0.45 },
+  ALIEN: { R: 60, HALF: 0.62, N: 12, EVERY: 0.2, OPEN: 0.25, REACH: 0.22, LIFT: 0.5, SQZ: 0.85, BACK: 0.35, DMG: 420, TDMG: 70, LDMG: 140, TOSSP: 0.45 },
   SAW: { T: 0.46, SPD: 240, RANGE: 300, DMG: 260, W: 3.5, Z: 6.5 },
   PORT: { CD: 12, HOLD: 8, IN: 0.75, OUT: 0.9 },
   BIKE: { CD: 14, T: 5, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
@@ -2506,7 +2506,7 @@ const TTC = { SKIN: '#e8bb98', SKIND: '#c08f6c', HAIR: '#6b4a33', HAIRL: '#8a644
 // the weapon each portal press brings: a hash of the press count and seat, so the host and the player's own screen agree without sending it
 function ttRoll(kn) { if (window.__ttW) return window.__ttW; let n = 0; const s = (kn.in.lvN || 0) * 12.9898 + kn.i * 78.233 + 4.1; n = Math.floor((Math.abs(Math.sin(s) * 43758.5453) % 1) * 4) + 1; if (n === kn.wpL) n = n % 4 + 1; return n; }
 function makeTime(kn) { Object.assign(kn, { kind: 'time', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, kn: 0, hold: 1, cs: -1, csN: 0, csA: 0, csW: 0, csTl: 0, wpn: 0, wpL: 0, wpS: 0, wpT: 0, wpCd: 0, ammo: TT.GUN.AMMO, rl: -1, gunN: 0, sawN: 0, sawX: 0, sawY: 0, sawA: 0, tn: null,
-  bk: -1, bkT: 0, hd: 0, bv: 0, bvx: 0, bvy: 0, yr: 0, bl: 0, bkx: 0, bky: 0, bpx: 0, bpy: 0, bkCd: 0, bkId: 0, bkQ: null, z: 0, ttP: null, gA: 0.55, dashSeen: kn.in.dashN || 0, leapSeen: kn.in.leapN || 0, ultSeen: kn.in.ultN || 0, lvSeen: kn.in.lvN || 0 }); }
+  al: 0, alA: 0, alC: 0, alNx: 0, alI: 0, alG: 0, tc: null, twSeen: kn.in.twN || 0, bk: -1, bkT: 0, hd: 0, bv: 0, bvx: 0, bvy: 0, yr: 0, bl: 0, bkx: 0, bky: 0, bpx: 0, bpy: 0, bkCd: 0, bkId: 0, bkQ: null, z: 0, ttP: null, gA: 0.55, dashSeen: kn.in.dashN || 0, leapSeen: kn.in.leapN || 0, ultSeen: kn.in.ultN || 0, lvSeen: kn.in.lvN || 0 }); }
 // screen aim -> ground angle (the ground is foreshortened 1.25 vertically)
 const gAng = (sx, sy) => Math.atan2(sy * 1.25, sx), gDir = a => [Math.cos(a), Math.sin(a) / 1.25];
 // ---------- pose ----------
@@ -2546,9 +2546,9 @@ function ttPose(kn, t) {
   if (wq >= 2 || (atk && W0 >= 2)) { const tg = kn.gA ?? 0.55; ga = cl(tg, -1.25, 1.25);
     if (atk && (W0 === 2 || W0 === 4)) { rk = Math.max(0, 1 - kn.cs / (W0 === 2 ? 0.2 : 0.14)) ** 2 * (W0 === 2 ? 1 : 0.5); ga -= rk * 0.45; lean -= rk * 0.25; }
     if (kn.rl >= 0 && wq === 2) { const r = kn.rl; brk = r < 0.2 ? sm(r / 0.2) : r < 1.25 ? 1 : r < 1.45 ? 1 - sm((r - 1.25) / 0.2) : 0; ga = lerp(ga, 0.75, r < 1.45 ? sm(cl(r / 0.2, 0, 1)) : 1 - sm(cl((r - 1.45) / 0.3, 0, 1))); }
-    const d = [Math.cos(ga), Math.sin(ga)], ext = wq === 3 || W0 === 3 ? (atk ? 3.6 : 3.0) : 1.0;
+    const d = [Math.cos(ga), Math.sin(ga)], ext = wq === 3 ? (kn.al ? 3.6 : 3.0) : 1.0;
     const g0 = [0.3 + d[0] * ext - d[0] * rk * 1.1, 1.3 + d[1] * ext - d[1] * rk * 1.1]; bx = g0[0]; by = g0[1]; ca = ga;
-    if (wq === 3 || W0 === 3) { ax = lerp(ax, -0.4, 0.6); ay = 3.2; lean += atk ? 0.15 : 0; }
+    if (wq === 3) { ax = lerp(ax, -0.4, 0.6); ay = 3.2; lean += kn.al ? 0.15 : 0; }
     else { ax = g0[0] + d[0] * 2.6; ay = g0[1] + d[1] * 2.6; lean -= 0.05; tw -= 0.25;
       // reload: the A hand fetches a shell from his coat pocket twice and feeds it into the breech
       if (kn.rl >= 0 && wq === 2) { const r = kn.rl, pk = [0.9, 3.9], brc = [g0[0] + d[0] * 1.5, g0[1] + d[1] * 1.5], fe = [ax, ay]; let hA = fe;
@@ -2598,20 +2598,22 @@ function ttStart(IN, t) { const a = gAng(IN.aim[0], IN.aim[1]), wq = K.wpS === 2
   K.csTl = cl(Math.atan2(Math.sin(a), Math.abs(Math.cos(a))), -1.2, 1.2) * 0.8; K.cs0 = t;
   if (wq === 2) { K.ammo--; K.gunN = (K.gunN || 0) + 1; if (AUTH()) ttCone(TT.GUN.R, TT.GUN.HALF, d => TT.GUN.DMG * (1 - 0.4 * d / TT.GUN.R), TT.GUN.KB, (w, a2) => ttKillFx(w, a2, 1)); }
   if (wq === 4) { const d = gDir(a); K.sawN = (K.sawN || 0) + 1; K.sawX = r1(K.x + d[0] * 8); K.sawY = r1(K.y + d[1] * 8); K.sawA = Math.round(a * 100) / 100; }
-  if (wq === 3) K.tn = null; }
-function ttAlien(dt) { const A = TT.ALIEN, c0 = K.cs - dt, c1 = K.cs, X = v => c0 < v && c1 >= v, a0 = K.csA;
-  if (!AUTH()) return;
-  // tendrils go out: one to each of the nearest enemies in the cone (up to a dozen); any spare ones grope at the air
-  if (X(A.OUT)) { const L = []; for (const w of walkers) { if (w.hp <= 0 || w.air || w.gr > 0) continue; const dx = w.x - K.x, dy = (w.y - K.y) * 1.25, d = Math.hypot(dx, dy), a = Math.atan2(dy, dx); if (d < A.R + UK[w.k].r && (d < 6 || Math.abs(wrapA(a - a0)) < A.HALF)) L.push([d, w]); }
-    L.sort((p, q) => p[0] - q[0]); const tn = L.slice(0, A.N).map(([d, w]) => [w.id, Math.round(Math.atan2((w.y - K.y) * 1.25, w.x - K.x) * 100) / 100, Math.round(d), Math.random() < A.TOSSP && UK[w.k].sc <= 1.1 ? 0 : 1]);
-    while (tn.length < A.N) tn.push([-1, Math.round((a0 + rr(-A.HALF, A.HALF)) * 100) / 100, Math.round(rr(A.R * 0.45, A.R * 0.95)), 2]); K.tn = tn; }
-  if (!K.tn) return; const byId = new Map(walkers.map(w => [w.id, w]));
-  for (const [id, , , m] of K.tn) { const w = byId.get(id); if (!w || w.hp <= 0 || w.air) continue;
-    if (c1 >= A.GRAB && c1 < (m ? A.SQZ : A.TOSS)) { w.gr = 0.08; w.grK = K.i; w.atk = -1; if (m === 0) w.z = 9 * sm(cl((c1 - A.GRAB) / (A.TOSS - A.GRAB), 0, 1)); }
-    // tossed: flung far through the air
-    if (m === 0 && X(A.TOSS)) { const a = Math.atan2(w.y - K.y, w.x - K.x), sp = rr(120, 165); w.gr = 0; w.air = 1; w.z = Math.max(w.z || 0, 8); w.vz = 38; w.tvx = Math.cos(a) * sp; w.tvy = Math.sin(a) * sp * 0.6; w.grK = K.i; hurt(w, A.TDMG, ww => { ww.air = 0; flingFx(ww, a, 2.6); }); }
-    // constricted: squeezed until it bursts
-    if (m === 1 && X(A.SQZ)) { w.gr = 0; hurt(w, A.DMG, ww => ttKillFx(ww, Math.atan2(ww.y - K.y, ww.x - K.x), 2)); } } }
+  }
+// the creature, held: twelve tentacles writhe in a cone in front of it while the stick is held; every EVERY seconds the next one in
+// line (round the twelve) reaches for the nearest enemy in the cone no other tentacle has, grabs it, and either lifts and throws it
+// (mode 0) or coils round it and squeezes until it bursts (mode 1). tc[j] = [walker id, mode, start time on the alC clock, done flag]
+function ttGrab(j) { const A = TT.ALIEN, a0 = K.alA, taken = new Set(K.tc.filter(Boolean).map(q => q[0])); let best = null, bd = 1e9;
+  for (const w of walkers) { if (w.hp <= 0 || w.air || w.gr > 0 || taken.has(w.id)) continue; const dx = w.x - K.x, dy = (w.y - K.y) * 1.25, d = Math.hypot(dx, dy); if (d > A.R + UK[w.k].r || d >= bd) continue; if (d > 6 && Math.abs(wrapA(Math.atan2(dy, dx) - a0)) > A.HALF) continue; bd = d; best = w; }
+  if (!best) return; K.tc[j] = [best.id, Math.random() < A.TOSSP && UK[best.k].sc <= 1.1 ? 0 : 1, Math.round(K.alC * 100) / 100, 0]; K.alG = (K.alG || 0) + 1; }
+function ttHold(dt) { const A = TT.ALIEN, byId = new Map(walkers.map(w => [w.id, w]));
+  for (let j = 0; j < A.N; j++) { const q = K.tc[j]; if (!q) continue; const [id, m, t0] = q, u = K.alC - t0, done = m ? A.SQZ : A.LIFT, w = byId.get(id);
+    if (u > done + A.BACK) { K.tc[j] = null; continue; } if (!w || w.hp <= 0 || w.dead || q[3]) continue;
+    if (u >= A.REACH && u < done) { w.gr = 0.08; w.grK = K.i; w.atk = -1; if (m === 0) w.z = 9 * sm(cl((u - A.REACH) / (A.LIFT - A.REACH), 0, 1)); }
+    if (u >= done) { q[3] = 1; const a = Math.atan2(w.y - K.y, w.x - K.x);
+      // thrown: flung far through the air
+      if (m === 0) { const sp = rr(120, 165); w.gr = 0; w.air = 1; w.z = Math.max(w.z || 0, 8); w.vz = 38; w.tvx = Math.cos(a) * sp; w.tvy = Math.sin(a) * sp * 0.6; w.grK = K.i; hurt(w, A.TDMG, ww => { ww.air = 0; flingFx(ww, a, 2.6); }); }
+      // constricted: squeezed until it bursts
+      else { w.gr = 0; hurt(w, A.DMG, ww => ttKillFx(ww, a, 2)); } } } }
 // a tossed enemy lands (host, in the walker loop)
 function ttLand(w) { const a = Math.atan2(w.tvy, w.tvx), k0 = K; K = KN[w.grK] || KN[0]; w.air = 0; w.z = 0; w.vz = 0; w.kx = w.tvx * 0.25; w.ky = w.tvy * 0.25;
   for (let i = 0; i < 8; i++) { const b = rr(0, 6.28); dust.push({ x: w.x + Math.cos(b) * 2, y: w.y + Math.sin(b), vx: Math.cos(b) * rr(10, 30), vy: Math.sin(b) * rr(5, 14), r: rr(0.8, 1.6), t: 0, max: rr(0.3, 0.6) }); }
@@ -2626,24 +2628,31 @@ function timeStep(dt, t) {
   // ---- the weapon portal ----
   if (K.wpCd > 0) K.wpCd -= dt;
   if (lvP && ready && K.wpS === 0 && !(K.wpCd > 0)) { K.wpn = ttRoll(K); K.wpL = K.wpn; K.wpS = 1; K.wpT = 0; K.ammo = TT.GUN.AMMO; K.rl = -1; if (K.cs >= 0) K.cs = -1; }
+  // test buttons: a given weapon right now (through the portal if he has none, swapped straight in if he has one)
+  if ((IN.twN || 0) !== (K.twSeen || 0)) { K.twSeen = IN.twN || 0; const v = IN.twV | 0; if (ready && v >= 1 && v <= 4) { if (K.wpS === 2) Object.assign(K, { wpn: v, wpT: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1, al: 0, tc: null }); else if (K.wpS === 0) Object.assign(K, { wpn: v, wpL: v, wpS: 1, wpT: 0, wpCd: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1 }); else if (K.wpS === 1) K.wpn = v; } }
   if (K.wpS === 1) { K.wpT += dt; if (K.wpT >= TT.PORT.IN) { K.wpS = 2; K.wpT = 0; } }
-  else if (K.wpS === 2) { K.wpT += dt; if (K.wpT >= TT.PORT.HOLD && !(K.cs >= 0 && K.csW === 3)) { K.wpS = 3; K.wpT = 0; K.cs = -1; K.rl = -1; K.tn = null; } }
+  else if (K.wpS === 2) { K.wpT += dt; if (K.wpT >= TT.PORT.HOLD + (K.wpn === 3 ? 0.4 : 0)) { K.wpS = 3; K.wpT = 0; K.cs = -1; K.rl = -1; K.al = 0; K.tc = null; } }
   else if (K.wpS === 3) { K.wpT += dt; if (K.wpT >= TT.PORT.OUT) { K.wpS = 0; K.wpT = 0; K.wpn = 0; K.wpCd = TT.PORT.CD; } }
   // ---- attacks: the cane, or whatever the portal brought ----
   const wq = K.wpS === 2 ? K.wpn : 0, busy = K.wpS === 1 || K.wpS === 3 || K.bk === 0 || K.bk === 2;
   if (K.rl >= 0) { K.rl += dt; if (K.rl >= TT.GUN.RELOAD) { K.rl = -1; K.ammo = TT.GUN.AMMO; } }
   if (IN.aim && (wq >= 2)) { const tg = Math.atan2(IN.aim[1], Math.abs(IN.aim[0]) || 1e-3); K.gA = lerp(K.gA ?? tg, tg, 1 - Math.exp(-dt * 18)); if (Math.abs(IN.aim[0]) > 0.15 && !ttRiding(K)) K.f = IN.aim[0] > 0 ? 1 : -1; }
   else if (wq >= 2 && !(K.cs >= 0)) K.gA = lerp(K.gA ?? 0.55, 0.55, 1 - Math.exp(-dt * 4));
-  if (!(K.cs >= 0) && IN.aim && ready && !busy && !(wq === 2 && (K.rl >= 0 || K.ammo <= 0))) ttStart(IN, t);
-  if (K.cs >= 0) { const W0 = K.csW, T = [TT.CANE.T, TT.SABER.T, TT.GUN.T, TT.ALIEN.T, TT.SAW.T][W0], c0 = K.cs; K.cs += dt;
+  if (wq === 3) { const A = TT.ALIEN, on = !!(IN.aim && ready && !busy && K.wpT < TT.PORT.HOLD); K.alC = (K.alC || 0) + dt; if (!K.tc) K.tc = Array(A.N).fill(null);
+    if (on && !K.al) K.alNx = K.alC + A.OPEN; K.al = on ? 1 : 0;
+    if (on) { K.alA = Math.round(gAng(IN.aim[0], IN.aim[1]) * 100) / 100; while (K.alC >= K.alNx) { K.alNx += A.EVERY; K.alI = ((K.alI || 0) + 1) % A.N; if (AUTH() && !K.tc[K.alI]) ttGrab(K.alI); } }
+    // let go of everything when the stick is released
+    else if (AUTH()) K.tc = K.tc.map(q => q && !q[3] ? null : q);
+    if (AUTH()) ttHold(dt); }
+  else if (!(K.cs >= 0) && IN.aim && ready && !busy && !(wq === 2 && (K.rl >= 0 || K.ammo <= 0))) ttStart(IN, t);
+  if (K.cs >= 0) { const W0 = K.csW, T = [TT.CANE.T, TT.SABER.T, TT.GUN.T, 1, TT.SAW.T][W0], c0 = K.cs; K.cs += dt;
     if (W0 === 0 && c0 < TT.CANE.T * TT.CANE.HIT && K.cs >= TT.CANE.T * TT.CANE.HIT && AUTH()) ttCone(TT.CANE.R, TT.CANE.HALF, TT.CANE.DMG, TT.CANE.KB, (w, a) => flingFx(w, a, 0.9));
     if (W0 === 1 && c0 < TT.SABER.T * TT.SABER.HIT && K.cs >= TT.SABER.T * TT.SABER.HIT && AUTH()) ttCone(TT.SABER.R, TT.SABER.HALF, TT.SABER.DMG, TT.SABER.KB, (w, a) => ttKillFx(w, a, 0));
-    if (W0 === 3) ttAlien(dt);
-    if (K.cs >= T) { K.cs = -1; if (W0 === 2 && K.ammo <= 0) K.rl = 0; if (W0 === 3) K.tn = null; } }
+    if (K.cs >= T) { K.cs = -1; if (W0 === 2 && K.ammo <= 0) K.rl = 0; } }
   // ---- the bike ----
   if (K.bkCd > 0) K.bkCd -= dt;
   if (dashP && ready && K.bk < 0 && !(K.bkCd > 0) && IN.dashD) K.bkQ = { a: gAng(IN.dashD[0], IN.dashD[1]), t: 0.6 };
-  if (K.bkQ) { K.bkQ.t -= dt; if (K.bkQ.t <= 0) K.bkQ = null; else if (!(K.cs >= 0 && K.csW === 3) && K.bk < 0) { const a = K.bkQ.a, d = gDir(a); K.bkQ = null; if (K.cs >= 0 && K.csW !== 2) K.cs = -1;
+  if (K.bkQ) { K.bkQ.t -= dt; if (K.bkQ.t <= 0) K.bkQ = null; else if (!K.al && K.bk < 0) { const a = K.bkQ.a, d = gDir(a); K.bkQ = null; if (K.cs >= 0 && K.csW !== 2) K.cs = -1;
     Object.assign(K, { bk: 0, bkT: 0, hd: a, bv: 0, yr: 0, bl: 0, bkId: (K.bkId || 0) + 1, bpx: r1(K.x - d[0] * B.DIST), bpy: r1(K.y - d[1] * B.DIST), lx0: K.x, ly0: K.y, lx: K.x + d[0] * 8, ly: K.y + d[1] * 8 }); } }
   if (K.bk === 0) { K.bkT += dt; const u = K.bkT, q = cl((u - B.JUMP) / (B.LAND - B.JUMP), 0, 1);
     K.z = u < B.JUMP ? 0 : lerp(0, B.SEAT, q) + 9 * Math.sin(Math.PI * q) * (q < 1 ? 1 : 0); const s = smt(q); K.x = lerp(K.lx0, K.lx, s); K.y = lerp(K.ly0, K.ly, s);
@@ -2666,7 +2675,7 @@ function timeStep(dt, t) {
     const e = Math.exp(-dt * 5); K.dvx *= e; K.dvy *= e; K.x += K.dvx * dt; K.y = cl(K.y + K.dvy * dt, 16, H - 4); K.bkx += K.bvx * dt; K.bky += K.bvy * dt; K.spd = Math.hypot(K.dvx, K.dvy);
     if (u >= B.OFF) { K.bk = -1; K.bkT = 0; K.bkCd = B.CD; K.z = 0; K.bl = 0; } }
   // ---- walking (the Swordmaster's / Knight's feel) ----
-  if (K.bk < 0) { const v2 = RUN * TT.RUN * (K.cs >= 0 ? TT.ATK : 1);
+  if (K.bk < 0) { const v2 = RUN * TT.RUN * (K.cs >= 0 || K.al ? TT.ATK : 1);
     if (mvL > 0.12) { const k = Math.min(1, mvL), e = 1 - Math.exp(-dt * 14); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e); } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
     const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy);
     K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.5;
@@ -2694,7 +2703,7 @@ function ttKill(w, a, m) { killSnd(w, m === 1 || m === 2); w.dead = 1; const ca 
 // ---------- per frame on every screen: shots, saws, shells, portals' sparks ----------
 let SAWS = [], TTFX = [], SKID = [];
 function ttFx(dt, t) {
-  for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue; const S = kn.ttS || (kn.ttS = { gun: kn.gunN || 0, saw: kn.sawN || 0, rl: kn.rl, bk: kn.bk });
+  for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue; kn.alV = ap(kn.alV || 0, kn.al && kn.wpn === 3 ? 1 : 0, dt / (kn.al ? TT.ALIEN.OPEN : 0.4)); kn.alCv = Math.abs((kn.alCv ?? 0) + dt - (kn.alC || 0)) > 0.15 ? kn.alC || 0 : (kn.alCv ?? 0) + dt; const S = kn.ttS || (kn.ttS = { gun: kn.gunN || 0, saw: kn.sawN || 0, rl: kn.rl, bk: kn.bk });
     // shotgun: flash, pellets, smoke
     if ((kn.gunN || 0) !== S.gun) { S.gun = kn.gunN || 0; const a = kn.csA, d = gDir(a), mx = kn.x + d[0] * 10.5, my = kn.y + d[1] * 10.5 - 6.8 - (kn.z || 0);
       TTFX.push({ k: 'flash', x: mx, y: my, a: Math.atan2(d[1], d[0]), t: 0, max: 0.09 });
@@ -2894,7 +2903,7 @@ function drawTime(c, t) {
   if (showW) { const wn = K.wpn;
     if (wn === 1) ttSaber(c, wx, wa, t, K.wpS === 2 ? 1 : K.wpS === 1 ? sm(cl((K.wpT - 0.5) / 0.2, 0, 1)) : 1 - sm(cl(K.wpT / 0.2, 0, 1)));
     else if (wn === 2) ttShotgun(c, wx, wa, P.brk || 0);
-    else if (wn === 3) { const open = K.cs >= 0 && K.csW === 3 ? (K.cs < TT.ALIEN.OUT ? sm(K.cs / TT.ALIEN.OUT) : K.cs < TT.ALIEN.BACK ? 1 : 1 - sm((K.cs - TT.ALIEN.BACK) / (TT.ALIEN.T - TT.ALIEN.BACK))) : 0; ttAlienArt(c, wx, wa, open, t); const m = c.getTransform(), o = [wx[0] + Math.cos(wa) * 1.1, wx[1] - 1.1 + Math.sin(wa) * 0.8]; K.mouth = [(m.a * o[0] + m.c * o[1] + m.e - CAM.e) / CAM.s, (m.b * o[0] + m.d * o[1] + m.f - CAM.f) / CAM.s]; }
+    else if (wn === 3) { const open = sm(cl(K.alV || 0, 0, 1)); ttAlienArt(c, wx, wa, open, t); const m = c.getTransform(), o = [wx[0] + Math.cos(wa) * 1.1, wx[1] - 1.1 + Math.sin(wa) * 0.8]; K.mouth = [(m.a * o[0] + m.c * o[1] + m.e - CAM.e) / CAM.s, (m.b * o[0] + m.d * o[1] + m.f - CAM.f) / CAM.s]; }
     else if (wn === 4) { const kick = K.cs >= 0 && K.csW === 4 ? Math.max(0, 1 - K.cs / 0.14) : 0, ld = K.cs >= 0 && K.csW === 4 ? sm(cl((K.cs - 0.12) / 0.25, 0, 1)) : 1; ttSawGun(c, wx, wa, t, ld, kick); } }
   ttHand(c, P.hB, true);
   if (gun && K.rl >= 0 && ((K.rl > 0.4 && K.rl < 0.6) || (K.rl > 0.82 && K.rl < 1.0))) { c.fillStyle = '#b8322a'; c.beginPath(); c.ellipse(P.hA[0], P.hA[1] - 0.3, 0.42, 0.22, 0.4, 0, 7); c.fill(); c.fillStyle = TTC.BRASS; c.beginPath(); c.arc(P.hA[0] - 0.35, P.hA[1] - 0.45, 0.2, 0, 7); c.fill(); }
@@ -2912,7 +2921,7 @@ function ttAir(c, t) {
     const bk = kn.bk === 0 ? (kn.bkT < 0.25 ? sm(kn.bkT / 0.25) : kn.bkT < 0.55 ? 1 : 1 - sm(cl((kn.bkT - 0.55) / 0.25, 0, 1))) : kn.bk === 2 ? (kn.bkT < 0.2 ? sm(kn.bkT / 0.2) : kn.bkT < 0.5 ? 1 : 1 - sm(cl((kn.bkT - 0.5) / 0.2, 0, 1))) : 0;
     if (bk > 0) { const fw = gDir(kn.hd || 0), wide = 0.6 + 0.4 * Math.abs(fw[1]) / Math.hypot(fw[0], fw[1]); ttPortal(c, kn.bpx, kn.bpy - 8.5, 8 * wide, 9.5, bk, t, 0); }
     // tendrils: out to their targets, holding them, then slinking back into its mouth
-    if (kn.cs >= 0 && kn.csW === 3 && kn.tn && kn.mouth) ttTendrils(c, kn, t); }
+    if ((kn.alV || 0) > 0.01 && kn.wpn === 3 && kn.mouth) ttTendrils(c, kn, t); }
   for (const s of SAWS) { const al = s.out ? Math.max(0, 1 - s.out / 0.35) : 1, z = TT.SAW.Z - (s.out ? s.out * 14 : 0); c.fillStyle = `rgba(0,0,0,${0.25 * al})`; c.beginPath(); c.ellipse(s.x, s.y + 0.3, 3.2, 1.1, 0, 0, 7); c.fill(); const d = gDir(s.a);
     c.save(); c.globalAlpha = 0.25 * al; c.strokeStyle = '#dfe6ee'; c.lineWidth = 2.6; c.lineCap = 'round'; c.beginPath(); c.moveTo(s.x - d[0] * 7, s.y - z - d[1] * 7); c.lineTo(s.x, s.y - z); c.stroke(); c.restore(); sawDisc(c, s.x, s.y - z, 3.0, s.rot, 0.42, al); }
   c.save(); c.globalCompositeOperation = 'lighter';
@@ -2922,24 +2931,30 @@ function ttAir(c, t) {
   for (const p of TTFX) { const k = p.t / p.max; if (p.k === 'smoke') { c.fillStyle = `rgba(190,185,175,${0.45 * (1 - k)})`; c.beginPath(); c.arc(p.x, p.y - k * 3, p.r * (1 + k * 1.5), 0, 7); c.fill(); }
     else if (p.k === 'shell') { c.save(); c.globalAlpha = Math.min(1, (p.max - p.t) / 0.5); c.translate(p.x, p.y - p.z); c.rotate(p.rot); c.fillStyle = '#b8322a'; c.fillRect(-0.55, -0.25, 0.8, 0.5); c.fillStyle = TTC.BRASS; c.fillRect(0.25, -0.27, 0.32, 0.54); c.restore(); } }
 }
-function ttTendrils(c, kn, t) { const A = TT.ALIEN, u = kn.cs, m0 = kn.mouth, byId = new Map(walkers.map(w => [w.id, w])); if (kn.tnN !== kn.csN) { kn.tnN = kn.csN; kn.tnT = {}; } const T0 = kn.tnT;
-  for (let j = 0; j < kn.tn.length; j++) { const [id, a, dist, mode] = kn.tn[j], w = id >= 0 ? byId.get(id) : null, gd2 = gDir(a);
-    let tip = [kn.x + gd2[0] * dist, kn.y + gd2[1] * dist - 5 + Math.sin(t * 5 + j) * 2];
-    if (w && !w.dead) tip = [w.x, w.y - 5 * UK[w.k].sc - (w.z || 0)];
-    const rel = (mode === 0 ? A.TOSS : mode === 1 ? A.SQZ : A.GRAB + 0.15), key = j; if (u < rel) T0[key] = tip; else tip = T0[key] || tip;
-    // out (to the target), hold, then back (from where it let go)
-    const out = u < A.OUT ? 0 : u < A.GRAB ? smt((u - A.OUT) / (A.GRAB - A.OUT)) : u < rel ? 1 : u < A.BACK ? 1 - 0.9 * smt((u - rel) / (A.BACK - rel)) : 0.1 * (1 - (u - A.BACK) / (A.T - A.BACK));
-    if (out <= 0.01) continue; const e = L2(m0, tip, out), L = Math.hypot(e[0] - m0[0], e[1] - m0[1]) || 1, nx = -(e[1] - m0[1]) / L, ny = (e[0] - m0[0]) / L, N = 14;
-    const pts = []; for (let i = 0; i <= N; i++) { const q = i / N, wv = Math.sin(q * 7 - t * 10 + j * 1.7) * Math.min(1.4, L * 0.04) * Math.sin(q * Math.PI) * (u < rel ? 1 : 1.5), arch = -Math.sin(q * Math.PI) * Math.min(4, L * 0.08); pts.push([lerp(m0[0], e[0], q) + nx * wv, lerp(m0[1], e[1], q) + ny * wv + arch]); }
-    for (const [col, w0] of [['#6e2a3e', 1.3], ['#c4607e', 0.95]]) { c.strokeStyle = col; c.lineCap = 'round'; for (let i = 0; i < N; i++) { c.lineWidth = w0 * (1 - i / N * 0.65); c.beginPath(); c.moveTo(...pts[i]); c.lineTo(...pts[i + 1]); c.stroke(); } }
-    c.fillStyle = '#f0b6c8'; for (let i = 2; i < N; i += 2) { c.beginPath(); c.arc(pts[i][0] + nx * 0.25, pts[i][1] + ny * 0.25, 0.22, 0, 7); c.fill(); }
-    // constricting: coils round the body
-    if (mode === 1 && w && !w.dead && u >= A.GRAB && u < A.SQZ) { const sc = UK[w.k].sc, sq = (u - A.GRAB) / (A.SQZ - A.GRAB); c.strokeStyle = '#c4607e'; c.lineWidth = 0.7; for (let i = 0; i < 3; i++) { c.beginPath(); c.ellipse(w.x + Math.sin(t * 40) * 0.2 * sq, w.y - (2 + i * 2.3) * sc, (2.4 - sq * 0.5) * sc, 0.8 * sc, 0.15, 0, 7); c.stroke(); } } } }
+function ttTendrils(c, kn, t) { const A = TT.ALIEN, m0 = kn.mouth, byId = new Map(walkers.map(w => [w.id, w])), ext = smt(cl(kn.alV, 0, 1)), C0 = kn.tcC || (kn.tcC = []), now = kn.alCv ?? kn.alC;
+  const list = [];
+  for (let j = 0; j < A.N; j++) { const q = kn.tc && kn.tc[j], ab = kn.alA + ((j + 0.5) / A.N - 0.5) * 2 * A.HALF * 0.85 + Math.sin(t * 1.7 + j * 2.1) * 0.12, Li = 15 + 6 * Math.sin(t * 1.1 + j * 1.7), gd2 = gDir(ab);
+    let tip = [kn.x + gd2[0] * Li, kn.y + gd2[1] * Li - 5 - 2 * Math.sin(t * 2.3 + j)], hold = 0, w = null, sq = 0;
+    if (q) { const [id, m, t0] = q, u = now - t0, done = m ? A.SQZ : A.LIFT; w = byId.get(id);
+      if (w && !w.dead && u < done) C0[j] = [w.x, w.y - 5 * UK[w.k].sc - (w.zd || w.z || 0)];
+      const k = u < A.REACH ? smt(cl(u / A.REACH, 0, 1)) : u < done ? 1 : 1 - smt(cl((u - done) / A.BACK, 0, 1)); if (C0[j]) tip = L2(tip, C0[j], k); hold = k; if (m === 1 && w && !w.dead && u >= A.REACH && u < done) sq = (u - A.REACH) / (done - A.REACH); }
+    list.push([j, L2(m0, tip, ext), hold, w, sq]); }
+  // draw the far ones first
+  list.sort((p, q) => p[1][1] - q[1][1]);
+  for (const [j, e, hold, w, sq] of list) { const L = Math.hypot(e[0] - m0[0], e[1] - m0[1]) || 1, nx = -(e[1] - m0[1]) / L, ny = (e[0] - m0[0]) / L, N = Math.max(4, Math.round(L / 1.6));
+    // segmented: a chain of fleshy rings riding a travelling wave, tapering to the tip
+    const P = []; for (let i = 0; i <= N; i++) { const q = i / N, env = Math.sin(q * Math.PI) ** 0.8, wv = Math.sin(q * 6.5 - t * 9 + j * 1.3) * Math.min(1.8, L * 0.07) * env * (1 - 0.6 * hold), arch = -Math.sin(q * Math.PI) * Math.min(3.5, L * 0.08); P.push([lerp(m0[0], e[0], q) + nx * wv, lerp(m0[1], e[1], q) + ny * wv + arch, 1.05 * (1 - 0.62 * q)]); }
+    for (let i = N; i >= 0; i--) { const [x0, y0, r] = P[i]; c.fillStyle = '#5e2236'; c.beginPath(); c.arc(x0, y0, r + 0.18, 0, 7); c.fill(); }
+    for (let i = N; i >= 0; i--) { const [x0, y0, r] = P[i]; c.fillStyle = i % 2 ? '#c4607e' : '#d47a94'; c.beginPath(); c.arc(x0, y0, r, 0, 7); c.fill(); c.fillStyle = '#f0b6c8'; c.beginPath(); c.arc(x0 - r * 0.25, y0 - r * 0.35, r * 0.28, 0, 7); c.fill(); }
+    c.fillStyle = '#7a2a44'; const tp = P[N]; c.beginPath(); c.arc(tp[0], tp[1], 0.35, 0, 7); c.fill();
+    // constricting: coils round the body, tightening
+    if (sq > 0 && w) { const sc = UK[w.k].sc, wz = w.zd || 0; c.lineWidth = 0.75; for (let i = 0; i < 3; i++) { c.strokeStyle = i % 2 ? '#c4607e' : '#d47a94'; c.beginPath(); c.ellipse(w.x + Math.sin(t * 40 + i) * 0.2 * sq, w.y - wz - (2 + i * 2.3) * sc, (2.4 - sq * 0.6) * sc, 0.8 * sc, 0.15, 0, 7); c.stroke(); } } } }
 // skid marks under everything
 function ttGround(c) { c.lineCap = 'round'; for (const s of SKID) { c.strokeStyle = `rgba(25,20,18,${0.35 * s.a * (1 - s.t / 2.5)})`; c.lineWidth = 0.9; c.beginPath(); c.moveTo(s.x0, s.y0); c.lineTo(s.x1, s.y1); c.stroke(); } }
 // hit zones: the attack's cone (or the bike's contact strip)
 function ttZones(c) { const kn = KN[ME]; if (!kn || kn.kind !== 'time') return; c.save(); c.fillStyle = 'rgba(255,70,50,.18)';
-  if (kn.cs >= 0 && kn.csW !== 4) { const W0 = kn.csW, R = [TT.CANE.R, TT.SABER.R, TT.GUN.R, TT.ALIEN.R][W0], h = [TT.CANE.HALF, TT.SABER.HALF, TT.GUN.HALF, TT.ALIEN.HALF][W0]; c.translate(kn.x, kn.y); c.scale(1, 0.8); c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, R, kn.csA - h, kn.csA + h); c.closePath(); c.fill(); }
+  if (kn.cs >= 0 && kn.csW !== 4) { const W0 = kn.csW, R = [TT.CANE.R, TT.SABER.R, TT.GUN.R][W0], h = [TT.CANE.HALF, TT.SABER.HALF, TT.GUN.HALF][W0]; c.translate(kn.x, kn.y); c.scale(1, 0.8); c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, R, kn.csA - h, kn.csA + h); c.closePath(); c.fill(); }
+  if (kn.al) { c.save(); c.translate(kn.x, kn.y); c.scale(1, 0.8); c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, TT.ALIEN.R, kn.alA - TT.ALIEN.HALF, kn.alA + TT.ALIEN.HALF); c.closePath(); c.fill(); c.restore(); }
   if (kn.bk === 1) { const d = gDir(kn.hd), B = TT.BIKE; c.strokeStyle = 'rgba(255,70,50,.3)'; c.lineWidth = (B.R + 2) * 2; c.lineCap = 'round'; c.beginPath(); c.moveTo(kn.x - d[0] * B.HALF, kn.y - d[1] * B.HALF); c.lineTo(kn.x + d[0] * B.HALF, kn.y + d[1] * B.HALF); c.stroke(); }
   c.restore(); }
 // bike aim preview: the line the bike will come in along
@@ -3272,6 +3287,7 @@ stick(document.getElementById('lst'), v => { stickMv = v || [0, 0]; syncIn(); })
 stick(document.getElementById('rst'), v => { stickAim = v && Math.hypot(...v) > 0.35 ? v : null; syncIn(); }, true);
 // Penance: a stick that steers the flail head, and Smash (both appear where the swing and move sticks were)
 stick(document.getElementById('pst'), v => { stickPn = v && Math.hypot(...v) > 0.12 ? v.map(q => Math.round(q * 100) / 100) : null; syncIn(); });
+document.querySelectorAll('#ttTest button').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); const IN = KN[ME].in; IN.twN = (IN.twN || 0) + 1; IN.twV = +b.dataset.tw; markIn(); b.blur(); }));
 const BRB = document.getElementById('bring'), SMB = document.getElementById('smash'), SMI = SMB.querySelector('i'), AOEL = document.querySelector('#aoe small'); let PENPOS = 0;
 function doSmash() { const IN = KN[ME].in; IN.smN = (IN.smN || 0) + 1; markIn(); }
 SMB.addEventListener('pointerdown', e => { e.preventDefault(); doSmash(); });
@@ -3379,9 +3395,9 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'sawN', 'sawX', 'sawY', 'sawA', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'sawN', 'sawX', 'sawY', 'sawA', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
-const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
+const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, twN: n.twN || 0, twV: n.twV || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
 // a player is called by their character; a second one of the same gets a number (Knight 2)
 const cName = kn => kn && (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) ? 'Firebreather' : kn && (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) ? 'Warpriest' : kn && (kn.kind === 'time' || (kn.in && kn.in.ch === 'time')) ? 'Time Traveler' : kn && (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) ? 'Swordmaster' : 'Knight';
@@ -3478,7 +3494,7 @@ function applySnap(S) {
   S.k.forEach((p, i) => { const kn = KN[i]; if (!kn) return; const v = {}; KF.forEach((k, j) => v[k] = p.v[j]); if (p.T) { kn.T.x = p.T[0]; kn.T.y = p.T[1]; }
     if (i === ME) { // my own knight is predicted locally: only pull its position back toward the host's, and take the score
       const d = Math.hypot(v.x - kn.x, v.y - kn.y); if (d > 12) { kn.x = v.x; kn.y = v.y; } else { kn.x += (v.x - kn.x) * 0.2; kn.y += (v.y - kn.y) * 0.2; }
-      kn.hits = v.hits; kn.kills = v.kills; if (kn.kind === 'time') kn.tn = v.tn; if (kn.st === 'kneel' && v.st !== 'kneel') Object.assign(kn, { st: v.st, u: v.u, hold: v.hold });
+      kn.hits = v.hits; kn.kills = v.kills; if (kn.kind === 'time') { kn.tc = v.tc; kn.alG = v.alG; } if (kn.st === 'kneel' && v.st !== 'kneel') Object.assign(kn, { st: v.st, u: v.u, hold: v.hold });
     } else { Object.assign(kn, v); kn.in = p.in; }
   });
   const byId = new Map(walkers.map(w => [w.id, w])), seen = new Set();
