@@ -2503,7 +2503,7 @@ const TT = {
     // the attack pool: 0 toss, 1 squeeze, 2 whip, 3 eat, 4 slam (when each finishes, from the grab's start); any of them can skewer up to 2 more
     END: [0.5, 0.57, 0.75, 0.55, 0.62], W: [0.2, 0.25, 0.2, 0.2, 0.15], WHIP: { DMG: 70, KB: 120, ARC: 1.6, R0: 18, R1: 55 }, SLAM: { Z: 20, UP: 0.42, R: 18, DMG: 140, KB: 160 }, SKEW: { P: 0.45, MAX: 2, GAP: 26 } },
   HURL: { RANGE: 110, FLY: 0.6, BACK: 0.5, CD: 0, KB: 1, R: 150, LEN: 120, ARC: 26 },
-  TRAP: { RANGE: 100, FLY: 0.45, T: 4, R: 9, ARM: 20.8, BL: 8.25, SPIN: 11.25, UP: 0.35, H: 7.5, DMG: 160, GAP: 0.3, CD: 6, N: 2, NEXT: 0.5 },
+  TRAP: { RANGE: 100, FLY: 0.45, R: 9, ARM: 20.8, BL: 8.25, SPIN: 11.25, UP: 0.35, H: 7.5, DMG: 160, GAP: 0.3, CD: 6, N: 2, NEXT: 0.5 },
   SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 30, BR: 110, TURN: 3, CONE: 0.873, DMG: 175, W: 9.625, Z: 8, R: 6.6, GUN: 1.3, MU: [3.8, 0.6], HZ: 5 },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
   BIKE: { CD: 14, T: 5, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
@@ -2806,7 +2806,7 @@ function ttKill(w, a, m) { killSnd(w, m >= 1);
 // ---------- per frame on every screen: shots, saws, shells, portals' sparks ----------
 let SAWS = [], TTFX = [], SKID = [], TRAPS = [];
 // a saw trap's arm length (swings out, folds back) and angle (spinning up) at its age: the same on every screen
-const trapArm = q => { const TR = TT.TRAP, k = q.t - TR.FLY, out = Math.max(0, k - TR.T) / 0.4; return TR.ARM * smt(cl((k - TR.UP * 0.5) / TR.UP, 0, 1)) * (1 - smt(Math.min(1, out))); }, trapAng = q => { const TR = TT.TRAP; return (q.a0 || 0) + TR.SPIN * Math.max(0, q.t - TR.FLY - TR.UP * 0.5) ** 1.15; };
+const trapOut = q => q.end !== undefined ? (q.t - q.end) / 0.4 : 0, trapArm = q => { const TR = TT.TRAP, k = q.t - TR.FLY, out = trapOut(q); return TR.ARM * smt(cl((k - TR.UP * 0.5) / TR.UP, 0, 1)) * (1 - smt(Math.min(1, out))); }, trapAng = q => { const TR = TT.TRAP; return (q.a0 || 0) + TR.SPIN * Math.max(0, q.t - TR.FLY - TR.UP * 0.5) ** 1.15; };
 function ttFx(dt, t) {
   for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue; if (kn.wpn === 3 && (kn.al || (kn.alV || 0) > 0.01)) ttTentLines(kn, dt, t); else if (kn.tcS) kn.tcS = null; kn.alV = ap(kn.alV || 0, kn.al && kn.wpn === 3 ? 1 : 0, dt / (kn.al ? TT.ALIEN.OPEN : 0.4)); kn.alCv = Math.abs((kn.alCv ?? 0) + dt - (kn.alC || 0)) > 0.15 ? kn.alC || 0 : (kn.alCv ?? 0) + dt; const S = kn.ttS || (kn.ttS = { gun: kn.gunN || 0, saw: kn.sawN || 0, rl: kn.rl, bk: kn.bk, tr: kn.trN || 0, hu: kn.hu });
     // shotgun: flash, pellets, smoke
@@ -2818,7 +2818,7 @@ function ttFx(dt, t) {
     if (kn.rl >= 0 && !(S.rl >= 0)) { const a = kn.f > 0 ? -0.3 : Math.PI + 0.3; for (let i = 0; i < 2; i++) TTFX.push({ k: 'shell', x: kn.x + kn.f * 4.5, y: kn.y - 6, z: 6, vx: -kn.f * rr(12, 22), vy: rr(-4, 4), vz: rr(14, 22), rot: rr(0, 6), sp: rr(-12, 12), t: 0, max: 2.4 }); snd('reload', kn.x, kn.y); }
     S.rl = kn.rl;
     // saw blades are spawned on every screen from the counter; the host does their damage
-    if ((kn.trN || 0) !== S.tr) { S.tr = kn.trN || 0; TRAPS.push({ i: kn.i, sx: kn.trSX, sy: kn.trSY, sz: kn.trSZ, x: kn.trX, y: kn.trY, t: 0, rot: 0 }); snd('saw', kn.x, kn.y); }
+    if ((kn.trN || 0) !== S.tr) { S.tr = kn.trN || 0; { const mine = TRAPS.filter(q => q.i === kn.i && q.end === undefined); if (mine.length >= TT.TRAP.N) mine[0].end = mine[0].t; } TRAPS.push({ i: kn.i, sx: kn.trSX, sy: kn.trSY, sz: kn.trSZ, x: kn.trX, y: kn.trY, t: 0, rot: 0 }); snd('saw', kn.x, kn.y); }
     if (kn.hu !== S.hu) { if (kn.hu === 2) { snd('slam', kn.hux, kn.huy); FX.push({ k: 'ring', x: kn.htx, y: kn.hty, t: 0, max: 0.35, s: 0.5 }); for (let i = 0; i < 10; i++) { const b = rr(0, 6.28); dust.push({ x: kn.htx + Math.cos(b) * 2, y: kn.hty + Math.sin(b), vx: Math.cos(b) * rr(14, 36), vy: Math.sin(b) * rr(6, 16), r: rr(0.9, 1.8), t: 0, max: rr(0.3, 0.6) }); } } else if (kn.hu === 1) snd('alien', kn.x, kn.y); S.hu = kn.hu; }
     if ((kn.sawN || 0) !== S.saw) { S.saw = kn.sawN || 0; SAWS.push({ x: kn.sawX, y: kn.sawY, z0: kn.sawZ ?? TT.SAW.Z, a: kn.sawA, back: (d0 => d0[1] / Math.hypot(d0[0], d0[1]) < -0.5)(gDir(kn.sawA || 0)), oy0: kn.y, d: 0, t: 0, i: kn.i, n: S.saw, fx: kn.sawX, fy: kn.sawY, hit: new Set(), out: 0, rot: 0, b: 0, tg: -1 }); snd('saw', kn.x, kn.y); }
     if (kn.bk !== S.bk) { if (kn.bk === 0 || kn.bk === 2) snd('portal', kn.x, kn.y); if (kn.bk === 1) snd('bike', kn.x, kn.y); S.bk = kn.bk; }
@@ -2843,10 +2843,10 @@ function ttFx(dt, t) {
   // saw traps: a canister arcs out to the spot and unfolds into a little tower whose arm whirls a saw blade round it; the blade cuts
   // whoever its path crosses (each enemy at most every GAP), so the whole ring round the tower is dangerous
   const TR = TT.TRAP;
-  for (const q of TRAPS) { q.t += dt; if (q.a0 === undefined) q.a0 = (q.x * 7 + q.y * 3) % 6.28; q.rot += dt * 46; if (q.t < TR.FLY || q.t > TR.FLY + TR.T) { q.pb = null; continue; } if (!q.land) { q.land = 1; snd('slam', q.x, q.y); for (let i = 0; i < 8; i++) { const b = rr(0, 6.28); dust.push({ x: q.x + Math.cos(b) * 2, y: q.y + Math.sin(b), vx: Math.cos(b) * rr(14, 30), vy: Math.sin(b) * rr(5, 12), r: rr(0.8, 1.5), t: 0, max: rr(0.3, 0.5) }); } }
+  for (const q of TRAPS) { q.t += dt; if (q.a0 === undefined) q.a0 = (q.x * 7 + q.y * 3) % 6.28; q.rot += dt * 46; if (q.end === undefined && q.t >= TR.FLY) { const own = KN[q.i]; if (!own || own.wpS !== 2 || own.wpn !== 4) q.end = q.t; } if (q.t < TR.FLY || q.end !== undefined) { q.pb = null; continue; } if (!q.land) { q.land = 1; snd('slam', q.x, q.y); for (let i = 0; i < 8; i++) { const b = rr(0, 6.28); dust.push({ x: q.x + Math.cos(b) * 2, y: q.y + Math.sin(b), vx: Math.cos(b) * rr(14, 30), vy: Math.sin(b) * rr(5, 12), r: rr(0.8, 1.5), t: 0, max: rr(0.3, 0.5) }); } }
     const L = trapArm(q), a = trapAng(q), bx = q.x + Math.cos(a) * L, by = q.y + Math.sin(a) * L / 1.25, pb = q.pb || [bx, by]; q.pb = [bx, by];
     if (AUTH() && L > 4) { const k0 = K; K = KN[q.i] || KN[0]; for (const w of walkers) { if (w.hp <= 0 || w.dead || w.air || Math.abs(w.x - q.x) > TR.ARM + TR.BL + 8 || t - (w.trT ?? -9) < TR.GAP) continue; if (ptSeg([w.x, w.y], pb, [bx, by]) > TR.BL + UK[w.k].r) continue; w.trT = t; w.atk = -1; const ta = a + Math.PI / 2; w.kx += Math.cos(ta) * 30; w.ky += Math.sin(ta) * 16; hurt(w, TR.DMG, ww => ttKillFx(ww, ta, 3)); for (let i = 0; i < 5; i++) sparks.push({ x: w.x, y: w.y - 4, vx: rr(-35, 35), vy: -rr(10, 35), t: 0, max: rr(0.15, 0.35) }); if (Math.random() < 0.4) snd('saw', q.x, q.y); } K = k0; } }
-  TRAPS = TRAPS.filter(q => q.t < TR.FLY + TR.T + 0.4);
+  TRAPS = TRAPS.filter(q => !(trapOut(q) > 1));
   for (const p of TTFX) { p.t += dt; if (p.k === 'smoke') { p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 2; p.vy *= 1 - dt * 2; } if (p.k === 'shell' && p.z > 0) { p.x += p.vx * dt; p.y += p.vy * dt; p.vz -= 90 * dt; p.z += p.vz * dt; p.rot += p.sp * dt; if (p.z <= 0) { p.z = 0; p.vx *= 0.3; p.vz = Math.abs(p.vz) > 8 ? -p.vz * 0.3 : 0; if (p.vz) p.z = 0.01; } } }
   TTFX = TTFX.filter(p => p.t < p.max); for (const s of SKID) s.t += dt; SKID = SKID.filter(s => s.t < 2.5); if (SKID.length > 400) SKID.splice(0, SKID.length - 400);
 }
@@ -3092,7 +3092,7 @@ function ttAir(c, t) {
   // saw traps: in flight a little canister tumbling on its arc; landed, a squat tower rises, its arm swings out and whirls the blade round
   for (const q of TRAPS) { const TR = TT.TRAP; if (q.t < TR.FLY) { const u = q.t / TR.FLY, x = lerp(q.sx, q.x, u), y = lerp(q.sy, q.y, u), z = lerp(q.sz, 0, u) + 16 * Math.sin(Math.PI * u);
       c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(x, y + 0.3, 3, 1.1, 0, 0, 7); c.fill(); c.save(); c.translate(x, y - z - 2); c.rotate(q.t * 14); c.fillStyle = '#3c4048'; c.fillRect(-1.8, -2.4, 3.6, 4.8); c.fillStyle = TTC.BRASS; c.fillRect(-1.8, -0.4, 3.6, 0.8); c.restore(); continue; }
-    const k = q.t - TR.FLY, out = Math.max(0, k - TR.T) / 0.4, al = 1 - Math.min(1, out), up = smt(cl(k / (TR.UP * 0.6), 0, 1)) * (1 - smt(Math.max(0, out - 0.4) / 0.6)), Hh = TR.H * up, L = trapArm(q), a = trapAng(q), ex = q.x + Math.cos(a) * L, ey = q.y + Math.sin(a) * L / 1.25, sr = TR.BL * (0.5 + 0.5 * Math.min(1, L / TR.ARM));
+    const k = q.t - TR.FLY, out = trapOut(q), al = 1 - Math.min(1, out), up = smt(cl(k / (TR.UP * 0.6), 0, 1)) * (1 - smt(Math.max(0, out - 0.4) / 0.6)), Hh = TR.H * up, L = trapArm(q), a = trapAng(q), ex = q.x + Math.cos(a) * L, ey = q.y + Math.sin(a) * L / 1.25, sr = TR.BL * (0.5 + 0.5 * Math.min(1, L / TR.ARM));
     c.save(); c.globalAlpha = al;
     // base plate and the blade's shadow on the ground, then the whirl ring it sweeps
     c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(ex, ey + 0.3, sr * 1.05, sr * 0.37, 0, 0, 7); c.fill();
@@ -3171,7 +3171,7 @@ function ttGround(c) { c.lineCap = 'round'; for (const s of SKID) { c.strokeStyl
 // hit zones: the attack's cone (or the bike's contact strip)
 function ttZones(c) { const kn = KN[ME]; if (!kn || kn.kind !== 'time') return; c.save(); c.fillStyle = 'rgba(255,70,50,.18)';
   if (kn.wpn === 3 && (kn.hu === 1 || kn.hu === 2) && !kn.alq) { c.save(); c.translate(kn.hux, kn.huy); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.1)'; c.strokeStyle = 'rgba(255,120,100,.7)'; c.lineWidth = 0.5; c.setLineDash([2, 2]); c.beginPath(); c.arc(0, 0, TT.HURL.R, 0, 7); c.fill(); c.stroke(); c.restore(); }
-  for (const q of TRAPS) if (q.t >= TT.TRAP.FLY && q.t < TT.TRAP.FLY + TT.TRAP.T) { const T2 = TT.TRAP; c.save(); c.translate(q.x, q.y); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.25)'; c.beginPath(); c.arc(0, 0, T2.ARM + T2.BL, 0, 7); c.arc(0, 0, Math.max(0, T2.ARM - T2.BL), 0, 7, true); c.fill(); c.restore(); }
+  for (const q of TRAPS) if (q.t >= TT.TRAP.FLY && q.end === undefined) { const T2 = TT.TRAP; c.save(); c.translate(q.x, q.y); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.25)'; c.beginPath(); c.arc(0, 0, T2.ARM + T2.BL, 0, 7); c.arc(0, 0, Math.max(0, T2.ARM - T2.BL), 0, 7, true); c.fill(); c.restore(); }
   // each flying saw's ricochet cone: where its next bounce may go (70 degrees, BR out, pointing away from where it was fired), and a line to its current target
   for (const q of SAWS) { if (q.out || q.fx === undefined) continue; const x = q.x + (q.ox || 0), y = q.y + (q.oy || 0), aw = gAng(q.x - q.fx, q.y - q.fy), S = TT.SAW;
     c.save(); c.translate(x, y); c.scale(1, 0.8); c.fillStyle = 'rgba(120,200,255,.14)'; c.strokeStyle = 'rgba(160,220,255,.8)'; c.lineWidth = 0.5; c.setLineDash([2, 2]); c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, S.BR, aw - S.CONE, aw + S.CONE); c.closePath(); c.fill(); c.stroke(); c.restore();
@@ -3473,7 +3473,7 @@ function spawnClump(n, kind, ki) {
   for (let i = 0; i < n; i++) { const b = rr(0, 6.28), q = Math.sqrt(Math.random()) * (n > 1 ? 4 + Math.sqrt(n) * 2.2 : 0); const kd = pick(); spawnWalker(cx + Math.cos(b) * q * Math.sqrt(UK[kd].r / 2.1), undefined, cl(cy + Math.sin(b) * q * 0.7 * Math.sqrt(UK[kd].r / 2.1), 12, H - 4), kd); }
 }
 document.querySelectorAll('[data-n]').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); spawnClump(+b.dataset.n); }));
-window.__spawnK = (n, k) => spawnClump(n, k); window.__traps = () => TRAPS.filter(q => q.t < TT.TRAP.FLY + TT.TRAP.T).length;
+window.__spawnK = (n, k) => spawnClump(n, k); window.__traps = () => TRAPS.filter(q => q.end === undefined).length;
 function fillUlt(i) { const kn = KN[i]; if (kn) kn.ultBase = kn.kills - ultNeed(kn); }
 document.getElementById('fillUlt').addEventListener('pointerdown', e => { e.preventDefault(); fillUlt(ME); if (!AUTH()) NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'fillult', i: ME } }); });
 window.__fillUlt = () => fillUlt(ME); window.__ult = doUlt;
@@ -3815,7 +3815,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'f1d958';
+const KBUILD = '79e21c';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
