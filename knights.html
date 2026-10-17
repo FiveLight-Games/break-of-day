@@ -2868,13 +2868,23 @@ function sawDisc(c, x0, y0, r, rot, flat, al) { c.save(); c.translate(x0, y0); c
   c.fillStyle = '#c9d0d8'; c.beginPath(); c.arc(0, 0, r * 0.82, 0, 7); c.fill(); c.strokeStyle = 'rgba(80,90,100,.6)'; c.lineWidth = r * 0.06; for (let i = 0; i < 3; i++) { const a = rot * 0.5 + i * 2.09; c.beginPath(); c.arc(0, 0, r * 0.55, a, a + 1.2); c.stroke(); }
   c.fillStyle = '#5c6068'; c.beginPath(); c.arc(0, 0, r * 0.22, 0, 7); c.fill(); c.globalAlpha = 1; c.restore(); }
 // the creature: a little round alien with one big eye; its mouth opens wider than it is (open 0..1), facing a
-function ttAlienArt(c, h, a, open, t) { const o = [h[0] + Math.cos(a) * 0.5, h[1] - 1.1 + Math.sin(a) * 0.3], r = 1.25, wob = Math.sin(t * 7) * 0.06;
-  c.save(); c.translate(...o); c.fillStyle = '#7b4a8f'; c.beginPath(); c.ellipse(0, 0, r * (1 + wob), r * (1 - wob), 0, 0, 7); c.fill(); c.fillStyle = '#9c68b2'; c.beginPath(); c.ellipse(-0.35, -0.4, 0.55, 0.35, -0.4, 0, 7); c.fill();
-  c.fillStyle = '#5c3270'; for (const [sx, sy] of [[0.6, 0.6], [-0.7, 0.4], [0.2, 0.9]]) { c.beginPath(); c.arc(sx, sy, 0.16, 0, 7); c.fill(); }
-  if (open > 0.02) { const R = r * (0.4 + 1.6 * open), ca = Math.cos(a), sa = Math.sin(a); c.save(); c.translate(ca * r * 0.55, sa * r * 0.4); c.rotate(a); c.fillStyle = '#c45a7a'; c.beginPath(); c.ellipse(0, 0, R * 0.42, R, 0, 0, 7); c.fill();
-    c.fillStyle = '#2a0c1a'; c.beginPath(); c.ellipse(0.1, 0, R * 0.3, R * 0.85, 0, 0, 7); c.fill(); c.fillStyle = '#f1e8d0'; for (let i = 0; i < 10; i++) { const b = i / 10 * T2, px = Math.cos(b) * R * 0.3, py = Math.sin(b) * R * 0.85; c.beginPath(); c.moveTo(px, py); c.lineTo(px * 0.6, py * 0.75); c.lineTo(px + 0.12, py * 0.82 + 0.12); c.fill(); } c.restore(); }
-  else { c.strokeStyle = '#3d1f4d'; c.lineWidth = 0.14; c.beginPath(); c.arc(Math.cos(a) * 0.4, 0.45, 0.45, 0.3, 2.8); c.stroke(); }
-  const ex = -Math.cos(a) * 0.25 * (open > 0.3 ? 1 : 0); c.fillStyle = '#f2f0e0'; c.beginPath(); c.arc(ex, -0.25, 0.5, 0, 7); c.fill(); c.fillStyle = '#1b1020'; c.beginPath(); c.arc(ex + Math.cos(a) * 0.15, -0.25 + Math.sin(a) * 0.1, 0.24, 0, 7); c.fill(); c.restore(); }
+// the creature: a little round alien with one big eye; its mouth opens wider than it is (open 0..1), facing a, and it swells as it
+// does. part: 'back' = body + the mouth's dark inside (under the tentacles), 'front' = the lips, teeth and eye (over the tentacles'
+// roots, so they come out of the mouth), 'all' = both. Returns the mouth (rig coords): centre, the axis across it and its half-height
+function ttAlienArt(c, h, a, open, t, part = 'all') { const o = [h[0] + Math.cos(a) * 0.5, h[1] - 1.1 + Math.sin(a) * 0.3], r = 1.25, wob = Math.sin(t * 7) * 0.06, g = 1 + 1.2 * open, ca = Math.cos(a), sa = Math.sin(a), R = r * (0.4 + 1.6 * open);
+  const mc = [o[0] + g * ca * r * 0.55, o[1] + g * sa * r * 0.4], back = part !== 'front', front = part !== 'back';
+  c.save(); c.translate(...o); c.scale(g, g);
+  if (back) { c.fillStyle = '#7b4a8f'; c.beginPath(); c.ellipse(0, 0, r * (1 + wob), r * (1 - wob), 0, 0, 7); c.fill(); c.fillStyle = '#9c68b2'; c.beginPath(); c.ellipse(-0.35, -0.4, 0.55, 0.35, -0.4, 0, 7); c.fill();
+    c.fillStyle = '#5c3270'; for (const [sx, sy] of [[0.6, 0.6], [-0.7, 0.4], [0.2, 0.9]]) { c.beginPath(); c.arc(sx, sy, 0.16, 0, 7); c.fill(); } }
+  if (open > 0.02) { c.save(); c.translate(ca * r * 0.55, sa * r * 0.4); c.rotate(a);
+    if (back) { c.fillStyle = '#c45a7a'; c.beginPath(); c.ellipse(0, 0, R * 0.42, R, 0, 0, 7); c.fill(); c.fillStyle = '#2a0c1a'; c.beginPath(); c.ellipse(0.1, 0, R * 0.3, R * 0.85, 0, 0, 7); c.fill(); }
+    if (front) { // the lips' near rim and a ring of teeth over the tentacles' roots
+      c.strokeStyle = '#c45a7a'; c.lineWidth = R * 0.16; c.beginPath(); c.ellipse(0.1, 0, R * 0.34, R * 0.9, 0, -Math.PI / 2, Math.PI / 2); c.stroke(); c.strokeStyle = '#8e3352'; c.lineWidth = R * 0.05; c.beginPath(); c.ellipse(0.1, 0, R * 0.27, R * 0.8, 0, -Math.PI / 2, Math.PI / 2); c.stroke();
+      c.fillStyle = '#f1e8d0'; for (let i = 0; i < 12; i++) { const b = i / 12 * T2, px = Math.cos(b) * R * 0.3, py = Math.sin(b) * R * 0.85; c.beginPath(); c.moveTo(px, py); c.lineTo(px * 0.62, py * 0.74); c.lineTo(px + 0.1, py * 0.8 + 0.12); c.fill(); } }
+    c.restore(); }
+  else if (back) { c.strokeStyle = '#3d1f4d'; c.lineWidth = 0.14; c.beginPath(); c.arc(ca * 0.4, 0.45, 0.45, 0.3, 2.8); c.stroke(); }
+  if (front || open <= 0.02) { const ex = -ca * 0.25 * (open > 0.3 ? 1 : 0); c.fillStyle = '#f2f0e0'; c.beginPath(); c.arc(ex, -0.25, 0.5, 0, 7); c.fill(); c.fillStyle = '#1b1020'; c.beginPath(); c.arc(ex + ca * 0.15, -0.25 + sa * 0.1, 0.24, 0, 7); c.fill(); }
+  c.restore(); return { mc, ax: [-sa, ca], ry: g * R * 0.8 }; }
 // ---------- the motorcycle ----------
 // world units; u along the bike, v across it (+ = its right), z up. Drawn from frame F (bikeFrame). part: 'far' (far bar, fork and peg), 'body' (wheels, engine, seat, tank), 'near' (near peg, exhaust, fork, bar, headlight)
 function ttBike(c, F, t, part, spin) { const P = F.P, nv = F.near, col = COL, colD = shade(COL, -0.35), chrome = '#d6dbe1', dark = '#1e2026';
@@ -2954,7 +2964,10 @@ function drawTime(c, t) {
   if (showW) { const wn = K.wpn;
     if (wn === 1) ttSaber(c, wx, wa, t, K.wpS === 2 ? 1 : K.wpS === 1 ? sm(cl((K.wpT - 0.5) / 0.2, 0, 1)) : 1 - sm(cl(K.wpT / 0.2, 0, 1)));
     else if (wn === 2) ttShotgun(c, wx, wa, P.brk || 0);
-    else if (wn === 3) { const open = sm(cl(K.alV || 0, 0, 1)); ttAlienArt(c, wx, wa, open, t); const m = c.getTransform(), o = [wx[0] + Math.cos(wa) * 1.1, wx[1] - 1.1 + Math.sin(wa) * 0.8]; K.mouth = [(m.a * o[0] + m.c * o[1] + m.e - CAM.e) / CAM.s, (m.b * o[0] + m.d * o[1] + m.f - CAM.f) / CAM.s]; }
+    else if (wn === 3) { const open = sm(cl(K.alV || 0, 0, 1)), mo = ttAlienArt(c, wx, wa, open, t, open > 0.02 ? 'back' : 'all'), m = c.getTransform(), S = CAM.s;
+      // where the mouth is in the world, so the tentacles grow out of it and its lips are drawn over their roots (in ttAir)
+      const W = q => [(m.a * q[0] + m.c * q[1] + m.e - CAM.e) / S, (m.b * q[0] + m.d * q[1] + m.f - CAM.f) / S], c0 = W(mo.mc), e0 = W([mo.mc[0] + mo.ax[0] * mo.ry, mo.mc[1] + mo.ax[1] * mo.ry]);
+      K.mouth = c0; K.mouthAx = [e0[0] - c0[0], e0[1] - c0[1]]; K.alM = { m: [m.a / S, m.b / S, m.c / S, m.d / S, (m.e - CAM.e) / S, (m.f - CAM.f) / S], h: wx.slice(), a: wa, open }; }
     else if (wn === 4) { const kick = K.cs >= 0 && K.csW === 4 ? Math.max(0, 1 - K.cs / 0.14) : 0, ld = K.cs >= 0 && K.csW === 4 ? sm(cl((K.cs - 0.12) / 0.25, 0, 1)) : 1; c.save(); c.translate(wx[0], wx[1]); c.scale(TT.SAW.GUN, TT.SAW.GUN); ttSawGun(c, [0, 0], wa, t, ld, kick); c.restore(); } }
   ttHand(c, P.hB, true);
   if (gun && K.rl >= 0 && (q => (q > 0.4 && q < 0.6) || (q > 0.82 && q < 1.0))(K.rl * 1.75 / TT.GUN.RELOAD)) { c.fillStyle = '#b8322a'; c.beginPath(); c.ellipse(P.hA[0], P.hA[1] - 0.3, 0.42, 0.22, 0.4, 0, 7); c.fill(); c.fillStyle = TTC.BRASS; c.beginPath(); c.arc(P.hA[0] - 0.35, P.hA[1] - 0.45, 0.2, 0, 7); c.fill(); }
@@ -2972,7 +2985,7 @@ function ttAir(c, t) {
     const bk = kn.bk === 0 ? (kn.bkT < 0.25 ? sm(kn.bkT / 0.25) : kn.bkT < 0.55 ? 1 : 1 - sm(cl((kn.bkT - 0.55) / 0.25, 0, 1))) : kn.bk === 2 ? (kn.bkT < 0.2 ? sm(kn.bkT / 0.2) : kn.bkT < 0.5 ? 1 : 1 - sm(cl((kn.bkT - 0.5) / 0.2, 0, 1))) : 0;
     if (bk > 0) { const fw = gDir(kn.hd || 0), wide = 0.6 + 0.4 * Math.abs(fw[1]) / Math.hypot(fw[0], fw[1]); ttPortal(c, kn.bpx, kn.bpy - 8.5, 8 * wide, 9.5, bk, t, 0); }
     // tendrils: out to their targets, holding them, then slinking back into its mouth
-    if ((kn.alV || 0) > 0.01 && kn.wpn === 3 && kn.mouth) ttTendrils(c, kn, t); }
+    if ((kn.alV || 0) > 0.01 && kn.wpn === 3 && kn.mouth) { ttTendrils(c, kn, t); const M = kn.alM; if (M && M.open > 0.02) { c.save(); c.transform(...M.m); ttAlienArt(c, M.h, M.a, M.open, t, 'front'); c.restore(); } } }
   for (const s of SAWS) { const al = s.out ? Math.max(0, 1 - s.out / 0.35) : 1, z = TT.SAW.Z - (s.out ? s.out * 14 : 0); c.fillStyle = `rgba(0,0,0,${0.25 * al})`; c.beginPath(); c.ellipse(s.x, s.y + 0.3, TT.SAW.R * 1.05, TT.SAW.R * 0.37, 0, 0, 7); c.fill(); const d = gDir(s.a);
     c.save(); c.globalAlpha = 0.25 * al; c.strokeStyle = '#dfe6ee'; c.lineWidth = TT.SAW.R * 0.85; c.lineCap = 'round'; c.beginPath(); c.moveTo(s.x - d[0] * 12, s.y - z - d[1] * 12); c.lineTo(s.x, s.y - z); c.stroke(); c.restore(); sawDisc(c, s.x, s.y - z, TT.SAW.R, s.rot, 0.42, al); }
   c.save(); c.globalCompositeOperation = 'lighter';
@@ -3005,7 +3018,7 @@ function ttTentLines(kn, dt, t) { const A = TT.ALIEN, S = kn.tcS || (kn.tcS = []
 // enemy it's grabbing); the chain lags, swings and whips behind; drawn as segmented fleshy rings, tapering to the tip
 function ttTendrils(c, kn, t) { const A = TT.ALIEN, m0 = kn.mouth, byId = new Map(walkers.map(w => [w.id, w])), ext = smt(cl(kn.alV, 0, 1)), C0 = kn.tcC || (kn.tcC = []), now = kn.alCv ?? kn.alC; if (!kn.tcS) return;
   const dt = cl(t - (kn.rpT ?? t), 0, 0.05); kn.rpT = t; const NN = 14, list = [];
-  for (let j = 0; j < A.N; j++) { const s = kn.tcS[j]; if (!s || !s.tip) continue; const q = kn.tc && kn.tc[j]; let tip = s.tip, hold = 0, w = null, sq = 0;
+  for (let j = 0; j < A.N; j++) { const s = kn.tcS[j]; if (!s || !s.tip) continue; const q = kn.tc && kn.tc[j], ax = kn.mouthAx || [0, 0], kk = ((j * 7) % A.N + 0.5) / A.N - 0.5, m0 = [kn.mouth[0] + ax[0] * kk * 1.4, kn.mouth[1] + ax[1] * kk * 1.4]; let tip = s.tip, hold = 0, w = null, sq = 0;
     if (q) { const [id, m, t0] = q, u = now - t0, done = A.END[m]; w = byId.get(id);
       if (w && !w.dead && u < done) C0[j] = [w.x, w.y - 5 * UK[w.k].sc - (w.zd || w.z || 0)];
       const k = u < A.REACH ? smt(cl(u / A.REACH, 0, 1)) : u < done ? 1 : 1 - smt(cl((u - done) / A.BACK, 0, 1)); if (C0[j]) tip = L2(tip, C0[j], k); hold = k; if (m === 1 && w && !w.dead && u >= A.REACH && u < done) sq = (u - A.REACH) / (done - A.REACH); }
@@ -3016,11 +3029,11 @@ function ttTendrils(c, kn, t) { const A = TT.ALIEN, m0 = kn.mouth, byId = new Ma
     for (let i = 1; i <= NN; i++) { const vx = (P[i][0] - O[i][0]) * damp, vy = (P[i][1] - O[i][1]) * damp; O[i] = P[i].slice(); P[i][0] += vx + Math.sin(t * 7 + i * 0.8 + j) * 0.6 * A.SZ * dt * 8 * (1 - hold * 0.7); P[i][1] += vy + Math.cos(t * 6 + i * 0.7 + j * 1.7) * 0.6 * A.SZ * dt * 8 * (1 - hold * 0.7); }
     const pull = 1 - Math.exp(-dt * (hold > 0.5 ? 40 : 22)); P[NN][0] = lerp(P[NN][0], tip[0], pull); P[NN][1] = lerp(P[NN][1], tip[1], pull);
     for (let it = 0; it < 6; it++) { P[0] = m0.slice(); for (let i = 0; i < NN; i++) { const a = P[i], b = P[i + 1], ddx = b[0] - a[0], ddy = b[1] - a[1], dd = Math.hypot(ddx, ddy) || 1, e = (dd - seg) / dd * 0.5; if (i) { a[0] += ddx * e; a[1] += ddy * e; } b[0] -= ddx * e; b[1] -= ddy * e; } }
-    list.push([j, P, w, sq, tip]); }
+    list.push([j, P, w, sq, tip, m0]); }
   list.sort((p, q) => p[4][1] - q[4][1]);
-  for (const [j, P0, w, sq] of list) { const pts = []; for (let i = 0; i < NN; i++) for (let k = 0; k < 3; k++) pts.push(L2(P0[i], P0[i + 1], k / 3)); pts.push(P0[NN]); const n = pts.length - 1, use = pts.map(p => L2(m0, p, ext));
-    for (let i = n; i >= 0; i--) { const r = 1.05 * A.SZ * (1 - 0.62 * i / n); c.fillStyle = '#5e2236'; c.beginPath(); c.arc(use[i][0], use[i][1], r + 0.18 * A.SZ, 0, 7); c.fill(); }
-    for (let i = n; i >= 0; i--) { const r = 1.05 * A.SZ * (1 - 0.62 * i / n); c.fillStyle = (i >> 1) % 2 ? '#c4607e' : '#d47a94'; c.beginPath(); c.arc(use[i][0], use[i][1], r, 0, 7); c.fill(); c.fillStyle = '#f0b6c8'; c.beginPath(); c.arc(use[i][0] - r * 0.25, use[i][1] - r * 0.35, r * 0.28, 0, 7); c.fill(); }
+  for (const [j, P0, w, sq, , m0] of list) { const pts = []; for (let i = 0; i < NN; i++) for (let k = 0; k < 3; k++) pts.push(L2(P0[i], P0[i + 1], k / 3)); pts.push(P0[NN]); const n = pts.length - 1, use = pts.map(p => L2(m0, p, ext));
+    for (let i = n; i >= 0; i--) { const qq = i / n, r = 1.05 * A.SZ * (qq < 0.12 ? lerp(0.45, 1, qq / 0.12) : 1 - 0.62 * (qq - 0.12) / 0.88); c.fillStyle = '#5e2236'; c.beginPath(); c.arc(use[i][0], use[i][1], r + 0.18 * A.SZ, 0, 7); c.fill(); }
+    for (let i = n; i >= 0; i--) { const qq = i / n, r = 1.05 * A.SZ * (qq < 0.12 ? lerp(0.45, 1, qq / 0.12) : 1 - 0.62 * (qq - 0.12) / 0.88); c.fillStyle = (i >> 1) % 2 ? '#c4607e' : '#d47a94'; c.beginPath(); c.arc(use[i][0], use[i][1], r, 0, 7); c.fill(); c.fillStyle = '#f0b6c8'; c.beginPath(); c.arc(use[i][0] - r * 0.25, use[i][1] - r * 0.35, r * 0.28, 0, 7); c.fill(); }
     // constricting: coils round the body, tightening
     if (sq > 0 && w) { const sc = UK[w.k].sc, wz = w.zd || 0; c.lineWidth = 1.5; for (let i = 0; i < 3; i++) { c.strokeStyle = i % 2 ? '#c4607e' : '#d47a94'; c.beginPath(); c.ellipse(w.x + Math.sin(t * 40 + i) * 0.2 * sq, w.y - wz - (2 + i * 2.3) * sc, (2.4 - sq * 0.6) * sc, 0.8 * sc, 0.15, 0, 7); c.stroke(); } } } }
 // skid marks under everything
@@ -3656,7 +3669,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '975e8e';
+const KBUILD = '822148';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
