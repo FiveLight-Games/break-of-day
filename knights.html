@@ -2760,7 +2760,8 @@ function timeStep(dt, t) {
     Object.assign(K, { bk: 0, bkT: 0, hd: a, bv: 0, yr: 0, bl: 0, bkId: (K.bkId || 0) + 1, bpx: r1(K.x - d[0] * B.DIST), bpy: r1(K.y - d[1] * B.DIST), lx0: K.x, ly0: K.y, lx: K.x + d[0] * 8, ly: K.y + d[1] * 8 }); } }
   if (K.bk === 0) { K.bkT += dt; const u = K.bkT, q = cl((u - B.JUMP) / (B.LAND - B.JUMP), 0, 1);
     K.z = u < B.JUMP ? 0 : lerp(0, B.SEAT, q) + 9 * Math.sin(Math.PI * q) * (q < 1 ? 1 : 0); const s = smt(q); K.x = lerp(K.lx0, K.lx, s); K.y = lerp(K.ly0, K.ly, s);
-    const e = cl((u - 0.28) / (B.LAND - 0.28), 0, 1); K.bkx = lerp(K.bpx, K.lx, e); K.bky = lerp(K.bpy, K.ly, e); K.vx = K.vy = 0; K.spd = 0;
+    // the bike starts a full length back inside the portal (hidden behind its plane) and drives out through it, easing off as it slides in under him
+    const e = cl((u - 0.25) / (B.LAND - 0.25), 0, 1), e2 = 1 - (1 - e) ** 1.6, dB = gDir(K.hd), x0 = K.bpx - dB[0] * B.HALF * 1.6, y0 = K.bpy - dB[1] * B.HALF * 1.6; K.bkx = lerp(x0, K.lx, e2); K.bky = lerp(y0, K.ly, e2); K.vx = K.vy = 0; K.spd = 0;
     if (u >= B.LAND) { K.z = 0; K.x = K.lx; K.y = K.ly; }
     if (u >= B.IN) { const d = gDir(K.hd); Object.assign(K, { bk: 1, bkT: 0, bv: 140, bvx: d[0] * 140, bvy: d[1] * 140, z: 0 }); } }
   else if (K.bk === 1) { K.bkT += dt; const m = mvL > 0.15 ? Math.min(1, mvL) : 0, want = m ? gAng(IN.mv[0], IN.mv[1]) : K.hd, diff = wrapA(want - K.hd);
@@ -3021,7 +3022,7 @@ function drawTime(c, t) {
   const f = P.f, B = TT.BIKE, riding = T.ride, Fr = riding ? bikeFrame(K.x, K.y, K.hd || 0, K.bl || 0) : null;
   K.bkSpin = (K.bkSpin || 0) + dt * (K.bk === 1 ? K.bv : K.bk >= 0 ? 140 : 0) / 2.6;
   // the bike on its own (coming out of the portal, or riding off into one), drawn clipped to the portal's open side
-  if (!riding && K.bk >= 0) { const F2 = bikeFrame(K.bkx, K.bky, K.hd || 0, K.bk === 2 ? (K.bl || 0) * Math.max(0, 1 - K.bkT * 3) : 0), dir = K.bk === 0 ? 1 : -1, px = K.bpx, py = K.bpy, show = K.bk === 0 ? K.bkT > 0.28 : K.bkT < 0.6;
+  if (!riding && K.bk >= 0) { const F2 = bikeFrame(K.bkx, K.bky, K.hd || 0, K.bk === 2 ? (K.bl || 0) * Math.max(0, 1 - K.bkT * 3) : 0), dir = K.bk === 0 ? 1 : -1, px = K.bpx, py = K.bpy, show = K.bk === 0 ? K.bkT > 0.25 : K.bkT < 0.75;
     if (show) { c.save(); const fw = F2.fw, nx = -fw[1], ny = fw[0], big = 400; c.beginPath(); c.moveTo(px + nx * big, py - 9 + ny * big); c.lineTo(px - nx * big, py - 9 - ny * big); c.lineTo(px - nx * big + fw[0] * big * dir, py - 9 - ny * big + fw[1] * big * dir); c.lineTo(px + nx * big + fw[0] * big * dir, py - 9 + ny * big + fw[1] * big * dir); c.closePath(); c.clip();
       c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(K.bkx, K.bky + 0.3, 8, 2.2, Math.atan2(fw[1], fw[0]) * 0.3, 0, 7); c.fill(); for (const pt of ['far', 'body', 'near']) ttBike(c, F2, t, pt, K.bkSpin); c.restore(); } }
   // the body is drawn in stages so the bike's far side, body and near side can go between them
@@ -3857,7 +3858,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'b49f33';
+const KBUILD = 'fcbd6b';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
