@@ -2747,7 +2747,7 @@ function timeStep(dt, t) {
   if (K.cs >= 0) { const W0 = K.csW, T = [TT.CANE.T, TT.SABER.T, TT.GUN.T + (K.gR || 0), 1, TT.SAW.T][W0], c0 = K.cs; K.cs += dt;
     if (W0 === 2 && K.gq && K.cs >= (K.gR || 0)) ttShot(t);
     if (W0 === 0 && c0 < TT.CANE.T * TT.CANE.HIT && K.cs >= TT.CANE.T * TT.CANE.HIT && AUTH()) ttCone(TT.CANE.R, TT.CANE.HALF, TT.CANE.DMG, TT.CANE.KB, (w, a) => flingFx(w, a, 0.9));
-    if (W0 === 1 && K.dsP && !ttRiding(K)) { const D = TT.SABER.DASH, qf = c => smt(cl((c - D.T0) / (D.T1 - D.T0), 0, 1)), dq = qf(K.cs) - qf(c0), d = gDir(K.dsA), ox = K.x, oy = K.y; K.x += d[0] * D.D * dq; K.y = cl(K.y + d[1] * D.D * dq, 16, H - 4);
+    if (W0 === 1 && K.dsP && !ttRiding(K)) { const D = TT.SABER.DASH, qf = c => smt(cl((c - D.T0) / (D.T1 - D.T0), 0, 1)), dq = qf(K.cs) - qf(c0), d = gDir(K.dsA), ox = K.x, oy = K.y; K.x += d[0] * D.D * dq; K.y = cl(K.y + d[1] * D.D * dq, 16, H - 4); K.dsd = (K.dsd || 0) + Math.hypot(K.x - ox, K.y - oy);
       // cut along the path: anyone he dashes past is sliced once per swing
       if (AUTH() && (K.x !== ox || K.y !== oy)) for (const w of walkers) { if (w.hp <= 0 || w.air || w.sdH === K.csN || Math.abs(w.x - K.x) > 20) continue; if (ptSeg([w.x, w.y], [ox, oy], [K.x, K.y]) > D.R + UK[w.k].r) continue; w.sdH = K.csN; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; const aa = Math.atan2(w.y - K.y, w.x - K.x); hurt(w, TT.SABER.DMG, ww => ttKillFx(ww, aa, 0)); } }
     if (K.cs >= T) { K.cs = -1; K.dsP = null; if (W0 === 2) { K.gEnd = t; if (K.ammo <= 0) K.rl = 0; } } }
@@ -2780,8 +2780,9 @@ function timeStep(dt, t) {
   // ---- walking (the Swordmaster's / Knight's feel) ----
   if (K.bk < 0) { const v2 = RUN * TT.RUN * (K.cs >= 0 || K.al ? TT.ATK : 1);
     if (mvL > 0.12) { const k = Math.min(1, mvL), e = 1 - Math.exp(-dt * 14); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e); } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
-    const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy);
-    K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.5;
+    const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const dsd = K.dsd || 0, md = Math.hypot(K.x - ox, K.y - oy) + dsd; K.dsd = 0;
+    // the saber's dashing slice counts as moving, so his legs take a couple of quick strides through it (longer strides: half the gait per unit)
+    K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + (md - dsd) * 0.5 + dsd * 0.25;
     if (!(K.cs >= 0) && !(wq >= 2 && IN.aim) && mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1; }
   if (K.st !== 'pull') K.st = 'fight';
 }
@@ -3854,7 +3855,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '45b2aa';
+const KBUILD = '09ebf5';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
