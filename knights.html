@@ -2652,7 +2652,7 @@ addEventListener('resize', resize); addEventListener('orientationchange', () => 
 let last = performance.now(), t = 0;
 function draw() {
   // while any Firebreather is on his volcano everyone pulls back far enough to see a full-range shot across the screen
-  const volcOn = LIVE().some(kn => kn.kind === 'fire' && kn.vPh >= 0), hw1 = cv.width / 2 / (viewScale() / ultZoom);
+  const volcOn = !!(KN[ME] && KN[ME].kind === 'fire' && KN[ME].vPh >= 0), hw1 = cv.width / 2 / (viewScale() / ultZoom);
   const penOn = KN[ME] && KN[ME].kind === 'priest' && KN[ME].pPh >= 0, uzT = volcOn ? Math.min(0.775, hw1 / (V.MAXD + 20)) : penOn ? 0.7 : 1 / (1 + (((KN[ME] && KN[ME].sz) || 1) - 1) * 0.33); ultZoom = lerp(ultZoom, uzT, volcOn || penOn ? 0.035 : 0.06); ZBUSY = Math.abs(ultZoom - uzT) > uzT * 0.01; // pull the camera back while he's a giant
   const sc = viewScale(), pc = K.kind === 'priest' && K.pPh >= 0 ? 0.5 : 0; camX = lerp(camX, pc ? lerp(K.x, K.hx, pc) : K.x, 0.12); camY = lerp(camY, pc ? lerp(K.y - 6 * (K.sz || 1) - (K.z || 0) * 0.5, K.hy - 6, pc) : K.y - 6 * (K.sz || 1) - (K.z || 0) * 0.5, 0.12); const shx = shake ? rr(-1, 1) * shake * 5 : 0, shy = shake ? rr(-1, 1) * shake * 5 : 0;
   x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#000'; x.fillRect(0, 0, cv.width, cv.height);
@@ -3082,7 +3082,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'efb393';
+const KBUILD = 'fab912';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
