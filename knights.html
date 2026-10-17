@@ -2757,14 +2757,17 @@ function timeStep(dt, t) {
   if (K.bkCd > 0) K.bkCd -= dt;
   if (dashP && ready && K.bk < 0 && !(K.bkCd > 0) && IN.dashD) K.bkQ = { a: gAng(IN.dashD[0], IN.dashD[1]), t: 0.6 };
   if (K.bkQ) { K.bkQ.t -= dt; if (K.bkQ.t <= 0) K.bkQ = null; else if (K.bk < 0) { const a = K.bkQ.a, d = gDir(a); K.bkQ = null;
-    Object.assign(K, { bk: 0, bkT: 0, hd: a, bv: 0, yr: 0, bl: 0, bkId: (K.bkId || 0) + 1, bpx: r1(K.x - d[0] * B.DIST), bpy: r1(K.y - d[1] * B.DIST), lx0: K.x, ly0: K.y, lx: K.x + d[0] * 8, ly: K.y + d[1] * 8 }); } }
+    Object.assign(K, { bk: 0, bkT: 0, hd: a, bh0: Math.round(a * 1000) / 1000, bv: 0, yr: 0, bl: 0, bkId: (K.bkId || 0) + 1, bpx: r1(K.x - d[0] * B.DIST), bpy: r1(K.y - d[1] * B.DIST) }); K.bkx = K.bpx - d[0] * B.HALF * 1.6; K.bky = K.bpy - d[1] * B.HALF * 1.6; } }
   if (K.bk === 0) { K.bkT += dt; const u = K.bkT, q = cl((u - B.JUMP) / (B.LAND - B.JUMP), 0, 1);
     K.z = u < B.JUMP ? 0 : lerp(0, B.SEAT, q) + 9 * Math.sin(Math.PI * q) * (q < 1 ? 1 : 0); 
     // he keeps walking (move stick) through the crouch, the jump and the landing; the bike comes out to wherever he is
     { const v2 = RUN * TT.RUN, e0 = 1 - Math.exp(-dt * 14); if (mvL > 0.12) { const k = Math.min(1, mvL); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e0); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e0); if (Math.abs(IN.mv[0]) > 0.2 && !IN.aim && !(K.cs >= 0)) K.f = IN.mv[0] > 0 ? 1 : -1; } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
       const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy); K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.5; }
-    // the bike starts a full length back inside the portal (hidden behind its plane) and drives out through it at a steady pace, straight in under him (no slowing down)
-    const e = cl((u - 0.25) / (B.LAND - 0.25), 0, 1), e2 = e, dB = gDir(K.hd), x0 = K.bpx - dB[0] * B.HALF * 1.6, y0 = K.bpy - dB[1] * B.HALF * 1.6; K.bkx = lerp(x0, K.x, e2); K.bky = lerp(y0, K.y, e2);
+    // the bike starts a full length back inside the portal (hidden behind its plane) and drives out straight through it, then steers like a bike
+    // toward him (turning its heading, never sliding sideways) at whatever pace gets it under him by the landing
+    if (u >= 0.25) { const tl = Math.max(B.LAND - u, dt), dx = K.x - K.bkx, dy = (K.y - K.bky) * 1.25, dd = Math.hypot(dx, dy), p0 = gDir(K.bh0 ?? K.hd), outA = ((K.bkx - K.bpx) * p0[0] + (K.bky - K.bpy) * p0[1] * 1.5625);
+      if (outA > 0 && dd > 1.5) { const want = Math.atan2(dy, dx); K.hd = wrapA(K.hd + cl(wrapA(want - K.hd), -7 * dt, 7 * dt)); }
+      const sp = Math.min(dd / tl, 320), g = gDir(K.hd); K.bkx += g[0] * sp * dt; K.bky += g[1] * sp * dt; if (u >= B.LAND - 1e-6) { K.bkx = K.x; K.bky = K.y; } }
     if (u >= B.LAND) K.z = 0;
     if (u >= B.IN) { const d = gDir(K.hd); Object.assign(K, { bk: 1, bkT: 0, bv: 140, bvx: d[0] * 140, bvy: d[1] * 140, z: 0, vx: 0, vy: 0 }); } }
   else if (K.bk === 1) { K.bkT += dt; const m = mvL > 0.15 ? Math.min(1, mvL) : 0, want = m ? gAng(IN.mv[0], IN.mv[1]) : K.hd, diff = wrapA(want - K.hd);
@@ -2778,7 +2781,7 @@ function timeStep(dt, t) {
     K.bl = lerp(K.bl || 0, cl(K.yr * K.bv / 260, -0.5, 0.5), 1 - Math.exp(-dt * 6)); if (Math.cos(K.hd) > 0.2) K.f = 1; else if (Math.cos(K.hd) < -0.2) K.f = -1;
     K.spd = 0; K.vx = K.bvx; K.vy = K.bvy;
     if (AUTH()) ttRunDown(t);
-    if (K.bkT >= B.T) Object.assign(K, { bk: 2, bkT: 0, bkx: K.x, bky: K.y, dvx: K.bvx, dvy: K.bvy, bpx: r1(K.x + K.bvx * 0.38), bpy: r1(K.y + K.bvy * 0.38) }); }
+    if (K.bkT >= B.T) Object.assign(K, { bk: 2, bkT: 0, bh0: Math.round(K.hd * 1000) / 1000, bkx: K.x, bky: K.y, dvx: K.bvx, dvy: K.bvy, bpx: r1(K.x + K.bvx * 0.38), bpy: r1(K.y + K.bvy * 0.38) }); }
   else if (K.bk === 2) { K.bkT += dt; const u = K.bkT, q = cl(u / B.HOP, 0, 1); K.z = q < 1 ? lerp(B.SEAT, 0, q) + 5 * Math.sin(Math.PI * q) : 0;
     const e = 1 - Math.exp(-dt * 5), mv2 = mvL > 0.12 ? [IN.mv[0] / mvL * Math.min(1, mvL) * RUN * TT.RUN, IN.mv[1] / mvL * Math.min(1, mvL) * RUN * TT.RUN] : [0, 0]; K.dvx = lerp(K.dvx, mv2[0], e); K.dvy = lerp(K.dvy, mv2[1], e); if (mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1; K.x += K.dvx * dt; K.y = cl(K.y + K.dvy * dt, 16, H - 4); const ac = 1 + K.bkT * 2.5; K.bkx += K.bvx * dt * ac; K.bky += K.bvy * dt * ac; K.spd = Math.hypot(K.dvx, K.dvy);
     if (u >= B.OFF) { K.bk = -1; K.bkT = 0; K.bkCd = B.CD; K.z = 0; K.bl = 0; } }
@@ -3010,8 +3013,8 @@ function ttBike(c, F, t, part, spin) { const P = F.P, nv = F.near, col = COL, co
     line([3.9, nv * 1.3, 6.8], [6.1, nv * 1.3, 2.6], 0.45, chrome); line([4.0, -nv * 0.2, 7.4], [4.1, nv * 2.9, 7.5], 0.35, dark);
     const hl = P(5.0, 0, 6.3); c.fillStyle = '#f6f2d8'; c.beginPath(); c.arc(hl[0], hl[1], 0.62, 0, 7); c.fill(); c.fillStyle = '#5c6068'; c.beginPath(); c.arc(hl[0] - F.fw[0] * 0.25, hl[1] - F.fw[1] * 0.25, 0.7, 0, 7); c.globalCompositeOperation = 'destination-over'; c.fill(); c.globalCompositeOperation = 'source-over'; } }
 // portals: a ring of blue-violet light swirling round a dark centre; k 0..1 = how open
-function ttBikePortal(c, kn, t) { const bk = kn.bk === 0 ? (kn.bkT < 0.25 ? sm(kn.bkT / 0.25) : kn.bkT < 0.55 ? 1 : 1 - sm(cl((kn.bkT - 0.55) / 0.25, 0, 1))) : kn.bk === 2 ? (kn.bkT < 0.2 ? sm(kn.bkT / 0.2) : kn.bkT < 0.5 ? 1 : 1 - sm(cl((kn.bkT - 0.5) / 0.2, 0, 1))) : 0;
-  if (bk > 0) { const fw = gDir(kn.hd || 0), wide = 0.6 + 0.4 * Math.abs(fw[1]) / Math.hypot(fw[0], fw[1]); ttPortal(c, kn.bpx, kn.bpy - 8.5, 8 * wide, 9.5, bk, t, 0); } }
+function ttBikePortal(c, kn, t) { const ph = kn.bh0 ?? kn.hd ?? 0; const bk = kn.bk === 0 ? (kn.bkT < 0.25 ? sm(kn.bkT / 0.25) : kn.bkT < 0.55 ? 1 : 1 - sm(cl((kn.bkT - 0.55) / 0.25, 0, 1))) : kn.bk === 2 ? (kn.bkT < 0.2 ? sm(kn.bkT / 0.2) : kn.bkT < 0.5 ? 1 : 1 - sm(cl((kn.bkT - 0.5) / 0.2, 0, 1))) : 0;
+  if (bk > 0) { const fw = gDir(ph), wide = 0.6 + 0.4 * Math.abs(fw[1]) / Math.hypot(fw[0], fw[1]); ttPortal(c, kn.bpx, kn.bpy - 8.5, 8 * wide, 9.5, bk, t, 0); } }
 function ttPortal(c, x0, y0, rx, ry, k, t, rotA) { if (k <= 0.01) return; c.save(); c.translate(x0, y0); if (rotA) c.rotate(rotA); c.scale(rx * k, ry * k);
   const g = c.createRadialGradient(0, 0, 0, 0, 0, 1); g.addColorStop(0, 'rgba(20,6,40,.95)'); g.addColorStop(0.6, 'rgba(60,20,110,.85)'); g.addColorStop(0.88, 'rgba(120,200,255,.9)'); g.addColorStop(1, 'rgba(160,230,255,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, 1, 0, 7); c.fill();
   c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; for (let i = 0; i < 5; i++) { const a = t * (4 + i * 0.7) + i * 1.3, r = 0.35 + i * 0.12; c.strokeStyle = i % 2 ? 'rgba(170,120,255,.55)' : 'rgba(120,220,255,.6)'; c.lineWidth = 0.09; c.beginPath(); c.arc(0, 0, r, a, a + 2.2); c.stroke(); }
@@ -3029,15 +3032,15 @@ function drawTime(c, t) {
   // the bike on its own (coming out of the portal, or riding off into one), drawn clipped to the portal's open side
     // coming out, the bike is drawn over the portal for any heading from 4 o'clock round the top to 8 o'clock (screen); heading further down than that the portal covers it.
   // going in, the same split mirrored (over it unless heading up past 10/2 o'clock)
-  const bkS = gDir(K.hd || 0), bkFy = bkS[1] / (Math.hypot(bkS[0], bkS[1]) || 1), bkFront = K.bk === 0 ? bkFy < 0.5 : K.bk === 2 ? bkFy > -0.5 : false; if (K.bk === 0 || K.bk === 2) { if (bkFront || riding) ttBikePortal(c, K, t); }
+  const bkS = gDir(K.bh0 ?? K.hd ?? 0), bkFy = bkS[1] / (Math.hypot(bkS[0], bkS[1]) || 1), bkFront = K.bk === 0 ? bkFy < 0.5 : K.bk === 2 ? bkFy > -0.5 : false; if (K.bk === 0 || K.bk === 2) { if (bkFront || riding) ttBikePortal(c, K, t); }
   // height of the bike off the ground: on the way in it rides out of the portal's centre and drops to the ground once clear of it;
   // on the way out it speeds up and climbs as if up a very slight slope, reaching the portal's centre as it goes in
-  let bz = 0, bOut = 1; if (!riding && K.bk >= 0) { const Z0 = 4.5, fwB = gDir(K.hd || 0), fl = Math.hypot(fwB[0], fwB[1] * 1.25) || 1;
+  let bz = 0, bOut = 1; if (!riding && K.bk >= 0) { const Z0 = 4.5, fwB = gDir(K.bh0 ?? K.hd ?? 0), fl = Math.hypot(fwB[0], fwB[1] * 1.25) || 1;
     if (K.bk === 0) { const along = ((K.bkx - K.bpx) * fwB[0] + (K.bky - K.bpy) * fwB[1] * 1.5625) / fl, past = along; bOut = cl((along + TT.BIKE.HALF) / (2 * TT.BIKE.HALF), 0, 1); bz = past <= 0 ? Z0 : Z0 * Math.max(0, 1 - (past / 14) ** 2); }
     else if (K.bk === 2) { const rem = ((K.bpx - K.bkx) * fwB[0] + (K.bpy - K.bky) * fwB[1] * 1.5625) / fl; if (K.bD0id !== K.bkId) { K.bD0id = K.bkId; K.bD0 = Math.max(10, rem); } bOut = cl((rem + TT.BIKE.HALF) / (2 * TT.BIKE.HALF), 0, 1); bz = Z0 * cl(1 - rem / K.bD0, 0, 1.6); } }
   if (!riding && K.bk >= 0) { const F2 = bikeFrame(K.bkx, K.bky - bz, K.hd || 0, K.bk === 2 ? (K.bl || 0) * Math.max(0, 1 - K.bkT * 3) : 0), dir = K.bk === 0 ? 1 : -1, px = K.bpx, py = K.bpy, show = K.bk === 0 ? K.bkT > 0.25 : K.bkT < 0.75;
     if (show && bOut > 0) { const fw0 = F2.fw, hk = 1 - cl(bz / 12, 0, 0.5); c.fillStyle = `rgba(0,0,0,${0.28 * bOut * hk})`; c.beginPath(); c.ellipse(K.bkx, K.bky + 0.3, 8 * hk * (0.4 + 0.6 * bOut), 2.2 * hk, Math.atan2(fw0[1], fw0[0]) * 0.3, 0, 7); c.fill(); }
-    if (show) { c.save(); const fw = F2.fw, nx = -fw[1], ny = fw[0], big = 400; c.beginPath(); c.moveTo(px + nx * big, py - 9 + ny * big); c.lineTo(px - nx * big, py - 9 - ny * big); c.lineTo(px - nx * big + fw[0] * big * dir, py - 9 - ny * big + fw[1] * big * dir); c.lineTo(px + nx * big + fw[0] * big * dir, py - 9 + ny * big + fw[1] * big * dir); c.closePath(); c.clip();
+    if (show) { c.save(); const fw = gDir(K.bh0 ?? K.hd ?? 0), nx = -fw[1], ny = fw[0], big = 400; c.beginPath(); c.moveTo(px + nx * big, py - 9 + ny * big); c.lineTo(px - nx * big, py - 9 - ny * big); c.lineTo(px - nx * big + fw[0] * big * dir, py - 9 - ny * big + fw[1] * big * dir); c.lineTo(px + nx * big + fw[0] * big * dir, py - 9 + ny * big + fw[1] * big * dir); c.closePath(); c.clip();
       for (const pt of ['far', 'body', 'near']) ttBike(c, F2, t, pt, K.bkSpin); c.restore(); } }
   if ((K.bk === 0 || K.bk === 2) && !bkFront && !riding) ttBikePortal(c, K, t);
   // the body is drawn in stages so the bike's far side, body and near side can go between them
@@ -3685,7 +3688,7 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
 const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, twV: n.twV || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
@@ -3872,7 +3875,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '347dc6';
+const KBUILD = '4a4944';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
