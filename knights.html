@@ -2500,7 +2500,7 @@ const TT = {
   RUN: 1.0, ATK: 0.8, CLEN: 7.4,
   CANE: { T: 0.3, HIT: 0.4, R: 16, HALF: 0.8, DMG: 46, KB: 13.6 },
   SABER: { T: 0.405, HIT: 0.4, R: 25, HALF: 1.0, DMG: 200, KB: 20, LEN: 10.5, GROW: 1.418, TDMG: 120, TGAP: 0.25, DASH: { D: 30, T0: 0, T1: 0.324, R: 6 } },
-  GUN: { T: 0.238, MZ: 10.5, R: 72.9, HALF: 0.567, DMG: 108, NEAR: 700, PB: 19, KB: 8, AMMO: 2, RELOAD: 0.6 },
+  GUN: { RAISE: 0.06, T: 0.238, MZ: 10.5, R: 72.9, HALF: 0.567, DMG: 108, NEAR: 700, PB: 19, KB: 8, AMMO: 2, RELOAD: 0.6 },
   ALIEN: { R: 150, HALF: 0.837, SZ: 1.35, LEN: 120, N: 24, PER: 2, EVERY: 0.05, OPEN: 0.25, REACH: 0.22, LIFT: 0.5, SQZ: 0.57, BACK: 0.22, DMG: 420, TDMG: 30, LDMG: 140, TOSSP: 0.45,
     SPL: { R: 12, DMG: 90, KB: 120 }, BOWL: 60, POP: { R: 10, DMG: 80, KB: 110 }, LASH: { DMG: 25, GAP: 0.3, SLOW: 0.5 }, NEAR: { R: 37.8, HALF: 0.75, DMG: 35, KB: 150, GAP: 0.25 },
     // the attack pool: 0 toss, 1 squeeze, 2 whip, 3 eat, 4 slam (when each finishes, from the grab's start); any of them can skewer up to 2 more
@@ -2572,7 +2572,7 @@ function ttPose(kn, t) {
     const rb = rot([bx - sp[0], by - sp[1]], w); bx = rb[0] + sp[0]; by = rb[1] + sp[1]; ca += w; lean += w * 0.4; cr = Math.max(-0.2, cr + w * 0.5); }
   // guns and the creature point where he aims
   if (wq >= 2 || (atk && W0 >= 2)) { const tg = kn.gA ?? 0.55; ga = cl(tg, -1.25, 1.25);
-    if (atk && (W0 === 2 || W0 === 4)) { rk = Math.max(0, 1 - kn.cs / (W0 === 2 ? 0.2 : 0.14)) ** 2 * (W0 === 2 ? 1 : 0.5); ga -= rk * 0.45; lean -= rk * 0.25; }
+    if (atk && (W0 === 2 || W0 === 4)) { rk = (W0 === 2 && kn.cs < (kn.gR || 0)) ? 0 : Math.max(0, 1 - (kn.cs - (W0 === 2 ? kn.gR || 0 : 0)) / (W0 === 2 ? 0.2 : 0.14)) ** 2 * (W0 === 2 ? 1 : 0.5); ga -= rk * 0.45; lean -= rk * 0.25; }
     if (kn.rl >= 0 && wq === 2) { const r = kn.rl * 1.75 / TT.GUN.RELOAD; brk = r < 0.2 ? sm(r / 0.2) : r < 1.25 ? 1 : r < 1.45 ? 1 - sm((r - 1.25) / 0.2) : 0; ga = lerp(ga, 0.75, r < 1.45 ? sm(cl(r / 0.2, 0, 1)) : 1 - sm(cl((r - 1.45) / 0.3, 0, 1))); }
     const hip = (wq === 4 || (atk && W0 === 4)) && !ride ? 1 : 0; if (hip) cr += 1.3;
     const d = [Math.cos(ga), Math.sin(ga)], ext = wq === 3 ? (kn.al ? 3.6 : 3.0) : 1.0;
@@ -2625,10 +2625,12 @@ function ttCone(R, half, dmg, kb, kill, off = 0) { const a0 = K.csA, ux = Math.c
     const a = Math.atan2(dy, dx); if (d > U.r + 3 && Math.abs(wrapA(a - a0)) > half + Math.atan2(U.r, d)) continue;
     n++; w.atk = -1; w.kx += Math.cos(a) * kb; w.ky += Math.sin(a) * kb * 0.6; hurt(w, typeof dmg === 'function' ? dmg(Math.max(0, d - U.r)) : dmg, ww => kill(ww, Math.atan2(ww.y - K.y, ww.x - K.x))); }
   return n; }
+function ttShot(t) { K.gq = 0; K.ammo--; K.gunN = (K.gunN || 0) + 1; if (AUTH()) ttCone(TT.GUN.R, TT.GUN.HALF, d => lerp(TT.GUN.NEAR, TT.GUN.DMG, cl((d - TT.GUN.PB) / (TT.GUN.R - TT.GUN.PB), 0, 1)), TT.GUN.KB, (w, a2) => ttKillFx(w, a2, 1), ttMuzzle(K, t).off); }
 function ttStart(IN, t) { const a = gAng(IN.aim[0], IN.aim[1]), wq = K.wpS === 2 && !(K.wpn === 3 && K.hu >= 1) ? K.wpn : 0;
   K.cs = 0; K.csA = a; K.csW = wq; K.csN = (K.csN || 0) + 1; if (Math.abs(Math.cos(a)) > 0.2 && !ttRiding(K)) K.f = Math.cos(a) >= 0 ? 1 : -1;
   K.csTl = cl(Math.atan2(Math.sin(a), Math.abs(Math.cos(a))), -1.2, 1.2) * 0.8; K.cs0 = t;
-  if (wq === 2) { K.ammo--; K.gunN = (K.gunN || 0) + 1; if (AUTH()) ttCone(TT.GUN.R, TT.GUN.HALF, d => lerp(TT.GUN.NEAR, TT.GUN.DMG, cl((d - TT.GUN.PB) / (TT.GUN.R - TT.GUN.PB), 0, 1)), TT.GUN.KB, (w, a2) => ttKillFx(w, a2, 1), ttMuzzle(K, t).off); }
+  // the shotgun comes up to the aim first (unless it's still up from the last shot), then fires, so the blast leaves the barrel where it's pointing
+  if (wq === 2) { K.gR = t - (K.gEnd ?? -9) < 0.12 ? 0 : TT.GUN.RAISE; K.gq = 1; if (!K.gR) ttShot(t); }
   if (wq === 1 && !ttRiding(K)) { K.dsP = [K.x, K.y]; K.dsA = a; }
   if (wq === 4) { const P = ttPose(K, t), ga = P.ga ?? P.aB, gd = [Math.cos(ga), Math.sin(ga)], G = TT.SAW.GUN, U = TT.SAW.MU, pt = ttW(K, [P.hB[0] + G * (gd[0] * U[0] - gd[1] * U[1]), P.hB[1] + G * (gd[1] * U[0] + gd[0] * U[1])]);
     K.sawN = (K.sawN || 0) + 1; K.sawX = r1(pt[0]); K.sawZ = TT.SAW.HZ; K.sawY = r1(pt[1] + TT.SAW.HZ); K.sawA = Math.round(a * 100) / 100; }
@@ -2735,12 +2737,13 @@ function timeStep(dt, t) {
       w.lsT = t; w.sl = Math.max(w.sl || 0, L.SLOW); const a = Math.atan2(w.y - aoy, w.x - aox); w.kx += Math.cos(a) * 18; w.ky += Math.sin(a) * 10; hurt(w, L.DMG, ww => flingFx(ww, a, 0.8)); } } }
   // the cane swings on the stick whenever no weapon is in his hand, including while the alien is off on a toss (it attacks on its own)
   if ((wq !== 3 || K.hu >= 1) && !(K.cs >= 0) && IN.aim && ready && !busy && !(wq === 2 && (K.rl >= 0 || K.ammo <= 0))) ttStart(IN, t);
-  if (K.cs >= 0) { const W0 = K.csW, T = [TT.CANE.T, TT.SABER.T, TT.GUN.T, 1, TT.SAW.T][W0], c0 = K.cs; K.cs += dt;
+  if (K.cs >= 0) { const W0 = K.csW, T = [TT.CANE.T, TT.SABER.T, TT.GUN.T + (K.gR || 0), 1, TT.SAW.T][W0], c0 = K.cs; K.cs += dt;
+    if (W0 === 2 && K.gq && K.cs >= (K.gR || 0)) ttShot(t);
     if (W0 === 0 && c0 < TT.CANE.T * TT.CANE.HIT && K.cs >= TT.CANE.T * TT.CANE.HIT && AUTH()) ttCone(TT.CANE.R, TT.CANE.HALF, TT.CANE.DMG, TT.CANE.KB, (w, a) => flingFx(w, a, 0.9));
     if (W0 === 1 && K.dsP && !ttRiding(K)) { const D = TT.SABER.DASH, qf = c => smt(cl((c - D.T0) / (D.T1 - D.T0), 0, 1)), dq = qf(K.cs) - qf(c0), d = gDir(K.dsA), ox = K.x, oy = K.y; K.x += d[0] * D.D * dq; K.y = cl(K.y + d[1] * D.D * dq, 16, H - 4);
       // cut along the path: anyone he dashes past is sliced once per swing
       if (AUTH() && (K.x !== ox || K.y !== oy)) for (const w of walkers) { if (w.hp <= 0 || w.air || w.sdH === K.csN || Math.abs(w.x - K.x) > 20) continue; if (ptSeg([w.x, w.y], [ox, oy], [K.x, K.y]) > D.R + UK[w.k].r) continue; w.sdH = K.csN; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; const aa = Math.atan2(w.y - K.y, w.x - K.x); hurt(w, TT.SABER.DMG, ww => ttKillFx(ww, aa, 0)); } }
-    if (K.cs >= T) { K.cs = -1; K.dsP = null; if (W0 === 2 && K.ammo <= 0) K.rl = 0; } }
+    if (K.cs >= T) { K.cs = -1; K.dsP = null; if (W0 === 2) { K.gEnd = t; if (K.ammo <= 0) K.rl = 0; } } }
   if (wq === 1 && AUTH()) ttSaberTouch(t);
   // ---- the bike ----
   if (K.bkCd > 0) K.bkCd -= dt;
@@ -2779,8 +2782,10 @@ function timeStep(dt, t) {
 // enemy at most every TGAP, swing or no swing. Swinging sweeps the blade between frames so fast cuts don't skip anyone.
 function ttW(kn, p) { if (ttRiding(kn)) { const F = bikeFrame(0, 0, kn.hd || 0, kn.bl || 0); return [kn.x + KS * (p[0] - F.up[0] * p[1]), kn.y + KS * (-F.up[1] * p[1])]; } return [kn.x + KS * p[0], kn.y - (kn.z || 0) + KS * p[1]]; }
 // the shotgun's muzzle: where it is on screen, and how far out along the ground (from his feet) it sits, from the pose as drawn
-function ttMuzzle(kn, t) { const P = ttPose(kn, t), wa = P.ga ?? P.aB, d = [Math.cos(wa), Math.sin(wa)], pt = ttW(kn, [P.hB[0] + d[0] * 7.9 + d[1] * 0.1, P.hB[1] + d[1] * 7.9 - d[0] * 0.1]), hd = ttW(kn, P.hB), h = kn.y - (kn.z || 0) - hd[1];
-  return { x: pt[0], y: pt[1], off: Math.hypot(pt[0] - kn.x, (pt[1] + h - kn.y + (kn.z || 0)) * 1.25) }; }
+function ttMuzzle(kn, t, P0) { const P = P0 || ttPose(kn, t), wa = P.ga ?? P.aB, d = [Math.cos(wa), Math.sin(wa)], pt = ttW(kn, [P.hB[0] + d[0] * 7.9 + d[1] * 0.1, P.hB[1] + d[1] * 7.9 - d[0] * 0.1]), hd = ttW(kn, P.hB), h = kn.y - (kn.z || 0) - hd[1];
+  return { x: pt[0], y: pt[1], a: Math.atan2(pt[1] - hd[1], pt[0] - hd[0]), off: Math.hypot(pt[0] - kn.x, (pt[1] + h - kn.y + (kn.z || 0)) * 1.25) }; }
+// the barrel tip as it's drawn on this screen (his eased pose), so the flash comes out of the gun where it really is
+const ttMuzzleD = (kn, t) => ttMuzzle(kn, t, kn.ttP && kn.ttP.hB && (kn.ttP.ga ?? null) !== null ? kn.ttP : undefined);
 function ttSaberTouch(t) { const S = TT.SABER, P = ttPose(K, t), LB = S.LEN * (P.bL ?? 1) * ttSabGrow(K), d = [Math.cos(P.aB), Math.sin(P.aB)], a = ttW(K, [P.hB[0] + d[0] * 1.2, P.hB[1] + d[1] * 1.2]), b = ttW(K, [P.hB[0] + d[0] * (1.2 + LB), P.hB[1] + d[1] * (1.2 + LB)]), pv = K.sbP; K.sbP = [a, b];
   const RC = Math.hypot(b[0] - K.x, b[1] - K.y) + 14;
   for (const w of walkers) { if (w.hp <= 0 || w.air || Math.abs(w.x - K.x) > RC || t - (w.sbT ?? -9) < S.TGAP) continue; const U = UK[w.k], h = 9 * U.sc; let hit = false;
@@ -2813,8 +2818,8 @@ const trapOut = q => q.end !== undefined ? (q.t - q.end) / 0.4 : 0, trapArm = q 
 function ttFx(dt, t) {
   for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue; if (kn.wpn === 3 && (kn.al || (kn.alV || 0) > 0.01)) ttTentLines(kn, dt, t); else if (kn.tcS) kn.tcS = null; kn.alV = ap(kn.alV || 0, kn.al && kn.wpn === 3 ? 1 : 0, dt / (kn.al ? TT.ALIEN.OPEN : 0.4)); kn.alCv = Math.abs((kn.alCv ?? 0) + dt - (kn.alC || 0)) > 0.15 ? kn.alC || 0 : (kn.alCv ?? 0) + dt; const S = kn.ttS || (kn.ttS = { gun: kn.gunN || 0, saw: kn.sawN || 0, rl: kn.rl, bk: kn.bk, tr: kn.trN || 0, hu: kn.hu });
     // shotgun: flash, pellets, smoke
-    if ((kn.gunN || 0) !== S.gun) { S.gun = kn.gunN || 0; const a = kn.csA, d = gDir(a), M = ttMuzzle(kn, t), mx = M.x, my = M.y; kn.mzO = M.off;
-      TTFX.push({ k: 'flash', x: mx, y: my, a: Math.atan2(d[1], d[0]), t: 0, max: 0.09 });
+    if ((kn.gunN || 0) !== S.gun) { S.gun = kn.gunN || 0; const a = kn.csA, d = gDir(a), M0 = ttMuzzle(kn, t), M = ttMuzzleD(kn, t), mx = M.x, my = M.y; kn.mzO = M0.off;
+      TTFX.push({ k: 'flash', kn, x: mx, y: my, a: M.a, t: 0, max: 0.09 });
       for (let i = 0; i < 12; i++) { const b = a + rr(-TT.GUN.HALF, TT.GUN.HALF), L = rr(0.55, 1) * TT.GUN.R, e = gDir(b); TTFX.push({ k: 'pellet', x0: mx, y0: my, x1: kn.x + e[0] * L, y1: kn.y + e[1] * L - rr(2, 6), t: rr(-0.02, 0), max: 0.11 }); }
       for (let i = 0; i < 6; i++) TTFX.push({ k: 'smoke', x: mx + rr(-1, 1), y: my + rr(-1, 1), vx: d[0] * rr(10, 30) + rr(-4, 4), vy: d[1] * rr(6, 18) - rr(2, 6), r: rr(1.2, 2.2), t: 0, max: rr(0.6, 1.1) });
       if (Math.abs(kn.x - camX) < 140) shake = Math.max(shake, 0.12); snd('shot', kn.x, kn.y); }
@@ -3017,9 +3022,9 @@ function drawTime(c, t) {
   const far = f > 0 ? 0 : 1, near = 1 - far, sA = P.sh[near], sB = P.sh[far], rel = h => [(h[0] - P.C[0]) * f, h[1] - P.C[1]], rA = rel(P.hA), rB = rel(P.hB);
   const wq = K.wpS === 2 ? K.wpn : (K.wpS === 1 && K.wpT >= 0.55) || (K.wpS === 3 && K.wpT < 0.3) ? K.wpn : 0, gun = (wq === 2 || wq === 4) && !riding;
   const dtD = cl(t - (K.aoT ?? t), 0, 0.05); K.aoT = t; K.aoV = ap(K.aoV || 0, K.wpn === 3 && K.hu >= 1 ? 1 : 0, dtD / 0.22);
-  // the cane: in the B hand, or tucked under the far arm while a weapon is out
+  // the cane: in the B hand, or tucked under his far (A) armpit while a weapon is out: level, knob just in front of him, the rest sticking out behind; drawn behind his body
   const tuck = K.wpS === 1 ? sm(cl(K.wpT / 0.22, 0, 1)) : K.wpS === 2 ? 1 - sm(K.aoV || 0) : K.wpS === 3 ? (K.wpn === 3 && K.hu >= 1 ? 1 - sm(K.aoV || 0) : 1 - sm(cl((K.wpT - 0.62) / 0.25, 0, 1))) : 0;
-  const tk = add(P.C, [f * 1.0, 1.9]), cK = L2(P.hB, tk, tuck), cA = tuck >= 1 ? (f > 0 ? 2.55 : Math.PI - 2.55) : lerp(P.aB, P.aB + wrapA((f > 0 ? 2.55 : Math.PI - 2.55) - P.aB), tuck);
+  const UA = f > 0 ? Math.PI - 0.16 : 0.16, tk = add(sA, [f * 2.6, 1.15]), cK = L2(P.hB, tk, tuck), cA = tuck >= 1 ? UA : lerp(P.aB, P.aB + wrapA(UA - P.aB), tuck);
   const caneBack = tuck < 0.5 && Math.cos(cA) * f < -0.3 && rB[0] < 0.5, aBehind = rA[1] > 3.8 && !gun;
   if (window.__labelArms) { const tag = (sh, h, txt, col) => { const e1 = ik(sh, h, 2.6, 2.6, 1), e2 = ik(sh, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2; return [L2(sh, el, 0.6), txt, col]; }; K.ttTags = [tag(sA, P.hA, 'A', '#ff3b30'), tag(sB, P.hB, 'B', '#1e90ff')]; }
   rigOn();
@@ -3031,7 +3036,7 @@ function drawTime(c, t) {
       const su = K.cs / TT.SABER.T; if (su > 0.1 && su < 0.9) K.slc.push({ b: W([wx[0] + d[0] * 1.5, wx[1] + d[1] * 1.5]), e: W([wx[0] + d[0] * (1.2 + L), wx[1] + d[1] * (1.2 + L)]), g: 1 }); if (K.slc.length > 30) K.slc.shift(); }
     else if (K.slc && K.slc.length) { if (K.slc.length > 1) FX.push({ k: 'slice', pts: K.slc, t: 0, max: 0.3, rgb: K.slcRgb }); K.slc = null; K.slcN = -1; }
     ttSaber(c, wx, wa, t, sabOn() * (P.bL ?? 1) * ttSabGrow(K)); };
-  if (caneBack) ttCane(c, cK, cA);
+  if (caneBack || tuck > 0.5) ttCane(c, cK, cA);
   if (sabBack) { ttArm(c, sB, P.hB, true); drawSab(P.hB, P.aB); ttHand(c, P.hB, true); }
   // a gun aimed up past 2 o'clock (or 10 o'clock facing left) is held up behind him: both arms and the gun go behind the body
   const gunW = (wn0 => (wn0 === 2 || wn0 === 4) && K.wpS === 2 && !riding)(K.wpn), gunBack = gunW && Math.sin(P.ga ?? P.aB) < -0.5;
@@ -3042,7 +3047,6 @@ function drawTime(c, t) {
   if (riding) { rigOff(); ttBike(c, Fr, t, 'body', K.bkSpin); rigOn(); }
   ttLeg(c, P.hips[near], P.knees[near], P.feet[near], f, false);
   ttTorso(c, P, f, t); ttCoatFront(c, P, f, t);
-  if (tuck > 0.5) ttCane(c, cK, cA);
   if (!aBehind && !gun) { ttArm(c, sA, P.hA, false); ttHand(c, P.hA, false); if (P.watch > 0.05) { const w = add(P.hA, [f * 0.1, -0.5]); c.globalAlpha = P.watch; c.fillStyle = TTC.BRASS; c.beginPath(); c.arc(w[0], w[1], 0.62, 0, 7); c.fill(); c.fillStyle = '#f6f0dc'; c.beginPath(); c.arc(w[0], w[1], 0.46, 0, 7); c.fill(); c.strokeStyle = '#222'; c.lineWidth = 0.08; c.beginPath(); c.moveTo(w[0], w[1]); c.lineTo(w[0], w[1] - 0.32); c.moveTo(w[0], w[1]); c.lineTo(w[0] + 0.24, w[1] + 0.05); c.stroke(); c.globalAlpha = 1; } }
   ttHead(c, P, f, t);
   if (riding) { rigOff(); ttBike(c, Fr, t, 'near', K.bkSpin); rigOn(); }
@@ -3118,7 +3122,7 @@ function ttAir(c, t) {
   for (const q of TRAPS) { const TR = TT.TRAP; if (q.t < TR.FLY) { const u = q.t / TR.FLY, x = lerp(q.sx, q.x, u), y = lerp(q.sy, q.y, u), z = lerp(q.sz, 0, u) + 16 * Math.sin(Math.PI * u);
       c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(x, y + 0.3, 3, 1.1, 0, 0, 7); c.fill(); c.save(); c.translate(x, y - z - 2); c.rotate(q.t * 14); c.fillStyle = '#3c4048'; c.fillRect(-1.8, -2.4, 3.6, 4.8); c.fillStyle = TTC.BRASS; c.fillRect(-1.8, -0.4, 3.6, 0.8); c.restore(); } }
   c.save(); c.globalCompositeOperation = 'lighter';
-  for (const p of TTFX) { const k = p.t / p.max; if (p.k === 'flash' && p.t >= 0) { c.save(); c.translate(p.x, p.y); c.rotate(p.a); const g = c.createRadialGradient(2, 0, 0, 2, 0, 7); g.addColorStop(0, `rgba(255,250,220,${1 - k})`); g.addColorStop(0.4, `rgba(255,190,80,${0.8 * (1 - k)})`); g.addColorStop(1, 'rgba(255,120,30,0)'); c.fillStyle = g; c.beginPath(); c.ellipse(3, 0, 7, 3.2, 0, 0, 7); c.fill(); c.restore(); }
+  for (const p of TTFX) { const k = p.t / p.max; if (p.k === 'flash' && p.t >= 0) { if (p.kn && p.kn.on !== 0) { const M = ttMuzzleD(p.kn, t); p.x = M.x; p.y = M.y; p.a = M.a; } c.save(); c.translate(p.x, p.y); c.rotate(p.a); const g = c.createRadialGradient(2, 0, 0, 2, 0, 7); g.addColorStop(0, `rgba(255,250,220,${1 - k})`); g.addColorStop(0.4, `rgba(255,190,80,${0.8 * (1 - k)})`); g.addColorStop(1, 'rgba(255,120,30,0)'); c.fillStyle = g; c.beginPath(); c.ellipse(3, 0, 7, 3.2, 0, 0, 7); c.fill(); c.restore(); }
     else if (p.k === 'glint') { const q = p.t / p.max, R = 3 + q * 7; c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = `rgba(255,250,225,${0.9 * (1 - q)})`; c.lineWidth = 0.8; c.beginPath(); c.moveTo(p.x - R, p.y); c.lineTo(p.x + R, p.y); c.moveTo(p.x, p.y - R * 0.6); c.lineTo(p.x, p.y + R * 0.6); c.stroke(); c.fillStyle = `rgba(255,255,240,${0.7 * (1 - q)})`; c.beginPath(); c.arc(p.x, p.y, 2.2 * (1 - q) + 0.5, 0, 7); c.fill(); c.restore(); }
     else if (p.k === 'pellet' && p.t >= 0) { const q = cl(p.t / p.max, 0, 1), a = L2([p.x0, p.y0], [p.x1, p.y1], Math.max(0, q * 1.4 - 0.4)), b = L2([p.x0, p.y0], [p.x1, p.y1], Math.min(1, q * 1.4)); c.strokeStyle = `rgba(255,230,160,${0.9 * (1 - q)})`; c.lineWidth = 0.35; c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke(); } }
   c.restore();
@@ -3651,7 +3655,7 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
 const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, twV: n.twV || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
@@ -3838,7 +3842,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '161662';
+const KBUILD = '311673';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
