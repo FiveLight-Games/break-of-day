@@ -3130,7 +3130,9 @@ function ttAir(c, t) {
 // per frame on every screen; tcB (the enemy each is pressed against) drives the host's lash.
 function ttTentLines(kn, dt, t) { const A = TT.ALIEN, [ox, oy, full] = ttO(kn), L0 = full ? TT.HURL.LEN : A.LEN; if (kn.tcFull !== full) { kn.tcFull = full; kn.tcS = null; } const S = kn.tcS || (kn.tcS = []), BS = kn.tcB || (kn.tcB = []), byId = new Map();
   const near = []; for (const w of walkers) { if (w.dead || w.hp <= 0 || w.air) continue; const dx = w.x - ox, dy = (w.y - oy) * 1.25, d = Math.hypot(dx, dy); if (d > L0 * 1.2 + 6) continue; const a = Math.atan2(dy, dx); if (full || Math.abs(wrapA(a - kn.alA)) < A.HALF + 0.6) { near.push([d, a, UK[w.k].r, w.id]); byId.set(w.id, w); } }
-  const idle = full && !near.length, spot = ab => { let L = idle ? L0 * rr(0.13, 0.26) : L0 * rr(0.85, 1), b = -1; for (const [d, a, rw, id] of near) { const da = wrapA(a - ab); if (Math.cos(da) > 0 && d * Math.abs(Math.sin(da)) < rw + 2.5 * A.SZ && d - rw - 3 < L) { L = d - rw - 3; b = id; } } L = Math.max(7, L); const g = gDir(ab); return [[ox + g[0] * L, oy + g[1] * L], b]; };
+  // thrown out: a tentacle only reaches out toward an enemy within reach in its direction (to just in front of it); the rest writhe in a small knot round the creature
+  const aim = ab => { let best = null; for (const q of near) if (q[0] < L0 && Math.abs(wrapA(q[1] - ab)) < 0.5 && (!best || q[0] < best[0])) best = q; return best; };
+  const spot = ab => { if (full) { const q = aim(ab), g = gDir(ab), L = q ? Math.max(7, q[0] - q[2] - 3) : L0 * rr(0.13, 0.26); return [[ox + g[0] * L, oy + g[1] * L], q ? q[3] : -1]; } let L = L0 * rr(0.85, 1), b = -1; for (const [d, a, rw, id] of near) { const da = wrapA(a - ab); if (Math.cos(da) > 0 && d * Math.abs(Math.sin(da)) < rw + 2.5 * A.SZ && d - rw - 3 < L) { L = d - rw - 3; b = id; } } L = Math.max(7, L); const g = gDir(ab); return [[ox + g[0] * L, oy + g[1] * L], b]; };
   kn.tcStep = (kn.tcStep || 0) - dt;
   // flying: every tentacle reaches out ahead toward where it's going to land, fanned a little and writhing, rather than planting
   if (kn.hu === 1 && full) { const cx = ox, cy = oy - (kn.huz || 0), dx = kn.htx - cx, dy = kn.hty - cy, dd = Math.hypot(dx, dy) || 1, a0 = Math.atan2(dy, dx);
@@ -3145,9 +3147,9 @@ function ttTentLines(kn, dt, t) { const A = TT.ALIEN, [ox, oy, full] = ttO(kn), 
     const dx = s.pl[0] - ox, dy = (s.pl[1] - oy) * 1.25, d = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
     let bad = (!full && Math.abs(wrapA(a - kn.alA)) > A.HALF) || d > L0 * 1.15 || s.b === -2;
     if (!bad) for (const [d2, a2, rw, id] of near) { if (id === s.b) continue; const da = wrapA(a2 - a); if (Math.cos(da) > 0 && d2 * Math.abs(Math.sin(da)) < rw + 1.5 * A.SZ && d2 + rw < d - 2) { bad = true; break; } }
-    // thrown out with nobody near: they writhe in a small knot round it, re-planting now and then; anyone arrives and they reach out again
-    const sw = !!s.idle !== idle; if (sw || (idle && Math.random() < dt * 1.6)) bad = true;
-    if (bad && !s.from && kn.tcStep <= 0) { kn.tcStep = sw ? 0.012 : 0.04; s.idle = idle; const [pl, b] = spot(full ? rr(-Math.PI, Math.PI) : kn.alA + rr(-A.HALF, A.HALF) * 0.9); s.from = s.tip ? s.tip.slice() : null; s.pl = pl; s.b = b; s.st = 0; }
+    // a knotted tentacle reaches out as soon as an enemy comes within reach its way, and re-plants in the knot now and then
+    const go = full && s.b === -1 && !!aim(a); if (go || (full && s.b === -1 && Math.random() < dt * 1.6)) bad = true;
+    if (bad && !s.from && kn.tcStep <= 0) { kn.tcStep = go ? 0.012 : 0.04; const [pl, b] = spot(go ? a : full ? rr(-Math.PI, Math.PI) : kn.alA + rr(-A.HALF, A.HALF) * 0.9); s.from = s.tip ? s.tip.slice() : null; s.pl = pl; s.b = b; s.st = 0; }
     if (s.from) { s.st += dt / 0.25; if (s.st >= 1) s.from = null; }
     let tip = [s.pl[0], s.pl[1] - 6 - 1.5 * Math.sin(t * 2.3 + j)]; if (s.from) { const q = sm(Math.min(1, s.st)); tip = [lerp(s.from[0], tip[0], q), lerp(s.from[1], tip[1], q) - Math.sin(q * Math.PI) * 12]; }
     s.tip = tip; BS[j] = s.b >= 0 ? s.b : -1; } }
@@ -3832,7 +3834,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'b29c53';
+const KBUILD = 'f35856';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
