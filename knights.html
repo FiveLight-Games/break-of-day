@@ -2500,7 +2500,7 @@ const TT = {
     SPL: { R: 12, DMG: 90, KB: 120 }, BOWL: 60, POP: { R: 10, DMG: 80, KB: 110 }, LASH: { DMG: 25, GAP: 0.3, SLOW: 0.5 }, NEAR: { R: 37.8, HALF: 0.75, DMG: 35, KB: 150, GAP: 0.25 },
     // the attack pool: 0 toss, 1 squeeze, 2 whip, 3 eat, 4 slam (when each finishes, from the grab's start); any of them can skewer up to 2 more
     END: [0.5, 0.57, 0.75, 0.55, 0.62], W: [0.2, 0.25, 0.2, 0.2, 0.15], WHIP: { DMG: 70, KB: 120, ARC: 1.6, R0: 18, R1: 55 }, SLAM: { Z: 20, UP: 0.42, R: 18, DMG: 140, KB: 160 }, SKEW: { P: 0.45, MAX: 2, GAP: 26 } },
-  HURL: { RANGE: 110, FLY: 0.6, SIT: 3, BACK: 0.5, CD: 1, KB: 0.3, R: 60, LEN: 52, ARC: 26 },
+  HURL: { RANGE: 110, FLY: 0.6, SIT: 3, BACK: 0.5, CD: 1, KB: 0.3, R: 81, LEN: 70, ARC: 26 },
   TRAP: { RANGE: 100, FLY: 0.45, T: 4, R: 9, DMG: 160, GAP: 0.3, CD: 6 },
   SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 30, BR: 110, TURN: 3, CONE: 0.873, DMG: 260, W: 9.625, Z: 8, R: 6.6, GUN: 1.3, MU: [3.8, 0.6] },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
@@ -3095,6 +3095,11 @@ function ttTentLines(kn, dt, t) { const A = TT.ALIEN, [ox, oy, full] = ttO(kn), 
   const near = []; for (const w of walkers) { if (w.dead || w.hp <= 0 || w.air) continue; const dx = w.x - ox, dy = (w.y - oy) * 1.25, d = Math.hypot(dx, dy); if (d > L0 * 1.2 + 6) continue; const a = Math.atan2(dy, dx); if (full || Math.abs(wrapA(a - kn.alA)) < A.HALF + 0.6) { near.push([d, a, UK[w.k].r, w.id]); byId.set(w.id, w); } }
   const spot = ab => { let L = L0 * rr(0.85, 1), b = -1; for (const [d, a, rw, id] of near) { const da = wrapA(a - ab); if (Math.cos(da) > 0 && d * Math.abs(Math.sin(da)) < rw + 2.5 * A.SZ && d - rw - 3 < L) { L = d - rw - 3; b = id; } } L = Math.max(7, L); const g = gDir(ab); return [[ox + g[0] * L, oy + g[1] * L], b]; };
   kn.tcStep = (kn.tcStep || 0) - dt;
+  // flying: every tentacle reaches out ahead toward where it's going to land, fanned a little and writhing, rather than planting
+  if (kn.hu === 1) { const cx = ox, cy = oy - (kn.huz || 0), dx = kn.htx - cx, dy = kn.hty - cy, dd = Math.hypot(dx, dy) || 1, a0 = Math.atan2(dy, dx);
+    for (let j = 0; j < A.N; j++) { const s = S[j] || (S[j] = { pl: [ox, oy], b: -1, from: null, st: 1, pts: null, old: null, L: 0 }), k = (j + 0.5) / A.N - 0.5, Lj = Math.min(L0 * (0.75 + 0.25 * Math.sin(j * 2.3)), dd + 8), a = a0 + k * 1.3 + Math.sin(t * 5 + j * 1.7) * 0.18;
+      s.tip = [cx + Math.cos(a) * Lj, cy + Math.sin(a) * Lj * 0.85 + Math.sin(t * 7 + j) * 1.5]; s.pl = [s.tip[0], Math.min(s.tip[1] + (kn.huz || 0) * 0.5, kn.hty + 20)]; s.from = null; s.b = -1; BS[j] = -1; }
+    return; }
   for (let j = 0; j < A.N; j++) { let s = S[j];
     if (!s) { const [pl, b] = spot(full ? (j + 0.5) / A.N * Math.PI * 2 : kn.alA + ((j + 0.5) / A.N - 0.5) * 2 * A.HALF * 0.85); s = S[j] = { pl, b, from: null, st: 1, pts: null, old: null, L: 0 }; }
     // a tip pressed against an enemy follows it
@@ -3782,7 +3787,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '882b86';
+const KBUILD = 'fd1549';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
