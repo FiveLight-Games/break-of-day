@@ -2783,7 +2783,8 @@ function timeStep(dt, t) {
     const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const dsd = K.dsd || 0, md = Math.hypot(K.x - ox, K.y - oy) + dsd; K.dsd = 0;
     // the saber's dashing slice counts as moving, so his legs take a couple of quick strides through it (longer strides: half the gait per unit)
     K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + (md - dsd) * 0.5 + dsd * 0.25;
-    if (!(K.cs >= 0) && !(wq >= 2 && IN.aim) && mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1; }
+    // while the attack stick is held he keeps facing his aim, even in the gap between two swings; only movement with nothing aimed turns him
+    if (!(K.cs >= 0) && !IN.aim && mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1; }
   if (K.st !== 'pull') K.st = 'fight';
 }
 // the lightsaber: its blade (from the pose) burns and cuts anyone it touches, whether he's swinging or just holding it; each
@@ -3855,7 +3856,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '09ebf5';
+const KBUILD = '4df508';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
