@@ -3030,9 +3030,9 @@ function drawTime(c, t) {
   const f = P.f, B = TT.BIKE, riding = T.ride, Fr = riding ? bikeFrame(K.x, K.y, K.hd || 0, K.bl || 0) : null;
   K.bkSpin = (K.bkSpin || 0) + dt * (K.bk === 1 ? K.bv : K.bk >= 0 ? 140 : 0) / 2.6;
   // the bike on its own (coming out of the portal, or riding off into one), drawn clipped to the portal's open side
-    // coming out, the bike is drawn over the portal for any heading from 4 o'clock round the top to 8 o'clock (screen); heading further down than that the portal covers it.
-  // going in, the same split mirrored (over it unless heading up past 10/2 o'clock)
-  const bkS = gDir(K.bh0 ?? K.hd ?? 0), bkFy = bkS[1] / (Math.hypot(bkS[0], bkS[1]) || 1), bkFront = K.bk === 0 ? bkFy < 0.5 : K.bk === 2 ? bkFy > -0.5 : false; if (K.bk === 0 || K.bk === 2) { if (bkFront || riding) ttBikePortal(c, K, t); }
+    // the bike is drawn over its portal whenever the portal sits level with or above it (from just under 9 o'clock round the top to just under 3 o'clock, seen from the bike):
+  // coming out that's any heading level or downward, going in any heading level or upward; only a portal clearly below the bike covers it
+  const bkS = gDir(K.bh0 ?? K.hd ?? 0), bkFy = bkS[1] / (Math.hypot(bkS[0], bkS[1]) || 1), bkFront = K.bk === 0 ? bkFy > -0.05 : K.bk === 2 ? bkFy < 0.05 : false; if (K.bk === 0 || K.bk === 2) { if (bkFront || riding) ttBikePortal(c, K, t); }
   // height of the bike off the ground: on the way in it rides out of the portal's centre and drops to the ground once clear of it;
   // on the way out it speeds up and climbs as if up a very slight slope, reaching the portal's centre as it goes in
   let bz = 0, bOut = 1; if (!riding && K.bk >= 0) { const Z0 = 4.5, fwB = gDir(K.bh0 ?? K.hd ?? 0), fl = Math.hypot(fwB[0], fwB[1] * 1.25) || 1;
