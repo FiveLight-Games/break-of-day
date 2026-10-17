@@ -53,7 +53,7 @@ body.editing #bring,body.editing #lst,body.editing #rst,body.editing #dash,body.
 .pnl .kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px}.pnl label{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0}.pnl input{width:18px;height:18px;accent-color:#f0c419}
 @media (orientation:portrait){.pnl{top:92px}.pnl .kgrid{grid-template-columns:repeat(2,1fr)}}
 button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none}
-#pst{display:none;right:10vw;border-color:#ffd34a99;background:#ffd34a1a}#pst .knob{background:#ffd34a66;border-color:#ffe28a}#pst small{color:#ffe28acc}#smash{display:none;position:fixed;left:22px;bottom:22px;width:140px;height:140px;border-radius:50%;padding:0;font:800 20px system-ui;letter-spacing:1px;background:#f0c41933;border:3px solid #ffd34a;color:#fff0b0;overflow:hidden;text-shadow:0 0 8px #ff9a00}#smash i{position:absolute;left:0;right:0;bottom:0;background:#ffd34a66;height:0}#smash span{position:relative}body.pen #pst,body.pen #smash{display:block}body.pen #lst,body.pen #rst,body.pen #dash,body.pen #aoe,body.pen #spin{display:none}body.priest #spin{background:#ffd34a26;border-color:#ffd34a;color:#ffe28a}body.priest #aoe.out{border-color:#fff3c4;box-shadow:0 0 12px #f0c419aa}@media (orientation:portrait){#smash{left:14px;bottom:18px;width:110px;height:110px;font-size:17px}#pst{right:8vw}}
+body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !important}#pst{display:none;right:10vw;border-color:#ffd34a99;background:#ffd34a1a}#pst .knob{background:#ffd34a66;border-color:#ffe28a}#pst small{color:#ffe28acc}#smash{display:none;position:fixed;left:22px;bottom:22px;width:140px;height:140px;border-radius:50%;padding:0;font:800 20px system-ui;letter-spacing:1px;background:#f0c41933;border:3px solid #ffd34a;color:#fff0b0;overflow:hidden;text-shadow:0 0 8px #ff9a00}#smash i{position:absolute;left:0;right:0;bottom:0;background:#ffd34a66;height:0}#smash span{position:relative}body.pen #pst,body.pen #smash{display:block}body.pen #lst,body.pen #rst,body.pen #dash,body.pen #aoe,body.pen #spin{display:none}body.priest #spin{background:#ffd34a26;border-color:#ffd34a;color:#ffe28a}body.priest #aoe.out{border-color:#fff3c4;box-shadow:0 0 12px #f0c419aa}@media (orientation:portrait){#smash{left:14px;bottom:18px;width:110px;height:110px;font-size:17px}#pst{right:8vw}}
 #bring{display:none;position:fixed;right:calc(10vw + 128px);bottom:150px;width:62px;height:62px;border-radius:50%;padding:0;font:800 10px/1.1 system-ui;background:#f0c4191a;border:2px solid #f0c41966;color:#f0c41999;opacity:.45;transition:opacity .2s,box-shadow .2s}body.priest #bring{display:block}body.priest #aoe.dim,#dash.dim{opacity:.45;pointer-events:none;transition:none}#bring.ready{opacity:1;background:#f0c41940;border-color:#fff3c4;color:#fff8e0;box-shadow:0 0 12px #f0c419aa}body.pen #bring,body.volc #bring{display:none}@media (orientation:portrait){#bring{right:calc(8vw + 44px);bottom:228px;width:52px;height:52px}}
 #help{position:fixed;left:50%;transform:translateX(-50%);bottom:6px;font-size:11px;color:#fff9;text-align:center;pointer-events:none}
 </style></head><body>
@@ -61,7 +61,7 @@ button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none
 <div id="lobbyUI"><div class="card" id="lcard"></div></div>
 <div id="note"></div>
 
-<div id="charP" class="pnl"><div class="hrow"><b>Character</b><button data-c="knight">Knight</button><button data-c="fire">Firebreather</button><button data-c="priest">Warpriest</button></div><div class="hrow" id="colRow"><b>Colour</b></div></div>
+<div id="charP" class="pnl"><div class="hrow"><b>Character</b><button data-c="knight">Knight</button><button data-c="fire">Firebreather</button><button data-c="priest">Warpriest</button><button data-c="sword">Swordmaster</button></div><div class="hrow" id="colRow"><b>Colour</b></div></div>
 <div id="horde" class="pnl"><div class="hrow"><b>Horde</b><button data-r="off" class="on">Off</button><button data-r="few">A few</button><button data-r="dozens">Dozens</button><button data-r="hundreds">Hundreds</button><button data-r="max">MAX</button></div>
 <div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button><button data-n="50">+50</button></div><div class="hrow"><span>Test</span><button id="fillUlt">Fill ult</button><button id="clear">Clear all enemies</button></div></div>
 <div id="layEd"><b id="layTitle">Control layout</b><span id="layHint">Drag a button's middle to move it, its rim to resize it.</span><div class="lrow"><span id="layName">Move stick</span><input type="range" id="laySize" min="44" max="230" step="1"><span id="laySizeV" class="lnum"></span></div><span id="layWarn"></span><div class="lrow"><button id="layReset">Reset</button><button id="layDone" class="pri2">Done</button></div></div>
@@ -180,11 +180,11 @@ function switchChar(kn, ch) {
   const keep = { i: kn.i, on: kn.on, col: kn.col, x: kn.x, y: kn.y, f: kn.f || 1, kills: kn.kills || 0, hits: kn.hits || 0, ultBase: kn.ultBase || 0, in: kn.in, chSeen: kn.chSeen, drT: kn.drT };
   for (const k of Object.keys(kn)) delete kn[k];
   Object.assign(kn, mkKnight(keep.i), keep, { T: { x: keep.x - HOME.x, y: keep.y - HOME.y }, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, dashSeen: keep.in.dashN || 0, leapSeen: keep.in.leapN || 0, ultSeen: keep.in.ultN || 0 });
-  const k0 = K; K = kn; if (ch === 'fire') makeFire(kn); else if (ch === 'priest') makePriest(kn); K = k0;
+  const k0 = K; K = kn; if (ch === 'fire') makeFire(kn); else if (ch === 'priest') makePriest(kn); else if (ch === 'sword') makeSword(kn); K = k0;
   for (let i = 0; i < 24; i++) { const a = rr(0, 6.28); sparks.push({ x: kn.x + rr(-3, 3), y: kn.y - rr(0, 14), vx: Math.cos(a) * rr(10, 40), vy: -rr(10, 50), t: 0, max: rr(0.4, 0.9) }); }
 }
 function setup() {
-  KN = []; for (let i = 0; i < NP; i++) KN.push(mkKnight(i)); K = KN[ME]; K.in.ch = CHAR; if (MYCOL) K.in.col = K.col = MYCOL; if (CHAR === 'fire') makeFire(K); else if (CHAR === 'priest') makePriest(K, true); GOUGE = [];
+  KN = []; for (let i = 0; i < NP; i++) KN.push(mkKnight(i)); K = KN[ME]; K.in.ch = CHAR; if (MYCOL) K.in.col = K.col = MYCOL; if (CHAR === 'fire') makeFire(K); else if (CHAR === 'priest') makePriest(K, true); else if (CHAR === 'sword') makeSword(K); GOUGE = [];
   // the host keeps empty seats empty after a reset
   if (NET && NET.mode === 'host') { const held = new Set(Object.values(NET.seats)); KN.forEach((kn, i) => { if (i && !held.has(i)) kn.on = 0; }); }
   walkers = []; parts = []; blood = []; splats = []; dust = []; sparks = []; camX = K.x; camY = K.y - 6;
@@ -1075,6 +1075,7 @@ function hitSnd(w) { snd(ARMOR[w.k] ? 'clank' : 'hit', w.x, w.y); }
 function sndWatch() {
   for (const kn of KN) {
     if (kn.kind === 'fire') { if (kn.st === 'pull' && !kn.sndLit) { kn.sndLit = 1; snd('pull', kn.x, kn.y); musGo(); } if (kn.plT >= 0 && !(kn.sndPl >= 0)) snd('plume', kn.x, kn.y); kn.sndPl = kn.plT; if (kn.cone > 0.3) snd(kn.plT >= 0 ? 'roar' : 'fire', kn.x, kn.y); if ((kn.tswN || 0) !== (kn.sndSw || 0)) { kn.sndSw = kn.tswN; snd('fwave', kn.x, kn.y); } if (kn.hits > (kn.snd ? kn.snd.hits : 0)) snd('ouch', kn.x, kn.y); kn.snd = { hits: kn.hits }; continue; }
+    if (kn.kind === 'sword') { const S = kn.snd && kn.snd.sm ? kn.snd : (kn.snd = { sm: 1, cut: kn.cutN, on: kn.cut >= 0 }); if (kn.st !== 'kneel' && !S.lit) { S.lit = 1; snd('pull', kn.x, kn.y); musGo(); } const on = kn.cut >= 0; if (on && (!S.on || (kn.cutN || 0) !== S.cut)) snd('swing', kn.x, kn.y); S.on = on; S.cut = kn.cutN || 0; if (kn.hits > (S.hits ?? kn.hits)) snd('ouch', kn.x, kn.y); S.hits = kn.hits; continue; }
     if (kn.kind === 'priest') { const S = kn.snd && kn.snd.wp ? kn.snd : (kn.snd = { wp: 1, hits: kn.hits, cen: kn.cenN, ab: kn.abId, pp: kn.pPh });
       if (kn.st === 'pull' && !S.lit) { S.lit = 1; snd('pull', kn.x, kn.y); musGo(); }
       if ((kn.cenN || 0) !== (S.cen || 0)) { S.cen = kn.cenN; snd('censer', kn.x, kn.y); }
@@ -1454,7 +1455,7 @@ const CO = { FRONT: 220, SPD: 150, W: 28, SIDE: 24, L0: 40, L1: 75, DMG: 110, DP
 const coW = L => CO.W * Math.pow((CO.L0 + CO.L1) / Math.max(L, 1), 0.53);
 const PL = { T: 3, CD: 12, Z: 27, SPD: 90, R: 41.6, HALF: 0.35, OFF: [34, 16], DPS: 320, KB: 140, DOWN: 0.6 };
 let MYCOL = null; try { MYCOL = localStorage.getItem('kn_col'); } catch (e) { }
-let CHAR = 'knight'; try { const c0 = localStorage.getItem('kn_char'); CHAR = c0 === 'fire' || c0 === 'priest' ? c0 : 'knight'; } catch (e) { }
+let CHAR = 'knight'; try { const c0 = localStorage.getItem('kn_char'); CHAR = c0 === 'fire' || c0 === 'priest' || c0 === 'sword' ? c0 : 'knight'; } catch (e) { }
 const pitOf = kn => [kn.T.x + STONE.x, kn.T.y + STONE.y + 1.5];
 function makeFire(kn) { Object.assign(kn, { fpos: kn.i * 2.5, brC: FIRE.BR_T, brH: 0, vPh: -1, vBel: -1, vSh: 0, ultSeen: kn.in.ultN || 0, vtSeen: kn.in.vtN || 0, lvSeen: kn.in.lvN || 0, lvC: 0, lvQ: 0, lava: 0, lvCd: 0, lvOn: 0, landT: 0, coSeen: kn.in.coN || 0, coT: -1, coCd: 0, plT: -1, plCd: 0, tsw: -1, tswN: 0, brOn: 0, brUse: 0, brCd: 0, waves: [], kind: 'fire', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
 const mouthOf = kn => kn.mouthW || [kn.x + kn.f * 3, kn.y - 12];
@@ -2308,6 +2309,128 @@ function drawSweepPreview(c, t) { const kn = KN[ME]; if (!DASHAIM || !kn || kn.k
   const e = ring2(kn.x, kn.y, T.a, T.r), pul = 0.5 + 0.5 * Math.sin(t * 8); c.translate(e[0], e[1]); c.scale(1, 0.5); c.fillStyle = `rgba(255,220,120,${0.25 + 0.1 * pul})`; c.beginPath(); c.arc(0, 0, WP.HR + 2, 0, 7); c.fill(); c.strokeStyle = 'rgba(255,240,190,.9)'; c.lineWidth = 0.6; c.stroke(); c.restore(); }
 // guest-side flags for chained / slowed enemies; host keeps the real timers
 function slowMark(c, w) { if (!(w.sl > 0 || w.slF) || w.hp <= 0) return; const U = UK[w.k]; c.strokeStyle = 'rgba(235,215,150,.6)'; c.lineWidth = 0.35; c.beginPath(); c.ellipse(w.x, w.y + 0.3, 2.6 * U.sc, 0.9 * U.sc, 0, 0, 7); c.stroke(); }
+// ======================= Swordmaster (kind 'sword') =======================
+// a duelist in a long open coat in his colour, a curved blade in each hand. Stick held = a running three-cut combo:
+// right (B) blade cuts down across, left (A) blade rises back through, then both cross in an X. Every cut starts from the pose he's in;
+// each blade cuts on any frame it's moving fast (like the Knight's swings). A = the facing-side arm, B = the other, nearest the camera, drawn last.
+const SM = { S: 0.78, RUN: 1.04, ATK: 0.72, T: [0.4, 0.38, 0.5], DMG: 75, KB: 26, LEN: 10.5, FAST: 6, GAP: 0.3 };
+const SMN = ['hx', 'hy', 'lean', 'hd', 'fAx', 'fAy', 'fBx', 'fBy', 'aAx', 'aAy', 'aBx', 'aBy', 'sa', 'sb', 'tw'];
+const smIdle = t => { const b = Math.sin(t * 2.2); return { hx: 0, hy: -8.6 + b * 0.12, lean: 0.06, hd: 0.04, fAx: 2.4, fAy: 0, fBx: -2.2, fBy: 0, aAx: 3.6, aAy: -9.4 + b * 0.15, aBx: -2.6, aBy: -8.6 + b * 0.15, sa: 0.55, sb: 2.55, tw: 0 }; };
+const smRun = ph => { const s = Math.sin(ph), c2 = Math.cos(ph); return { hx: 0.6, hy: -8.3 - Math.abs(c2) * 0.55, lean: 0.32, hd: 0.12, fAx: 1 + s * 3.4, fAy: -Math.max(0, -c2) * 1.8, fBx: 1 - s * 3.4, fBy: -Math.max(0, c2) * 1.8, aAx: -1.6 - s * 1.4, aAy: -9.2, aBx: -3.2 + s * 1.4, aBy: -9.6, sa: 2.75, sb: 2.95, tw: 0 }; };
+// each cut: cocked pose, the cut's end, its follow-through (hands relative to his feet, facing right; blade angles 0 = forward)
+const SMCUT = [
+  [{ aB: [-1.5, -17], sb: -2.1, aA: [3, -9.5], sa: 0.5, lean: -0.08, tw: -0.5 }, { aB: [6.5, -9.5], sb: 0.75, aA: [2.2, -10], sa: 0.7, lean: 0.22, tw: 0.4 }, { aB: [4.8, -6.5], sb: 1.35, aA: [2.2, -10.4], sa: 0.8, lean: 0.18, tw: 0.35 }],
+  [{ aA: [4.5, -5.5], sa: 1.9, aB: [-2.5, -9], sb: 2.6, lean: 0.15, tw: 0.4 }, { aA: [5.8, -16], sa: -1.1, aB: [-2.8, -9.2], sb: 2.7, lean: -0.05, tw: -0.35 }, { aA: [4.6, -16.2], sa: -1.6, aB: [-2.6, -9.4], sb: 2.6, lean: -0.08, tw: -0.4 }],
+  [{ aA: [2.5, -17], sa: -1.9, aB: [0.6, -17.5], sb: -2.3, lean: -0.12, tw: 0 }, { aA: [7, -8], sa: 0.9, aB: [6, -11.5], sb: -0.2, lean: 0.3, tw: 0.2 }, { aA: [6, -6.5], sa: 1.3, aB: [5.5, -8.5], sb: 0.6, lean: 0.24, tw: 0.15 }],
+];
+const smKey = (P, k) => Object.assign({}, P, { aAx: k.aA[0], aAy: k.aA[1], aBx: k.aB[0], aBy: k.aB[1], sa: k.sa, sb: k.sb, lean: k.lean, tw: k.tw });
+const smMix = (A, B, k) => { const o = {}; for (const n of SMN) o[n] = lerp(A[n], B[n], k); return o; };
+// where he is (target pose, before the drawing's own easing): idle/run blended by speed, the current cut on top
+function smTarget(kn, t) {
+  const sp = cl((kn.spd || 0) / (RUN * SM.RUN), 0, 1), base = smMix(smIdle(t), smRun(kn.gp * 0.42 || 0), sm(sp));
+  if (!(kn.cut >= 0)) return base;
+  const v = (kn.cutN || 0) % 3, C = SMCUT[v], q = cl(kn.cut / SM.T[v], 0, 1), stand = Object.assign({}, base, { fAx: lerp(base.fAx, 3.6, 0.7), fBx: lerp(base.fBx, -2.6, 0.7), hy: base.hy + 0.3 });
+  // from: the last cut's follow-through if this one chains straight on, otherwise the stance he's in
+  const from = kn.cutCh ? smKey(stand, SMCUT[(v + 2) % 3][2]) : stand;
+  let A, B, k; if (q < 0.35) { A = from; B = smKey(stand, C[0]); k = sm(q / 0.35); } else if (q < 0.6) { A = smKey(stand, C[0]); B = smKey(stand, C[1]); k = 1 - Math.pow(1 - (q - 0.35) / 0.25, 3); } else { A = smKey(stand, C[1]); B = smKey(stand, C[2]); k = sm((q - 0.6) / 0.4); }
+  const P = smMix(A, B, k);
+  // aiming up or down tilts the whole cut round his chest
+  const tl = kn.cutTl || 0; if (tl) { const cx = 0.6, cy = -13; for (const [a, b] of [['aAx', 'aAy'], ['aBx', 'aBy']]) { const dx = P[a] - cx, dy = P[b] - cy; P[a] = cx + dx * Math.cos(tl) - dy * Math.sin(tl); P[b] = cy + dx * Math.sin(tl) + dy * Math.cos(tl); } P.sa += tl; P.sb += tl; }
+  return P;
+}
+function makeSword(kn) { Object.assign(kn, { kind: 'sword', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, kn: 0, hold: 1, cut: -1, cutN: 0, cutA: 0, cutTl: 0, cutCh: 0, cutE: -9, smP: null, dashSeen: kn.in.dashN || 0, leapSeen: kn.in.leapN || 0, ultSeen: kn.in.ultN || 0, lvSeen: kn.in.lvN || 0 }); }
+// a blade's segment in the world (hilt end, tip) from a pose
+function smBlade(kn, P, w) { const h = w === 'A' ? [P.aAx, P.aAy] : [P.aBx, P.aBy], a = w === 'A' ? P.sa : P.sb, f = kn.f || 1, s = SM.S, W = v => [kn.x + v[0] * f * s, kn.y - (kn.z || 0) + v[1] * s];
+  return [W([h[0] + Math.cos(a) * 1, h[1] + Math.sin(a) * 1]), W([h[0] + Math.cos(a) * (SM.LEN + 0.6), h[1] + Math.sin(a) * (SM.LEN + 0.6)])]; }
+// each blade cuts whatever it sweeps through on any frame it's moving fast
+function smSweep(t) { const P = smTarget(K, t), id = K.i * 1e6 + (K.cutN || 0), ad = [Math.cos(K.cutA), Math.sin(K.cutA)];
+  for (const w of ['A', 'B']) { const seg = smBlade(K, P, w), key = 'bp' + w, prev = K[key] && K[key].id === id ? K[key].s : null, dt = Math.max(1e-3, t - ((K[key] && K[key].t) ?? t)); K[key] = { id, s: seg, t };
+    if (!prev || !AUTH()) continue; const la = Math.hypot(seg[1][0] - seg[0][0], seg[1][1] - seg[0][1]) || 1; if (Math.hypot(seg[1][0] - prev[1][0], seg[1][1] - prev[1][1]) / dt < SM.FAST * la) continue;
+    if (!K.swZ || K.swZ.id !== 'sm' + id) K.swZ = { id: 'sm' + id, q: [] }; K.swZ.q.push([prev[0], prev[1], seg[1], seg[0]]);
+    for (const wk of walkers) { if (wk.hp <= 0 || wk['sm' + w] === id) continue; const U = UK[wk.k], h = 9 * U.sc; let hit = false;
+      for (const j of [0.15, 0.5, 0.85]) { const p = [wk.x, wk.y - h * j]; if (inTri(p, prev[0], prev[1], seg[1]) || inTri(p, prev[0], seg[1], seg[0]) || ptSeg(p, seg[0], seg[1]) < U.r * 0.9) { hit = true; break; } }
+      if (!hit) continue; wk['sm' + w] = id; wk.atk = -1; wk.kx += ad[0] * SM.KB; wk.ky += ad[1] * SM.KB * 0.55; hurt(wk, SM.DMG, ww => cleaveFx(ww, ww.x >= K.x ? 1 : -1)); } } }
+function swordStep(dt, t) {
+  if (K.kind !== 'sword') makeSword(K);
+  const IN = K.in, mvL = Math.hypot(IN.mv[0], IN.mv[1]), mine = AUTH() || K.i === ME;
+  for (const k of ['dash', 'leap', 'ult', 'lv']) K[k + 'Seen'] = IN[k + 'N'] || 0; // no abilities yet
+  // the start: he stands with his blades low; any control and he's away
+  if (K.st === 'kneel') { K.vx = K.vy = 0; K.spd = 0; if (mine && (mvL > 0.2 || IN.aim)) { K.st = 'pull'; K.u = 0; } return; }
+  if (K.st === 'pull') { K.u += dt; if (K.u >= 0.25) K.st = 'fight'; }
+  // the combo: while the stick is held, cut after cut, each one chaining from the last; aim picks the side and tilts the cut
+  if (!(K.cut >= 0) && IN.aim && K.st === 'fight') { const a = Math.atan2(IN.aim[1], IN.aim[0]); K.cutCh = t - (K.cutE || -9) < SM.GAP ? 1 : 0; if (!K.cutCh) K.cutN = (K.cutN || 0) + (3 - (K.cutN || 0) % 3) % 3; K.cut = 0; K.cutA = a;
+    if (Math.abs(Math.cos(a)) > 0.2) K.f = Math.cos(a) >= 0 ? 1 : -1; K.cutTl = cl(Math.atan2(Math.sin(a), Math.abs(Math.cos(a))), -1.2, 1.2) * 0.75; }
+  if (K.cut >= 0) { K.cut += dt; smSweep(t); const v = (K.cutN || 0) % 3; if (K.cut >= SM.T[v]) { K.cut = -1; K.cutE = t; K.cutN = (K.cutN || 0) + 1; } }
+  const v2 = RUN * SM.RUN * (K.cut >= 0 ? SM.ATK : 1);
+  if (mvL > 0.12) { const k = Math.min(1, mvL); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, 1 - Math.exp(-dt * 14)); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, 1 - Math.exp(-dt * 14)); } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
+  const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy);
+  K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.5;
+  if (!(K.cut >= 0) && mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1;
+  if (K.st !== 'pull') K.st = 'fight';
+}
+// ---- drawing ----
+const SMC = { CREAM: '#efe2c0', GOLD: '#e0b84a', GOLDD: '#9c7a26', ROBE: '#2a2733', SASH: '#d9c79a', SKIN: '#e8c39a', HAIR: '#3b2a20', BOOT: '#2b2420', STEEL: '#d7dde4', STEELD: '#8b949e' };
+const smL = (c, a, b, w, col) => { c.strokeStyle = col; c.lineWidth = w; c.lineCap = 'round'; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); };
+const smE = (c, x0, y0, rx, ry, col, r = 0) => { c.fillStyle = col; c.beginPath(); c.ellipse(x0, y0, rx, ry, r, 0, 7); c.fill(); };
+function smIk(r, tg, a, b, bend) { let dx = tg[0] - r[0], dy = tg[1] - r[1], d = Math.hypot(dx, dy); const dd = Math.min(d, a + b - 0.01), k = d ? dd / d : 0; dx *= k; dy *= k; d = dd;
+  const ca = cl((a * a + d * d - b * b) / (2 * a * d || 1), -1, 1), ang = Math.atan2(dy, dx) + bend * Math.acos(ca); return [r[0] + Math.cos(ang) * a, r[1] + Math.sin(ang) * a]; }
+function smBladeArt(c, h, a, near) { const C = SMC, dx = Math.cos(a), dy = Math.sin(a), px = -dy, py = dx, len = SM.LEN, tip = [h[0] + dx * len, h[1] + dy * len], cv = 1.1;
+  smL(c, [h[0] - dx * 2.2, h[1] - dy * 2.2], [h[0] + dx * 0.6, h[1] + dy * 0.6], 0.85, '#1c1714'); smE(c, h[0] - dx * 2.2, h[1] - dy * 2.2, 0.45, 0.45, C.GOLD); smE(c, h[0] + dx * 0.7, h[1] + dy * 0.7, 0.75, 0.75, C.GOLDD);
+  const b0 = [h[0] + dx * 0.9, h[1] + dy * 0.9], m = [(b0[0] + tip[0]) / 2 - px * cv, (b0[1] + tip[1]) / 2 - py * cv];
+  c.fillStyle = C.STEELD; c.beginPath(); c.moveTo(b0[0] + px * 0.42, b0[1] + py * 0.42); c.quadraticCurveTo(m[0] + px * 0.55, m[1] + py * 0.55, tip[0], tip[1]); c.quadraticCurveTo(m[0] - px * 0.25, m[1] - py * 0.25, b0[0] - px * 0.32, b0[1] - py * 0.32); c.closePath(); c.fill();
+  c.strokeStyle = near ? '#fff' : C.STEEL; c.lineWidth = 0.32; c.beginPath(); c.moveTo(b0[0] - px * 0.2, b0[1] - py * 0.2); c.quadraticCurveTo(m[0] - px * 0.15, m[1] - py * 0.15, tip[0], tip[1]); c.stroke(); }
+function smArm(c, sh, hand, bend, sleeve) { const el = smIk(sh, hand, 3.6, 3.5, bend);
+  smL(c, sh, el, 2.0, shade(sleeve, -0.1)); smL(c, el, hand, 1.75, sleeve); smL(c, [lerp(el[0], hand[0], 0.75), lerp(el[1], hand[1], 0.75)], hand, 1.9, SMC.CREAM); smE(c, hand[0], hand[1], 0.85, 0.85, SMC.SKIN); }
+function smLeg(c, hip, ft, near) { const kn = smIk(hip, [ft[0], ft[1] - 0.4], 4.3, 4.2, -1), col = near ? '#3a3542' : '#2e2a36';
+  smL(c, hip, kn, 2.1, col); smL(c, kn, [ft[0], ft[1] - 0.6], 1.8, col); smL(c, [ft[0], ft[1] - 1.6], [ft[0], ft[1] - 0.4], 2.0, SMC.BOOT); smE(c, ft[0] + 0.5, ft[1] - 0.35, 1.25, 0.55, SMC.BOOT); }
+// a short pale arc behind a blade while it's cutting fast
+function smSwish(c, h, a, d, al) { if (al < 0.03) return; c.strokeStyle = `rgba(235,245,255,${al})`; c.lineWidth = 2.2; c.lineCap = 'round'; c.beginPath(); c.arc(h[0], h[1], 8.5, a - d * 0.9, a, d < 0); c.stroke(); }
+function drawSword(c, t) {
+  const dt = Math.min(0.1, Math.max(0, t - (K.smT ?? t))); K.smT = t; const C = SMC;
+  // every value eases toward where he should be, so nothing ever jumps (cuts ease fast, the rest slower)
+  const T = smTarget(K, t); if (!K.smP) K.smP = Object.assign({}, T); const P = K.smP, ek = 1 - Math.exp(-dt * (K.cut >= 0 ? 28 : 16)), pa = P.sa, pb = P.sb; for (const n of SMN) P[n] = lerp(P[n], T[n], ek);
+  const spA = (P.sa - pa) / Math.max(dt, 1e-3), spB = (P.sb - pb) / Math.max(dt, 1e-3);
+  const f = K.f || 1, vx = (K.vx || 0) * f, sp = cl(Math.abs(K.spd || 0) / 60, 0, 1), z = K.z || 0;
+  c.save(); c.translate(K.x, K.y - z); c.scale(SM.S * f, SM.S);
+  smE(c, 0.4, 0.3, 6, 1.6, 'rgba(0,0,0,.28)');
+  const hip = [P.hx, P.hy], lean = P.lean, neck = [hip[0] + Math.sin(lean) * 7, hip[1] - Math.cos(lean) * 7], tw = P.tw;
+  const shA = [neck[0] + 1.15 + tw * 0.4, neck[1] + 0.5], shB = [neck[0] - 1.4 + tw * 0.6, neck[1] + 0.7], head = [neck[0] + Math.sin(lean + P.hd) * 2.6, neck[1] - 2.4];
+  const flow = sp * (vx >= -5 ? 1 : 0.6) + Math.sin(t * 3.1) * 0.12, waist = [lerp(hip[0], neck[0], 0.25), lerp(hip[1], neck[1], 0.25)];
+  const hA = [P.aAx, P.aAy], hB = [P.aBx, P.aBy];
+  // A/B order: A (facing side) goes behind the body when its hand is low and back; a blade pointing back past him goes behind the body too
+  const aBehind = hA[0] < neck[0] - 0.5 && hA[1] > neck[1] + 2;
+  const bladeBackA = Math.cos(P.sa) < -0.3 && hA[0] < neck[0] + 1, bladeBackB = Math.cos(P.sb) < -0.3 && hB[0] < neck[0] + 1;
+  const swA = () => smSwish(c, hA, P.sa, Math.sign(spA) || 1, cl((Math.abs(spA) - 6) / 14, 0, 0.5)), swB = () => smSwish(c, hB, P.sb, Math.sign(spB) || 1, cl((Math.abs(spB) - 6) / 14, 0, 0.5));
+  // hair tail and the back coat tail behind everything
+  { const r = [head[0] - 1.6, head[1] - 0.2], e1 = [r[0] - 2.2 - flow * 3.2, r[1] + 3.2 - flow * 1.6], e2 = [e1[0] - 1.2 - flow * 2.4, e1[1] + 3.6 - flow * 2.2 + Math.sin(t * 4) * 0.3];
+    c.strokeStyle = C.HAIR; c.lineCap = 'round'; c.lineWidth = 1.9; c.beginPath(); c.moveTo(r[0], r[1]); c.quadraticCurveTo(e1[0], e1[1], e2[0], e2[1]); c.stroke(); c.lineWidth = 1.1; c.beginPath(); c.moveTo(e1[0], e1[1]); c.lineTo(e2[0] - 0.6, e2[1] + 0.9); c.stroke(); }
+  { const b = [waist[0] - 1.6, waist[1]], tip = [hip[0] - 3.6 - flow * 5, hip[1] + 6.4 - flow * 2.8]; c.fillStyle = shade(COL, -0.32); c.beginPath(); c.moveTo(b[0] + 1.5, b[1]); c.lineTo(b[0] - 0.2, b[1]); c.quadraticCurveTo(tip[0] + 1.2, (b[1] + tip[1]) / 2, tip[0], tip[1]); c.lineTo(tip[0] + 2.4, tip[1] + 0.4); c.closePath(); c.fill(); }
+  if (bladeBackB) { swB(); smBladeArt(c, hB, P.sb, true); }
+  if (bladeBackA && !aBehind) { swA(); smBladeArt(c, hA, P.sa, false); }
+  smLeg(c, [hip[0] - 0.5, hip[1]], [P.fBx, P.fBy], false);
+  if (aBehind) { swA(); smBladeArt(c, hA, P.sa, false); smArm(c, shA, hA, 1, shade(COL, -0.2)); }
+  smLeg(c, [hip[0] + 0.5, hip[1]], [P.fAx, P.fAy], true);
+  // torso: under-robe, sash, open coat in his colour with cream trim, collar and gold clasp
+  { const n = neck, w = waist; c.fillStyle = C.ROBE; c.beginPath(); c.moveTo(n[0] - 1.9, n[1] + 0.4); c.lineTo(n[0] + 1.9, n[1] + 0.4); c.lineTo(w[0] + 1.8, w[1] + 0.2); c.lineTo(w[0] - 1.8, w[1] + 0.2); c.closePath(); c.fill();
+    c.fillStyle = C.SASH; c.beginPath(); c.moveTo(w[0] - 2.1, w[1] - 0.9); c.lineTo(w[0] + 2.1, w[1] - 0.9); c.lineTo(w[0] + 2.1, w[1] + 0.5); c.lineTo(w[0] - 2.1, w[1] + 0.5); c.closePath(); c.fill();
+    smL(c, [w[0] + 1.6, w[1] + 0.3], [w[0] + 2.6 - flow * 1.2, w[1] + 3.0], 0.7, C.SASH);
+    const ft = [hip[0] + 2.3 - flow * 2.4, hip[1] + 6.2 - flow * 1.2];
+    c.fillStyle = COL; c.beginPath(); c.moveTo(n[0] - 0.4, n[1] + 0.2); c.lineTo(n[0] + 2.2, n[1] + 0.6); c.quadraticCurveTo(w[0] + 2.4, w[1], ft[0] + 1.2, ft[1]); c.lineTo(ft[0] - 1.4, ft[1] + 0.3); c.quadraticCurveTo(w[0] + 0.4, w[1] + 1, n[0] - 0.4, n[1] + 0.2); c.fill();
+    c.strokeStyle = C.CREAM; c.lineWidth = 0.45; c.beginPath(); c.moveTo(n[0] - 0.4, n[1] + 0.2); c.quadraticCurveTo(w[0] + 0.4, w[1] + 1, ft[0] - 1.4, ft[1] + 0.3); c.stroke();
+    c.strokeStyle = C.GOLD; c.lineWidth = 0.35; c.beginPath(); c.moveTo(ft[0] - 1.4, ft[1] + 0.3); c.lineTo(ft[0] + 1.2, ft[1]); c.stroke();
+    c.fillStyle = shade(COL, -0.15); c.beginPath(); c.moveTo(n[0] - 2.2, n[1] + 0.6); c.lineTo(n[0] - 0.4, n[1] + 0.1); c.quadraticCurveTo(w[0] - 0.6, w[1] + 0.6, w[0] - 1.6, w[1] + 1.5); c.lineTo(w[0] - 2.3, w[1] + 0.6); c.closePath(); c.fill();
+    c.fillStyle = C.CREAM; c.beginPath(); c.moveTo(n[0] - 1.2, n[1] - 0.5); c.lineTo(n[0] + 1.3, n[1] - 0.4); c.lineTo(n[0] + 0.4, n[1] + 1.4); c.closePath(); c.fill(); smE(c, n[0] + 0.3, n[1] + 1.6, 0.4, 0.4, C.GOLD); }
+  if (!aBehind) { if (!bladeBackA) { swA(); smBladeArt(c, hA, P.sa, false); } smArm(c, shA, hA, 1, shade(COL, -0.12)); }
+  // head: face, hair, cloth band with trailing ends
+  { const h = head; smE(c, h[0] + 0.3, h[1], 1.75, 2.05, C.SKIN); smE(c, h[0] + 1.25, h[1] - 0.1, 0.22, 0.3, '#2a1d16');
+    c.fillStyle = C.HAIR; c.beginPath(); c.moveTo(h[0] - 1.9, h[1] + 1.6); c.quadraticCurveTo(h[0] - 2.4, h[1] - 2.6, h[0] + 0.4, h[1] - 2.3); c.quadraticCurveTo(h[0] + 2.2, h[1] - 2.0, h[0] + 2.0, h[1] - 0.9); c.quadraticCurveTo(h[0] + 0.6, h[1] - 1.6, h[0] - 0.2, h[1] - 0.6); c.quadraticCurveTo(h[0] - 0.8, h[1] + 0.6, h[0] - 1.9, h[1] + 1.6); c.fill();
+    c.fillStyle = C.CREAM; c.beginPath(); c.moveTo(h[0] - 1.9, h[1] - 1.2); c.lineTo(h[0] + 1.95, h[1] - 1.5); c.lineTo(h[0] + 1.95, h[1] - 0.95); c.lineTo(h[0] - 1.9, h[1] - 0.6); c.closePath(); c.fill();
+    smL(c, [h[0] - 1.9, h[1] - 0.9], [h[0] - 3.3 - flow * 2.4, h[1] + 0.2 - flow * 0.4 + Math.sin(t * 5) * 0.25], 0.45, C.CREAM); smL(c, [h[0] - 1.9, h[1] - 0.8], [h[0] - 2.8 - flow * 2.0, h[1] + 1.2 - flow * 0.2], 0.4, shade(C.CREAM, -0.1)); }
+  // B, nearest the camera, last: its blade (unless it points back past him), then the arm with the hand over the grip
+  if (!bladeBackB) { swB(); smBladeArt(c, hB, P.sb, true); } smArm(c, shB, hB, -1, COL);
+  if (window.__labelArms) for (const [sh, h, txt, col] of [[shA, hA, 'A', '#ff3b30'], [shB, hB, 'B', '#1e90ff']]) { const m = [lerp(sh[0], h[0], 0.5), lerp(sh[1], h[1], 0.5)]; c.save(); c.translate(m[0], m[1]); c.scale(f, 1); c.fillStyle = col; c.beginPath(); c.arc(0, 0, 0.75, 0, 7); c.fill(); c.fillStyle = '#fff'; c.font = '700 1.1px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 0, 0.05); c.restore(); }
+  c.restore();
+}
 // ---------- sim ----------
 let spawnT = 0;
 // kills are logged so the guest can play the same dismemberment
@@ -2317,7 +2440,7 @@ const cleaveFx = (w, dir) => { EV.push([w.id, 0, dir, K.i, Math.round(w.x * 10) 
 const spinFx = w => { EV.push([w.id, 1, 0, K.i, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10]); spinKill(w); };
 function step(dt, t) {
   worldStep(dt, t);
-  for (const kn of KN) { if (kn.on === 0) continue; if (kn.in.col && kn.in.col !== kn.col && /^#[0-9a-f]{6}$/i.test(kn.in.col)) kn.col = kn.in.col; if ((kn.in.chN || 0) !== (kn.chSeen || 0)) { kn.chSeen = kn.in.chN || 0; switchChar(kn, kn.in.ch || 'knight'); } K = kn; if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else if (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) priestStep(dt, t); else knightStep(dt, t); }
+  for (const kn of KN) { if (kn.on === 0) continue; if (kn.in.col && kn.in.col !== kn.col && /^#[0-9a-f]{6}$/i.test(kn.in.col)) kn.col = kn.in.col; if ((kn.in.chN || 0) !== (kn.chSeen || 0)) { kn.chSeen = kn.in.chN || 0; switchChar(kn, kn.in.ch || 'knight'); } K = kn; if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else if (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) priestStep(dt, t); else if (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) swordStep(dt, t); else knightStep(dt, t); }
   K = KN[ME];
   volcFx(dt, t); wpFx(dt, t);
   if (K.hits > lastHits) { hurtT = 0.12; } lastHits = K.hits; hurtT = Math.max(0, hurtT - dt);
@@ -2506,10 +2629,10 @@ function draw() {
   for (const [, k, o] of list) {
     if (k < 2) { K = o; COL = o.col; }
     if (k === 4) { COL = o.col; drawFlail(x, o, t); K = KN[ME]; continue; }
-    if (k === 0 && K.kind === 'priest') continue;
+    if (k === 0 && (K.kind === 'priest' || K.kind === 'sword')) continue;
     if (k === 0 && K.kind === 'fire') { const pt = pitOf(K); x.save(); x.translate(pt[0], pt[1]); FBX.firePit(x, 5, t, FBX.pal(5)); x.restore(); continue; }
     if (k === 0) { x.save(); x.translate(K.T.x, K.T.y); boulder(x, t, !(K.st === 'kneel' || (K.st === 'pull' && !K.hold) || (K.st === 'sheathe' && !K.hold)), K.slotGlow); if (!K.hold) { x.translate(STONE.x, STONE.y); x.scale(KS, KS); x.beginPath(); x.rect(-20, -30, 40, 30 - 4.3 / KS); x.clip(); sword(x, [0, -4.3 / KS - 1.3 - 1.1], Math.PI / 2, 10.5); } x.restore(); }
-    else if (k === 1) { if (K.kind === 'fire') drawFire(x, t); else if (K.kind === 'priest') drawPriest(x, t); else drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; if (K.i !== ME) x.fillText((NET && NET.names && NET.names[K.i]) || pName(K.i), K.x, K.y - (K.kind === 'priest' ? 23 + (K.z || 0) : 17 * (K.sz || 1))); } }
+    else if (k === 1) { if (K.kind === 'fire') drawFire(x, t); else if (K.kind === 'priest') drawPriest(x, t); else if (K.kind === 'sword') drawSword(x, t); else drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; if (K.i !== ME) x.fillText((NET && NET.names && NET.names[K.i]) || pName(K.i), K.x, K.y - (K.kind === 'priest' ? 23 + (K.z || 0) : 17 * (K.sz || 1))); } }
     else if (k === 2) walker(x, o, t);
     else { x.fillStyle = 'rgba(0,0,0,.2)'; x.beginPath(); x.ellipse(o.x, o.y + 0.5, 1.6, 0.6, 0, 0, 7); x.fill(); drawPartFast(x, o); }
   }
@@ -2736,12 +2859,12 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cutCh'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
 const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
 // a player is called by their character; a second one of the same gets a number (Knight 2)
-const cName = kn => kn && (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) ? 'Firebreather' : kn && (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) ? 'Warpriest' : 'Knight';
+const cName = kn => kn && (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) ? 'Firebreather' : kn && (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) ? 'Warpriest' : kn && (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) ? 'Swordmaster' : 'Knight';
 const pName = i => { const kn = KN[i], n = cName(kn), same = LIVE().filter(o => cName(o) === n); return same.length > 1 && kn ? n + ' ' + (same.indexOf(kn) + 1) : n; };
 // kept small: with 4 players and MAX hordes a snapshot carries ~500 enemies; positions to 0.5 units (guests ease toward them anyway)
 const packW = w => [w.id, UKEYS.indexOf(w.k), Math.round(w.x * 2) / 2, Math.round(w.y * 2) / 2, Math.round(w.hp), w.max, Math.round(w.atk * 10) / 10, w.hit > 0 ? 1 : 0, w.tk, (w.bd > 0 ? 1 : 0) | (w.bT > 0 ? 2 : 0) | (w.sl > 0 ? 4 : 0)];
@@ -2756,7 +2879,7 @@ function renderGames() { const el = document.getElementById('lGames'), nt = docu
   el.querySelectorAll('[data-code]').forEach(b => b.onclick = () => join(b.dataset.code)); }
 function browse(on) { if (dirT) clearInterval(dirT); dirT = null; if (on) { fetchGames(); dirT = setInterval(fetchGames, 5000); } }
 // the host lists its game while it has room, the whole time it's running (people can join mid-fight)
-function gameRow() { const L2 = NET.started ? LIVE() : [], j = Math.max(1, L2.length), open = j < MAXP, chars = NET.started ? L2.map(kn => cName(kn)).join(', ') : (CHAR === 'fire' ? 'Firebreather' : CHAR === 'priest' ? 'Warpriest' : 'Knight');
+function gameRow() { const L2 = NET.started ? LIVE() : [], j = Math.max(1, L2.length), open = j < MAXP, chars = NET.started ? L2.map(kn => cName(kn)).join(', ') : (CHAR === 'fire' ? 'Firebreather' : CHAR === 'priest' ? 'Warpriest' : CHAR === 'sword' ? 'Swordmaster' : 'Knight');
   return { code: 'KN' + NET.code, name: ((myName !== 'Knight' ? myName + "'s" : 'Open') + ' brawl').slice(0, 40), host: myName.slice(0, 20), mode: 'brawl', n: MAXP, joined: open ? Math.min(j, MAXP - 1) : MAXP, heroes: (chars + '|' + j + '/' + MAXP).slice(0, 120), version: DIRV() }; }
 function advertise() { const sb = getSB(); if (!sb || !NET || NET.mode !== 'host') return; advertised = 'KN' + NET.code;
   const beat = () => { if (!NET || NET.mode !== 'host') return unadvertise(); sb.from('bod_lobbies').upsert(gameRow(), { onConflict: 'code' }).then(() => { }, () => { }); }; NET.beat = beat; beat(); if (!beatT) beatT = setInterval(beat, 5000); }
@@ -2769,12 +2892,12 @@ function lobby(screen, extra) {
     <div class="gh"><b>Open games</b><span id="lDirNote">${DIR.ready ? '' : 'Looking…'}</span></div><div class="games" id="lGames"></div>
     <button class="big pri" id="lHost" ${getSB() ? '' : 'disabled'}>Host a game</button>
     <input id="lCode" maxlength="4" placeholder="CODE" autocomplete="off"><button class="big" id="lJoin" ${getSB() ? '' : 'disabled'}>Join with code</button>
-    <div class="chars"><button id="cKnight" class="${CHAR === 'knight' ? 'on' : ''}">Knight</button><button id="cFire" class="${CHAR === 'fire' ? 'on' : ''}">Firebreather</button><button id="cPriest" class="${CHAR === 'priest' ? 'on' : ''}">Warpriest</button></div><button class="big" id="lSolo">Play solo</button><button id="lLay">Control layout</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
+    <div class="chars"><button id="cKnight" class="${CHAR === 'knight' ? 'on' : ''}">Knight</button><button id="cFire" class="${CHAR === 'fire' ? 'on' : ''}">Firebreather</button><button id="cPriest" class="${CHAR === 'priest' ? 'on' : ''}">Warpriest</button><button id="cSword" class="${CHAR === 'sword' ? 'on' : ''}">Swordmaster</button></div><button class="big" id="lSolo">Play solo</button><button id="lLay">Control layout</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
   else if (screen === 'hosting') LC.innerHTML = `<h1>Knight Brawl</h1><p>Give your friends this code</p><div class="code">${NET.code}</div><p>Waiting for players (up to 4; others can join any time)…</p>
     <button class="big" id="lSoloH">Start now (they can still join)</button><button id="lCancel">Cancel</button>`;
   else if (screen === 'joining') LC.innerHTML = `<h1>Knight Brawl</h1><p>Joining <b>${NET.code}</b>…</p><button id="lCancel">Cancel</button>`;
   const on = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
-  on('lHost', host); on('lLay', () => layOpen(true)); const pick = c => { CHAR = c; try { localStorage.setItem('kn_char', c); } catch (e) { } charUI(c); applyLayout(); lobby('home'); }; on('cKnight', () => pick('knight')); on('cFire', () => pick('fire')); on('cPriest', () => pick('priest')); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
+  on('lHost', host); on('lLay', () => layOpen(true)); const pick = c => { CHAR = c; try { localStorage.setItem('kn_char', c); } catch (e) { } charUI(c); applyLayout(); lobby('home'); }; on('cKnight', () => pick('knight')); on('cFire', () => pick('fire')); on('cPriest', () => pick('priest')); on('cSword', () => pick('sword')); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
   if (screen === 'home') renderGames();
   on('lJoin', () => { const c = (document.getElementById('lCode').value || '').toUpperCase().replace(/[^A-Z]/g, ''); if (c.length !== 4) return lobby('home', 'Enter the 4-letter code.'); join(c); });
   on('lCancel', () => { leave(); lobby('home'); });
@@ -2847,10 +2970,10 @@ function applySnap(S) {
 }
 // ---------- control layout: each player drags/resizes the touch controls, per character and orientation (saved on this device) ----------
 const CTLS = { move: ['lst', 'Move stick'], swing: ['rst', 'Swing stick'], dash: ['dash', 'Dash aim'], leap: ['aoe', 'Leap aim'], spin: ['spin', 'Spin button'], ult: ['ult', 'Ult button'], breath: ['bst', 'Breath stick'], bring: ['bring', 'Bring in button'] };
-const layCh = () => CHAR === 'fire' || CHAR === 'priest' ? CHAR : 'knight';
+const layCh = () => CHAR === 'fire' || CHAR === 'priest' || CHAR === 'sword' ? CHAR : 'knight';
 // the HUD for the character being played: which controls show and what they're called
 let CHAR_UI = null;
-function charUI(kind) { CHAR_UI = kind; const fire = kind === 'fire', pr = kind === 'priest'; document.getElementById('help').textContent = fire ? 'WASD/arrows move · hold mouse to breathe at the cursor · E lava · hold Shift to ride a plume the way you move · hold Q to aim the coals at the cursor, release to run them · R volcano, then click to erupt · wheel zoom' : pr ? 'WASD/arrows move · hold mouse to swing the censer toward the cursor · Shift sweep the flail at the cursor · hold Q to aim the slam, release to throw (again to pull yourself to it) · F bring the head in · E holy flame · R penance: WASD/mouse steer the flail, Space smash · wheel zoom' : 'WASD/arrows move · hold mouse to swing toward cursor · Space spin · Shift dash where you\'re moving · hold Q to aim the leap at the cursor, release to jump · R ult · wheel zoom'; document.body.classList.toggle('fire', fire); document.body.classList.toggle('priest', pr); document.querySelector('#rst small').textContent = fire ? 'breath' : pr ? 'censer' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : pr ? 'sweep' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : pr ? 'slam' : 'leap'; document.querySelector('#spin span').textContent = fire ? 'LAVA' : pr ? 'HOLY' : 'SPIN'; }
+function charUI(kind) { CHAR_UI = kind; const fire = kind === 'fire', pr = kind === 'priest', swd = kind === 'sword'; document.body.classList.toggle('sword', swd); document.getElementById('help').textContent = fire ? 'WASD/arrows move · hold mouse to breathe at the cursor · E lava · hold Shift to ride a plume the way you move · hold Q to aim the coals at the cursor, release to run them · R volcano, then click to erupt · wheel zoom' : pr ? 'WASD/arrows move · hold mouse to swing the censer toward the cursor · Shift sweep the flail at the cursor · hold Q to aim the slam, release to throw (again to pull yourself to it) · F bring the head in · E holy flame · R penance: WASD/mouse steer the flail, Space smash · wheel zoom' : swd ? 'WASD/arrows move · hold mouse to cut toward the cursor (a three-cut combo while held) · wheel zoom' : 'WASD/arrows move · hold mouse to swing toward cursor · Space spin · Shift dash where you\'re moving · hold Q to aim the leap at the cursor, release to jump · R ult · wheel zoom'; document.body.classList.toggle('fire', fire); document.body.classList.toggle('priest', pr); document.querySelector('#rst small').textContent = fire ? 'breath' : pr ? 'censer' : swd ? 'blades' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : pr ? 'sweep' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : pr ? 'slam' : 'leap'; document.querySelector('#spin span').textContent = fire ? 'LAVA' : pr ? 'HOLY' : 'SPIN'; }
 let LAY = {}; try { LAY = JSON.parse(localStorage.getItem('kn_layout') || '{}') || {}; } catch (e) { }
 // plume and coals swapped places: carry a Firebreather layout saved before that over, so his saved spots swap too
 if (LAY.fire && !LAY.fire.sw1) { for (const o of ['landscape', 'portrait']) { const L = LAY.fire[o]; if (L) { const d = L.dash; L.dash = L.leap; L.leap = d; if (!L.dash) delete L.dash; if (!L.leap) delete L.leap; } } LAY.fire.sw1 = 1; try { localStorage.setItem('kn_layout', JSON.stringify(LAY)); } catch (e) { } }
@@ -2922,7 +3045,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '710855';
+const KBUILD = '32aa57';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
