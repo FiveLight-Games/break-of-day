@@ -89,7 +89,7 @@ const sm = k => k * k * (3 - 2 * k), lerp = (a, b, k) => a + (b - a) * k, L2 = (
 let mode = 'play', speed = 1, foes = false;
 const W = 640, H = 540, LANE_Y = 290; // field grown 90 up and 90 down from 360/200
 // tuning (demo units = game pixels)
-const AGGRO = 95, LEASH = 110, RUN = 62, WALKB = 26, SWING = 1.02, CLEAVE_R = 13, CLEAVE_DMG = 112, CLEAVE_ARC = 1.9, SPIN_CD = 6, SPIN_T = 1.87, SPIN_TURNS = 4, SPIN_O = 0, SPIN_MOM = 0, PRE_T = 0.5, SPIN_R = 22, SPIN_DMG = 160;
+const AGGRO = 95, LEASH = 110, RUN = 62, WALKB = 26, SWING = 1.02, CLEAVE_R = 13, CLEAVE_DMG = 112, CLEAVE_ARC = 1.9, SPIN_CD = 6, SPIN_T = 1.87, SPIN_TURNS = 4, SPIN_O = 0, SPIN_MOM = 0, PRE_T = 0.5, SPIN_R = 22, SPIN_DMG = 160, SPIN_SZ = 1.3;
 let K = null, walkers = [], parts = [], blood = [], splats = [], dust = [], sparks = [];
 function srand(s) { return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
 function shade(h, k) { const p = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); return '#' + p.map(v => Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k))).toString(16).padStart(2, '0')).join(''); }
@@ -210,7 +210,7 @@ const SW_C = [G_, [0.2, 1.1, -0.1, -0.7, 0.2, 2.6, 2.9, 0.2], [0.3, 1.0, -0.12, 
 // each swing deals damage for as long as the blade is moving at speed (over SWFAST rad/s, wind-ups included): worked out from its keys
 const SWFAST = 6;
 const SWWIN = [SW_A, SW_B, SW_C].map(ks => { let a = 1, b = 0, pv = kfnS(0, ks)[6]; for (let u = 0.01; u <= 1; u += 0.01) { const v = kfnS(u, ks)[6]; if (Math.abs(v - pv) / 0.01 / SWING > SWFAST) { a = Math.min(a, u - 0.01); b = u; } pv = v; } return [a, b]; });
-const SWSZ = [1, 1.35, 1.35 * 1.35], swSz = kn => kn.swing >= 0 && !(kn.ultPh >= 0) ? SWSZ[(kn.swN || 0) % 3] : 1;
+const SWSZ = [1, 1.35, 1.35 * 1.35], swSz = kn => kn.swing >= 0 && !(kn.ultPh >= 0) ? SWSZ[(kn.swN || 0) % 3] : (kn.spin >= 0 || kn.preGlow) && !(kn.ultPh >= 0) ? SPIN_SZ : 1;
 const PRE = [0, 1.3, 0.25, -1.0, -1.6, 4.0, 2.75, 0.6];
 // ---------------- abilities: dashing slice (8-way pad) and leap slam (aimed circle) ----------------
 const GIANT_DR = 0.65, PART_CAP = 900, US_HIT = 0.62, US_END = 1.35, ULT_KILLS = 450, ULT_KILLS_FIRE = 300, ULT_T = 12, UT_IN = 1.2, UT_OUT = 0.7, ULT_SZ = 3, ULT_DMG = 700, ULT_SLAM_R = 78, ULT_LEAP = 2.25, ULT_CR = 1.0;
@@ -3328,7 +3328,7 @@ function stepK(dt, t) {
       const sw = spinSwept(), th = K.spinA0 + K.spinDir * (sw - SPIN_O), bs = spinSector(Math.atan2(Math.sin(th) * 0.45, Math.cos(th)));
       if (bs !== K.sec) { K.sec = bs; K.secN = (K.secN || 0) + 1; }
       // 8 pie slices round him, in screen space: only the slice the blade is in can be hit, once per pass, and only after the blade has come round from the coil
-      if (sw >= SPIN_MOM && AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.x, dy = (w.y - 5 * UK[w.k].sc) - (K.y - 7), rx = 25 + UK[w.k].r - 2.1; if ((dx / rx) ** 2 + (dy / (12 + UK[w.k].r - 2.1)) ** 2 > 1) continue; if (spinSector(Math.atan2(dy, dx)) !== bs || w.spun === K.secN) continue; w.spun = K.secN; const a = Math.atan2(w.y - K.y, w.x - K.x); w.kx += Math.cos(a) * 40; w.ky += Math.sin(a) * 22; w.atk = -1; hurt(w, SPIN_DMG, spinFx); }
+      if (sw >= SPIN_MOM && AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.x, dy = (w.y - 5 * UK[w.k].sc) - (K.y - 7), rx = 25 * SPIN_SZ + UK[w.k].r - 2.1; if ((dx / rx) ** 2 + (dy / (12 * SPIN_SZ + UK[w.k].r - 2.1)) ** 2 > 1) continue; if (spinSector(Math.atan2(dy, dx)) !== bs || w.spun === K.secN) continue; w.spun = K.secN; const a = Math.atan2(w.y - K.y, w.x - K.x); w.kx += Math.cos(a) * 40; w.ky += Math.sin(a) * 22; w.atk = -1; hurt(w, SPIN_DMG, spinFx); }
       // a tight core round him that always cuts while he spins, so nothing he walks through slips between the blade's passes
       if (sw >= SPIN_MOM && AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.x, dy = (w.y - K.y) * 1.3; if (Math.hypot(dx, dy) > 4.2 + UK[w.k].r) continue; const key = 'core' + K.i; if (w[key] && K.spin - w[key] < 0.22 && w[key] <= K.spin) continue; w[key] = K.spin; w.atk = -1; const a = Math.atan2(dy / 1.3, dx); w.kx += Math.cos(a) * 30; w.ky += Math.sin(a) * 16; hurt(w, SPIN_DMG, spinFx); }
       if (K.spin >= SPIN_T) { K.spin = -1; K.spinCd = SPIN_CD; K.preGlow = 0; K.post = 0.25; K.sec = -1; walkers.forEach(w => w.spun = 0); K.f = Math.cos(K.spinA0) >= 0 ? 1 : -1; }
@@ -3460,7 +3460,7 @@ function draw() {
   // the swing's damage area: every quad its blade has swept this swing (fades out after it ends)
   if (ZONES && K.swZ && K.swZ.q.length) { const al = K.swing >= 0 ? 0.22 : Math.max(0, 0.22 - (K.swZ.ft = (K.swZ.ft || 0) + 1 / 60) * 0.3); if (K.swing >= 0) K.swZ.ft = 0; if (al > 0) { x.fillStyle = `rgba(255,70,50,${al})`; x.beginPath(); for (const q of K.swZ.q) { x.moveTo(q[0][0], q[0][1]); x.lineTo(q[1][0], q[1][1]); x.lineTo(q[2][0], q[2][1]); x.lineTo(q[3][0], q[3][1]); x.closePath(); } x.fill(); } }
   if (ZONES && (K.spin >= 0 || K.preGlow)) { // spin pie: 8 slices, the live one lit
-    x.save(); x.translate(K.x, K.y - 7); x.scale(1, 12 / 25); const live = K.spin >= 0 && spinSwept() >= SPIN_MOM;
+    x.save(); x.translate(K.x, K.y - 7); x.scale(SPIN_SZ, SPIN_SZ * 12 / 25); const live = K.spin >= 0 && spinSwept() >= SPIN_MOM;
     for (let i = 0; i < 8; i++) { const a0 = (i - 0.5) * Math.PI / 4; const sa = Math.atan2(Math.sin(a0) * 25 / 12, Math.cos(a0)), sb = Math.atan2(Math.sin(a0 + Math.PI / 4) * 25 / 12, Math.cos(a0 + Math.PI / 4)); x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, 25, sa, sb); x.closePath(); x.fillStyle = live && i === K.sec ? 'rgba(255,60,40,.35)' : 'rgba(255,255,255,.06)'; x.fill(); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 0.3; x.stroke(); }
     x.restore(); }
   if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
@@ -3856,7 +3856,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '4df508';
+const KBUILD = '4f6635';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
