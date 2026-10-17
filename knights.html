@@ -2500,7 +2500,7 @@ const TT = {
     SPL: { R: 12, DMG: 90, KB: 120 }, BOWL: 60, POP: { R: 10, DMG: 80, KB: 110 }, LASH: { DMG: 25, GAP: 0.3, SLOW: 0.5 }, NEAR: { R: 37.8, HALF: 0.75, DMG: 35, KB: 150, GAP: 0.25 },
     // the attack pool: 0 toss, 1 squeeze, 2 whip, 3 eat, 4 slam (when each finishes, from the grab's start); any of them can skewer up to 2 more
     END: [0.5, 0.57, 0.75, 0.55, 0.62], W: [0.2, 0.25, 0.2, 0.2, 0.15], WHIP: { DMG: 70, KB: 120, ARC: 1.6, R0: 18, R1: 55 }, SLAM: { Z: 20, UP: 0.42, R: 18, DMG: 140, KB: 160 }, SKEW: { P: 0.45, MAX: 2, GAP: 26 } },
-  SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 22, BR: 110, TURN: 9, CONE: 0.611, DMG: 260, W: 9.625, Z: 8, R: 6.6, GUN: 1.3 },
+  SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 22, BR: 110, TURN: 3, CONE: 0.611, DMG: 260, W: 9.625, Z: 8, R: 6.6, GUN: 1.3 },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
   BIKE: { CD: 14, T: 5, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
 };
@@ -2798,14 +2798,15 @@ function ttFx(dt, t) {
   // saws fly straight until they hit someone, then bounce to the nearest enemy they haven't cut, BOUNCE times, then fly off;
   // the host steers them and sends their state in the snapshot (`sw`), other screens follow it
   for (const s of SAWS) { s.t += dt; s.rot += dt * 40; const ek = Math.exp(-dt * 9); s.ox = (s.ox || 0) * ek; s.oy = (s.oy || 0) * ek; if (s.out) { s.out += dt; continue; }
-    if (AUTH() && s.tg >= 0) { const w = walkers.find(o => o.id === s.tg); if (w && w.hp > 0 && !w.dead) { const want = gAng(w.x - s.x, w.y - s.y), dd = Math.hypot(w.x - s.x, (w.y - s.y) * 1.25), mx = (TT.SAW.TURN + 260 / Math.max(dd, 4)) * dt; s.a += cl(wrapA(want - s.a), -mx, mx); } else s.tg = -2; }
+    if (AUTH() && s.tg >= 0) { const w = walkers.find(o => o.id === s.tg); if (w && w.hp > 0 && !w.dead) { const want = gAng(w.x - s.x, w.y - s.y), dd = Math.hypot(w.x - s.x, (w.y - s.y) * 1.25), mx = (TT.SAW.TURN + 90 / Math.max(dd, 4)) * dt; s.a += cl(wrapA(want - s.a), -mx, mx); } else s.tg = -2; }
     const d = gDir(s.a), st = TT.SAW.SPD * dt, x0 = s.x, y0 = s.y; s.x += d[0] * st; s.y += d[1] * st; s.d += st;
     if (AUTH()) { const k0 = K; K = KN[s.i] || KN[0]; let hitW = null;
       for (const w of walkers) { if (w.hp <= 0 || w.dead || s.hit.has(w.id) || Math.abs(w.x - s.x) > 30) continue; if (ptSeg([w.x, w.y], [x0, y0], [s.x, s.y]) > TT.SAW.W + UK[w.k].r) continue; s.hit.add(w.id); hurt(w, TT.SAW.DMG, ww => ttKillFx(ww, s.a, 3)); for (let i = 0; i < 4; i++) sparks.push({ x: w.x, y: w.y - TT.SAW.Z, vx: rr(-30, 30), vy: -rr(10, 30), t: 0, max: rr(0.15, 0.35) }); if (!hitW || w.id === s.tg) hitW = w; }
       K = k0;
       // a hit (or a target lost on the way): pick the next one, or fly off once it has bounced enough / nobody is near
       if (hitW || s.tg === -2) { if (hitW) s.b++; let nb = null, bd = TT.SAW.BR; const away = gAng(s.x - s.fx, s.y - s.fy); if (s.b <= TT.SAW.BOUNCE) for (const w of walkers) { if (w.hp <= 0 || w.dead || s.hit.has(w.id) || Math.abs(w.x - s.x) > bd) continue; if (Math.abs(wrapA(gAng(w.x - s.x, w.y - s.y) - away)) > TT.SAW.CONE) continue; const dd = Math.hypot(w.x - s.x, (w.y - s.y) * 1.25); if (dd < bd) { bd = dd; nb = w; } }
-        if (nb) { s.tg = nb.id; snd('saw', s.x, s.y); } else s.out = 0.001; } }
+        if (nb) { s.tg = nb.id; s.a = gAng(nb.x - s.x, nb.y - s.y); snd('saw', s.x, s.y); } else s.out = 0.001; } }
+    if (s.pa !== undefined && Math.abs(wrapA(s.a - s.pa)) > 0.35) { const zz = s.z0 ?? TT.SAW.Z, b0 = s.pa + Math.PI; for (let i = 0; i < 9; i++) { const b = b0 + rr(-1.1, 1.1), v = rr(50, 120), gd = gDir(b); sparks.push({ x: s.x, y: s.y - zz, vx: gd[0] * v, vy: gd[1] * v - rr(10, 40), t: 0, max: rr(0.12, 0.3) }); } TTFX.push({ k: 'glint', x: s.x, y: s.y - zz, t: 0, max: 0.14 }); } s.pa = s.a;
     (s.tr || (s.tr = [])).push([s.x + s.ox, s.y + s.oy]); if (s.tr.length > 9) s.tr.shift();
     if (s.tg < 0 && s.b === 0 && s.d > TT.SAW.RANGE) s.out = 0.001; if (s.d > TT.SAW.RANGE * 4) s.out = 0.001; }
   SAWS = SAWS.filter(s => !(s.out > 0.35));
@@ -3042,6 +3043,7 @@ function ttAir(c, t) {
     sawDisc(c, x, y - z, sr, s.rot, 0.42, al); sawWhirr(c, x, y - z, sr, s.rot, al); }
   c.save(); c.globalCompositeOperation = 'lighter';
   for (const p of TTFX) { const k = p.t / p.max; if (p.k === 'flash' && p.t >= 0) { c.save(); c.translate(p.x, p.y); c.rotate(p.a); const g = c.createRadialGradient(2, 0, 0, 2, 0, 7); g.addColorStop(0, `rgba(255,250,220,${1 - k})`); g.addColorStop(0.4, `rgba(255,190,80,${0.8 * (1 - k)})`); g.addColorStop(1, 'rgba(255,120,30,0)'); c.fillStyle = g; c.beginPath(); c.ellipse(3, 0, 7, 3.2, 0, 0, 7); c.fill(); c.restore(); }
+    else if (p.k === 'glint') { const q = p.t / p.max, R = 3 + q * 7; c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = `rgba(255,250,225,${0.9 * (1 - q)})`; c.lineWidth = 0.8; c.beginPath(); c.moveTo(p.x - R, p.y); c.lineTo(p.x + R, p.y); c.moveTo(p.x, p.y - R * 0.6); c.lineTo(p.x, p.y + R * 0.6); c.stroke(); c.fillStyle = `rgba(255,255,240,${0.7 * (1 - q)})`; c.beginPath(); c.arc(p.x, p.y, 2.2 * (1 - q) + 0.5, 0, 7); c.fill(); c.restore(); }
     else if (p.k === 'pellet' && p.t >= 0) { const q = cl(p.t / p.max, 0, 1), a = L2([p.x0, p.y0], [p.x1, p.y1], Math.max(0, q * 1.4 - 0.4)), b = L2([p.x0, p.y0], [p.x1, p.y1], Math.min(1, q * 1.4)); c.strokeStyle = `rgba(255,230,160,${0.9 * (1 - q)})`; c.lineWidth = 0.35; c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke(); } }
   c.restore();
   for (const p of TTFX) { const k = p.t / p.max; if (p.k === 'smoke') { c.fillStyle = `rgba(190,185,175,${0.45 * (1 - k)})`; c.beginPath(); c.arc(p.x, p.y - k * 3, p.r * (1 + k * 1.5), 0, 7); c.fill(); }
@@ -3733,7 +3735,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '34fb70';
+const KBUILD = 'e52e80';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
