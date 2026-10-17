@@ -3026,6 +3026,10 @@ function drawTime(c, t) {
     ttSaber(c, wx, wa, t, sabOn() * (P.bL ?? 1) * ttSabGrow(K)); };
   if (caneBack) ttCane(c, cK, cA);
   if (sabBack) { ttArm(c, sB, P.hB, true); drawSab(P.hB, P.aB); ttHand(c, P.hB, true); }
+  // a gun aimed up past 2 o'clock (or 10 o'clock facing left) is held up behind him: both arms and the gun go behind the body
+  const gunW = (wn0 => (wn0 === 2 || wn0 === 4) && K.wpS === 2 && !riding)(K.wpn), gunBack = gunW && Math.sin(P.ga ?? P.aB) < -0.5;
+  const drawGun = (wx, wa) => { if (K.wpn === 2) ttShotgun(c, wx, wa, P.brk || 0); else { const kick = K.cs >= 0 && K.csW === 4 ? Math.max(0, 1 - K.cs / 0.14) : 0, ld = K.cs >= 0 && K.csW === 4 ? sm(cl((K.cs - 0.12) / 0.25, 0, 1)) : 1; c.save(); c.translate(wx[0], wx[1]); c.scale(TT.SAW.GUN, TT.SAW.GUN); ttSawGun(c, [0, 0], wa, t, ld, kick); c.restore(); } };
+  if (gunBack) { ttArm(c, sA, P.hA, false); ttArm(c, sB, P.hB, true); drawGun(P.hB, P.ga ?? P.aB); ttHand(c, P.hB, true); }
   if (aBehind) { ttArm(c, sA, P.hA, false); ttHand(c, P.hA, false); }
   ttLeg(c, P.hips[far], P.knees[far], P.feet[far], f, true);
   if (riding) { rigOff(); ttBike(c, Fr, t, 'body', K.bkSpin); rigOn(); }
@@ -3035,24 +3039,24 @@ function drawTime(c, t) {
   if (!aBehind && !gun) { ttArm(c, sA, P.hA, false); ttHand(c, P.hA, false); if (P.watch > 0.05) { const w = add(P.hA, [f * 0.1, -0.5]); c.globalAlpha = P.watch; c.fillStyle = TTC.BRASS; c.beginPath(); c.arc(w[0], w[1], 0.62, 0, 7); c.fill(); c.fillStyle = '#f6f0dc'; c.beginPath(); c.arc(w[0], w[1], 0.46, 0, 7); c.fill(); c.strokeStyle = '#222'; c.lineWidth = 0.08; c.beginPath(); c.moveTo(w[0], w[1]); c.lineTo(w[0], w[1] - 0.32); c.moveTo(w[0], w[1]); c.lineTo(w[0] + 0.24, w[1] + 0.05); c.stroke(); c.globalAlpha = 1; } }
   ttHead(c, P, f, t);
   if (riding) { rigOff(); ttBike(c, Fr, t, 'near', K.bkSpin); rigOn(); }
-  if (gun) ttArm(c, sA, P.hA, false);
+  if (gun && !gunBack) ttArm(c, sA, P.hA, false);
   // the weapon in his hands (or falling into them / rising out of them)
   const hold = P.hB, ga = P.ga ?? P.aB;
   let wx = hold, wa = K.wpn === 1 ? P.aB : ga;
   if (K.wpS === 1) { const q = smt(cl((K.wpT - 0.22) / 0.33, 0, 1)), top = [P.head[0] + f * 0.6, P.head[1] - 9.5]; wx = L2(top, hold, q); wa = lerp(-Math.PI / 2 + K.wpT * 9, wa, q); }
   if (K.wpS === 3) { const q = smt(cl((K.wpT - 0.3) / 0.35, 0, 1)), top = [P.head[0] + f * 0.6, P.head[1] - 9.5]; wx = L2(hold, top, q); wa = lerp(wa, -Math.PI / 2 - (K.wpT - 0.3) * 9, q); }
   const showW = K.wpS === 2 || (K.wpS === 1 && K.wpT > 0.22) || (K.wpS === 3 && K.wpT < 0.68);
-  if (!sabBack) ttArm(c, sB, P.hB, true);
+  if (!sabBack && !gunBack) ttArm(c, sB, P.hB, true);
   if (!caneBack && tuck < 0.5) ttCane(c, cK, cA);
   if (showW) { const wn = K.wpn;
     if (wn === 1) { if (!sabBack) drawSab(wx, wa); }
-    else if (wn === 2) ttShotgun(c, wx, wa, P.brk || 0);
+    else if (wn === 2) { if (!gunBack) ttShotgun(c, wx, wa, P.brk || 0); }
     else if (wn === 3 && !(K.hu >= 1)) { const open = sm(cl(K.alV || 0, 0, 1)), mo = ttAlienArt(c, wx, wa, open, t, open > 0.02 ? 'back' : 'all'), m = c.getTransform(), S = CAM.s;
       // where the mouth is in the world, so the tentacles grow out of it and its lips are drawn over their roots (in ttAir)
       const W = q => [(m.a * q[0] + m.c * q[1] + m.e - CAM.e) / S, (m.b * q[0] + m.d * q[1] + m.f - CAM.f) / S], c0 = W(mo.mc), e0 = W([mo.mc[0] + mo.ax[0] * mo.ry, mo.mc[1] + mo.ax[1] * mo.ry]);
       K.mouth = c0; K.mouthAx = [e0[0] - c0[0], e0[1] - c0[1]]; K.alM = { m: [m.a / S, m.b / S, m.c / S, m.d / S, (m.e - CAM.e) / S, (m.f - CAM.f) / S], h: wx.slice(), a: wa, open }; }
-    else if (wn === 4) { const kick = K.cs >= 0 && K.csW === 4 ? Math.max(0, 1 - K.cs / 0.14) : 0, ld = K.cs >= 0 && K.csW === 4 ? sm(cl((K.cs - 0.12) / 0.25, 0, 1)) : 1; c.save(); c.translate(wx[0], wx[1]); c.scale(TT.SAW.GUN, TT.SAW.GUN); ttSawGun(c, [0, 0], wa, t, ld, kick); c.restore(); } }
-  if (!sabBack) ttHand(c, P.hB, true);
+    else if (wn === 4 && !gunBack) { const kick = K.cs >= 0 && K.csW === 4 ? Math.max(0, 1 - K.cs / 0.14) : 0, ld = K.cs >= 0 && K.csW === 4 ? sm(cl((K.cs - 0.12) / 0.25, 0, 1)) : 1; c.save(); c.translate(wx[0], wx[1]); c.scale(TT.SAW.GUN, TT.SAW.GUN); ttSawGun(c, [0, 0], wa, t, ld, kick); c.restore(); } }
+  if (!sabBack && !gunBack) ttHand(c, P.hB, true);
   if (gun && K.rl >= 0 && (q => (q > 0.4 && q < 0.6) || (q > 0.82 && q < 1.0))(K.rl * 1.75 / TT.GUN.RELOAD)) { c.fillStyle = '#b8322a'; c.beginPath(); c.ellipse(P.hA[0], P.hA[1] - 0.3, 0.42, 0.22, 0.4, 0, 7); c.fill(); c.fillStyle = TTC.BRASS; c.beginPath(); c.arc(P.hA[0] - 0.35, P.hA[1] - 0.45, 0.2, 0, 7); c.fill(); }
   if (gun) ttHand(c, P.hA, false);
   if (window.__labelArms && K.ttTags) for (const [m, txt, col] of K.ttTags) { c.save(); c.translate(m[0], m[1]); c.fillStyle = col; c.strokeStyle = '#fff'; c.lineWidth = 0.18; c.beginPath(); c.arc(0, 0, 0.62, 0, 7); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.font = '700 0.85px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 0, 0.05); c.restore(); }
@@ -3796,7 +3800,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '6cea95';
+const KBUILD = '5b29ef';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
