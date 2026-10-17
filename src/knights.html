@@ -2763,8 +2763,8 @@ function timeStep(dt, t) {
     // he keeps walking (move stick) through the crouch, the jump and the landing; the bike comes out to wherever he is
     { const v2 = RUN * TT.RUN, e0 = 1 - Math.exp(-dt * 14); if (mvL > 0.12) { const k = Math.min(1, mvL); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e0); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e0); if (Math.abs(IN.mv[0]) > 0.2 && !IN.aim && !(K.cs >= 0)) K.f = IN.mv[0] > 0 ? 1 : -1; } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
       const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy); K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.5; }
-    // the bike starts a full length back inside the portal (hidden behind its plane) and drives out through it, easing off as it slides in under him
-    const e = cl((u - 0.25) / (B.LAND - 0.25), 0, 1), e2 = 1 - (1 - e) ** 1.6, dB = gDir(K.hd), x0 = K.bpx - dB[0] * B.HALF * 1.6, y0 = K.bpy - dB[1] * B.HALF * 1.6; K.bkx = lerp(x0, K.x, e2); K.bky = lerp(y0, K.y, e2);
+    // the bike starts a full length back inside the portal (hidden behind its plane) and drives out through it at a steady pace, straight in under him (no slowing down)
+    const e = cl((u - 0.25) / (B.LAND - 0.25), 0, 1), e2 = e, dB = gDir(K.hd), x0 = K.bpx - dB[0] * B.HALF * 1.6, y0 = K.bpy - dB[1] * B.HALF * 1.6; K.bkx = lerp(x0, K.x, e2); K.bky = lerp(y0, K.y, e2);
     if (u >= B.LAND) K.z = 0;
     if (u >= B.IN) { const d = gDir(K.hd); Object.assign(K, { bk: 1, bkT: 0, bv: 140, bvx: d[0] * 140, bvy: d[1] * 140, z: 0, vx: 0, vy: 0 }); } }
   else if (K.bk === 1) { K.bkT += dt; const m = mvL > 0.15 ? Math.min(1, mvL) : 0, want = m ? gAng(IN.mv[0], IN.mv[1]) : K.hd, diff = wrapA(want - K.hd);
@@ -3027,8 +3027,9 @@ function drawTime(c, t) {
   const f = P.f, B = TT.BIKE, riding = T.ride, Fr = riding ? bikeFrame(K.x, K.y, K.hd || 0, K.bl || 0) : null;
   K.bkSpin = (K.bkSpin || 0) + dt * (K.bk === 1 ? K.bv : K.bk >= 0 ? 140 : 0) / 2.6;
   // the bike on its own (coming out of the portal, or riding off into one), drawn clipped to the portal's open side
-    // the bike is in front only when it's on the portal's near (south) side: coming out heading south, or going in heading north; otherwise (and level) the portal covers it
-  const bkFy = Math.sin(K.hd || 0), bkFront = K.bk === 0 ? bkFy > 0.15 : K.bk === 2 ? bkFy < -0.15 : false; if (K.bk === 0 || K.bk === 2) { if (bkFront || riding) ttBikePortal(c, K, t); }
+    // coming out, the bike is drawn over the portal for any heading from 4 o'clock round the top to 8 o'clock (screen); heading further down than that the portal covers it.
+  // going in, the same split mirrored (over it unless heading up past 10/2 o'clock)
+  const bkS = gDir(K.hd || 0), bkFy = bkS[1] / (Math.hypot(bkS[0], bkS[1]) || 1), bkFront = K.bk === 0 ? bkFy < 0.5 : K.bk === 2 ? bkFy > -0.5 : false; if (K.bk === 0 || K.bk === 2) { if (bkFront || riding) ttBikePortal(c, K, t); }
   // height of the bike off the ground: on the way in it rides out of the portal's centre and drops to the ground once clear of it;
   // on the way out it speeds up and climbs as if up a very slight slope, reaching the portal's centre as it goes in
   let bz = 0, bOut = 1; if (!riding && K.bk >= 0) { const Z0 = 4.5, fwB = gDir(K.hd || 0), fl = Math.hypot(fwB[0], fwB[1] * 1.25) || 1;
