@@ -2249,7 +2249,7 @@ function drawFlail(c, kn, t) {
   if (tr.length > 2) { const sp = Math.hypot(tr[tr.length - 1][0] - tr[0][0], tr[tr.length - 1][1] - tr[0][1]) / Math.max(0.02, t - tr[0][2]); if (sp > 60) { c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; const hot = kn.hoT > 0 || kn.pPh >= 0;
     for (let i = 1; i < tr.length; i++) { const q = i / tr.length; c.strokeStyle = hot ? `rgba(255,${(190 + 50 * q) | 0},90,${0.35 * q})` : `rgba(230,230,240,${0.16 * q})`; c.lineWidth = R * 1.6 * q; c.beginPath(); c.moveTo(tr[i - 1][0], tr[i - 1][1]); c.lineTo(tr[i][0], tr[i][1]); c.stroke(); } c.restore(); } }
   // chain: from the haft, sagging toward the ground when slack, taut when the head's in the air
-  const hw = kn.handW || [kn.x - (kn.f || 1) * 4, kn.y - (kn.z || 0) - 8], ax = bx - (bx - hw[0]) * R * 0.75 / (Math.hypot(bx - hw[0], by - hw[1]) || 1), ay = by - R * 0.55;
+  const hw = kn.handW || [kn.x - (kn.f || 1) * 4, kn.y - (kn.z || 0) - 8], ax = bx, ay = by;
   const lift = cl(z / 6, 0, 1), gx = lerp(hw[0], ax, 0.3), gy = Math.max(hw[1], ay) + 2, mx = (hw[0] + ax) / 2, my = (hw[1] + ay) / 2 + 2, cx = lerp(gx, mx, lift), cy = lerp(lerp(gy, kn.y + 1, 0.7), my, lift);
   c.lineCap = 'round'; c.strokeStyle = '#2c2f34'; c.lineWidth = 1.05; c.beginPath(); c.moveTo(hw[0], hw[1]); c.quadraticCurveTo(cx, cy, ax, ay); c.stroke();
   c.strokeStyle = '#9aa2ad'; c.lineWidth = 0.55; c.setLineDash([0.75, 0.65]); c.lineDashOffset = 0; c.beginPath(); c.moveTo(hw[0], hw[1]); c.quadraticCurveTo(cx, cy, ax, ay); c.stroke(); c.setLineDash([]);
