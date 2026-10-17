@@ -3035,7 +3035,7 @@ function ttAir(c, t) {
     if (bk > 0) { const fw = gDir(kn.hd || 0), wide = 0.6 + 0.4 * Math.abs(fw[1]) / Math.hypot(fw[0], fw[1]); ttPortal(c, kn.bpx, kn.bpy - 8.5, 8 * wide, 9.5, bk, t, 0); }
     // tendrils: out to their targets, holding them, then slinking back into its mouth
     if ((kn.alV || 0) > 0.01 && kn.wpn === 3 && kn.mouth) { ttTendrils(c, kn, t); const M = kn.alM; if (M && M.open > 0.02) { c.save(); c.transform(...M.m); ttAlienArt(c, M.h, M.a, M.open, t, 'front'); c.restore(); } } }
-  for (const s of SAWS) { const al = s.out ? Math.max(0, 1 - s.out / 0.35) : 1, e0 = smt(cl(s.t / 0.16, 0, 1)), z = lerp(s.z0 ?? TT.SAW.Z, TT.SAW.Z, e0) - (s.out ? s.out * 14 : 0), sr = TT.SAW.R * lerp(0.517 * KS, 1, smt(cl(s.t / 0.3, 0, 1))), x = s.x + (s.ox || 0), y = s.y + (s.oy || 0);
+  for (const s of SAWS) { const al = s.out ? Math.max(0, 1 - s.out / 0.35) : 1, z = (s.z0 ?? TT.SAW.Z) - (s.out ? s.out * 14 : 0), sr = TT.SAW.R * lerp(0.517 * KS, 1, smt(cl(s.t / 0.3, 0, 1))), x = s.x + (s.ox || 0), y = s.y + (s.oy || 0);
     c.fillStyle = `rgba(0,0,0,${0.25 * al})`; c.beginPath(); c.ellipse(x, y + 0.3, sr * 1.05, sr * 0.37, 0, 0, 7); c.fill();
     // a soft trail along the path it actually took, so its turns between targets read as curves
     const tr = s.tr || []; if (tr.length > 1) { c.save(); c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = '#dfe6ee'; for (let k = 1; k < tr.length; k++) { const q = k / (tr.length - 1); c.globalAlpha = 0.22 * al * q; c.lineWidth = TT.SAW.R * (0.35 + 0.5 * q); c.beginPath(); c.moveTo(tr[k - 1][0], tr[k - 1][1] - z); c.lineTo(tr[k][0], tr[k][1] - z); c.stroke(); } c.restore(); }
@@ -3733,7 +3733,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '217838';
+const KBUILD = '34fb70';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
