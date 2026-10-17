@@ -2550,7 +2550,7 @@ function bikeFrame(x0, y0, hd, l) { const fw = [Math.cos(hd), Math.sin(hd) / 1.2
   return { fw, sd, up, near: sd[1] >= 0 ? 1 : -1, P: (u, v, z) => [x0 + u * fw[0] + v * sd[0] + z * up[0], y0 + u * fw[1] + v * sd[1] + z * up[1]] }; }
 function ttPose(kn, t) {
   const f = kn.f || 1, ride = ttRiding(kn), mv = ride ? 0 : cl((kn.spd || 0) / 10, 0, 1), run = ride ? 0 : cl((kn.spd || 0) / (RUN * TT.RUN), 0, 1), gp = kn.gp || 0, br = Math.sin(t * 2.1);
-  const wq = kn.wpS === 2 ? kn.wpn : 0, atk = kn.cs >= 0, W0 = kn.csW || 0;
+  const wq = kn.wpS === 2 && !(kn.wpn === 3 && kn.hu >= 1) ? kn.wpn : 0, atk = kn.cs >= 0, W0 = kn.csW || 0;
   let A = TTG.map((v, j) => j === 7 ? v + br * 0.06 : v), look = 0, ga = null, brk = 0, rk = 0, watch = 0;
   if (!atk) A = A.map((x, j) => j ? lerp(x, TTRUN[j], run) : 0);
   // walking: the cane taps along with his stride
@@ -2622,7 +2622,7 @@ function ttCone(R, half, dmg, kb, kill, off = 0) { const a0 = K.csA, ux = Math.c
     const a = Math.atan2(dy, dx); if (d > U.r + 3 && Math.abs(wrapA(a - a0)) > half + Math.atan2(U.r, d)) continue;
     n++; w.atk = -1; w.kx += Math.cos(a) * kb; w.ky += Math.sin(a) * kb * 0.6; hurt(w, typeof dmg === 'function' ? dmg(Math.max(0, d - U.r)) : dmg, ww => kill(ww, Math.atan2(ww.y - K.y, ww.x - K.x))); }
   return n; }
-function ttStart(IN, t) { const a = gAng(IN.aim[0], IN.aim[1]), wq = K.wpS === 2 ? K.wpn : 0;
+function ttStart(IN, t) { const a = gAng(IN.aim[0], IN.aim[1]), wq = K.wpS === 2 && !(K.wpn === 3 && K.hu >= 1) ? K.wpn : 0;
   K.cs = 0; K.csA = a; K.csW = wq; K.csN = (K.csN || 0) + 1; if (Math.abs(Math.cos(a)) > 0.2 && !ttRiding(K)) K.f = Math.cos(a) >= 0 ? 1 : -1;
   K.csTl = cl(Math.atan2(Math.sin(a), Math.abs(Math.cos(a))), -1.2, 1.2) * 0.8; K.cs0 = t;
   if (wq === 2) { K.ammo--; K.gunN = (K.gunN || 0) + 1; if (AUTH()) ttCone(TT.GUN.R, TT.GUN.HALF, d => lerp(TT.GUN.NEAR, TT.GUN.DMG, cl((d - TT.GUN.PB) / (TT.GUN.R - TT.GUN.PB), 0, 1)), TT.GUN.KB, (w, a2) => ttKillFx(w, a2, 1), ttMuzzle(K, t).off); }
@@ -2720,7 +2720,7 @@ function timeStep(dt, t) {
   else if (wq >= 2 && !(K.cs >= 0)) K.gA = lerp(K.gA ?? 0.55, 0.55, 1 - Math.exp(-dt * 4));
   if (wq === 3) { const A = TT.ALIEN, out = K.hu === 1 || K.hu === 2, on = out ? ready : !!(IN.aim && ready && !busy && !(K.hu >= 0) && (K.wpT < TT.PORT.HOLD || K.bk >= 0)), [aox, aoy, afull] = ttO(K); K.alC = (K.alC || 0) + dt; if (!K.tc || K.tc.length !== A.N) K.tc = Array(A.N).fill(null);
     if (on && !K.al) K.alNx = K.alC + A.OPEN; K.al = on ? 1 : 0;
-    K.alq = out && IN.aim ? 1 : 0; if (on) { if (!out || IN.aim) K.alA = Math.round(gAng(IN.aim[0], IN.aim[1]) * 100) / 100; while (K.alC >= K.alNx) { K.alNx += A.EVERY; let sent = 0; for (let k = 0; k < A.N && sent < A.PER; k++) { K.alI = ((K.alI || 0) + 1) % A.N; if (!K.tc[K.alI]) { sent++; if (AUTH()) ttGrab(K.alI); } } } }
+    K.alq = 0; if (on) { if (!out) K.alA = Math.round(gAng(IN.aim[0], IN.aim[1]) * 100) / 100; while (K.alC >= K.alNx) { K.alNx += A.EVERY; let sent = 0; for (let k = 0; k < A.N && sent < A.PER; k++) { K.alI = ((K.alI || 0) + 1) % A.N; if (!K.tc[K.alI]) { sent++; if (AUTH()) ttGrab(K.alI); } } } }
     // let go of everything when the stick is released
     else if (AUTH()) K.tc = K.tc.map(q => q && !q[3] ? null : q);
     if (AUTH()) ttHold(dt);
@@ -2729,7 +2729,8 @@ function timeStep(dt, t) {
       if (d > N2.R + U.r || (!afull && d > U.r + 2 && Math.abs(wrapA(Math.atan2(dy, dx) - K.alA)) > N2.HALF)) continue; w.anT = t; w.atk = -1; const a = Math.atan2(w.y - aoy, w.x - aox); const kb = N2.KB * (afull ? TT.HURL.KB : 1); w.kx += Math.cos(a) * kb; w.ky += Math.sin(a) * kb * 0.6; hurt(w, N2.DMG, ww => flingFx(ww, a, 1.3)); } }
     if (AUTH() && K.al && K.tcB) { const L = TT.ALIEN.LASH, byId = new Map(); for (let j = 0; j < TT.ALIEN.N; j++) { if (K.tc[j] || !(K.tcB[j] >= 0)) continue; if (!byId.size) for (const w of walkers) byId.set(w.id, w); const w = byId.get(K.tcB[j]); if (!w || w.hp <= 0 || w.gr > 0 || w.air || t - (w.lsT ?? -9) < L.GAP) continue;
       w.lsT = t; w.sl = Math.max(w.sl || 0, L.SLOW); const a = Math.atan2(w.y - aoy, w.x - aox); w.kx += Math.cos(a) * 18; w.ky += Math.sin(a) * 10; hurt(w, L.DMG, ww => flingFx(ww, a, 0.8)); } } }
-  else if (!(K.cs >= 0) && IN.aim && ready && !busy && !(wq === 2 && (K.rl >= 0 || K.ammo <= 0))) ttStart(IN, t);
+  // the cane swings on the stick whenever no weapon is in his hand, including while the alien is off on a toss (it attacks on its own)
+  if ((wq !== 3 || K.hu >= 1) && !(K.cs >= 0) && IN.aim && ready && !busy && !(wq === 2 && (K.rl >= 0 || K.ammo <= 0))) ttStart(IN, t);
   if (K.cs >= 0) { const W0 = K.csW, T = [TT.CANE.T, TT.SABER.T, TT.GUN.T, 1, TT.SAW.T][W0], c0 = K.cs; K.cs += dt;
     if (W0 === 0 && c0 < TT.CANE.T * TT.CANE.HIT && K.cs >= TT.CANE.T * TT.CANE.HIT && AUTH()) ttCone(TT.CANE.R, TT.CANE.HALF, TT.CANE.DMG, TT.CANE.KB, (w, a) => flingFx(w, a, 0.9));
     if (W0 === 1 && K.dsP && !ttRiding(K)) { const D = TT.SABER.DASH, qf = c => smt(cl((c - D.T0) / (D.T1 - D.T0), 0, 1)), dq = qf(K.cs) - qf(c0), d = gDir(K.dsA), ox = K.x, oy = K.y; K.x += d[0] * D.D * dq; K.y = cl(K.y + d[1] * D.D * dq, 16, H - 4);
@@ -3008,8 +3009,9 @@ function drawTime(c, t) {
   // ---- depth, the Knight's A/B method: [cane pointing back], A (behind the body when its hand drops low), legs, coat, A, head, B nearest the camera ----
   const far = f > 0 ? 0 : 1, near = 1 - far, sA = P.sh[near], sB = P.sh[far], rel = h => [(h[0] - P.C[0]) * f, h[1] - P.C[1]], rA = rel(P.hA), rB = rel(P.hB);
   const wq = K.wpS === 2 ? K.wpn : (K.wpS === 1 && K.wpT >= 0.55) || (K.wpS === 3 && K.wpT < 0.3) ? K.wpn : 0, gun = (wq === 2 || wq === 4) && !riding;
+  const dtD = cl(t - (K.aoT ?? t), 0, 0.05); K.aoT = t; K.aoV = ap(K.aoV || 0, K.wpn === 3 && K.hu >= 1 ? 1 : 0, dtD / 0.22);
   // the cane: in the B hand, or tucked under the far arm while a weapon is out
-  const tuck = K.wpS === 1 ? sm(cl(K.wpT / 0.22, 0, 1)) : K.wpS === 2 ? 1 : K.wpS === 3 ? 1 - sm(cl((K.wpT - 0.62) / 0.25, 0, 1)) : 0;
+  const tuck = K.wpS === 1 ? sm(cl(K.wpT / 0.22, 0, 1)) : K.wpS === 2 ? 1 - sm(K.aoV || 0) : K.wpS === 3 ? (K.wpn === 3 && K.hu >= 1 ? 1 - sm(K.aoV || 0) : 1 - sm(cl((K.wpT - 0.62) / 0.25, 0, 1))) : 0;
   const tk = add(P.C, [f * 1.0, 1.9]), cK = L2(P.hB, tk, tuck), cA = tuck >= 1 ? (f > 0 ? 2.55 : Math.PI - 2.55) : lerp(P.aB, P.aB + wrapA((f > 0 ? 2.55 : Math.PI - 2.55) - P.aB), tuck);
   const caneBack = tuck < 0.5 && Math.cos(cA) * f < -0.3 && rB[0] < 0.5, aBehind = rA[1] > 3.8 && !gun;
   if (window.__labelArms) { const tag = (sh, h, txt, col) => { const e1 = ik(sh, h, 2.6, 2.6, 1), e2 = ik(sh, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2; return [L2(sh, el, 0.6), txt, col]; }; K.ttTags = [tag(sA, P.hA, 'A', '#ff3b30'), tag(sB, P.hB, 'B', '#1e90ff')]; }
@@ -3794,7 +3796,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '21e851';
+const KBUILD = '6cea95';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
