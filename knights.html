@@ -1819,7 +1819,7 @@ function flailReturn(dt) {
     for (const w of walkers) { if (w.hp <= 0 || w.retHit === id || w.bT > 0) continue; const U = UK[w.k]; if (segDist(w.x, w.y, [px, py], [K.hx, K.hy]) > WP.SL.RW + U.r) continue; w.retHit = id; w.atk = -1;
       const s = ((w.x - K.hx) * -Math.sin(ang) + (w.y - K.hy) * Math.cos(ang)) >= 0 ? 1 : -1; w.kx += (-Math.sin(ang) * s * 0.7 + Math.cos(ang) * 0.5) * 160; w.ky += (Math.cos(ang) * s * 0.7 + Math.sin(ang) * 0.5) * 90;
       hurt(w, S.RDMG, ww => canImpale(ww) && Math.random() < WP.IMP ? impaleFx(ww, ang) : slamFx(ww, ang)); } }
-  if (q >= 1) { K.hRet = -1; K.hz = 0; K.hL = WP.DRAG; landBlast(K.hx, K.hy, 1); }
+  if (q >= 1) { K.hRet = -1; K.hz = 0; K.hL = WP.DRAG; if (K.penRet) { K.penRet = 0; K.smK = 1; penSmash(); } else landBlast(K.hx, K.hy, 1); }
 }
 // a landing blast (LAND radius, LDMG): the head slamming down beside him on its way home, or him landing at the head after Go to
 function landBlast(x, y, head) { const S = WP.SL; K.impN = (K.impN || 0) + 1; K.impX = x; K.impY = y; K.impR = S.LAND;
@@ -1844,7 +1844,7 @@ function startSweep(v) {
   const L = Math.abs(T.da) * (T.rh + T.r) / 2 + Math.abs(T.r - T.rh), go = WP.SW.GO + L / WP.SW.SPD;
   // sweeping while the head is out keeps the Bring in window going: a fresh one starts when the sweep ends
   K.swOut = K.hOut > 0 || K.hRet >= 0 ? 1 : 0;
-  Object.assign(K, { sGo: go, ab: 'sweep', abT: 0, abId: (K.abId || 0) + 1, cen: -1, sa0: T.ah, sa1: T.a, sr0: T.rh, sr1: T.r, ax0: K.hx, ay0: K.hy, az0: K.hz, swCd: (K.swOut ? WP.SW.CD : WP.SW.CD0) + WP.SW.PREP + go + WP.SW.REC, hOut: 0, hRet: -1 });
+  Object.assign(K, { sGo: go, ab: 'sweep', abT: 0, abId: (K.abId || 0) + 1, cen: -1, sa0: T.ah, sa1: T.a, sr0: T.rh, sr1: T.r, ax0: K.hx, ay0: K.hy, az0: K.hz, swCd: (K.swOut ? WP.SW.CD : WP.SW.CD0) + WP.SW.PREP + go + WP.SW.REC, hOut: 0, hRet: -1, penRet: 0 });
   const ex = Math.cos(T.a); if (Math.abs(ex) > 0.2) K.f = ex > 0 ? 1 : -1;
 }
 // the head's path: he whips the chain (the head stays where it sits), then it flies off the ground in one smooth haul round and in (or out) to the spot, landing there
@@ -1856,7 +1856,7 @@ function sweepAt(kn, tt) { const S = WP.SW, da = kn.sa1 - kn.sa0, GO = kn.sGo ||
 // ---- Ability 2: he whips the chain and the head flies from wherever it is to the chosen spot and slams down ----
 function slamTarget(kn, v) { return [kn.x + v[0] * WP.SL.RANGE, cl(kn.y + v[1] * WP.SL.RANGE * 0.8, 16, H - 4)]; }
 function startSlam(v) {
-  const tg = slamTarget(K, v); Object.assign(K, { ab: 'slam', abT: 0, abId: (K.abId || 0) + 1, cen: -1, sx: tg[0], sy: tg[1], bx0: K.hx, by0: K.hy, az0: K.hz, sfT: -1, slCd: WP.SL.CD + WP.SL.WIND + WP.SL.FLY, hRet: -1, hOut: 0 });
+  const tg = slamTarget(K, v); Object.assign(K, { ab: 'slam', abT: 0, abId: (K.abId || 0) + 1, cen: -1, sx: tg[0], sy: tg[1], bx0: K.hx, by0: K.hy, az0: K.hz, sfT: -1, slCd: WP.SL.CD + WP.SL.WIND + WP.SL.FLY, hRet: -1, hOut: 0, penRet: 0 });
   if (Math.abs(tg[0] - K.x) > 2) K.f = tg[0] > K.x ? 1 : -1;
 }
 // with the head out past the chain's reach, the slam button hauls him along the chain to it
@@ -1864,7 +1864,7 @@ function startSlam(v) {
 function wpSlamCd(k) { if (K.slWait) { K.slWait = 0; K.slCd = WP.SL.CD * k; } else if (k < 1) K.slCd = Math.min(K.slCd || 0, WP.SL.CD * k); }
 function startReel(early) {
   wpSlamCd(WP.SL.GOCD);
-  if (K.hRet >= 0) { K.hrx = K.hx; K.hry = K.hy; K.hRet = -1; K.hz = 0; }
+  if (K.hRet >= 0) { K.hrx = K.hx; K.hry = K.hy; K.hRet = -1; K.hz = 0; } K.penRet = 0;
   const sfT = early && K.abT < WP.SL.WIND + WP.SL.FLY ? K.abT : -1, tx = early ? K.sx : K.hx, ty = early ? K.sy : K.hy;
   const dx = tx - K.x, dy = ty - K.y, d = Math.hypot(dx, dy) || 1, back = WP.HR + 6;
   Object.assign(K, { ab: 'reel', abT: 0, abId: (K.abId || 0) + 1, cen: -1, ax0: K.x, ay0: K.y, ax1: tx - dx / d * back, ay1: cl(ty - dy / d * back * 0.8, 16, H - 4), hOut: 0, sfT });
@@ -1939,7 +1939,7 @@ function penStep(dt, t, IN, mine, smP) {
   if (K.pPh === 2) { const q = sm(cl(K.pT / P.END, 0, 1)); K.z = P.Z * (1 - q);
     if (K.smT >= 0) { const t0 = K.smT; K.smT += dt; K.hz = (K.hz0 ?? 5) * (1 - sm(cl(K.smT / P.DROP, 0, 1))); if (t0 < P.DROP && K.smT >= P.DROP) { penSmash(); K.smT = -1; K.hz0 = 0; } } else K.hz = (K.hz0 || 0) * (1 - sm(cl(K.pT / (P.DROP * 2), 0, 1)));
     const dmp = Math.exp(-dt * 4); K.hvx *= dmp; K.hvy *= dmp; K.hx += K.hvx * dt; K.hy = cl(K.hy + K.hvy * dt, 14, H - 4);
-    if (K.pT >= P.END) { K.pPh = -1; K.z = 0; K.hz = 0; K.smT = -1; K.ultBase = K.kills; K.hL = WP.MAXC; K.hRet = 0; K.hrx = K.hx; K.hry = K.hy; K.retN = (K.retN || 0) + 1; } return; }
+    if (K.pT >= P.END) { K.pPh = -1; K.z = 0; K.hz = 0; K.smT = -1; K.ultBase = K.kills; K.hL = WP.MAXC; K.hRet = 0; K.penRet = 1; K.hrx = K.hx; K.hry = K.hy; K.retN = (K.retN || 0) + 1; } return; }
   K.z = P.Z + Math.sin(t * 2.2) * 1.2; if (K.smCd > 0) K.smCd -= dt;
   const s = IN.pn, sl = s ? Math.hypot(s[0], s[1]) : 0; let ax, ay;
   if (sl > 0.15) { const k = Math.min(1, sl) * P.ACC; ax = s[0] / sl * k; ay = s[1] / sl * k; }
@@ -2860,7 +2860,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'ff4733';
+const KBUILD = '62e674';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
