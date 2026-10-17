@@ -445,6 +445,8 @@ function drawLeapPreview(c, t) {
   const g = c.createRadialGradient(tx, ty, 0, tx, ty, SR); g.addColorStop(0, `rgba(255,220,120,${0.35 + 0.1 * pul})`); g.addColorStop(0.8, 'rgba(255,200,90,.18)'); g.addColorStop(1, 'rgba(255,200,90,0)');
   c.setLineDash([]); c.save(); c.translate(tx, ty); c.scale(1, 0.5); c.translate(-tx, -ty); c.fillStyle = g; c.beginPath(); c.arc(tx, ty, SR, 0, 7); c.fill();
   c.strokeStyle = `rgba(255,236,170,${0.7 + 0.3 * pul})`; c.lineWidth = 0.7; c.beginPath(); c.arc(tx, ty, SR, 0, 7); c.stroke(); c.restore();
+  // aiming a trap: each tower already standing shows the ring its blade covers; the one a new trap would replace (the oldest, once N stand) is marked red
+  if (TTK && kn.wpn === 4) { const mine = TRAPS.filter(q => q.i === kn.i && q.end === undefined), RR = TT.TRAP.ARM + TT.TRAP.BL; mine.forEach((q, n) => { const go = mine.length >= TT.TRAP.N && n === 0; c.save(); c.setLineDash([2.5, 2]); c.fillStyle = go ? 'rgba(255,80,60,.12)' : 'rgba(200,220,255,.08)'; c.strokeStyle = go ? 'rgba(255,110,90,.85)' : 'rgba(210,225,255,.7)'; c.lineWidth = 0.6; c.beginPath(); c.ellipse(q.x, q.y, RR, RR * 0.8, 0, 0, 7); c.fill(); c.stroke(); if (go) { c.setLineDash([]); c.lineWidth = 0.9; c.beginPath(); c.moveTo(q.x - 3, q.y - 3); c.lineTo(q.x + 3, q.y + 3); c.moveTo(q.x + 3, q.y - 3); c.lineTo(q.x - 3, q.y + 3); c.stroke(); } c.restore(); }); }
   // a toss also shows how far its tentacles will reach from where it lands
   if (TTK && kn.wpn === 3) { const RR = TT.ALIEN.R; c.save(); c.setLineDash([3, 2.5]); c.lineDashOffset = -t * 6; c.fillStyle = 'rgba(200,120,255,.08)'; c.strokeStyle = `rgba(220,170,255,${0.55 + 0.2 * pul})`; c.lineWidth = 0.7; c.beginPath(); c.ellipse(tx, ty, RR, RR * 0.8, 0, 0, 7); c.fill(); c.stroke(); c.restore(); }
   const dist = Math.hypot(tx - O.x, ty - O.y), Hh = 22 + dist * 0.15, mx = (O.x + tx) / 2, my = (O.y + ty) / 2 - Hh * 2;
@@ -3473,7 +3475,7 @@ function spawnClump(n, kind, ki) {
   for (let i = 0; i < n; i++) { const b = rr(0, 6.28), q = Math.sqrt(Math.random()) * (n > 1 ? 4 + Math.sqrt(n) * 2.2 : 0); const kd = pick(); spawnWalker(cx + Math.cos(b) * q * Math.sqrt(UK[kd].r / 2.1), undefined, cl(cy + Math.sin(b) * q * 0.7 * Math.sqrt(UK[kd].r / 2.1), 12, H - 4), kd); }
 }
 document.querySelectorAll('[data-n]').forEach(b => b.addEventListener('pointerdown', e => { e.preventDefault(); spawnClump(+b.dataset.n); }));
-window.__spawnK = (n, k) => spawnClump(n, k); window.__traps = () => TRAPS.filter(q => q.end === undefined).length;
+window.__spawnK = (n, k) => spawnClump(n, k); window.__traps = () => TRAPS.filter(q => q.end === undefined).length; window.__trapPos = () => TRAPS.filter(q => q.end === undefined).map(q => (q.y < __K().y - 10 ? 'up' : q.y > __K().y + 10 ? 'down' : q.x < __K().x ? 'left' : 'right'));
 function fillUlt(i) { const kn = KN[i]; if (kn) kn.ultBase = kn.kills - ultNeed(kn); }
 document.getElementById('fillUlt').addEventListener('pointerdown', e => { e.preventDefault(); fillUlt(ME); if (!AUTH()) NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'fillult', i: ME } }); });
 window.__fillUlt = () => fillUlt(ME); window.__ult = doUlt;
@@ -3815,7 +3817,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '3d3435';
+const KBUILD = '649040';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
