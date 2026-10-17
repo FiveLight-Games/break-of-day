@@ -2310,41 +2310,52 @@ function drawSweepPreview(c, t) { const kn = KN[ME]; if (!DASHAIM || !kn || kn.k
 // guest-side flags for chained / slowed enemies; host keeps the real timers
 function slowMark(c, w) { if (!(w.sl > 0 || w.slF) || w.hp <= 0) return; const U = UK[w.k]; c.strokeStyle = 'rgba(235,215,150,.6)'; c.lineWidth = 0.35; c.beginPath(); c.ellipse(w.x, w.y + 0.3, 2.6 * U.sc, 0.9 * U.sc, 0, 0, 7); c.stroke(); }
 // ======================= Swordmaster (kind 'sword') =======================
-// a duelist in a long open coat in his colour, a curved blade in each hand. Stick held = a running three-cut combo:
-// right (B) blade cuts down across, left (A) blade rises back through, then both cross in an X. Every cut starts from the pose he's in;
-// each blade cuts on any frame it's moving fast (like the Knight's swings). A = the facing-side arm, B = the other, nearest the camera, drawn last.
-const SM = { S: 0.78, RUN: 1.04, ATK: 0.72, T: [0.4, 0.38, 0.5], DMG: 75, KB: 26, LEN: 10.5, FAST: 6, GAP: 0.3 };
-const SMN = ['hx', 'hy', 'lean', 'hd', 'fAx', 'fAy', 'fBx', 'fBy', 'aAx', 'aAy', 'aBx', 'aBy', 'sa', 'sb', 'tw'];
-const smIdle = t => { const b = Math.sin(t * 2.2); return { hx: 0, hy: -8.6 + b * 0.12, lean: 0.06, hd: 0.04, fAx: 2.4, fAy: 0, fBx: -2.2, fBy: 0, aAx: 3.6, aAy: -9.4 + b * 0.15, aBx: -2.6, aBy: -8.6 + b * 0.15, sa: 0.55, sb: 2.55, tw: 0 }; };
-const smRun = ph => { const s = Math.sin(ph), c2 = Math.cos(ph); return { hx: 0.6, hy: -8.3 - Math.abs(c2) * 0.55, lean: 0.32, hd: 0.12, fAx: 1 + s * 3.4, fAy: -Math.max(0, -c2) * 1.8, fBx: 1 - s * 3.4, fBy: -Math.max(0, c2) * 1.8, aAx: -1.6 - s * 1.4, aAy: -9.2, aBx: -3.2 + s * 1.4, aBy: -9.6, sa: 2.75, sb: 2.95, tw: 0 }; };
-// each cut: cocked pose, the cut's end, its follow-through (hands relative to his feet, facing right; blade angles 0 = forward)
-const SMCUT = [
-  [{ aB: [-1.5, -17], sb: -2.1, aA: [3, -9.5], sa: 0.5, lean: -0.08, tw: -0.5 }, { aB: [6.5, -9.5], sb: 0.75, aA: [2.2, -10], sa: 0.7, lean: 0.22, tw: 0.4 }, { aB: [4.8, -6.5], sb: 1.35, aA: [2.2, -10.4], sa: 0.8, lean: 0.18, tw: 0.35 }],
-  [{ aA: [4.5, -5.5], sa: 1.9, aB: [-2.5, -9], sb: 2.6, lean: 0.15, tw: 0.4 }, { aA: [5.8, -16], sa: -1.1, aB: [-2.8, -9.2], sb: 2.7, lean: -0.05, tw: -0.35 }, { aA: [4.6, -16.2], sa: -1.6, aB: [-2.6, -9.4], sb: 2.6, lean: -0.08, tw: -0.4 }],
-  [{ aA: [2.5, -17], sa: -1.9, aB: [0.6, -17.5], sb: -2.3, lean: -0.12, tw: 0 }, { aA: [7, -8], sa: 0.9, aB: [6, -11.5], sb: -0.2, lean: 0.3, tw: 0.2 }, { aA: [6, -6.5], sa: 1.3, aB: [5.5, -8.5], sb: 0.6, lean: 0.24, tw: 0.15 }],
+// Built on the Knight's rig and view: three-quarter toward the camera, facing f, chest turned partly to us, so both shoulders show.
+// A = the arm on his facing-side shoulder, B = the other one (nearest the camera, drawn last), exactly as the Knight.
+// Each hand holds its own curved blade. Stick held = a running three-cut combo; each blade cuts on any frame it moves fast.
+const SM = { RUN: 1.04, ATK: 0.72, T: [0.56, 0.52, 0.66], DMG: 75, KB: 26, LEN: 9.2, FAST: 6, GAP: 0.25 };
+// action keys (chest-relative, facing right, y down): [u, crouch, lean, twist, A hand x, y, A blade angle, B hand x, y, B blade angle, step]
+const SMG = [0, 0.5, 0.1, 0, 1.9, 2.4, 0.35, -1.0, 2.6, 2.4, 0.6];
+const SMRUN = [0, 0.45, 0.3, 0.1, -0.4, 2.6, 2.8, -1.6, 2.3, 2.95, 0];
+const SMCUTS = [
+  // 1: B (near the camera) cocks high behind, cuts down across his front, follows through low
+  [SMG, [0.3, 0.8, -0.15, -0.8, 1.6, 1.8, 0.5, -1.6, -2.8, -2.3, 0.3], [0.5, 1.4, 0.45, 0.9, 1.0, 2.6, 1.3, 3.2, 1.4, 0.9, 1.4], [0.68, 1.5, 0.5, 1.0, 0.6, 2.4, 2.0, 2.2, 3.4, 1.9, 1.5], [1, ...SMG.slice(1)]],
+  // 2: A drops low, then rises up through his front and past straight up
+  [SMG, [0.3, 1.2, 0.3, 0.7, 2.6, 3.6, 2.2, -1.2, 1.6, 2.6, 0.5], [0.5, 0.7, -0.1, -0.5, 2.6, -2.6, -1.0, -1.0, 2.0, 2.5, 1.0], [0.68, 0.6, -0.18, -0.6, 1.6, -3.4, -1.75, -0.8, 2.2, 2.4, 1.0], [1, ...SMG.slice(1)]],
+  // 3: both blades crossed high, then both cut down and out together in an X
+  [SMG, [0.32, 0.5, -0.2, 0, 0.8, -3.4, -2.2, 0.2, -3.2, -1.0, 0.4], [0.52, 1.6, 0.55, 0.3, 3.0, 2.2, 0.6, 2.6, 1.0, 0.0, 1.6], [0.7, 1.7, 0.6, 0.35, 2.4, 3.4, 1.2, 3.0, 2.6, 0.9, 1.6], [1, ...SMG.slice(1)]],
 ];
-const smKey = (P, k) => Object.assign({}, P, { aAx: k.aA[0], aAy: k.aA[1], aBx: k.aB[0], aBy: k.aB[1], sa: k.sa, sb: k.sb, lean: k.lean, tw: k.tw });
-const smMix = (A, B, k) => { const o = {}; for (const n of SMN) o[n] = lerp(A[n], B[n], k); return o; };
-// where he is (target pose, before the drawing's own easing): idle/run blended by speed, the current cut on top
-function smTarget(kn, t) {
-  const sp = cl((kn.spd || 0) / (RUN * SM.RUN), 0, 1), base = smMix(smIdle(t), smRun(kn.gp * 0.42 || 0), sm(sp));
-  if (!(kn.cut >= 0)) return base;
-  const v = (kn.cutN || 0) % 3, C = SMCUT[v], q = cl(kn.cut / SM.T[v], 0, 1), stand = Object.assign({}, base, { fAx: lerp(base.fAx, 3.6, 0.7), fBx: lerp(base.fBx, -2.6, 0.7), hy: base.hy + 0.3 });
-  // from: the last cut's follow-through if this one chains straight on, otherwise the stance he's in
-  const from = kn.cutCh ? smKey(stand, SMCUT[(v + 2) % 3][2]) : stand;
-  let A, B, k; if (q < 0.35) { A = from; B = smKey(stand, C[0]); k = sm(q / 0.35); } else if (q < 0.6) { A = smKey(stand, C[0]); B = smKey(stand, C[1]); k = 1 - Math.pow(1 - (q - 0.35) / 0.25, 3); } else { A = smKey(stand, C[1]); B = smKey(stand, C[2]); k = sm((q - 0.6) / 0.4); }
-  const P = smMix(A, B, k);
-  // aiming up or down tilts the whole cut round his chest
-  const tl = kn.cutTl || 0; if (tl) { const cx = 0.6, cy = -13; for (const [a, b] of [['aAx', 'aAy'], ['aBx', 'aBy']]) { const dx = P[a] - cx, dy = P[b] - cy; P[a] = cx + dx * Math.cos(tl) - dy * Math.sin(tl); P[b] = cy + dx * Math.sin(tl) + dy * Math.cos(tl); } P.sa += tl; P.sb += tl; }
-  return P;
+function smPose(kn, t) {
+  const f = kn.f || 1, mv = cl((kn.spd || 0) / 10, 0, 1), run = cl((kn.spd || 0) / (RUN * SM.RUN), 0, 1), gp = kn.gp || 0, br = Math.sin(t * 2.1);
+  let A = SMG.map((v, j) => j === 5 || j === 8 ? v + br * 0.1 : v);
+  const cutting = kn.cut >= 0, v = (kn.cutN || 0) % 3;
+  if (!cutting) A = A.map((x, j) => j ? lerp(x, SMRUN[j], run) : 0);
+  else A = kfnS(cl(kn.cut / SM.T[v], 0, 1), SMCUTS[v]);
+  let [, cr, lean, tw, ax, ay, aa, bx, by, ba, stepA] = A;
+  // aiming up or down tilts the cut round his shoulders (eased in and out over the cut, like the Knight's swings)
+  if (cutting && kn.cutTl) { const u = kn.cut / SM.T[v], w = (u < 0.35 ? sm(u / 0.35) : u < 0.7 ? 1 : 1 - sm((u - 0.7) / 0.3)) * kn.cutTl, sp = [0, -0.6];
+    for (const h of [[0], [1]]) { const [px, py] = h[0] ? [bx, by] : [ax, ay], r = rot([px - sp[0], py - sp[1]], w); if (h[0]) { bx = r[0] + sp[0]; by = r[1] + sp[1]; } else { ax = r[0] + sp[0]; ay = r[1] + sp[1]; } }
+    aa += w; ba += w; if (w < 0) { lean += w * 0.45; cr += w * 0.6; } else { lean += w * 0.42; cr += w * 0.6; } cr = Math.max(-0.2, cr); }
+  // ---- legs: the Knight's gait and stance ----
+  const front = f > 0 ? 1 : 0, stride = lerp(2.0, 3.6, run);
+  const loco = [0, 1].map(i => { const ph = gp + i * Math.PI; return [(i ? 0.9 : -0.9) + f * Math.sin(ph) * stride * mv, -Math.max(0, Math.cos(ph)) * lerp(1.0, 1.8, run) * mv]; });
+  const stance = [0, 1].map(i => { const fr = i === front; return [fr ? f * (1.5 + stepA * 1.3) : -f * 1.5, fr ? 0 : -0.25]; });
+  const feet = [0, 1].map(i => L2(stance[i], loco[i], mv));
+  const bob = mv * (Math.abs(Math.cos(gp)) * 0.55 - 0.3), pel = [f * (stepA * 0.55 * (1 - mv) + run * 0.35), -6.1 + cr * 0.95 + bob];
+  lean += run * 0.28 * (cutting ? 0.4 : 1); tw += Math.sin(gp) * 0.25 * mv;
+  const L = f * lean, C = add(add(pel, rot([0, -4.3], L)), [f * tw * 0.55, 0]);
+  const w = 1.85 * (1 - 0.22 * tw), sd = [Math.cos(L * 0.8), Math.sin(L * 0.8)];
+  const sh = [[C[0] - sd[0] * w, C[1] - sd[1] * w + f * tw * 0.18], [C[0] + sd[0] * w, C[1] + sd[1] * w - f * tw * 0.18]];
+  const head = add(C, rot([f * (0.35 + Math.max(0, tw) * 0.2), -2.2], L * 0.55));
+  const hand = (hx, hy) => add(C, rot([f * hx, hy], L * 0.6)), ang = a => f > 0 ? a + L * 0.5 : Math.PI - a + L * 0.5;
+  const hips = [[pel[0] - 1.05, pel[1]], [pel[0] + 1.05, pel[1]]];
+  return { f, pel, hips, feet, knees: hips.map((h, i) => ik(h, feet[i], 3.2, 3.2, f > 0 ? -1 : 1)), C, sh, head, lean, tw, cr, hA: hand(ax, ay), aA: ang(aa), hB: hand(bx, by), aB: ang(ba), run };
 }
-function makeSword(kn) { Object.assign(kn, { kind: 'sword', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, kn: 0, hold: 1, cut: -1, cutN: 0, cutA: 0, cutTl: 0, cutCh: 0, cutE: -9, smP: null, dashSeen: kn.in.dashN || 0, leapSeen: kn.in.leapN || 0, ultSeen: kn.in.ultN || 0, lvSeen: kn.in.lvN || 0 }); }
-// a blade's segment in the world (hilt end, tip) from a pose
-function smBlade(kn, P, w) { const h = w === 'A' ? [P.aAx, P.aAy] : [P.aBx, P.aBy], a = w === 'A' ? P.sa : P.sb, f = kn.f || 1, s = SM.S, W = v => [kn.x + v[0] * f * s, kn.y - (kn.z || 0) + v[1] * s];
-  return [W([h[0] + Math.cos(a) * 1, h[1] + Math.sin(a) * 1]), W([h[0] + Math.cos(a) * (SM.LEN + 0.6), h[1] + Math.sin(a) * (SM.LEN + 0.6)])]; }
-// each blade cuts whatever it sweeps through on any frame it's moving fast
-function smSweep(t) { const P = smTarget(K, t), id = K.i * 1e6 + (K.cutN || 0), ad = [Math.cos(K.cutA), Math.sin(K.cutA)];
-  for (const w of ['A', 'B']) { const seg = smBlade(K, P, w), key = 'bp' + w, prev = K[key] && K[key].id === id ? K[key].s : null, dt = Math.max(1e-3, t - ((K[key] && K[key].t) ?? t)); K[key] = { id, s: seg, t };
+function makeSword(kn) { Object.assign(kn, { kind: 'sword', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, kn: 0, hold: 1, cut: -1, cutN: 0, cutA: 0, cutTl: 0, cutE: -9, smP: null, dashSeen: kn.in.dashN || 0, leapSeen: kn.in.leapN || 0, ultSeen: kn.in.ultN || 0, lvSeen: kn.in.lvN || 0 }); }
+// a blade in the world: from just past the hand to the tip
+function smBlade(kn, h, a) { const d = [Math.cos(a), Math.sin(a)], s = KS, W = v => [kn.x + v[0] * s, kn.y - (kn.z || 0) + v[1] * s]; return [W([h[0] + d[0] * 0.8, h[1] + d[1] * 0.8]), W([h[0] + d[0] * (SM.LEN + 0.4), h[1] + d[1] * (SM.LEN + 0.4)])]; }
+function smSweep(t) { const P = smPose(K, t), id = K.i * 1e6 + (K.cutN || 0), ad = [Math.cos(K.cutA), Math.sin(K.cutA)];
+  for (const w of ['A', 'B']) { const seg = smBlade(K, w === 'A' ? P.hA : P.hB, w === 'A' ? P.aA : P.aB), key = 'bp' + w, pv = K[key], prev = pv && pv.id === id ? pv.s : null, dt = Math.max(1e-3, t - ((pv && pv.t) ?? t)); K[key] = { id, s: seg, t };
     if (!prev || !AUTH()) continue; const la = Math.hypot(seg[1][0] - seg[0][0], seg[1][1] - seg[0][1]) || 1; if (Math.hypot(seg[1][0] - prev[1][0], seg[1][1] - prev[1][1]) / dt < SM.FAST * la) continue;
     if (!K.swZ || K.swZ.id !== 'sm' + id) K.swZ = { id: 'sm' + id, q: [] }; K.swZ.q.push([prev[0], prev[1], seg[1], seg[0]]);
     for (const wk of walkers) { if (wk.hp <= 0 || wk['sm' + w] === id) continue; const U = UK[wk.k], h = 9 * U.sc; let hit = false;
@@ -2353,82 +2364,110 @@ function smSweep(t) { const P = smTarget(K, t), id = K.i * 1e6 + (K.cutN || 0), 
 function swordStep(dt, t) {
   if (K.kind !== 'sword') makeSword(K);
   const IN = K.in, mvL = Math.hypot(IN.mv[0], IN.mv[1]), mine = AUTH() || K.i === ME;
-  for (const k of ['dash', 'leap', 'ult', 'lv']) K[k + 'Seen'] = IN[k + 'N'] || 0; // no abilities yet
-  // the start: he stands with his blades low; any control and he's away
+  for (const k of ['dash', 'leap', 'ult', 'lv']) K[k + 'Seen'] = IN[k + 'N'] || 0;
   if (K.st === 'kneel') { K.vx = K.vy = 0; K.spd = 0; if (mine && (mvL > 0.2 || IN.aim)) { K.st = 'pull'; K.u = 0; } return; }
   if (K.st === 'pull') { K.u += dt; if (K.u >= 0.25) K.st = 'fight'; }
-  // the combo: while the stick is held, cut after cut, each one chaining from the last; aim picks the side and tilts the cut
-  if (!(K.cut >= 0) && IN.aim && K.st === 'fight') { const a = Math.atan2(IN.aim[1], IN.aim[0]); K.cutCh = t - (K.cutE || -9) < SM.GAP ? 1 : 0; if (!K.cutCh) K.cutN = (K.cutN || 0) + (3 - (K.cutN || 0) % 3) % 3; K.cut = 0; K.cutA = a;
-    if (Math.abs(Math.cos(a)) > 0.2) K.f = Math.cos(a) >= 0 ? 1 : -1; K.cutTl = cl(Math.atan2(Math.sin(a), Math.abs(Math.cos(a))), -1.2, 1.2) * 0.75; }
+  // the combo: cut after cut while the stick is held; aim picks the side and tilts the cut
+  if (!(K.cut >= 0) && IN.aim && K.st === 'fight') { const a = Math.atan2(IN.aim[1], IN.aim[0]); if (t - (K.cutE || -9) > SM.GAP) K.cutN = (K.cutN || 0) + (3 - (K.cutN || 0) % 3) % 3; K.cut = 0; K.cutA = a;
+    if (Math.abs(Math.cos(a)) > 0.2) K.f = Math.cos(a) >= 0 ? 1 : -1; K.cutTl = cl(Math.atan2(Math.sin(a), Math.abs(Math.cos(a))), -1.2, 1.2) * 0.85; }
   if (K.cut >= 0) { K.cut += dt; smSweep(t); const v = (K.cutN || 0) % 3; if (K.cut >= SM.T[v]) { K.cut = -1; K.cutE = t; K.cutN = (K.cutN || 0) + 1; } }
   const v2 = RUN * SM.RUN * (K.cut >= 0 ? SM.ATK : 1);
-  if (mvL > 0.12) { const k = Math.min(1, mvL); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, 1 - Math.exp(-dt * 14)); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, 1 - Math.exp(-dt * 14)); } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
+  if (mvL > 0.12) { const k = Math.min(1, mvL), e = 1 - Math.exp(-dt * 14); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e); } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
   const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy);
   K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.5;
   if (!(K.cut >= 0) && mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1;
   if (K.st !== 'pull') K.st = 'fight';
 }
-// ---- drawing ----
-const SMC = { CREAM: '#efe2c0', GOLD: '#e0b84a', GOLDD: '#9c7a26', ROBE: '#2a2733', SASH: '#d9c79a', SKIN: '#e8c39a', HAIR: '#3b2a20', BOOT: '#2b2420', STEEL: '#d7dde4', STEELD: '#8b949e' };
-const smL = (c, a, b, w, col) => { c.strokeStyle = col; c.lineWidth = w; c.lineCap = 'round'; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.stroke(); };
-const smE = (c, x0, y0, rx, ry, col, r = 0) => { c.fillStyle = col; c.beginPath(); c.ellipse(x0, y0, rx, ry, r, 0, 7); c.fill(); };
-function smIk(r, tg, a, b, bend) { let dx = tg[0] - r[0], dy = tg[1] - r[1], d = Math.hypot(dx, dy); const dd = Math.min(d, a + b - 0.01), k = d ? dd / d : 0; dx *= k; dy *= k; d = dd;
-  const ca = cl((a * a + d * d - b * b) / (2 * a * d || 1), -1, 1), ang = Math.atan2(dy, dx) + bend * Math.acos(ca); return [r[0] + Math.cos(ang) * a, r[1] + Math.sin(ang) * a]; }
-function smBladeArt(c, h, a, near) { const C = SMC, dx = Math.cos(a), dy = Math.sin(a), px = -dy, py = dx, len = SM.LEN, tip = [h[0] + dx * len, h[1] + dy * len], cv = 1.1;
-  smL(c, [h[0] - dx * 2.2, h[1] - dy * 2.2], [h[0] + dx * 0.6, h[1] + dy * 0.6], 0.85, '#1c1714'); smE(c, h[0] - dx * 2.2, h[1] - dy * 2.2, 0.45, 0.45, C.GOLD); smE(c, h[0] + dx * 0.7, h[1] + dy * 0.7, 0.75, 0.75, C.GOLDD);
-  const b0 = [h[0] + dx * 0.9, h[1] + dy * 0.9], m = [(b0[0] + tip[0]) / 2 - px * cv, (b0[1] + tip[1]) / 2 - py * cv];
-  c.fillStyle = C.STEELD; c.beginPath(); c.moveTo(b0[0] + px * 0.42, b0[1] + py * 0.42); c.quadraticCurveTo(m[0] + px * 0.55, m[1] + py * 0.55, tip[0], tip[1]); c.quadraticCurveTo(m[0] - px * 0.25, m[1] - py * 0.25, b0[0] - px * 0.32, b0[1] - py * 0.32); c.closePath(); c.fill();
-  c.strokeStyle = near ? '#fff' : C.STEEL; c.lineWidth = 0.32; c.beginPath(); c.moveTo(b0[0] - px * 0.2, b0[1] - py * 0.2); c.quadraticCurveTo(m[0] - px * 0.15, m[1] - py * 0.15, tip[0], tip[1]); c.stroke(); }
-function smArm(c, sh, hand, bend, sleeve) { const el = smIk(sh, hand, 3.6, 3.5, bend);
-  smL(c, sh, el, 2.0, shade(sleeve, -0.1)); smL(c, el, hand, 1.75, sleeve); smL(c, [lerp(el[0], hand[0], 0.75), lerp(el[1], hand[1], 0.75)], hand, 1.9, SMC.CREAM); smE(c, hand[0], hand[1], 0.85, 0.85, SMC.SKIN); }
-function smLeg(c, hip, ft, near) { const kn = smIk(hip, [ft[0], ft[1] - 0.4], 4.3, 4.2, -1), col = near ? '#3a3542' : '#2e2a36';
-  smL(c, hip, kn, 2.1, col); smL(c, kn, [ft[0], ft[1] - 0.6], 1.8, col); smL(c, [ft[0], ft[1] - 1.6], [ft[0], ft[1] - 0.4], 2.0, SMC.BOOT); smE(c, ft[0] + 0.5, ft[1] - 0.35, 1.25, 0.55, SMC.BOOT); }
-// a short pale arc behind a blade while it's cutting fast
-function smSwish(c, h, a, d, al) { if (al < 0.03) return; c.strokeStyle = `rgba(235,245,255,${al})`; c.lineWidth = 2.2; c.lineCap = 'round'; c.beginPath(); c.arc(h[0], h[1], 8.5, a - d * 0.9, a, d < 0); c.stroke(); }
+// ---- art (Knight-rig units: about 11 tall, scaled by KS) ----
+const SMC = { CREAM: '#efe2c0', ROBE: '#2c2836', ROBEL: '#3b3647', SASH: '#d9c79a', SKIN: '#e2b48c', SKIND: '#b8865f', HAIR: '#3b2a20', HAIRL: '#5a4232', BOOT: '#2b2420', STEEL: '#d7dde4', STEELD: '#8b949e' };
+function smLeg(c, hip, knee, foot, f, far) { const C = SMC, dk = far ? -0.18 : 0; c.lineCap = 'round';
+  c.strokeStyle = shade(C.ROBE, dk); c.lineWidth = 1.9; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke();
+  const ank = L2(knee, foot, 0.6); c.lineWidth = 1.6; c.beginPath(); c.moveTo(...knee); c.lineTo(...ank); c.stroke();
+  c.strokeStyle = shade(C.BOOT, dk); c.lineWidth = 1.55; c.beginPath(); c.moveTo(...ank); c.lineTo(foot[0], foot[1] - 0.4); c.stroke();
+  c.fillStyle = shade(C.BOOT, dk); c.beginPath(); c.ellipse(foot[0] + f * 0.55, foot[1] - 0.35, 1.0, 0.48, 0, 0, 7); c.fill();
+  c.fillStyle = shade(C.CREAM, dk - 0.1); c.fillRect(ank[0] - 0.75, ank[1] - 0.15, 1.5, 0.4); }
+function smBladeArt(c, h, a, near) { const C = SMC, d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]], len = SM.LEN, P = (u, v) => [h[0] + d[0] * u + n[0] * v, h[1] + d[1] * u + n[1] * v];
+  // grip behind the hand, a small round guard, then a single-edged blade with a gentle curve (back edge on one side, keen edge lit)
+  c.lineCap = 'round'; c.strokeStyle = '#1c1714'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(...P(-1.5, 0)); c.lineTo(...P(0.4, 0)); c.stroke(); c.fillStyle = GOLD; c.beginPath(); c.arc(...P(-1.6, 0), 0.3, 0, 7); c.fill();
+  c.fillStyle = GOLDD; c.beginPath(); c.ellipse(...P(0.55, 0), 0.25, 0.6, a, 0, 7); c.fill();
+  const cv = -0.75; c.fillStyle = C.STEELD; c.beginPath(); c.moveTo(...P(0.75, 0.3)); c.quadraticCurveTo(...P(len * 0.55, 0.32 + cv), ...P(len, cv * 0.6)); c.quadraticCurveTo(...P(len * 0.55, -0.2 + cv), ...P(0.75, -0.25)); c.closePath(); c.fill();
+  c.strokeStyle = near ? '#ffffff' : C.STEEL; c.lineWidth = 0.22; c.beginPath(); c.moveTo(...P(0.8, -0.2)); c.quadraticCurveTo(...P(len * 0.55, -0.15 + cv), ...P(len, cv * 0.6)); c.stroke(); }
+function smHand(c, h, far) { const dk = far ? -0.15 : 0; c.fillStyle = shade(SMC.SKIN, dk); c.beginPath(); c.arc(h[0], h[1], 0.6, 0, 7); c.fill(); c.fillStyle = shade(SMC.SKIN, dk + 0.12); c.beginPath(); c.arc(h[0] - 0.15, h[1] - 0.18, 0.22, 0, 7); c.fill(); }
+function smArm(c, s, h, f, far) { const C = SMC, e1 = ik(s, h, 2.6, 2.6, 1), e2 = ik(s, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2, dk = far ? -0.18 : 0; c.lineCap = 'round';
+  // coat sleeve in his colour, cream cuff at the wrist
+  c.strokeStyle = shade(COL, dk - 0.22); c.lineWidth = 1.55; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke(); c.strokeStyle = shade(COL, dk); c.lineWidth = 1.2; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke();
+  const wr = L2(el, h, 0.72); c.strokeStyle = shade(COL, dk - 0.22); c.lineWidth = 1.4; c.beginPath(); c.moveTo(...el); c.lineTo(...wr); c.stroke(); c.strokeStyle = shade(COL, dk - 0.05); c.lineWidth = 1.1; c.beginPath(); c.moveTo(...el); c.lineTo(...wr); c.stroke();
+  c.strokeStyle = shade(C.CREAM, dk); c.lineWidth = 1.25; c.beginPath(); c.moveTo(...L2(el, h, 0.66)); c.lineTo(...L2(el, h, 0.8)); c.stroke();
+  c.fillStyle = shade(COL, dk + 0.08); c.beginPath(); c.ellipse(s[0], s[1] + 0.1, 0.95, 0.75, 0, Math.PI, 0); c.fill(); }
+function smTorso(c, P, f, t) { const C = SMC, hip = P.pel, [Ls, Rs] = P.sh, mx = (Ls[0] + Rs[0]) / 2, my = (Ls[1] + Rs[1]) / 2, hw = 1.75 * (1 - 0.1 * Math.abs(P.tw)), hl = [hip[0] - hw, hip[1]], hr = [hip[0] + hw, hip[1]];
+  const sway = -f * cl((K.spd || 0) / RUN, 0, 1) * 1.6 + Math.sin(t * 1.9) * 0.12, hem = hip[1] + 4.3 - P.cr * 0.4;
+  // dark under-robe from shoulders to hips
+  c.fillStyle = C.ROBE; c.beginPath(); c.moveTo(hl[0], hl[1]); c.lineTo(Ls[0] + 0.2, Ls[1] + 0.3); c.quadraticCurveTo(mx, my - 0.6, Rs[0] - 0.2, Rs[1] + 0.3); c.lineTo(hr[0], hr[1]); c.closePath(); c.fill();
+  // the open coat: two panels from the shoulders, parting down the middle to show the robe, flaring into skirts to the knee
+  const panel = (S, side) => { const H0 = side < 0 ? hl : hr, inner = [lerp(mx, hip[0], 0.5) + side * 0.35, lerp(my, hip[1], 0.5)];
+    c.fillStyle = side * f < 0 ? shade(COL, -0.16) : COL; c.beginPath(); c.moveTo(S[0] - side * 0.1, S[1] + 0.2); c.lineTo(mx + side * 0.25, my + 0.15); c.lineTo(inner[0], inner[1]); c.lineTo(hip[0] + side * 0.45, hip[1] - 0.1);
+    c.lineTo(hip[0] + side * 0.55 + sway * 0.6, hem); c.quadraticCurveTo(H0[0] + side * 1.3 + sway, hem + 0.2, H0[0] + side * 1.0 + sway * 1.1, hem - 0.3); c.lineTo(H0[0] + side * 0.25, H0[1]); c.lineTo(S[0] + side * 0.55, S[1] + 0.6); c.closePath(); c.fill();
+    c.strokeStyle = C.CREAM; c.lineWidth = 0.32; c.beginPath(); c.moveTo(mx + side * 0.25, my + 0.15); c.lineTo(inner[0], inner[1]); c.lineTo(hip[0] + side * 0.45, hip[1] - 0.1); c.lineTo(hip[0] + side * 0.55 + sway * 0.6, hem); c.stroke();
+    c.strokeStyle = GOLD; c.lineWidth = 0.25; c.beginPath(); c.moveTo(hip[0] + side * 0.55 + sway * 0.6, hem); c.quadraticCurveTo(H0[0] + side * 1.3 + sway, hem + 0.2, H0[0] + side * 1.0 + sway * 1.1, hem - 0.3); c.stroke(); };
+  panel(Ls, -1); panel(Rs, 1);
+  // sash at the waist, its ends hanging on the far side
+  const wy = lerp(my, hip[1], 0.78), wx = lerp(mx, hip[0], 0.78); c.fillStyle = C.SASH; c.beginPath(); c.moveTo(wx - hw - 0.1, wy - 0.45); c.lineTo(wx + hw + 0.1, wy - 0.45); c.lineTo(wx + hw, wy + 0.4); c.lineTo(wx - hw, wy + 0.4); c.closePath(); c.fill();
+  c.strokeStyle = shade(C.SASH, -0.15); c.lineWidth = 0.42; c.lineCap = 'round'; c.beginPath(); c.moveTo(wx - f * 1.2, wy + 0.2); c.quadraticCurveTo(wx - f * 1.5 + sway * 0.6, wy + 1.4, wx - f * 1.2 + sway * 0.9, wy + 2.6); c.stroke();
+  // shading on the side turned away, then the cream collar
+  c.fillStyle = 'rgba(0,0,0,.14)'; const sx = f > 0 ? [Ls, hl] : [Rs, hr]; c.beginPath(); c.moveTo(sx[0][0] + f * 0.5, sx[0][1] + 0.6); c.lineTo(lerp(sx[0][0], mx, 0.4), my + 0.4); c.lineTo(lerp(sx[1][0], hip[0], 0.4), hip[1] - 0.3); c.lineTo(sx[1][0] + f * 0.3, sx[1][1] - 0.3); c.closePath(); c.fill();
+  c.fillStyle = C.CREAM; c.beginPath(); c.moveTo(mx - 1.0, my - 0.3); c.lineTo(mx + 0.2 * f, my + 1.3); c.lineTo(mx + 1.0, my - 0.3); c.lineTo(mx + 0.55, my - 0.05); c.lineTo(mx + 0.2 * f, my + 0.7); c.lineTo(mx - 0.55, my - 0.05); c.closePath(); c.fill(); }
+// long hair behind his shoulders and the headband's trailing ends: drawn before the body
+function smHairBack(c, P, f, t) { const C = SMC, h = P.head, fl = cl((K.spd || 0) / RUN, 0, 1), sw = Math.sin(t * 2.3) * 0.15;
+  c.fillStyle = C.HAIR; c.beginPath(); c.moveTo(h[0] - f * 1.3, h[1] - 0.6); c.quadraticCurveTo(h[0] - f * (2.2 + fl * 1.6), h[1] + 2.4, h[0] - f * (1.6 + fl * 3.2) + sw, h[1] + 5.4 - fl * 1.2); c.lineTo(h[0] - f * (0.6 + fl * 2.6) + sw, h[1] + 5.0 - fl * 1.0); c.quadraticCurveTo(h[0] - f * 0.6, h[1] + 2.0, h[0] + f * 0.2, h[1] + 0.4); c.closePath(); c.fill();
+  c.strokeStyle = C.CREAM; c.lineWidth = 0.32; c.lineCap = 'round'; const k = [h[0] - f * 1.35, h[1] - 0.95];
+  for (const [dx, dy] of [[1.9, 1.0], [1.5, 1.9]]) { c.beginPath(); c.moveTo(...k); c.quadraticCurveTo(k[0] - f * (dx * 0.6 + fl), k[1] + dy * 0.4, k[0] - f * (dx + fl * 2.2) + Math.sin(t * 4 + dy) * 0.2, k[1] + dy - fl * 0.6); c.stroke(); } }
+function smHead(c, P, f, t) { const C = SMC, [hx, hy] = P.head, blink = (t % 4.7) < 0.12;
+  c.save(); c.translate(hx, hy); c.rotate(f * (P.lean || 0) * 0.35);
+  c.fillStyle = C.SKIND; c.fillRect(-0.4 - f * 0.1, 0.9, 0.8, 0.9);
+  c.fillStyle = C.SKIN; c.beginPath(); c.ellipse(0, 0.05, 1.4, 1.68, 0, 0, 7); c.fill(); c.beginPath(); c.moveTo(f * 1.15, -0.35); c.lineTo(f * 1.7, 0.3); c.lineTo(f * 1.2, 0.5); c.fill();
+  c.fillStyle = 'rgba(120,70,45,.2)'; c.beginPath(); c.ellipse(-f * 0.55, 0.3, 0.7, 0.9, 0, 0, 7); c.fill();
+  // heavy-lidded eye: the top quarter of it cut flat, a lid line across; a flat, unimpressed mouth
+  if (blink) { c.strokeStyle = '#2a1a10'; c.lineWidth = 0.18; c.beginPath(); c.moveTo(f * 0.45, -0.12); c.lineTo(f * 1.0, -0.1); c.stroke(); }
+  else { c.save(); c.beginPath(); c.rect(f > 0 ? 0.2 : -1.3, -0.2 - 0.22 * 0.5, 1.1, 1); c.clip(); c.fillStyle = '#f3ede4'; c.beginPath(); c.ellipse(f * 0.75, -0.2, 0.34, 0.22, 0, 0, 7); c.fill(); c.fillStyle = '#2b2a2e'; c.beginPath(); c.arc(f * 0.86, -0.17, 0.16, 0, 7); c.fill(); c.restore();
+    c.strokeStyle = '#3a2618'; c.lineWidth = 0.16; c.beginPath(); c.moveTo(f * 0.38, -0.31); c.lineTo(f * 1.1, -0.31); c.stroke(); }
+  c.strokeStyle = C.HAIR; c.lineWidth = 0.22; c.lineCap = 'round'; c.beginPath(); c.moveTo(f * 0.35, -0.68); c.lineTo(f * 1.15, -0.64); c.stroke();
+  c.strokeStyle = '#8a4a3a'; c.lineWidth = 0.14; c.beginPath(); c.moveTo(f * 0.7, 0.95); c.lineTo(f * 1.15, 0.92); c.stroke();
+  c.fillStyle = C.SKIND; c.beginPath(); c.ellipse(-f * 0.55, 0, 0.3, 0.45, 0, 0, 7); c.fill();
+  // hair: swept over the crown, a lock falling past the brow on the facing side, the cream band round the forehead
+  c.fillStyle = C.HAIR; c.beginPath(); c.moveTo(-f * 1.5, 0.5); c.quadraticCurveTo(-f * 1.75, -1.7, -f * 0.1, -1.9); c.quadraticCurveTo(f * 1.3, -1.95, f * 1.5, -0.7); c.quadraticCurveTo(f * 1.25, 0.1, f * 1.05, 0.25); c.quadraticCurveTo(f * 0.95, -0.6, f * 0.4, -0.95); c.quadraticCurveTo(-f * 0.45, -0.8, -f * 0.85, 0.6); c.closePath(); c.fill();
+  c.fillStyle = C.HAIRL; c.beginPath(); c.ellipse(-f * 0.2, -1.5, 0.75, 0.2, -f * 0.2, 0, 7); c.fill();
+  c.fillStyle = C.CREAM; c.beginPath(); c.moveTo(-f * 1.55, -0.95); c.quadraticCurveTo(0, -1.45, f * 1.45, -1.0); c.lineTo(f * 1.42, -0.62); c.quadraticCurveTo(0, -1.05, -f * 1.55, -0.55); c.closePath(); c.fill();
+  c.restore(); }
 function drawSword(c, t) {
-  const dt = Math.min(0.1, Math.max(0, t - (K.smT ?? t))); K.smT = t; const C = SMC;
-  // every value eases toward where he should be, so nothing ever jumps (cuts ease fast, the rest slower)
-  const T = smTarget(K, t); if (!K.smP) K.smP = Object.assign({}, T); const P = K.smP, ek = 1 - Math.exp(-dt * (K.cut >= 0 ? 28 : 16)), pa = P.sa, pb = P.sb; for (const n of SMN) P[n] = lerp(P[n], T[n], ek);
-  const spA = (P.sa - pa) / Math.max(dt, 1e-3), spB = (P.sb - pb) / Math.max(dt, 1e-3);
-  const f = K.f || 1, vx = (K.vx || 0) * f, sp = cl(Math.abs(K.spd || 0) / 60, 0, 1), z = K.z || 0;
-  c.save(); c.translate(K.x, K.y - z); c.scale(SM.S * f, SM.S);
-  smE(c, 0.4, 0.3, 6, 1.6, 'rgba(0,0,0,.28)');
-  const hip = [P.hx, P.hy], lean = P.lean, neck = [hip[0] + Math.sin(lean) * 7, hip[1] - Math.cos(lean) * 7], tw = P.tw;
-  const shA = [neck[0] + 1.15 + tw * 0.4, neck[1] + 0.5], shB = [neck[0] - 1.4 + tw * 0.6, neck[1] + 0.7], head = [neck[0] + Math.sin(lean + P.hd) * 2.6, neck[1] - 2.4];
-  const flow = sp * (vx >= -5 ? 1 : 0.6) + Math.sin(t * 3.1) * 0.12, waist = [lerp(hip[0], neck[0], 0.25), lerp(hip[1], neck[1], 0.25)];
-  const hA = [P.aAx, P.aAy], hB = [P.aBx, P.aBy];
-  // A/B order: A (facing side) goes behind the body when its hand is low and back; a blade pointing back past him goes behind the body too
-  const aBehind = hA[0] < neck[0] - 0.5 && hA[1] > neck[1] + 2;
-  const bladeBackA = Math.cos(P.sa) < -0.3 && hA[0] < neck[0] + 1, bladeBackB = Math.cos(P.sb) < -0.3 && hB[0] < neck[0] + 1;
-  const swA = () => smSwish(c, hA, P.sa, Math.sign(spA) || 1, cl((Math.abs(spA) - 6) / 14, 0, 0.5)), swB = () => smSwish(c, hB, P.sb, Math.sign(spB) || 1, cl((Math.abs(spB) - 6) / 14, 0, 0.5));
-  // hair tail and the back coat tail behind everything
-  { const r = [head[0] - 1.6, head[1] - 0.2], e1 = [r[0] - 2.2 - flow * 3.2, r[1] + 3.2 - flow * 1.6], e2 = [e1[0] - 1.2 - flow * 2.4, e1[1] + 3.6 - flow * 2.2 + Math.sin(t * 4) * 0.3];
-    c.strokeStyle = C.HAIR; c.lineCap = 'round'; c.lineWidth = 1.9; c.beginPath(); c.moveTo(r[0], r[1]); c.quadraticCurveTo(e1[0], e1[1], e2[0], e2[1]); c.stroke(); c.lineWidth = 1.1; c.beginPath(); c.moveTo(e1[0], e1[1]); c.lineTo(e2[0] - 0.6, e2[1] + 0.9); c.stroke(); }
-  { const b = [waist[0] - 1.6, waist[1]], tip = [hip[0] - 3.6 - flow * 5, hip[1] + 6.4 - flow * 2.8]; c.fillStyle = shade(COL, -0.32); c.beginPath(); c.moveTo(b[0] + 1.5, b[1]); c.lineTo(b[0] - 0.2, b[1]); c.quadraticCurveTo(tip[0] + 1.2, (b[1] + tip[1]) / 2, tip[0], tip[1]); c.lineTo(tip[0] + 2.4, tip[1] + 0.4); c.closePath(); c.fill(); }
-  if (bladeBackB) { swB(); smBladeArt(c, hB, P.sb, true); }
-  if (bladeBackA && !aBehind) { swA(); smBladeArt(c, hA, P.sa, false); }
-  smLeg(c, [hip[0] - 0.5, hip[1]], [P.fBx, P.fBy], false);
-  if (aBehind) { swA(); smBladeArt(c, hA, P.sa, false); smArm(c, shA, hA, 1, shade(COL, -0.2)); }
-  smLeg(c, [hip[0] + 0.5, hip[1]], [P.fAx, P.fAy], true);
-  // torso: under-robe, sash, open coat in his colour with cream trim, collar and gold clasp
-  { const n = neck, w = waist; c.fillStyle = C.ROBE; c.beginPath(); c.moveTo(n[0] - 1.9, n[1] + 0.4); c.lineTo(n[0] + 1.9, n[1] + 0.4); c.lineTo(w[0] + 1.8, w[1] + 0.2); c.lineTo(w[0] - 1.8, w[1] + 0.2); c.closePath(); c.fill();
-    c.fillStyle = C.SASH; c.beginPath(); c.moveTo(w[0] - 2.1, w[1] - 0.9); c.lineTo(w[0] + 2.1, w[1] - 0.9); c.lineTo(w[0] + 2.1, w[1] + 0.5); c.lineTo(w[0] - 2.1, w[1] + 0.5); c.closePath(); c.fill();
-    smL(c, [w[0] + 1.6, w[1] + 0.3], [w[0] + 2.6 - flow * 1.2, w[1] + 3.0], 0.7, C.SASH);
-    const ft = [hip[0] + 2.3 - flow * 2.4, hip[1] + 6.2 - flow * 1.2];
-    c.fillStyle = COL; c.beginPath(); c.moveTo(n[0] - 0.4, n[1] + 0.2); c.lineTo(n[0] + 2.2, n[1] + 0.6); c.quadraticCurveTo(w[0] + 2.4, w[1], ft[0] + 1.2, ft[1]); c.lineTo(ft[0] - 1.4, ft[1] + 0.3); c.quadraticCurveTo(w[0] + 0.4, w[1] + 1, n[0] - 0.4, n[1] + 0.2); c.fill();
-    c.strokeStyle = C.CREAM; c.lineWidth = 0.45; c.beginPath(); c.moveTo(n[0] - 0.4, n[1] + 0.2); c.quadraticCurveTo(w[0] + 0.4, w[1] + 1, ft[0] - 1.4, ft[1] + 0.3); c.stroke();
-    c.strokeStyle = C.GOLD; c.lineWidth = 0.35; c.beginPath(); c.moveTo(ft[0] - 1.4, ft[1] + 0.3); c.lineTo(ft[0] + 1.2, ft[1]); c.stroke();
-    c.fillStyle = shade(COL, -0.15); c.beginPath(); c.moveTo(n[0] - 2.2, n[1] + 0.6); c.lineTo(n[0] - 0.4, n[1] + 0.1); c.quadraticCurveTo(w[0] - 0.6, w[1] + 0.6, w[0] - 1.6, w[1] + 1.5); c.lineTo(w[0] - 2.3, w[1] + 0.6); c.closePath(); c.fill();
-    c.fillStyle = C.CREAM; c.beginPath(); c.moveTo(n[0] - 1.2, n[1] - 0.5); c.lineTo(n[0] + 1.3, n[1] - 0.4); c.lineTo(n[0] + 0.4, n[1] + 1.4); c.closePath(); c.fill(); smE(c, n[0] + 0.3, n[1] + 1.6, 0.4, 0.4, C.GOLD); }
-  if (!aBehind) { if (!bladeBackA) { swA(); smBladeArt(c, hA, P.sa, false); } smArm(c, shA, hA, 1, shade(COL, -0.12)); }
-  // head: face, hair, cloth band with trailing ends
-  { const h = head; smE(c, h[0] + 0.3, h[1], 1.75, 2.05, C.SKIN); { const ex = h[0] + 1.25, ey = h[1] - 0.1, ry = 0.3; c.save(); c.beginPath(); c.rect(ex - 0.5, ey - ry * 0.5, 1, ry * 2); c.clip(); smE(c, ex, ey, 0.22, ry, '#2a1d16'); c.restore(); }
-    c.fillStyle = C.HAIR; c.beginPath(); c.moveTo(h[0] - 1.9, h[1] + 1.6); c.quadraticCurveTo(h[0] - 2.4, h[1] - 2.6, h[0] + 0.4, h[1] - 2.3); c.quadraticCurveTo(h[0] + 2.2, h[1] - 2.0, h[0] + 2.0, h[1] - 0.9); c.quadraticCurveTo(h[0] + 0.6, h[1] - 1.6, h[0] - 0.2, h[1] - 0.6); c.quadraticCurveTo(h[0] - 0.8, h[1] + 0.6, h[0] - 1.9, h[1] + 1.6); c.fill();
-    c.fillStyle = C.CREAM; c.beginPath(); c.moveTo(h[0] - 1.9, h[1] - 1.2); c.lineTo(h[0] + 1.95, h[1] - 1.5); c.lineTo(h[0] + 1.95, h[1] - 0.95); c.lineTo(h[0] - 1.9, h[1] - 0.6); c.closePath(); c.fill();
-    smL(c, [h[0] - 1.9, h[1] - 0.9], [h[0] - 3.3 - flow * 2.4, h[1] + 0.2 - flow * 0.4 + Math.sin(t * 5) * 0.25], 0.45, C.CREAM); smL(c, [h[0] - 1.9, h[1] - 0.8], [h[0] - 2.8 - flow * 2.0, h[1] + 1.2 - flow * 0.2], 0.4, shade(C.CREAM, -0.1)); }
-  // B, nearest the camera, last: its blade (unless it points back past him), then the arm with the hand over the grip
-  if (!bladeBackB) { swB(); smBladeArt(c, hB, P.sb, true); } smArm(c, shB, hB, -1, COL);
-  if (window.__labelArms) for (const [sh, h, txt, col] of [[shA, hA, 'A', '#ff3b30'], [shB, hB, 'B', '#1e90ff']]) { const m = [lerp(sh[0], h[0], 0.5), lerp(sh[1], h[1], 0.5)]; c.save(); c.translate(m[0], m[1]); c.scale(f, 1); c.fillStyle = col; c.beginPath(); c.arc(0, 0, 0.75, 0, 7); c.fill(); c.fillStyle = '#fff'; c.font = '700 1.1px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 0, 0.05); c.restore(); }
+  const dt = Math.min(0.1, Math.max(0, t - (K.smT ?? t))); K.smT = t;
+  // the pose eases toward where he should be every frame, so nothing ever jumps
+  const T = smPose(K, t), keys = ['pel', 'C', 'head', 'hA', 'hB'];
+  if (!K.smP || K.smP.f !== T.f) K.smP = JSON.parse(JSON.stringify(T)); const P = K.smP, e = 1 - Math.exp(-dt * (K.cut >= 0 ? 30 : 18));
+  for (const k of keys) P[k] = L2(P[k], T[k], e); for (const k of ['sh', 'hips', 'feet', 'knees']) P[k] = P[k].map((p, i) => L2(p, T[k][i], e));
+  for (const k of ['aA', 'aB']) { let tg = T[k]; tg += Math.PI * 2 * Math.round((P[k] - tg) / (Math.PI * 2)); P[k] = lerp(P[k], tg, e); } for (const k of ['lean', 'tw', 'cr']) P[k] = lerp(P[k], T[k], e);
+  const f = P.f; c.save(); c.translate(K.x, K.y - (K.z || 0)); c.scale(KS, KS);
+  c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(P.pel[0] * 0.5, 0.4, 4.4, 1.5, 0, 0, 7); c.fill();
+  // ---- depth, the Knight's A/B method ----
+  // A = arm on the facing-side shoulder, B = the other. Turned toward the camera: [blades pointing back], A (behind the body when its hand
+  // drops low), body, A, head, B; each blade with its own arm, the hand drawn over the grip.
+  const far = f > 0 ? 0 : 1, near = 1 - far, sA = P.sh[near], sB = P.sh[far];
+  const rel = h => [(h[0] - P.C[0]) * f, h[1] - P.C[1]], rA = rel(P.hA), rB = rel(P.hB);
+  const backA = Math.cos(P.aA) * f < -0.3 && rA[0] < 0.5, backB = Math.cos(P.aB) * f < -0.3 && rB[0] < 0.5;
+  const aBehind = rA[1] > 3.8;
+  const bladeA = () => smBladeArt(c, P.hA, P.aA, false), bladeB = () => smBladeArt(c, P.hB, P.aB, true);
+  const armA = () => { smArm(c, sA, P.hA, f, false); smHand(c, P.hA, false); }, armB = () => { smArm(c, sB, P.hB, f, true); };
+  if (window.__labelArms) { const tag = (sh, h, txt, col) => { const e1 = ik(sh, h, 2.6, 2.6, 1), e2 = ik(sh, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2; return [L2(sh, el, 0.6), txt, col]; }; K.smTags = [tag(sA, P.hA, 'A', '#ff3b30'), tag(sB, P.hB, 'B', '#1e90ff')]; }
+  smHairBack(c, P, f, t);
+  if (backB) bladeB();
+  if (backA) bladeA();
+  if (aBehind) { if (!backA) bladeA(); armA(); }
+  smLeg(c, P.hips[far], P.knees[far], P.feet[far], f, true); smLeg(c, P.hips[near], P.knees[near], P.feet[near], f, false);
+  smTorso(c, P, f, t);
+  if (!aBehind) { if (!backA) bladeA(); armA(); }
+  smHead(c, P, f, t);
+  // B nearest the camera: the arm, then its blade over the arm, then the hand over the grip
+  armB(); if (!backB) bladeB(); smHand(c, P.hB, true);
+  if (window.__labelArms && K.smTags) for (const [m, txt, col] of K.smTags) { c.save(); c.translate(m[0], m[1]); c.fillStyle = col; c.strokeStyle = '#fff'; c.lineWidth = 0.18; c.beginPath(); c.arc(0, 0, 0.62, 0, 7); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.font = '700 0.85px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 0, 0.05); c.restore(); }
   c.restore();
 }
 // ---------- sim ----------
@@ -2859,7 +2898,7 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cutCh'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
 const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
@@ -3045,7 +3084,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '7677b0';
+const KBUILD = '3c73d3';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
