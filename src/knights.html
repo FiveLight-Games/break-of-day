@@ -2494,7 +2494,7 @@ function drawSword(c, t) {
 const TT = {
   RUN: 1.0, ATK: 0.8, CLEN: 7.4,
   CANE: { T: 0.3, HIT: 0.4, R: 16, HALF: 0.8, DMG: 46, KB: 13.6 },
-  SABER: { T: 0.3, HIT: 0.4, R: 25, HALF: 1.0, DMG: 230, KB: 20, LEN: 10.5, TDMG: 120, TGAP: 0.25, DASH: { D: 30, T0: 0, T1: 0.24, R: 6, HOP: 4.5 } },
+  SABER: { T: 0.3, HIT: 0.4, R: 25, HALF: 1.0, DMG: 230, KB: 20, LEN: 10.5, TDMG: 120, TGAP: 0.25, DASH: { D: 30, T0: 0, T1: 0.24, R: 6 } },
   GUN: { T: 0.238, R: 72.9, HALF: 0.567, DMG: 180, KB: 8, AMMO: 2, RELOAD: 0.6 },
   ALIEN: { R: 150, HALF: 0.837, SZ: 1.35, LEN: 120, N: 24, PER: 2, EVERY: 0.05, OPEN: 0.25, REACH: 0.22, LIFT: 0.5, SQZ: 0.57, BACK: 0.22, DMG: 420, TDMG: 30, LDMG: 140, TOSSP: 0.45,
     SPL: { R: 12, DMG: 90, KB: 120 }, BOWL: 60, POP: { R: 10, DMG: 80, KB: 110 }, LASH: { DMG: 25, GAP: 0.3, SLOW: 0.5 }, NEAR: { R: 37.8, HALF: 0.75, DMG: 35, KB: 150, GAP: 0.25 },
@@ -2552,10 +2552,14 @@ function ttPose(kn, t) {
   if (!atk && mv > 0 && !wq) A[8] += Math.sin(gp) * 0.35 * mv * (1 - run);
   // idle: he checks his pocket watch until a control is touched; then he snaps it shut and pockets it
   if (kn.st === 'kneel' || kn.st === 'pull') { const q = kn.st === 'pull' ? sm(cl(kn.u / 0.45, 0, 1)) : 0; watch = 1 - q; A[4] = lerp(1.3, A[4], q); A[5] = lerp(1.4, A[5], q); look = 0.35 * (1 - q); A[2] -= 0.05 * (1 - q); }
-  if (atk && (W0 === 0 || W0 === 1)) { const keys = W0 === 1 ? TTSAB[ttSabV(kn.csN || 0)] : TTCUT[(kn.csN || 0) % 2], T = W0 === 1 ? TT.SABER.T : TT.CANE.T; A = kfnS(cl(kn.cs / T, 0, 1), keys).map((x, j) => W0 === 1 ? (j === 2 || j === 3 ? x * 1.45 : j === 9 ? x * 1.6 : x) : j === 1 ? x * 0.6 : j === 9 ? x * 0.6 : x); }
+  if (atk && (W0 === 0 || W0 === 1)) { const keys = W0 === 1 ? TTSAB[ttSabV(kn.csN || 0)] : TTCUT[(kn.csN || 0) % 2], T = W0 === 1 ? TT.SABER.T : TT.CANE.T; A = kfnS(cl(kn.cs / T, 0, 1), keys).map((x, j) => j === 1 ? x * 0.6 : j === 9 ? x * 0.6 : x); }
   // weapons held (not swinging): a fencer's ready stance with the saber; guns at low ready; the creature held out on his palm
   if (!atk && wq === 1) { A[4] = -1.1; A[5] = 3.3; A[6] = 2.0; A[7] = 3.0; A[8] = -1.0; }
-  let [, cr, lean, tw, ax, ay, bx, by, ca, stepA] = A;
+  let [, cr, lean, tw, ax, ay, bx, by, ca, stepA] = A, bBack = false, bL = 1;
+  if (atk && W0 === 1) { const v = (kn.csN || 0) % 4, dir = v % 2 ? -1 : 1, tilt = [0.2, 0.2, 0.85, -0.6][v], u = cl(kn.cs / TT.SABER.T, 0, 1);
+    const ph = u < 0.12 ? -0.12 * sm(u / 0.12) : u < 0.72 ? -0.12 + 1.12 * smt((u - 0.12) / 0.6) : 1, phi = dir * (-1.8 + 3.6 * ph), cp = Math.cos(phi), sp = Math.sin(phi);
+    bx = 0.5 + cp * 3.7; by = 1.0 + sp * 1.5 + tilt * cp * 1.3; const dy = sp * 0.42 + tilt * cp * 0.45; ca = Math.atan2(dy, cp); bL = Math.max(0.45, Math.hypot(cp, dy));
+    tw = cl(phi * 0.32, -0.95, 0.95); lean = 0.28; cr = 0.9; stepA = 1.0; ax = -1.4 - cp * 0.6; ay = 2.4; bBack = sp < -0.12 && cp < 0.35; }
   if (atk && (W0 === 0 || W0 === 1) && kn.csTl) { const T = W0 === 1 ? TT.SABER.T : TT.CANE.T, u = kn.cs / T, w = (u < 0.3 ? sm(u / 0.3) : u < 0.75 ? 1 : 1 - sm((u - 0.75) / 0.25)) * kn.csTl, sp = [0, -0.6];
     const rb = rot([bx - sp[0], by - sp[1]], w); bx = rb[0] + sp[0]; by = rb[1] + sp[1]; ca += w; lean += w * 0.4; cr = Math.max(-0.2, cr + w * 0.5); }
   // guns and the creature point where he aims
@@ -2587,8 +2591,6 @@ function ttPose(kn, t) {
     const air = kn.bk === 0 && kn.bkT >= TT.BIKE.JUMP * 0.5 && kn.bkT < TT.BIKE.LAND ? sm(cl((kn.bkT - TT.BIKE.JUMP * 0.5) / 0.15, 0, 1)) : kn.bk === 2 && kn.bkT < TT.BIKE.HOP ? Math.sin(Math.PI * kn.bkT / TT.BIKE.HOP) : 0;
     const crouch = kn.bk === 0 && kn.bkT < TT.BIKE.JUMP ? sm(kn.bkT / TT.BIKE.JUMP) : 0; cr += crouch * 1.6;
     if (air) feet = feet.map((p, i) => [lerp(p[0], (i === front ? 1.2 : -0.6) * f, air), lerp(p[1], -2.2, air)]);
-    const bnd = atk && W0 === 1 && kn.dsP ? Math.sin(Math.PI * cl(kn.cs / TT.SABER.DASH.T1, 0, 1)) : 0;
-    if (bnd > 0) { feet = feet.map((p, i) => [lerp(p[0], (i === front ? 2.6 : -2.3) * f, bnd), lerp(p[1], i === front ? -1.6 : -0.7, bnd)]); cr -= bnd * 0.4; }
     bob = mv * (Math.abs(Math.cos(gp)) * 0.5 - 0.28); pel = [f * (stepA * 0.5 * (1 - mv) + run * 0.3), -6.0 + cr * 0.95 + bob]; hips = [[pel[0] - 1.05, pel[1]], [pel[0] + 1.05, pel[1]]]; }
   lean += run * 0.24 * (atk ? 0.4 : 1); tw += Math.sin(gp) * 0.22 * mv;
   const L = f * lean, C = add(add(pel, rot([0, -4.3], L)), [f * tw * 0.55, 0]);
@@ -2602,7 +2604,7 @@ function ttPose(kn, t) {
   // keep the hands within arm's reach of the shoulders
   const far = f > 0 ? 0 : 1, near = 1 - far, reach = (s, h) => { const d = Math.hypot(h[0] - s[0], h[1] - s[1]); return d > 5.1 ? [s[0] + (h[0] - s[0]) * 5.1 / d, s[1] + (h[1] - s[1]) * 5.1 / d] : h; };
   hA = reach(sh[near], hA); hB = reach(sh[far], hB);
-  return { f, pel, hips, feet, knees: hips.map((h, i) => ik(h, feet[i], 3.1, 3.1, f > 0 ? -1 : 1)), C, sh, head, lean, tw, cr, hA, hB, aB: ang(ca), ga: ga === null ? null : ang(ga), brk, look, watch, ride };
+  return { f, pel, hips, feet, knees: hips.map((h, i) => ik(h, feet[i], 3.1, 3.1, f > 0 ? -1 : 1)), C, sh, head, lean, tw, cr, hA, hB, aB: ang(ca), ga: ga === null ? null : ang(ga), brk, look, watch, ride, bBack, bL };
 }
 // ---------- sim ----------
 // a cone in front of him along the aim: everyone in it is hit once
@@ -2705,10 +2707,10 @@ function timeStep(dt, t) {
   else if (!(K.cs >= 0) && IN.aim && ready && !busy && !(wq === 2 && (K.rl >= 0 || K.ammo <= 0))) ttStart(IN, t);
   if (K.cs >= 0) { const W0 = K.csW, T = [TT.CANE.T, TT.SABER.T, TT.GUN.T, 1, TT.SAW.T][W0], c0 = K.cs; K.cs += dt;
     if (W0 === 0 && c0 < TT.CANE.T * TT.CANE.HIT && K.cs >= TT.CANE.T * TT.CANE.HIT && AUTH()) ttCone(TT.CANE.R, TT.CANE.HALF, TT.CANE.DMG, TT.CANE.KB, (w, a) => flingFx(w, a, 0.9));
-    if (W0 === 1 && K.dsP && !ttRiding(K)) { const D = TT.SABER.DASH, qf = c => smt(cl((c - D.T0) / (D.T1 - D.T0), 0, 1)), dq = qf(K.cs) - qf(c0), d = gDir(K.dsA), ox = K.x, oy = K.y; K.x += d[0] * D.D * dq; K.y = cl(K.y + d[1] * D.D * dq, 16, H - 4); K.z = D.HOP * Math.sin(Math.PI * cl(K.cs / D.T1, 0, 1));
+    if (W0 === 1 && K.dsP && !ttRiding(K)) { const D = TT.SABER.DASH, qf = c => smt(cl((c - D.T0) / (D.T1 - D.T0), 0, 1)), dq = qf(K.cs) - qf(c0), d = gDir(K.dsA), ox = K.x, oy = K.y; K.x += d[0] * D.D * dq; K.y = cl(K.y + d[1] * D.D * dq, 16, H - 4);
       // cut along the path: anyone he dashes past is sliced once per swing
       if (AUTH() && (K.x !== ox || K.y !== oy)) for (const w of walkers) { if (w.hp <= 0 || w.air || w.sdH === K.csN || Math.abs(w.x - K.x) > 20) continue; if (ptSeg([w.x, w.y], [ox, oy], [K.x, K.y]) > D.R + UK[w.k].r) continue; w.sdH = K.csN; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; const aa = Math.atan2(w.y - K.y, w.x - K.x); hurt(w, TT.SABER.DMG, ww => ttKillFx(ww, aa, 0)); } }
-    if (K.cs >= T) { K.cs = -1; if (K.dsP) K.z = 0; K.dsP = null; if (W0 === 2 && K.ammo <= 0) K.rl = 0; } }
+    if (K.cs >= T) { K.cs = -1; K.dsP = null; if (W0 === 2 && K.ammo <= 0) K.rl = 0; } }
   if (wq === 1 && AUTH()) ttSaberTouch(t);
   // ---- the bike ----
   if (K.bkCd > 0) K.bkCd -= dt;
@@ -2746,7 +2748,7 @@ function timeStep(dt, t) {
 // the lightsaber: its blade (from the pose) burns and cuts anyone it touches, whether he's swinging or just holding it; each
 // enemy at most every TGAP, swing or no swing. Swinging sweeps the blade between frames so fast cuts don't skip anyone.
 function ttW(kn, p) { if (ttRiding(kn)) { const F = bikeFrame(0, 0, kn.hd || 0, kn.bl || 0); return [kn.x + KS * (p[0] - F.up[0] * p[1]), kn.y + KS * (-F.up[1] * p[1])]; } return [kn.x + KS * p[0], kn.y - (kn.z || 0) + KS * p[1]]; }
-function ttSaberTouch(t) { const S = TT.SABER, P = ttPose(K, t), d = [Math.cos(P.aB), Math.sin(P.aB)], a = ttW(K, [P.hB[0] + d[0] * 1.2, P.hB[1] + d[1] * 1.2]), b = ttW(K, [P.hB[0] + d[0] * (1.2 + S.LEN), P.hB[1] + d[1] * (1.2 + S.LEN)]), pv = K.sbP; K.sbP = [a, b];
+function ttSaberTouch(t) { const S = TT.SABER, P = ttPose(K, t), LB = S.LEN * (P.bL ?? 1), d = [Math.cos(P.aB), Math.sin(P.aB)], a = ttW(K, [P.hB[0] + d[0] * 1.2, P.hB[1] + d[1] * 1.2]), b = ttW(K, [P.hB[0] + d[0] * (1.2 + LB), P.hB[1] + d[1] * (1.2 + LB)]), pv = K.sbP; K.sbP = [a, b];
   for (const w of walkers) { if (w.hp <= 0 || w.air || Math.abs(w.x - K.x) > 30 || t - (w.sbT ?? -9) < S.TGAP) continue; const U = UK[w.k], h = 9 * U.sc; let hit = false;
     for (const j of [0.15, 0.5, 0.85]) { const p = [w.x, w.y - h * j - (w.z || 0)]; if (ptSeg(p, a, b) < U.r * 0.8 + 0.5 || (pv && (inTri(p, pv[0], pv[1], b) || inTri(p, pv[0], b, a)))) { hit = true; break; } }
     if (!hit) continue; w.sbT = t; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; const ang = Math.atan2(w.y - K.y, w.x - K.x); w.kx += Math.cos(ang) * S.KB * 0.5; w.ky += Math.sin(ang) * S.KB * 0.3;
@@ -2940,7 +2942,7 @@ function drawTime(c, t) {
   if (!K.ttP || K.ttP.f !== T.f) K.ttP = JSON.parse(JSON.stringify(T)); const P = K.ttP, e = 1 - Math.exp(-dt * (K.cs >= 0 ? 32 : 18));
   for (const k of keys) P[k] = L2(P[k], T[k], e); for (const k of ['sh', 'hips', 'feet', 'knees']) P[k] = P[k].map((p, i) => L2(p, T[k][i], e));
   for (const k of ['aB', 'ga']) { if (T[k] === null) { P[k] = null; continue; } if (P[k] === null || P[k] === undefined) { P[k] = T[k]; continue; } let tg = T[k]; tg += T2 * Math.round((P[k] - tg) / T2); P[k] = lerp(P[k], tg, e); }
-  for (const k of ['lean', 'tw', 'cr', 'look', 'watch', 'brk']) P[k] = lerp(P[k] || 0, T[k] || 0, e); P.ride = T.ride;
+  for (const k of ['lean', 'tw', 'cr', 'look', 'watch', 'brk']) P[k] = lerp(P[k] || 0, T[k] || 0, e); P.bL = lerp(P.bL ?? 1, T.bL ?? 1, e); P.ride = T.ride; P.bBack = T.bBack;
   const f = P.f, B = TT.BIKE, riding = T.ride, Fr = riding ? bikeFrame(K.x, K.y, K.hd || 0, K.bl || 0) : null;
   K.bkSpin = (K.bkSpin || 0) + dt * (K.bk === 1 ? K.bv : K.bk >= 0 ? 140 : 0) / 2.6;
   // the bike on its own (coming out of the portal, or riding off into one), drawn clipped to the portal's open side
@@ -2961,7 +2963,15 @@ function drawTime(c, t) {
   if (window.__labelArms) { const tag = (sh, h, txt, col) => { const e1 = ik(sh, h, 2.6, 2.6, 1), e2 = ik(sh, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2; return [L2(sh, el, 0.6), txt, col]; }; K.ttTags = [tag(sA, P.hA, 'A', '#ff3b30'), tag(sB, P.hB, 'B', '#1e90ff')]; }
   rigOn();
   ttCoatBack(c, P, f, t);
+  const sabOn = () => K.wpS === 2 ? 1 : K.wpS === 1 ? sm(cl((K.wpT - 0.5) / 0.2, 0, 1)) : 1 - sm(cl(K.wpT / 0.2, 0, 1)), sabBack = K.wpS === 2 && K.wpn === 1 && P.bBack;
+  // the saber, and the slice ribbon its sweep leaves (in his saber's colour)
+  const drawSab = (wx, wa) => { if (K.cs >= 0 && K.csW === 1 && K.wpS === 2) { const m = c.getTransform(), S = CAM.s, W = q => [(m.a * q[0] + m.c * q[1] + m.e - CAM.e) / S, (m.b * q[0] + m.d * q[1] + m.f - CAM.f) / S], d = [Math.cos(wa), Math.sin(wa)], L = TT.SABER.LEN * (P.bL ?? 1);
+      if (K.slcN !== K.csN) { if (K.slc && K.slc.length > 1) FX.push({ k: 'slice', pts: K.slc, t: 0, max: 0.3, rgb: K.slcRgb }); K.slc = []; K.slcN = K.csN; const h = shade(COL, 0.25); K.slcRgb = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); }
+      K.slc.push({ b: W([wx[0] + d[0] * 1.5, wx[1] + d[1] * 1.5]), e: W([wx[0] + d[0] * (1.2 + L), wx[1] + d[1] * (1.2 + L)]), g: 1 }); if (K.slc.length > 30) K.slc.shift(); }
+    else if (K.slc && K.slc.length) { if (K.slc.length > 1) FX.push({ k: 'slice', pts: K.slc, t: 0, max: 0.3, rgb: K.slcRgb }); K.slc = null; K.slcN = -1; }
+    ttSaber(c, wx, wa, t, sabOn() * (P.bL ?? 1)); };
   if (caneBack) ttCane(c, cK, cA);
+  if (sabBack) { ttArm(c, sB, P.hB, true); drawSab(P.hB, P.aB); ttHand(c, P.hB, true); }
   if (aBehind) { ttArm(c, sA, P.hA, false); ttHand(c, P.hA, false); }
   ttLeg(c, P.hips[far], P.knees[far], P.feet[far], f, true);
   if (riding) { rigOff(); ttBike(c, Fr, t, 'body', K.bkSpin); rigOn(); }
@@ -2978,21 +2988,17 @@ function drawTime(c, t) {
   if (K.wpS === 1) { const q = smt(cl((K.wpT - 0.22) / 0.33, 0, 1)), top = [P.head[0] + f * 0.6, P.head[1] - 9.5]; wx = L2(top, hold, q); wa = lerp(-Math.PI / 2 + K.wpT * 9, wa, q); }
   if (K.wpS === 3) { const q = smt(cl((K.wpT - 0.3) / 0.35, 0, 1)), top = [P.head[0] + f * 0.6, P.head[1] - 9.5]; wx = L2(hold, top, q); wa = lerp(wa, -Math.PI / 2 - (K.wpT - 0.3) * 9, q); }
   const showW = K.wpS === 2 || (K.wpS === 1 && K.wpT > 0.22) || (K.wpS === 3 && K.wpT < 0.68);
-  ttArm(c, sB, P.hB, true);
+  if (!sabBack) ttArm(c, sB, P.hB, true);
   if (!caneBack && tuck < 0.5) ttCane(c, cK, cA);
   if (showW) { const wn = K.wpn;
-    if (wn === 1 && K.cs >= 0 && K.csW === 1 && K.wpS === 2) { const m = c.getTransform(), S = CAM.s, W = q => [(m.a * q[0] + m.c * q[1] + m.e - CAM.e) / S, (m.b * q[0] + m.d * q[1] + m.f - CAM.f) / S], d = [Math.cos(wa), Math.sin(wa)], L = TT.SABER.LEN;
-      if (K.slcN !== K.csN) { if (K.slc && K.slc.length > 1) FX.push({ k: 'slice', pts: K.slc, t: 0, max: 0.3, rgb: K.slcRgb }); K.slc = []; K.slcN = K.csN; const h = shade(COL, 0.25); K.slcRgb = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); }
-      K.slc.push({ b: W([wx[0] + d[0] * 1.5, wx[1] + d[1] * 1.5]), e: W([wx[0] + d[0] * (1.2 + L), wx[1] + d[1] * (1.2 + L)]), g: 1 }); if (K.slc.length > 30) K.slc.shift(); }
-    else if (K.slc && K.slc.length) { if (K.slc.length > 1) FX.push({ k: 'slice', pts: K.slc, t: 0, max: 0.3, rgb: K.slcRgb }); K.slc = null; K.slcN = -1; }
-    if (wn === 1) ttSaber(c, wx, wa, t, K.wpS === 2 ? 1 : K.wpS === 1 ? sm(cl((K.wpT - 0.5) / 0.2, 0, 1)) : 1 - sm(cl(K.wpT / 0.2, 0, 1)));
+    if (wn === 1) { if (!sabBack) drawSab(wx, wa); }
     else if (wn === 2) ttShotgun(c, wx, wa, P.brk || 0);
     else if (wn === 3) { const open = sm(cl(K.alV || 0, 0, 1)), mo = ttAlienArt(c, wx, wa, open, t, open > 0.02 ? 'back' : 'all'), m = c.getTransform(), S = CAM.s;
       // where the mouth is in the world, so the tentacles grow out of it and its lips are drawn over their roots (in ttAir)
       const W = q => [(m.a * q[0] + m.c * q[1] + m.e - CAM.e) / S, (m.b * q[0] + m.d * q[1] + m.f - CAM.f) / S], c0 = W(mo.mc), e0 = W([mo.mc[0] + mo.ax[0] * mo.ry, mo.mc[1] + mo.ax[1] * mo.ry]);
       K.mouth = c0; K.mouthAx = [e0[0] - c0[0], e0[1] - c0[1]]; K.alM = { m: [m.a / S, m.b / S, m.c / S, m.d / S, (m.e - CAM.e) / S, (m.f - CAM.f) / S], h: wx.slice(), a: wa, open }; }
     else if (wn === 4) { const kick = K.cs >= 0 && K.csW === 4 ? Math.max(0, 1 - K.cs / 0.14) : 0, ld = K.cs >= 0 && K.csW === 4 ? sm(cl((K.cs - 0.12) / 0.25, 0, 1)) : 1; c.save(); c.translate(wx[0], wx[1]); c.scale(TT.SAW.GUN, TT.SAW.GUN); ttSawGun(c, [0, 0], wa, t, ld, kick); c.restore(); } }
-  ttHand(c, P.hB, true);
+  if (!sabBack) ttHand(c, P.hB, true);
   if (gun && K.rl >= 0 && (q => (q > 0.4 && q < 0.6) || (q > 0.82 && q < 1.0))(K.rl * 1.75 / TT.GUN.RELOAD)) { c.fillStyle = '#b8322a'; c.beginPath(); c.ellipse(P.hA[0], P.hA[1] - 0.3, 0.42, 0.22, 0.4, 0, 7); c.fill(); c.fillStyle = TTC.BRASS; c.beginPath(); c.arc(P.hA[0] - 0.35, P.hA[1] - 0.45, 0.2, 0, 7); c.fill(); }
   if (gun) ttHand(c, P.hA, false);
   if (window.__labelArms && K.ttTags) for (const [m, txt, col] of K.ttTags) { c.save(); c.translate(m[0], m[1]); c.fillStyle = col; c.strokeStyle = '#fff'; c.lineWidth = 0.18; c.beginPath(); c.arc(0, 0, 0.62, 0, 7); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.font = '700 0.85px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 0, 0.05); c.restore(); }
