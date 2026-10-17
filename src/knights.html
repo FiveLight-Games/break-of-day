@@ -2759,11 +2759,14 @@ function timeStep(dt, t) {
   if (K.bkQ) { K.bkQ.t -= dt; if (K.bkQ.t <= 0) K.bkQ = null; else if (K.bk < 0) { const a = K.bkQ.a, d = gDir(a); K.bkQ = null;
     Object.assign(K, { bk: 0, bkT: 0, hd: a, bv: 0, yr: 0, bl: 0, bkId: (K.bkId || 0) + 1, bpx: r1(K.x - d[0] * B.DIST), bpy: r1(K.y - d[1] * B.DIST), lx0: K.x, ly0: K.y, lx: K.x + d[0] * 8, ly: K.y + d[1] * 8 }); } }
   if (K.bk === 0) { K.bkT += dt; const u = K.bkT, q = cl((u - B.JUMP) / (B.LAND - B.JUMP), 0, 1);
-    K.z = u < B.JUMP ? 0 : lerp(0, B.SEAT, q) + 9 * Math.sin(Math.PI * q) * (q < 1 ? 1 : 0); const s = smt(q); K.x = lerp(K.lx0, K.lx, s); K.y = lerp(K.ly0, K.ly, s);
+    K.z = u < B.JUMP ? 0 : lerp(0, B.SEAT, q) + 9 * Math.sin(Math.PI * q) * (q < 1 ? 1 : 0); 
+    // he keeps walking (move stick) through the crouch, the jump and the landing; the bike comes out to wherever he is
+    { const v2 = RUN * TT.RUN, e0 = 1 - Math.exp(-dt * 14); if (mvL > 0.12) { const k = Math.min(1, mvL); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e0); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e0); if (Math.abs(IN.mv[0]) > 0.2 && !IN.aim && !(K.cs >= 0)) K.f = IN.mv[0] > 0 ? 1 : -1; } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
+      const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy); K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.5; }
     // the bike starts a full length back inside the portal (hidden behind its plane) and drives out through it, easing off as it slides in under him
-    const e = cl((u - 0.25) / (B.LAND - 0.25), 0, 1), e2 = 1 - (1 - e) ** 1.6, dB = gDir(K.hd), x0 = K.bpx - dB[0] * B.HALF * 1.6, y0 = K.bpy - dB[1] * B.HALF * 1.6; K.bkx = lerp(x0, K.lx, e2); K.bky = lerp(y0, K.ly, e2); K.vx = K.vy = 0; K.spd = 0;
-    if (u >= B.LAND) { K.z = 0; K.x = K.lx; K.y = K.ly; }
-    if (u >= B.IN) { const d = gDir(K.hd); Object.assign(K, { bk: 1, bkT: 0, bv: 140, bvx: d[0] * 140, bvy: d[1] * 140, z: 0 }); } }
+    const e = cl((u - 0.25) / (B.LAND - 0.25), 0, 1), e2 = 1 - (1 - e) ** 1.6, dB = gDir(K.hd), x0 = K.bpx - dB[0] * B.HALF * 1.6, y0 = K.bpy - dB[1] * B.HALF * 1.6; K.bkx = lerp(x0, K.x, e2); K.bky = lerp(y0, K.y, e2);
+    if (u >= B.LAND) K.z = 0;
+    if (u >= B.IN) { const d = gDir(K.hd); Object.assign(K, { bk: 1, bkT: 0, bv: 140, bvx: d[0] * 140, bvy: d[1] * 140, z: 0, vx: 0, vy: 0 }); } }
   else if (K.bk === 1) { K.bkT += dt; const m = mvL > 0.15 ? Math.min(1, mvL) : 0, want = m ? gAng(IN.mv[0], IN.mv[1]) : K.hd, diff = wrapA(want - K.hd);
     // steering: proportional, capped by a turning radius that grows with speed, with a little lag in the bars
     const Rt = 16 + K.bv * 0.2, maxYaw = K.bv / Rt, yaw = cl(diff * 5, -maxYaw, maxYaw); K.yr = lerp(K.yr || 0, yaw, 1 - Math.exp(-dt * 8)); K.hd = wrapA(K.hd + K.yr * dt);
