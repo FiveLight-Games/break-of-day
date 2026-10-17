@@ -3091,7 +3091,7 @@ function ttAir(c, t) {
 // there; it only lets go and steps over (lifting, 0.25s) when the spot leaves the cone, gets too far, its enemy dies or someone
 // steps in between; at most one tentacle steps every 0.04s, so a turn of the aim reads as the grip crawling across. Worked out
 // per frame on every screen; tcB (the enemy each is pressed against) drives the host's lash.
-function ttTentLines(kn, dt, t) { const A = TT.ALIEN, [ox, oy, full] = ttO(kn), L0 = full ? TT.HURL.LEN : L0; if (kn.tcFull !== full) { kn.tcFull = full; kn.tcS = null; } const S = kn.tcS || (kn.tcS = []), BS = kn.tcB || (kn.tcB = []), byId = new Map();
+function ttTentLines(kn, dt, t) { const A = TT.ALIEN, [ox, oy, full] = ttO(kn), L0 = full ? TT.HURL.LEN : A.LEN; if (kn.tcFull !== full) { kn.tcFull = full; kn.tcS = null; } const S = kn.tcS || (kn.tcS = []), BS = kn.tcB || (kn.tcB = []), byId = new Map();
   const near = []; for (const w of walkers) { if (w.dead || w.hp <= 0 || w.air) continue; const dx = w.x - ox, dy = (w.y - oy) * 1.25, d = Math.hypot(dx, dy); if (d > L0 * 1.2 + 6) continue; const a = Math.atan2(dy, dx); if (full || Math.abs(wrapA(a - kn.alA)) < A.HALF + 0.6) { near.push([d, a, UK[w.k].r, w.id]); byId.set(w.id, w); } }
   const spot = ab => { let L = L0 * rr(0.85, 1), b = -1; for (const [d, a, rw, id] of near) { const da = wrapA(a - ab); if (Math.cos(da) > 0 && d * Math.abs(Math.sin(da)) < rw + 2.5 * A.SZ && d - rw - 3 < L) { L = d - rw - 3; b = id; } } L = Math.max(7, L); const g = gDir(ab); return [[ox + g[0] * L, oy + g[1] * L], b]; };
   kn.tcStep = (kn.tcStep || 0) - dt;
