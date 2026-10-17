@@ -5,11 +5,11 @@
 html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none;-webkit-user-select:none;user-select:none}
 body{color:#efe7d6;font:600 14px/1.3 system-ui,sans-serif}
 canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block}
-#top{position:fixed;top:8px;left:8px;right:40px;flex-wrap:nowrap !important;display:flex;gap:6px;flex-wrap:wrap;align-items:center;pointer-events:none}
+#top{position:fixed;top:8px;left:8px;right:42px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;pointer-events:none}
 #top>*{pointer-events:auto}
 button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;cursor:pointer}
 #vol{position:fixed;right:6px;top:8px;z-index:4;display:flex;flex-direction:column;align-items:center;gap:6px;background:#1b1813e6;border:1px solid #3a332a;border-radius:10px;padding:6px 4px 8px;color:#f0c419;font-size:14px;touch-action:none}#vol span{cursor:pointer;line-height:1}#vol .vtr{position:relative;width:8px;height:96px;border-radius:4px;background:#3a332a;touch-action:none}#vol .vtr::before{content:'';position:absolute;left:-10px;right:-10px;top:-8px;bottom:-8px}#vol .vfill{position:absolute;left:0;right:0;bottom:0;border-radius:4px;background:#f0c419}
-#stats{margin-left:auto;flex:0 1 auto;min-width:0;overflow:hidden;white-space:pre;text-align:right;line-height:1.2;padding:4px 8px !important;font-size:11px !important;background:#000a;border-radius:10px;padding:6px 10px;font-size:13px}
+#stats{margin-left:auto;background:#000a;border-radius:10px;padding:6px 10px;font-size:13px}
 .stick{position:fixed;bottom:22px;width:140px;height:140px;border-radius:50%;background:#ffffff14;border:2px solid #ffffff33;touch-action:none}
 .stick .knob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:#ffffff40;border:2px solid #ffffff80}
 #lst{left:22px} #rst{right:10vw}
@@ -24,7 +24,7 @@ body.fire #dash{left:calc(50% - 48px);right:auto;top:auto;bottom:22px;width:96px
 #ult.ready{border-color:#fff3c4;color:#fff8e0;background:#f0c41966;box-shadow:0 0 14px #f0c419aa}#ult.live{border-color:#fff;color:#fff}
 @media (prefers-reduced-motion:no-preference){#ult.ready{animation:ultp 1.1s ease-in-out infinite}@keyframes ultp{50%{box-shadow:0 0 26px #ffe58a}}}
 .off{opacity:.3;pointer-events:none}
-@media (orientation:portrait){.stick{width:110px;height:110px;bottom:18px}.stick .knob{width:46px;height:46px;margin:-23px 0 0 -23px}#lst{left:14px}#rst{right:8vw}#spin{right:12px;bottom:150px;width:64px;height:64px}#top{gap:4px}#top button{padding:6px 7px;font-size:11px;white-space:nowrap}#top .lb{display:none}#top button{font-size:13px}#top #reset,#top #slow{font-size:11px}#stats{font-size:10px !important;padding:4px 6px !important}}
+@media (orientation:portrait){.stick{width:110px;height:110px;bottom:18px}.stick .knob{width:46px;height:46px;margin:-23px 0 0 -23px}#lst{left:14px}#rst{right:8vw}#spin{right:12px;bottom:150px;width:64px;height:64px}#top button{padding:6px 9px;font-size:12px}#stats{font-size:11px}}
 #lobbyUI{position:fixed;inset:0;background:radial-gradient(circle at 50% 30%,#2a2620,#0d0c0a);display:flex;align-items:center;justify-content:center;z-index:10;padding:16px;box-sizing:border-box}
 #lobbyUI .card{background:#1a1713;border:1px solid #3a332a;border-radius:16px;padding:20px;max-width:360px;width:100%;display:flex;flex-direction:column;gap:10px;text-align:center}
 #lobbyUI .chars{display:flex;gap:6px}#lobbyUI .chars button{flex:1}#lobbyUI .chars .on{border-color:#f0c419;color:#f0c419;background:#2a2416}
@@ -66,7 +66,7 @@ button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none
 <div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button><button data-n="50">+50</button></div><div class="hrow"><span>Test</span><button id="fillUlt">Fill ult</button><button id="clear">Clear all enemies</button></div></div>
 <div id="layEd"><b id="layTitle">Control layout</b><span id="layHint">Drag a button's middle to move it, its rim to resize it.</span><div class="lrow"><span id="layName">Move stick</span><input type="range" id="laySize" min="44" max="230" step="1"><span id="laySizeV" class="lnum"></span></div><span id="layWarn"></span><div class="lrow"><button id="layReset">Reset</button><button id="layDone" class="pri2">Done</button></div></div>
 <div id="exitQ"><div><p>Exit to main menu?</p><div class="row"><button id="exitNo">Stay</button><button id="exitYes">Exit</button></div></div></div>
-<div id="top"><button id="setBtn" title="Menu">&#9881;<span class="lb"> Menu</span></button><button id="hordeBtn" title="Horde">&#9776;<span class="lb"> Horde</span></button><button id="charBtn" title="Change character">&#9823;<span class="lb"> Character</span></button><button id="reset">Reset</button><button id="slow">Slow-mo</button><div id="stats"></div></div>
+<div id="top"><button id="setBtn" title="Menu">&#9881; Menu</button><button id="hordeBtn">&#9776; Horde</button><button id="charBtn" title="Change character">&#9823; Character</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><div id="stats"></div></div>
 <div id="vol" title="Music volume"><span>&#9835;</span><div class="vtr"><div class="vfill"></div></div></div>
 <div id="setP" class="pnl"><div class="hrow"><b>Menu</b></div><div class="hrow"><a id="menuBtn" href="./">&#8962; Main Menu</a><button id="restartBtn" title="Back to the start screen (pick a character, host or join)">&#8635; Restart</button></div><div class="hrow"><button id="sound">Sound: on</button><button id="music">Music: on</button></div><div class="hrow"><button id="layBtn" title="Control layout">&#10021; Controls setup</button><button id="zones">Hit zones: off</button></div></div>
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
@@ -2517,9 +2517,7 @@ function draw() {
     for (let i = 0; i < 8; i++) { const a0 = (i - 0.5) * Math.PI / 4; const sa = Math.atan2(Math.sin(a0) * 25 / 12, Math.cos(a0)), sb = Math.atan2(Math.sin(a0 + Math.PI / 4) * 25 / 12, Math.cos(a0 + Math.PI / 4)); x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, 25, sa, sb); x.closePath(); x.fillStyle = live && i === K.sec ? 'rgba(255,60,40,.35)' : 'rgba(255,255,255,.06)'; x.fill(); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 0.3; x.stroke(); }
     x.restore(); }
   if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
-  // two short lines so it fits in the top bar between the buttons and the volume slider
-  { const pl = LIVE().map(kn => `${kn.i === ME ? 'You' : ((NET && NET.names && NET.names[kn.i]) || pName(kn.i)).slice(0, 9)} ${kn.kills}k/${Math.round(kn.hits)}h`), rows = []; for (let i = 0; i < pl.length; i += 2) rows.push(pl.slice(i, i + 2).join(' · '));
-    const st = (NET ? `${NET.code} ${LIVE().length}/${MAXP} · ` : '') + `${walkers.length} enemies` + '\n' + (LIVE().length > 1 ? rows.join('\n') : `${K.kills} kills · ${Math.round(K.hits)} hits taken`); if (ST.textContent !== st) ST.textContent = st; }
+  ST.textContent = (NET ? `Room ${NET.code} · ${LIVE().length}/${MAXP} · ` : '') + (LIVE().length > 1 ? `Enemies ${walkers.length} · ` + LIVE().map(kn => `${kn.i === ME ? 'You' : (NET && NET.names && NET.names[kn.i]) || pName(kn.i)} ${kn.kills}k/${Math.round(kn.hits)}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${Math.round(K.hits)}`);
   const cdk = K.kind === 'priest' ? (K.hoT > 0 ? 1 : cl((K.hoCd || 0) / WP.HO.CD, 0, 1)) : K.kind === 'fire' ? (K.lava ? 1 : cl((K.lvCd || 0) / LAVA.CD, 0, 1)) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
   { const FV = K.kind === 'fire', WPV = K.kind === 'priest', live = FV ? K.vPh >= 0 : WPV ? K.pPh >= 0 : K.ultPh >= 0, pr = cl((K.kills - (K.ultBase || 0)) / ultNeed(K), 0, 1);
     document.body.classList.toggle('volc', FV && live); const vOpen = K.vPh === 1 || (K.vPh === 0 && K.vT >= V.RISE - 1); VTAP.classList.toggle('on', FV && vOpen && K.vSh < V.SHOTS && !(K.vBel >= 0)); if (FV && vOpen) { const tx = `Tap the screen to erupt · ${V.SHOTS - K.vSh} left`; if (VTAP.textContent !== tx) VTAP.textContent = tx; }
@@ -2588,7 +2586,7 @@ document.getElementById('reset').onclick = doReset;
   document.getElementById('exitYes').onclick = () => { location.href = MB2.getAttribute('href'); }; }
 let ZONES = false; document.getElementById('zones').onclick = e => { ZONES = !ZONES; e.target.textContent = 'Hit zones: ' + (ZONES ? 'on' : 'off'); };
 const SLB = document.getElementById('slow');
-function slowLabel() { SLB.textContent = 'Slow-mo' + (speed === 1 ? '' : ' ✓'); SLB.style.borderColor = speed === 1 ? '' : '#f0c419'; SLB.style.color = speed === 1 ? '' : '#f0c419'; }
+function slowLabel() { SLB.textContent = 'Slow-mo: ' + (speed === 1 ? 'off' : 'on'); SLB.style.borderColor = speed === 1 ? '' : '#f0c419'; SLB.style.color = speed === 1 ? '' : '#f0c419'; }
 function toggleSlow() { if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'slow' } }); speed = speed === 1 ? 0.3 : 1; slowLabel(); }
 SLB.onclick = toggleSlow;
 // joysticks (touch / mouse drag)
