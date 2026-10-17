@@ -5,10 +5,10 @@
 html,body{margin:0;height:100%;overflow:hidden;background:#000;touch-action:none;-webkit-user-select:none;user-select:none}
 body{color:#efe7d6;font:600 14px/1.3 system-ui,sans-serif}
 canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block}
-#top{position:fixed;top:8px;left:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;pointer-events:none}
+#top{position:fixed;top:8px;left:8px;right:42px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;pointer-events:none}
 #top>*{pointer-events:auto}
 button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;cursor:pointer}
-#vol{position:fixed;right:6px;top:60px;z-index:4;display:flex;flex-direction:column;align-items:center;gap:6px;background:#1b1813e6;border:1px solid #3a332a;border-radius:10px;padding:6px 4px 8px;color:#f0c419;font-size:14px;touch-action:none}#vol span{cursor:pointer;line-height:1}#vol .vtr{position:relative;width:8px;height:96px;border-radius:4px;background:#3a332a;touch-action:none}#vol .vtr::before{content:'';position:absolute;left:-10px;right:-10px;top:-8px;bottom:-8px}#vol .vfill{position:absolute;left:0;right:0;bottom:0;border-radius:4px;background:#f0c419}
+#vol{position:fixed;right:6px;top:8px;z-index:4;display:flex;flex-direction:column;align-items:center;gap:6px;background:#1b1813e6;border:1px solid #3a332a;border-radius:10px;padding:6px 4px 8px;color:#f0c419;font-size:14px;touch-action:none}#vol span{cursor:pointer;line-height:1}#vol .vtr{position:relative;width:8px;height:96px;border-radius:4px;background:#3a332a;touch-action:none}#vol .vtr::before{content:'';position:absolute;left:-10px;right:-10px;top:-8px;bottom:-8px}#vol .vfill{position:absolute;left:0;right:0;bottom:0;border-radius:4px;background:#f0c419}
 #stats{margin-left:auto;background:#000a;border-radius:10px;padding:6px 10px;font-size:13px}
 .stick{position:fixed;bottom:22px;width:140px;height:140px;border-radius:50%;background:#ffffff14;border:2px solid #ffffff33;touch-action:none}
 .stick .knob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:#ffffff40;border:2px solid #ffffff80}
@@ -66,9 +66,9 @@ button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none
 <div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button><button data-n="50">+50</button></div><div class="hrow"><span>Test</span><button id="fillUlt">Fill ult</button><button id="clear">Clear all enemies</button></div></div>
 <div id="layEd"><b id="layTitle">Control layout</b><span id="layHint">Drag a button's middle to move it, its rim to resize it.</span><div class="lrow"><span id="layName">Move stick</span><input type="range" id="laySize" min="44" max="230" step="1"><span id="laySizeV" class="lnum"></span></div><span id="layWarn"></span><div class="lrow"><button id="layReset">Reset</button><button id="layDone" class="pri2">Done</button></div></div>
 <div id="exitQ"><div><p>Exit to main menu?</p><div class="row"><button id="exitNo">Stay</button><button id="exitYes">Exit</button></div></div></div>
-<div id="top"><button id="setBtn" title="Menu">&#9881; Menu</button><button id="hordeBtn">&#9776; Horde</button><button id="charBtn" title="Change character">&#9823; Character</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><div id="stats"></div></div>
+<div id="top"><button id="setBtn" title="Menu">&#9881; Menu</button><button id="hordeBtn">&#9776; Horde</button><button id="charBtn" title="Change character">&#9823; Character</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><div id="stats"></div></div>
 <div id="vol" title="Music volume"><span>&#9835;</span><div class="vtr"><div class="vfill"></div></div></div>
-<div id="setP" class="pnl"><div class="hrow"><b>Menu</b></div><div class="hrow"><a id="menuBtn" href="./">&#8962; Main Menu</a><button id="restartBtn" title="Back to the start screen (pick a character, host or join)">&#8635; Restart</button></div><div class="hrow"><button id="sound">Sound: on</button><button id="music">Music: on</button></div><div class="hrow"><button id="layBtn" title="Control layout">&#10021; Controls setup</button></div></div>
+<div id="setP" class="pnl"><div class="hrow"><b>Menu</b></div><div class="hrow"><a id="menuBtn" href="./">&#8962; Main Menu</a><button id="restartBtn" title="Back to the start screen (pick a character, host or join)">&#8635; Restart</button></div><div class="hrow"><button id="sound">Sound: on</button><button id="music">Music: on</button></div><div class="hrow"><button id="layBtn" title="Control layout">&#10021; Controls setup</button><button id="zones">Hit zones: off</button></div></div>
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
 <div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
 <div id="vtap"></div><button id="spin"><i></i><span>SPIN</span></button>
@@ -2540,8 +2540,6 @@ function frame(ms) {
 const ST = document.getElementById('stats'), SPI = document.querySelector('#spin i');
 const HZE = document.getElementById('horde'), KG = HZE.querySelector('.kgrid');
 const SETP = document.getElementById('setP');
-// the volume slider sits on the right edge just under the top bar (which wraps to more rows on narrow screens)
-{ const TB = document.getElementById('top'), VO = document.getElementById('vol'), place = () => { VO.style.top = (TB.getBoundingClientRect().bottom + 6) + 'px'; }; if (window.ResizeObserver) new ResizeObserver(place).observe(TB); addEventListener('resize', place); place(); }
 document.getElementById('hordeBtn').onclick = () => { CHP.classList.remove('open'); SETP.classList.remove('open'); HZE.classList.toggle('open'); };
 document.getElementById('setBtn').onclick = e => { CHP.classList.remove('open'); HZE.classList.remove('open'); SETP.classList.toggle('open'); e.currentTarget.blur(); };
 // in-game character select: the pick goes to the host as input ch + counter chN; whoever steps the knight swaps it on the spot (switchChar)
