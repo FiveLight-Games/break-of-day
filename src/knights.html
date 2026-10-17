@@ -3089,6 +3089,6 @@ checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('vis
 
 window.__KN = () => KN; window.__pose = t2 => pose(t2); window.__W = () => walkers; window.__spinSw = () => spinSwept(); window.__SPT = SPIN_T; window.__SPO = SPIN_O; window.__PRT = PRE_T;
 window.__arr = () => ({ blood: blood.length, dust: dust.length, sparks: sparks.length, parts: parts.length, splats: splats.length, fx: FX.length, fp: KN.reduce((a, k) => a + (k.fp ? k.fp.length : 0), 0), burning: walkers.filter(w => w.bd > 0).length }); window.__leave = () => leave(); window.__w2s = (a, b) => w2s(a, b); window.__cam = () => [camX, camY, viewScale(), cv.width, cv.height, cv.getBoundingClientRect().height, shake]; window.__flush = () => { try { x.getImageData(0, 0, 1, 1); } catch (e) { } }; window.__still = 0; window.__stop = () => { window.__still = 1; };
-window.__WP = WP; window.__kf = () => ({ kfnS, kfn, SW_A, SW_B, SW_C, bladeSeg, SWWIN }); window.__spawn = (x0, n, sp) => { for (let i = 0; i < n; i++) spawnWalker(x0 - i * 4, sp); };
+window.__WP = WP; window.__uz = () => ultZoom; window.__kf = () => ({ kfnS, kfn, SW_A, SW_B, SW_C, bladeSeg, SWWIN }); window.__spawn = (x0, n, sp) => { for (let i = 0; i < n; i++) spawnWalker(x0 - i * 4, sp); };
 })();
 </script></body></html>
