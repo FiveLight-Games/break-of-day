@@ -2494,7 +2494,7 @@ function drawSword(c, t) {
 const TT = {
   RUN: 1.0, ATK: 0.8, CLEN: 7.4,
   CANE: { T: 0.3, HIT: 0.4, R: 16, HALF: 0.8, DMG: 46, KB: 13.6 },
-  SABER: { T: 0.405, HIT: 0.4, R: 25, HALF: 1.0, DMG: 230, KB: 20, LEN: 10.5, GROW: 1.015, TDMG: 120, TGAP: 0.25, DASH: { D: 30, T0: 0, T1: 0.324, R: 6 } },
+  SABER: { T: 0.405, HIT: 0.4, R: 25, HALF: 1.0, DMG: 230, KB: 20, LEN: 10.5, GROW: 1.418, TDMG: 120, TGAP: 0.25, DASH: { D: 30, T0: 0, T1: 0.324, R: 6 } },
   GUN: { T: 0.238, R: 72.9, HALF: 0.567, DMG: 180, KB: 8, AMMO: 2, RELOAD: 0.6 },
   ALIEN: { R: 150, HALF: 0.837, SZ: 1.35, LEN: 120, N: 24, PER: 2, EVERY: 0.05, OPEN: 0.25, REACH: 0.22, LIFT: 0.5, SQZ: 0.57, BACK: 0.22, DMG: 420, TDMG: 30, LDMG: 140, TOSSP: 0.45,
     SPL: { R: 12, DMG: 90, KB: 120 }, BOWL: 60, POP: { R: 10, DMG: 80, KB: 110 }, LASH: { DMG: 25, GAP: 0.3, SLOW: 0.5 }, NEAR: { R: 37.8, HALF: 0.75, DMG: 35, KB: 150, GAP: 0.25 },
@@ -3700,7 +3700,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'a6a4e4';
+const KBUILD = '3cdd1f';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
