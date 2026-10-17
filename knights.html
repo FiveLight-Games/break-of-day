@@ -2501,7 +2501,7 @@ const TT = {
     // the attack pool: 0 toss, 1 squeeze, 2 whip, 3 eat, 4 slam (when each finishes, from the grab's start); any of them can skewer up to 2 more
     END: [0.5, 0.57, 0.75, 0.55, 0.62], W: [0.2, 0.25, 0.2, 0.2, 0.15], WHIP: { DMG: 70, KB: 120, ARC: 1.6, R0: 18, R1: 55 }, SLAM: { Z: 20, UP: 0.42, R: 18, DMG: 140, KB: 160 }, SKEW: { P: 0.45, MAX: 2, GAP: 26 } },
   SAW: { T: 0.46, SPD: 240, RANGE: 300, DMG: 260, W: 7.7, Z: 8, R: 6.6, GUN: 1.3 },
-  PORT: { CD: 1, HOLD: 8, IN: 0.75, OUT: 0.9 },
+  PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
   BIKE: { CD: 14, T: 5, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
 };
 const TTC = { SKIN: '#e8bb98', SKIND: '#c08f6c', HAIR: '#6b4a33', HAIRL: '#8a6446', TROU: '#3a3842', TROUD: '#2c2a33', SHOE: '#16131a', SPAT: '#e9e3d3', VEST: '#2e2a35', VESTL: '#433d4c', SHIRT: '#f4f1ea', GLOVE: '#efe9dc', GLOVED: '#cfc6b2',
@@ -2687,7 +2687,7 @@ function timeStep(dt, t) {
   // test buttons: a given weapon right now (through the portal if he has none, swapped straight in if he has one)
   if ((IN.twN || 0) !== (K.twSeen || 0)) { K.twSeen = IN.twN || 0; const v = IN.twV | 0; if (ready && v >= 1 && v <= 4) { if (K.wpS === 2) Object.assign(K, { wpn: v, wpT: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1, al: 0, tc: null }); else if (K.wpS === 0) Object.assign(K, { wpn: v, wpL: v, wpS: 1, wpT: 0, wpCd: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1 }); else if (K.wpS === 1) K.wpn = v; } }
   if (K.wpS === 1) { K.wpT += dt; if (K.wpT >= TT.PORT.IN) { K.wpS = 2; K.wpT = 0; } }
-  else if (K.wpS === 2) { K.wpT += dt; if (K.wpT >= TT.PORT.HOLD + (K.wpn === 3 ? 0.4 : 0) && K.bk !== 0 && K.bk !== 1) { K.wpS = 3; K.wpT = 0; K.cs = -1; K.rl = -1; K.al = 0; K.tc = null; } }
+  else if (K.wpS === 2) { K.wpT += dt; if ((lvP && ready) || (K.wpT >= TT.PORT.HOLD + (K.wpn === 3 ? 0.4 : 0) && K.bk !== 0 && K.bk !== 1)) { K.wpS = 3; K.wpT = 0; K.cs = -1; K.rl = -1; K.al = 0; K.tc = null; } }
   else if (K.wpS === 3) { K.wpT += dt; if (K.wpT >= TT.PORT.OUT) { K.wpS = 0; K.wpT = 0; K.wpn = 0; K.wpCd = TT.PORT.CD; } }
   // ---- attacks: the cane, or whatever the portal brought ----
   const wq = K.wpS === 2 ? K.wpn : 0, busy = K.wpS === 1 || K.wpS === 3 || K.bk === 0 || K.bk === 2;
@@ -3701,7 +3701,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '25054e';
+const KBUILD = 'cb09ef';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
