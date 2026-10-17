@@ -60,5 +60,6 @@
   {"v": "0.59", "build": "4b1212", "commit": "870a75a", "date": "2026-10-16", "notes": "Warpriest: player-colour censer outline, pauldron skull and visor glow; big sweep cooldown 7s."},
   {"v": "0.60", "build": "8c55cf", "commit": "baf22d1", "date": "2026-10-16", "notes": "Knight Brawl: in-game character and colour select, player names over other players, Menu panel (main menu, restart, sound, music, controls, hit zones), Clear in Horde, vertical volume slider."},
   {"v": "0.61", "build": "710855", "commit": "addc41a", "date": "2026-10-16", "notes": "Knight: third swing (clockwise twirl), bigger light blade on swings 2 and 3, smoother swings, swings cut wherever the blade moves fast; Hit zones shows each swing's damage area."},
-  {"v": "0.62", "build": "2798ae", "commit": "", "date": "2026-10-17", "notes": "Firebreather's volcano only zooms out his own screen; Warpriest chain meets the head's centre."}
+  {"v": "0.62", "build": "2798ae", "commit": "454561a", "date": "2026-10-17", "notes": "Firebreather's volcano only zooms out his own screen; Warpriest chain meets the head's centre."},
+  {"v": "0.63", "build": "084bb3", "commit": "", "date": "2026-10-17", "notes": "Enemies keep a little more room between each other"}
 ]
