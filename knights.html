@@ -3175,18 +3175,18 @@ function ttTendrils(c, kn, t) { const A = TT.ALIEN, m0 = kn.mouth, byId = new Ma
     for (let it = 0; it < 10; it++) { P[0] = m0.slice(); for (let i = 0; i < NN; i++) { const a = P[i], b = P[i + 1], ddx = b[0] - a[0], ddy = b[1] - a[1], dd = Math.hypot(ddx, ddy) || 1, e = (dd - seg) / dd * 0.5; if (i) { a[0] += ddx * e; a[1] += ddy * e; } b[0] -= ddx * e; b[1] -= ddy * e; } }
     list.push([j, P, w, sq, tip, m0]); }
   list.sort((p, q) => p[4][1] - q[4][1]);
-  for (const [j, P0, w, sq, , m0] of list) { const pts = []; for (let i = 0; i < NN; i++) for (let k = 0; k < 3; k++) pts.push(L2(P0[i], P0[i + 1], k / 3)); pts.push(P0[NN]); const n = pts.length - 1, use = pts.map(p => L2(m0, p, ext));
+  for (const [j, P0, w, sq, , m0] of list) { const pts = []; for (let i = 0; i < NN; i++) for (let k = 0; k < 3; k++) pts.push(L2(P0[i], P0[i + 1], k / 3)); pts.push(P0[NN]); const n = pts.length - 1, use = pts.map(p => L2(m0, p, ext)), TH = smt(cl(ext / 0.6, 0, 1));
     // the root fades to black where it leaves the mouth, so it seems to come up from somewhere deep inside: dk(i) = how dark ring i is
     const DK = 3.5 * A.SZ, dist = [0]; for (let i = 1; i <= n; i++) dist.push(dist[i - 1] + Math.hypot(use[i][0] - use[i - 1][0], use[i][1] - use[i - 1][1])); const dk = i => 1 - smt(cl(dist[i] / DK, 0, 1));
     let iD = 0; while (iD < n && dist[iD] < DK) iD++; const grad = (col) => { const g = c.createLinearGradient(m0[0], m0[1], use[iD][0], use[iD][1]); g.addColorStop(0, '#12040b'); g.addColorStop(0.15, '#12040b'); g.addColorStop(1, col); return g; };
     // a continuous body under the rings, so a long reach never shows daylight between them
-    const rAt = i => { const qq = i / n; return 1.05 * A.SZ * (qq < 0.12 ? lerp(0.45, 1, qq / 0.12) : 1 - 0.62 * (qq - 0.12) / 0.88); };
+    const rAt = i => { const qq = i / n; return TH * 1.05 * A.SZ * (qq < 0.12 ? lerp(0.45, 1, qq / 0.12) : 1 - 0.62 * (qq - 0.12) / 0.88); };
     const band = add => { const L = [], R = []; for (let i = 0; i <= n; i++) { const a = use[Math.max(0, i - 1)], b = use[Math.min(n, i + 1)], tx = b[0] - a[0], ty = b[1] - a[1], tl = Math.hypot(tx, ty) || 1, r = rAt(i) + add, nx = -ty / tl * r, ny = tx / tl * r; L.push([use[i][0] + nx, use[i][1] + ny]); R.push([use[i][0] - nx, use[i][1] - ny]); }
       c.beginPath(); c.moveTo(...L[0]); for (const q of L) c.lineTo(...q); for (let i = n; i >= 0; i--) c.lineTo(...R[i]); c.closePath(); c.fill(); };
-    c.fillStyle = grad('#5e2236'); band(0.18 * A.SZ);
-    for (let i = n; i >= 0; i--) { const qq = i / n, r = 1.05 * A.SZ * (qq < 0.12 ? lerp(0.45, 1, qq / 0.12) : 1 - 0.62 * (qq - 0.12) / 0.88); c.fillStyle = dk(i) > 0.005 ? shade('#5e2236', -0.85 * dk(i)) : '#5e2236'; c.beginPath(); c.arc(use[i][0], use[i][1], r + 0.18 * A.SZ, 0, 7); c.fill(); }
+    c.fillStyle = grad('#5e2236'); band(TH * 0.18 * A.SZ);
+    for (let i = n; i >= 0; i--) { const qq = i / n, r = TH * 1.05 * A.SZ * (qq < 0.12 ? lerp(0.45, 1, qq / 0.12) : 1 - 0.62 * (qq - 0.12) / 0.88); c.fillStyle = dk(i) > 0.005 ? shade('#5e2236', -0.85 * dk(i)) : '#5e2236'; c.beginPath(); c.arc(use[i][0], use[i][1], r + TH * 0.18 * A.SZ, 0, 7); c.fill(); }
     c.fillStyle = grad('#b85574'); band(0);
-    for (let i = n; i >= 0; i--) { const qq = i / n, r = 1.05 * A.SZ * (qq < 0.12 ? lerp(0.45, 1, qq / 0.12) : 1 - 0.62 * (qq - 0.12) / 0.88); const k = dk(i), cc = (i >> 1) % 2 ? '#c4607e' : '#d47a94'; c.fillStyle = k > 0.005 ? shade(cc, -0.9 * k) : cc; c.beginPath(); c.arc(use[i][0], use[i][1], r, 0, 7); c.fill(); if (k < 0.7) { c.globalAlpha = 1 - k / 0.7; c.fillStyle = '#f0b6c8'; c.beginPath(); c.arc(use[i][0] - r * 0.25, use[i][1] - r * 0.35, r * 0.28, 0, 7); c.fill(); c.globalAlpha = 1; } }
+    for (let i = n; i >= 0; i--) { const qq = i / n, r = TH * 1.05 * A.SZ * (qq < 0.12 ? lerp(0.45, 1, qq / 0.12) : 1 - 0.62 * (qq - 0.12) / 0.88); const k = dk(i), cc = (i >> 1) % 2 ? '#c4607e' : '#d47a94'; c.fillStyle = k > 0.005 ? shade(cc, -0.9 * k) : cc; c.beginPath(); c.arc(use[i][0], use[i][1], r, 0, 7); c.fill(); if (k < 0.7) { c.globalAlpha = 1 - k / 0.7; c.fillStyle = '#f0b6c8'; c.beginPath(); c.arc(use[i][0] - r * 0.25, use[i][1] - r * 0.35, r * 0.28, 0, 7); c.fill(); c.globalAlpha = 1; } }
     // constricting: coils round the body, tightening
     if (sq > 0 && w) { const sc = UK[w.k].sc, wz = w.zd || 0; c.lineWidth = 1.5; for (let i = 0; i < 3; i++) { c.strokeStyle = i % 2 ? '#c4607e' : '#d47a94'; c.beginPath(); c.ellipse(w.x + Math.sin(t * 40 + i) * 0.2 * sq, w.y - wz - (2 + i * 2.3) * sc, (2.4 - sq * 0.6) * sc, 0.8 * sc, 0.15, 0, 7); c.stroke(); } } } }
 // skid marks under everything
@@ -3839,7 +3839,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '6119a5';
+const KBUILD = 'e960c7';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
