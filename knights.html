@@ -3105,6 +3105,10 @@ function ttTendrils(c, kn, t) { const A = TT.ALIEN, m0 = kn.mouth, byId = new Ma
 function ttGround(c) { c.lineCap = 'round'; for (const s of SKID) { c.strokeStyle = `rgba(25,20,18,${0.35 * s.a * (1 - s.t / 2.5)})`; c.lineWidth = 0.9; c.beginPath(); c.moveTo(s.x0, s.y0); c.lineTo(s.x1, s.y1); c.stroke(); } }
 // hit zones: the attack's cone (or the bike's contact strip)
 function ttZones(c) { const kn = KN[ME]; if (!kn || kn.kind !== 'time') return; c.save(); c.fillStyle = 'rgba(255,70,50,.18)';
+  // each flying saw's ricochet cone: where its next bounce may go (70 degrees, BR out, pointing away from where it was fired), and a line to its current target
+  for (const q of SAWS) { if (q.out || q.fx === undefined) continue; const x = q.x + (q.ox || 0), y = q.y + (q.oy || 0), aw = gAng(q.x - q.fx, q.y - q.fy), S = TT.SAW;
+    c.save(); c.translate(x, y); c.scale(1, 0.8); c.fillStyle = 'rgba(120,200,255,.14)'; c.strokeStyle = 'rgba(160,220,255,.8)'; c.lineWidth = 0.5; c.setLineDash([2, 2]); c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, S.BR, aw - S.CONE, aw + S.CONE); c.closePath(); c.fill(); c.stroke(); c.restore();
+    const w = q.tg >= 0 && walkers.find(o => o.id === q.tg); if (w) { c.save(); c.strokeStyle = 'rgba(255,240,140,.9)'; c.lineWidth = 0.6; c.beginPath(); c.moveTo(x, y); c.lineTo(w.x, w.y); c.stroke(); c.restore(); } }
   if (kn.cs >= 0 && kn.csW !== 4 && kn.csW !== 1) { const W0 = kn.csW, R = [TT.CANE.R, TT.SABER.R, TT.GUN.R][W0], h = [TT.CANE.HALF, TT.SABER.HALF, TT.GUN.HALF][W0]; c.translate(kn.x, kn.y); c.scale(1, 0.8); c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, R, kn.csA - h, kn.csA + h); c.closePath(); c.fill(); }
   if (kn.al) { const A = TT.ALIEN; c.save(); c.translate(kn.x, kn.y); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.08)'; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, A.R, kn.alA - A.HALF, kn.alA + A.HALF); c.closePath(); c.fill();
     c.fillStyle = 'rgba(255,40,30,.45)'; c.strokeStyle = 'rgba(255,230,220,.9)'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, A.NEAR.R, kn.alA - A.NEAR.HALF, kn.alA + A.NEAR.HALF); c.closePath(); c.fill(); c.stroke(); c.restore(); }
@@ -3736,7 +3740,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '48d0f5';
+const KBUILD = 'eb9e1c';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
