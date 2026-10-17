@@ -9,7 +9,7 @@ canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block}
 #top>*{pointer-events:auto}
 button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;cursor:pointer}
 #vol{position:fixed;right:6px;top:8px;z-index:4;display:flex;flex-direction:column;align-items:center;gap:6px;background:#1b1813e6;border:1px solid #3a332a;border-radius:10px;padding:6px 4px 8px;color:#f0c419;font-size:14px;touch-action:none}#vol span{cursor:pointer;line-height:1}#vol .vtr{position:relative;width:8px;height:96px;border-radius:4px;background:#3a332a;touch-action:none}#vol .vtr::before{content:'';position:absolute;left:-10px;right:-10px;top:-8px;bottom:-8px}#vol .vfill{position:absolute;left:0;right:0;bottom:0;border-radius:4px;background:#f0c419}
-#stats{margin-left:auto;background:#000a;border-radius:10px;padding:6px 10px;font-size:13px}
+#stats{margin-left:auto;background:#000a;border-radius:10px;padding:6px 10px;font-size:13px;flex:1 1 0;min-width:180px;max-width:max-content;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
 .stick{position:fixed;bottom:22px;width:140px;height:140px;border-radius:50%;background:#ffffff14;border:2px solid #ffffff33;touch-action:none}
 .stick .knob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:#ffffff40;border:2px solid #ffffff80}
 #lst{left:22px} #rst{right:10vw}
@@ -2900,7 +2900,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'e36dfa';
+const KBUILD = '8c55cf';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
