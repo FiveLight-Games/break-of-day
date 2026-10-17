@@ -2509,7 +2509,7 @@ const TT = {
   TRAP: { RANGE: 100, FLY: 0.45, R: 9, ARM: 20.8, BL: 8.25, SPIN: 11.25, UP: 0.35, H: 7.5, DMG: 160, GAP: 0.3, CD: 6, N: 2, NEXT: 0.5 },
   SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 30, BR: 110, TURN: 3, CONE: 0.873, DMG: 175, W: 9.625, Z: 8, R: 6.6, GUN: 1.3, MU: [3.8, 0.6], HZ: 5 },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
-  BIKE: { CD: 14, T: 5, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
+  BIKE: { BV: 140, CD: 14, T: 5, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
 };
 const TTC = { SKIN: '#e8bb98', SKIND: '#c08f6c', HAIR: '#6b4a33', HAIRL: '#8a6446', TROU: '#3a3842', TROUD: '#2c2a33', SHOE: '#16131a', SPAT: '#e9e3d3', VEST: '#2e2a35', VESTL: '#433d4c', SHIRT: '#f4f1ea', GLOVE: '#efe9dc', GLOVED: '#cfc6b2',
   HAT: '#1d1b22', HATL: '#3a3642', BAND: '#5a3a22', BRASS: '#d1a648', BRASSD: '#8a6a2a', LENS: '#8fd9ec', CANE: '#1f1815', CANEL: '#3d302a', SILVER: '#e1e6ec', SILVERD: '#97a0ab' };
@@ -2548,7 +2548,7 @@ const P2 = Math.PI * 2, TTSAB = [
 ];
 const ttSabGrow = kn => { if (!(kn.cs >= 0 && kn.csW === 1)) return 1; const u = cl(kn.cs / TT.SABER.T, 0, 1); return 1 + TT.SABER.GROW * (u < 0.5 ? sm(u / 0.5) : 1 - sm((u - 0.5) / 0.5)); };
 const ttSabV = n => (Math.imul(n | 0, 2654435761) >>> 0) % TTSAB.length;
-const ttRiding = kn => kn.bk === 1 || (kn.bk === 0 && kn.bkT >= TT.BIKE.LAND) || (kn.bk === 2 && kn.bkT < 0.08);
+const ttRiding = kn => kn.bk === 1 || (kn.bk === 0 && (kn.bjt || 0) >= TT.BIKE.LAND) || (kn.bk === 2 && kn.bkT < 0.08);
 // the bike's frame on screen: forward, side and (leaning) up vectors for heading hd and lean l
 function bikeFrame(x0, y0, hd, l) { const fw = [Math.cos(hd), Math.sin(hd) / 1.25], sd = [-Math.sin(hd), Math.cos(hd) / 1.25], up = [sd[0] * Math.sin(l), -Math.cos(l) + sd[1] * Math.sin(l)];
   return { fw, sd, up, near: sd[1] >= 0 ? 1 : -1, P: (u, v, z) => [x0 + u * fw[0] + v * sd[0] + z * up[0], y0 + u * fw[1] + v * sd[1] + z * up[1]] }; }
@@ -2598,8 +2598,8 @@ function ttPose(kn, t) {
     const stance = [0, 1].map(i => { const fr = i === front; return [fr ? f * (1.0 + stepA * 1.1) : -f * 0.9, fr ? 0 : -0.25]; });
     feet = [0, 1].map(i => L2(stance[i], loco[i], mv));
     // jumping for the bike: knees tucked up under him
-    const air = kn.bk === 0 && kn.bkT >= TT.BIKE.JUMP * 0.5 && kn.bkT < TT.BIKE.LAND ? sm(cl((kn.bkT - TT.BIKE.JUMP * 0.5) / 0.15, 0, 1)) : kn.bk === 2 && kn.bkT < TT.BIKE.HOP ? Math.sin(Math.PI * kn.bkT / TT.BIKE.HOP) : 0;
-    const crouch = kn.bk === 0 && kn.bkT < TT.BIKE.JUMP ? sm(kn.bkT / TT.BIKE.JUMP) : 0; cr += crouch * 1.6;
+    const air = kn.bk === 0 && (kn.bjt || 0) >= TT.BIKE.JUMP * 0.5 && (kn.bjt || 0) < TT.BIKE.LAND ? sm(cl(((kn.bjt || 0) - TT.BIKE.JUMP * 0.5) / 0.15, 0, 1)) : kn.bk === 2 && kn.bkT < TT.BIKE.HOP ? Math.sin(Math.PI * kn.bkT / TT.BIKE.HOP) : 0;
+    const crouch = kn.bk === 0 && (kn.bjt || 0) > 0 && kn.bjt < TT.BIKE.JUMP ? sm(kn.bjt / TT.BIKE.JUMP) : 0; cr += crouch * 1.6;
     if (air) feet = feet.map((p, i) => [lerp(p[0], (i === front ? 1.2 : -0.6) * f, air), lerp(p[1], -2.2, air)]);
     bob = mv * (Math.abs(Math.cos(gp)) * 0.5 - 0.28); pel = [f * (stepA * 0.5 * (1 - mv) + run * 0.3), -6.0 + cr * 0.95 + bob]; hips = [[pel[0] - 1.05, pel[1]], [pel[0] + 1.05, pel[1]]]; }
   lean += run * 0.24 * (atk ? 0.4 : 1); tw += Math.sin(gp) * 0.22 * mv;
@@ -2757,19 +2757,26 @@ function timeStep(dt, t) {
   if (K.bkCd > 0) K.bkCd -= dt;
   if (dashP && ready && K.bk < 0 && !(K.bkCd > 0) && IN.dashD) K.bkQ = { a: gAng(IN.dashD[0], IN.dashD[1]), t: 0.6 };
   if (K.bkQ) { K.bkQ.t -= dt; if (K.bkQ.t <= 0) K.bkQ = null; else if (K.bk < 0) { const a = K.bkQ.a, d = gDir(a); K.bkQ = null;
-    Object.assign(K, { bk: 0, bkT: 0, hd: a, bh0: Math.round(a * 1000) / 1000, bv: 0, yr: 0, bl: 0, bkId: (K.bkId || 0) + 1, bpx: r1(K.x - d[0] * B.DIST), bpy: r1(K.y - d[1] * B.DIST) }); K.bkx = K.bpx - d[0] * B.HALF * 1.6; K.bky = K.bpy - d[1] * B.HALF * 1.6; } }
-  if (K.bk === 0) { K.bkT += dt; const u = K.bkT, q = cl((u - B.JUMP) / (B.LAND - B.JUMP), 0, 1);
-    K.z = u < B.JUMP ? 0 : lerp(0, B.SEAT, q) + 9 * Math.sin(Math.PI * q) * (q < 1 ? 1 : 0); 
+    Object.assign(K, { bk: 0, bkT: 0, bjt: 0, hd: a, bh0: Math.round(a * 1000) / 1000, bv: 0, yr: 0, bl: 0, bkId: (K.bkId || 0) + 1, bpx: r1(K.x - d[0] * B.DIST), bpy: r1(K.y - d[1] * B.DIST) }); K.bkx = K.bpx - d[0] * B.HALF * 1.6; K.bky = K.bpy - d[1] * B.HALF * 1.6; } }
+  if (K.bk === 0) { K.bkT += dt; const u = K.bkT;
+    // the bike keeps one steady speed (B.BV, the ride's starting speed), so it picks him up sooner or later depending on where he goes;
+    // his crouch-and-jump runs on its own clock (bjt) timed against the bike's arrival: it waits until the time left matches what's left of the jump, then keeps pace
+    { const gx = K.x - K.bkx, gy = (K.y - K.bky) * 1.25, gap = Math.hypot(gx, gy), away = gap > 0.5 ? ((K.vx || 0) * gx + (K.vy || 0) * 1.25 * gy) / gap : 0, rem = (u < 0.25 ? 0.25 - u : 0) + gap / Math.max(40, B.BV - away), left = B.LAND - (K.bjt || 0);
+      if ((K.bjt || 0) < B.LAND) { if (rem <= left + 1e-4 || u > 3) K.bjt = Math.min(B.LAND, (K.bjt || 0) + dt * cl(left / Math.max(rem, 1e-3), 0.6, 3)); }
+      else K.bjt += dt; }
+    const bj = K.bjt || 0, q = cl((bj - B.JUMP) / (B.LAND - B.JUMP), 0, 1);
+    K.z = bj < B.JUMP ? 0 : lerp(0, B.SEAT, q) + 9 * Math.sin(Math.PI * q) * (q < 1 ? 1 : 0); 
     // he keeps walking (move stick) through the crouch, the jump and the landing; the bike comes out to wherever he is
     { const v2 = RUN * TT.RUN, e0 = 1 - Math.exp(-dt * 14); if (mvL > 0.12) { const k = Math.min(1, mvL); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e0); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e0); if (Math.abs(IN.mv[0]) > 0.2 && !IN.aim && !(K.cs >= 0)) K.f = IN.mv[0] > 0 ? 1 : -1; } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
       const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy); K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.5; }
     // the bike starts a full length back inside the portal (hidden behind its plane) and drives out straight through it, then steers like a bike
     // toward him (turning its heading, never sliding sideways) at whatever pace gets it under him by the landing
-    if (u >= 0.25) { const tl = Math.max(B.LAND - u, dt), dx = K.x - K.bkx, dy = (K.y - K.bky) * 1.25, dd = Math.hypot(dx, dy), p0 = gDir(K.bh0 ?? K.hd), outA = ((K.bkx - K.bpx) * p0[0] + (K.bky - K.bpy) * p0[1] * 1.5625);
+    if (u >= 0.25 && (K.bjt || 0) < B.LAND) { const dx = K.x - K.bkx, dy = (K.y - K.bky) * 1.25, dd = Math.hypot(dx, dy), p0 = gDir(K.bh0 ?? K.hd), outA = ((K.bkx - K.bpx) * p0[0] + (K.bky - K.bpy) * p0[1] * 1.5625);
       if (outA > 0 && dd > 1.5) { const want = Math.atan2(dy, dx); K.hd = wrapA(K.hd + cl(wrapA(want - K.hd), -7 * dt, 7 * dt)); }
-      const sp = Math.min(dd / tl, 320), g = gDir(K.hd); K.bkx += g[0] * sp * dt; K.bky += g[1] * sp * dt; if (u >= B.LAND - 1e-6) { K.bkx = K.x; K.bky = K.y; } }
-    if (u >= B.LAND) K.z = 0;
-    if (u >= B.IN) { const d = gDir(K.hd); Object.assign(K, { bk: 1, bkT: 0, bv: 140, bvx: d[0] * 140, bvy: d[1] * 140, z: 0, vx: 0, vy: 0 }); } }
+      const g = gDir(K.hd), st = Math.min(B.BV * dt, dd); K.bkx += g[0] * st; K.bky += g[1] * st; }
+    if ((K.bjt || 0) >= B.LAND) { K.bkx = K.x; K.bky = K.y; }
+    if ((K.bjt || 0) >= B.LAND) K.z = 0;
+    if ((K.bjt || 0) >= B.IN) { const d = gDir(K.hd); Object.assign(K, { bk: 1, bkT: 0, bv: 140, bvx: d[0] * 140, bvy: d[1] * 140, z: 0, vx: 0, vy: 0 }); } }
   else if (K.bk === 1) { K.bkT += dt; const m = mvL > 0.15 ? Math.min(1, mvL) : 0, want = m ? gAng(IN.mv[0], IN.mv[1]) : K.hd, diff = wrapA(want - K.hd);
     // steering: proportional, capped by a turning radius that grows with speed, with a little lag in the bars
     const Rt = 16 + K.bv * 0.2, maxYaw = K.bv / Rt, yaw = cl(diff * 5, -maxYaw, maxYaw); K.yr = lerp(K.yr || 0, yaw, 1 - Math.exp(-dt * 8)); K.hd = wrapA(K.hd + K.yr * dt);
@@ -3688,7 +3695,7 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
 const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, twV: n.twV || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
@@ -3875,7 +3882,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '3a9a2d';
+const KBUILD = 'e5e703';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
