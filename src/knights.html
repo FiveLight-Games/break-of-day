@@ -2085,11 +2085,12 @@ function tpArm(c, s, h, f, far, noGlove) {
 function tpSmallPauldron(c, s, f) { c.save(); c.translate(s[0], s[1] + 0.2); c.scale(f * 0.75, 0.75); c.rotate(-0.28);
   for (const [y, w, g] of [[0, 2.2, 0], [0.95, 2.5, 1]]) { c.fillStyle = y ? TPD : shade(TPD, 0.12); c.beginPath(); c.moveTo(-w, y + 0.5); c.quadraticCurveTo(-w, y - 1.6, 0, y - 1.7); c.quadraticCurveTo(w, y - 1.6, w, y + 0.5); c.quadraticCurveTo(0, y + 1.2, -w, y + 0.5); c.fill();
     c.strokeStyle = g ? GOLD : shade(TPD, -0.3); c.lineWidth = g ? 0.35 : 0.2; c.beginPath(); c.moveTo(-w, y + 0.5); c.quadraticCurveTo(0, y + 1.2, w, y + 0.5); c.stroke(); }
+  c.fillStyle = shade(TPD, 0.3); c.beginPath(); c.ellipse(-0.6, -1.0, 0.9, 0.4, -0.2, 0, 7); c.fill();
   // a skull painted on the top lame in his colour
-  { c.save(); c.translate(0.15, -0.55); c.scale(0.62, 0.62); c.fillStyle = COL; c.beginPath(); c.arc(0, -0.35, 1.05, 0, 7); c.fill(); c.beginPath(); c.roundRect ? c.roundRect(-0.62, 0.3, 1.24, 0.75, 0.2) : c.rect(-0.62, 0.3, 1.24, 0.75); c.fill();
+  { c.save(); c.translate(0.15, -0.5); c.scale(0.87, 0.87); c.fillStyle = COL; c.beginPath(); c.arc(0, -0.35, 1.05, 0, 7); c.fill(); c.beginPath(); c.roundRect ? c.roundRect(-0.62, 0.3, 1.24, 0.75, 0.2) : c.rect(-0.62, 0.3, 1.24, 0.75); c.fill();
     c.fillStyle = TPD; c.beginPath(); c.ellipse(-0.42, -0.25, 0.3, 0.34, 0, 0, 7); c.ellipse(0.42, -0.25, 0.3, 0.34, 0, 0, 7); c.fill(); c.beginPath(); c.moveTo(0, 0.12); c.lineTo(-0.15, 0.42); c.lineTo(0.15, 0.42); c.fill();
     c.fillRect(-0.24, 0.72, 0.08, 0.33); c.fillRect(0.16, 0.72, 0.08, 0.33); c.restore(); }
-  c.fillStyle = shade(TPD, 0.3); c.beginPath(); c.ellipse(-0.6, -1.0, 0.9, 0.4, -0.2, 0, 7); c.fill(); c.restore(); }
+  c.restore(); }
 // the censer arm's big pauldron: a dome with a double gold rim, rivets, a raised gold sunburst with a cross at its heart and a laurel along the rim
 function tpBigPauldron(c, s, f, t) { c.save(); c.translate(s[0] + f * 0.3, s[1] + 0.3); c.scale(f * 0.74, 0.74); c.rotate(0.2);
   const h = 3.6, w = 3.9;

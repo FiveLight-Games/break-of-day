@@ -56,5 +56,6 @@
   {"v": "0.55", "build": "8aae27", "commit": "4afeaea", "date": "2026-10-16", "notes": "Knight Brawl: the giant knight takes 65% less damage."},
   {"v": "0.56", "build": "44250e", "commit": "f3d4fa1", "date": "2026-10-16", "notes": "Knight Brawl: new character Warpriest (spiked flail dragged on a chain, censer swing, sweep, slam with go to / bring in, holy flame, Penance ult)."},
   {"v": "0.57", "build": "02eea2", "commit": "51ca856", "date": "2026-10-16", "notes": "Warpriest: impaled bodies fly off when the ball turns; Penance aura pushes enemies out from under him."},
-  {"v": "0.58", "build": "8062b1", "commit": "", "date": "2026-10-16", "notes": "Warpriest: sweep dial, sweep grabs enemies near him smoothly (no flash), wider pull-in and Bring in hits, Penance ends with a full smash on the head's return; taller Brawl field."}
+  {"v": "0.58", "build": "8062b1", "commit": "5459142", "date": "2026-10-16", "notes": "Warpriest: sweep dial, sweep grabs enemies near him smoothly (no flash), wider pull-in and Bring in hits, Penance ends with a full smash on the head's return; taller Brawl field."},
+  {"v": "0.59", "build": "4b1212", "commit": "", "date": "2026-10-16", "notes": "Warpriest: player-colour censer outline, pauldron skull and visor glow; big sweep cooldown 7s."}
 ]
