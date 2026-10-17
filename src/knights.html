@@ -838,7 +838,7 @@ function burnFlames(c, w, t) { const sc = UK[w.k].sc;
   for (let i = 0; i < 2; i++) { const fx = w.x + (i ? 1.4 : -1.2) * sc, fy = w.y - (i ? 3 : 5.5) * sc, h = (i ? 4.5 : 6) * sc * (0.85 + 0.15 * Math.sin(t * 11 + w.id + i * 2)), ww = (i ? 1.3 : 1.7) * sc, sw = Math.sin(t * 9 + w.id * 1.7 + i) * ww * 0.5;
     for (const [hk, wk, col] of [[1, 1, PB.outer], [0.55, 0.5, PB.core]]) { const hh = h * hk, w2 = ww * wk; c.fillStyle = col; c.beginPath(); c.moveTo(fx - w2, fy); c.quadraticCurveTo(fx - w2, fy - hh * 0.6, fx + sw * hk, fy - hh); c.quadraticCurveTo(fx + w2, fy - hh * 0.6, fx + w2, fy); c.closePath(); c.fill(); } } }
 function walker(c, w, t) {
-  if (w.sl > 0 || w.slF) slowMark(c, w);
+  if (w.sl > 0 || w.pSl > 0 || w.slF) slowMark(c, w);
   if (w.bd > 0) { walkerBody(c, w, t); burnFlames(c, w, t); return; }
   walkerBody(c, w, t);
 }
@@ -1734,7 +1734,7 @@ const WP = { S: KS * 1.3, RUN: 0.82, ATK: 0.7, ABMV: 0.55, DRAG: 65.6, HR: 6.3, 
   SW: { GRAB: 1.0, BASE: 4, BLEND: 0.15, PREP: 0.12, GO: 0.24, SPD: 175, REC: 0.25, ARC: Math.PI * 4 / 3, RMAX: 65.6, RMIN: 12, NEAR: 14, DMG: 90, HEAD: 180, SLOW: 2.5, CD: 7, CD0: 2 },
   SL: { WIND: 0.2, FLY: 0.4, REC: 0.3, RANGE: 104, WAVE: 38, DMG: 275, WDMG: 75, SLOW: 3, BIND: 3, BINDR: 11, HOLD: 3.5, RET: 0.55, CD: 1.75, GOCD: 0, GOEARLY: 0.65, REEL: 0.45, RDMG: 90, PDMG: 110, PKB: 280, PW: 10.1, RW: 9.06, LAND: 16, LDMG: 80 },
   HO: { T: 6, CD: 15, R: 20, DPS: 70, CDPS: 50 },
-  PEN: { RISE: 1, T: 10, END: 0.8, Z: 18, ACC: 300, DRAG: 0.55, MAXV: 170, R: 200, SMR0: 12, SMR1: 52, DMG0: 150, DMG1: 650, DROP: 0.14, UP: 0.3, CD: 0.45, BURN: 11, BDPS: 40, AURA: 25 } };
+  PEN: { RISE: 1, T: 10, END: 0.8, Z: 18, ACC: 300, DRAG: 0.55, MAXV: 170, R: 200, SMR0: 12, SMR1: 52, DMG0: 150, DMG1: 650, DROP: 0.14, UP: 0.3, CD: 0.45, BURN: 11, BDPS: 40, AURA: 25, ASLOW: 0.1 } };
 const HOLYP = { outer: '#e8a020', mid: '#ffd34a', core: '#fff4b8', white: 0.8, blue: 0 };
 let GOUGE = [];
 // distance on the ground, with the depth squash the rest of the game uses
@@ -1987,9 +1987,9 @@ function penStep(dt, t, IN, mine, smP) {
   if (K.pT >= P.T && K.smT < 0) { K.pPh = 2; K.pT = 0; K.smT = K.smCd > 0 ? -1 : 0; K.smK = Math.min(1, Math.hypot(K.hvx, K.hvy) / P.MAXV); K.hz0 = K.hz; }
 }
 // Penance aura: small and medium enemies can't stand under him; they're pushed out to its edge and shoved away
+// Penance aura: every enemy in the ring under him moves at 10% speed (`PEN.ASLOW`) for as long as it's inside
 function penAura(dt) { const R = WP.PEN.AURA;
-  for (const w of walkers) { if (w.hp <= 0 || w.bT > 0) continue; const U = UK[w.k]; if (U.r > 2.45 || w.k === 'ogre') continue; const dx = w.x - K.x, dy = (w.y - K.y) * 1.25, d = Math.hypot(dx, dy); if (d > R + U.r) continue;
-    const nx = d > 0.01 ? dx / d : Math.cos(w.id), ny = d > 0.01 ? dy / d : Math.sin(w.id), push = Math.min(R + U.r - d, 60 * dt * 4); w.x += nx * push; w.y += ny * push / 1.25; w.kx += nx * 120 * dt * 4; w.ky += ny * 70 * dt * 4; w.atk = -1; } }
+  for (const w of walkers) { if (w.hp <= 0 || w.bT > 0) continue; const U = UK[w.k], dx = w.x - K.x, dy = (w.y - K.y) * 1.25, d = Math.hypot(dx, dy); if (d > R + U.r) continue; w.pSl = 0.12; } }
 function penSmash() {
   const P = WP.PEN, k = K.smK || 0, R = P.SMR0 + (P.SMR1 - P.SMR0) * Math.pow(k, 0.8), dmg = P.DMG0 + (P.DMG1 - P.DMG0) * k;
   K.hz = 0; K.impN = (K.impN || 0) + 1; K.impX = K.hx; K.impY = K.hy; K.impR = R; K.hvx *= 0.15; K.hvy *= 0.15; K.smCd = P.CD;
@@ -2308,7 +2308,7 @@ function drawSweepPreview(c, t) { const kn = KN[ME]; if (!DASHAIM || !kn || kn.k
   for (let i = 0; i < nC; i++) { const q = ((i + (t * 0.8) % 1) / nC) * 0.92, p = pt(q), p2 = pt(Math.min(1, q + 0.01)), an = Math.atan2(p2[1] - p[1], p2[0] - p[0]); c.save(); c.translate(p[0], p[1]); c.rotate(an); c.globalAlpha = Math.sin(Math.PI * q / 0.92); c.scale(1.9, 1.9); c.beginPath(); c.moveTo(1.6, 0); c.lineTo(-0.9, -1.3); c.lineTo(-0.3, 0); c.lineTo(-0.9, 1.3); c.closePath(); c.fill(); c.strokeStyle = 'rgba(90,60,10,.6)'; c.lineWidth = 0.15; c.stroke(); c.restore(); }
   const e = ring2(kn.x, kn.y, T.a, T.r), pul = 0.5 + 0.5 * Math.sin(t * 8); c.translate(e[0], e[1]); c.scale(1, 0.5); c.fillStyle = `rgba(255,220,120,${0.25 + 0.1 * pul})`; c.beginPath(); c.arc(0, 0, WP.HR + 2, 0, 7); c.fill(); c.strokeStyle = 'rgba(255,240,190,.9)'; c.lineWidth = 0.6; c.stroke(); c.restore(); }
 // guest-side flags for chained / slowed enemies; host keeps the real timers
-function slowMark(c, w) { if (!(w.sl > 0 || w.slF) || w.hp <= 0) return; const U = UK[w.k]; c.strokeStyle = 'rgba(235,215,150,.6)'; c.lineWidth = 0.35; c.beginPath(); c.ellipse(w.x, w.y + 0.3, 2.6 * U.sc, 0.9 * U.sc, 0, 0, 7); c.stroke(); }
+function slowMark(c, w) { if (!(w.sl > 0 || w.pSl > 0 || w.slF) || w.hp <= 0) return; const U = UK[w.k]; c.strokeStyle = 'rgba(235,215,150,.6)'; c.lineWidth = 0.35; c.beginPath(); c.ellipse(w.x, w.y + 0.3, 2.6 * U.sc, 0.9 * U.sc, 0, 0, 7); c.stroke(); }
 // ======================= Swordmaster (kind 'sword') =======================
 // Built on the Knight's rig and view: three-quarter toward the camera, facing f, chest turned partly to us, so both shoulders show.
 // A = the arm on his facing-side shoulder, B = the other one (nearest the camera, drawn last), exactly as the Knight.
@@ -2596,7 +2596,7 @@ function worldStep(dt, t) {
     const minX = Math.min(...LIVE().map(k2 => k2.x)); walkers = walkers.filter(w => w.x > minX - 420);
   // enemies run at the knight, crowd round him and club him
   for (const w of walkers) {
-    w.hit = Math.max(0, w.hit - dt); w.cd -= dt; if (w.sl > 0) w.sl -= dt;
+    w.hit = Math.max(0, w.hit - dt); w.cd -= dt; if (w.sl > 0) w.sl -= dt; if (w.pSl > 0) w.pSl -= dt;
     if (w.bd > 0) { w.bd -= dt; w.hp -= FIRE.BURN_DPS * dt; if (w.hp <= 0 && !w.dead) { const k0 = K; K = KN[w.bsrc] || KN[0]; K.kills++; burnFx(w); K = k0; continue; } }
     // chained to a Warpriest's flail head: carried with it, can't fight
     if (w.bT > 0) { w.bT -= dt; const P = KN[w.bnd]; if (P && P.on !== 0) { w.x = P.hx + w.box; w.y = P.hy + w.boy; } w.atk = -1; w.kx = w.ky = 0; if (w.bT <= 0) w.bnd = null; continue; }
@@ -2605,7 +2605,7 @@ function worldStep(dt, t) {
     const T2 = (KN[w.tk] && KN[w.tk].on !== 0 ? KN[w.tk] : LIVE()[0]) || KN[0], dx = T2.x - w.x, dy = (T2.y - w.y), d = Math.hypot(dx, dy * 1.3) || 1;
     const U = UK[w.k], reach = 4.4 + U.r + ((T2.sz || 1) - 1) * 3.5 + (T2.kind === 'priest' ? 1.6 : 0);
     if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5 && !((T2.z || 0) > 4)) { T2.hits += (w.k === 'sapper' ? 3 : 1) * (T2.kind !== 'fire' && T2.ultPh >= 0 ? 1 - GIANT_DR : 1); if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
-    else if (d > reach) { const sp = w.sp * (w.sl > 0 ? WP.SLOWK : 1); w.x += dx / d * sp * dt; w.y += dy / d * sp * dt; }
+    else if (d > reach) { const sp = w.sp * (w.pSl > 0 ? WP.PEN.ASLOW : w.sl > 0 ? WP.SLOWK : 1); w.x += dx / d * sp * dt; w.y += dy / d * sp * dt; }
     else if (w.cd <= 0 && T2.st !== 'kneel') w.atk = 0;
     w.x += w.kx * UK[w.k].kb * dt; w.y += w.ky * UK[w.k].kb * dt; w.kx *= 1 - dt * 6; w.ky *= 1 - dt * 6;
   }
@@ -2905,7 +2905,7 @@ const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T
 const cName = kn => kn && (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) ? 'Firebreather' : kn && (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) ? 'Warpriest' : kn && (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) ? 'Swordmaster' : 'Knight';
 const pName = i => { const kn = KN[i], n = cName(kn), same = LIVE().filter(o => cName(o) === n); return same.length > 1 && kn ? n + ' ' + (same.indexOf(kn) + 1) : n; };
 // kept small: with 4 players and MAX hordes a snapshot carries ~500 enemies; positions to 0.5 units (guests ease toward them anyway)
-const packW = w => [w.id, UKEYS.indexOf(w.k), Math.round(w.x * 2) / 2, Math.round(w.y * 2) / 2, Math.round(w.hp), w.max, Math.round(w.atk * 10) / 10, w.hit > 0 ? 1 : 0, w.tk, (w.bd > 0 ? 1 : 0) | (w.bT > 0 ? 2 : 0) | (w.sl > 0 ? 4 : 0)];
+const packW = w => [w.id, UKEYS.indexOf(w.k), Math.round(w.x * 2) / 2, Math.round(w.y * 2) / 2, Math.round(w.hp), w.max, Math.round(w.atk * 10) / 10, w.hit > 0 ? 1 : 0, w.tk, (w.bd > 0 ? 1 : 0) | (w.bT > 0 ? 2 : 0) | (w.sl > 0 || w.pSl > 0 ? 4 : 0)];
 const LC = document.getElementById('lcard'), LUI = document.getElementById('lobbyUI'), NOTE = document.getElementById('note');
 let noteT = 0; const note = (msg, sec = 3) => { NOTE.textContent = msg; NOTE.style.display = 'block'; noteT = sec; };
 // ---------- lobby directory: the same Supabase table as Hold the Line (rows tagged mode 'brawl', codes prefixed KN) ----------

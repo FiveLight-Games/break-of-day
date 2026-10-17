@@ -40,7 +40,8 @@ input.textin{width:100%;background:#0f0d0b;border:1px solid var(--line);border-r
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 #verBox{position:fixed;left:12px;bottom:8px;display:flex;align-items:center;gap:8px;color:#6a6252;font-size:12px}
 #logBtn{background:#0006;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:3px 8px;font:600 12px Inter;cursor:pointer}
-.logList{display:flex;flex-direction:column;gap:10px;margin:10px 0}
+#modal.logM{display:flex;flex-direction:column;overflow:hidden}.logHead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:8px;border-bottom:1px solid var(--line);flex:none}
+.logList{display:flex;flex-direction:column;gap:10px;margin-top:10px;overflow:auto;min-height:0;flex:1}
 .logList div{border-bottom:1px solid var(--line);padding-bottom:8px}.logList b{color:var(--gold2)}.logList small{color:var(--muted);margin-left:6px}.logList p{margin:4px 0 0}
 .lobbyList{display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow:auto}
 .lobbyItem{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;cursor:pointer}
