@@ -2669,14 +2669,14 @@ function timeStep(dt, t) {
   // test buttons: a given weapon right now (through the portal if he has none, swapped straight in if he has one)
   if ((IN.twN || 0) !== (K.twSeen || 0)) { K.twSeen = IN.twN || 0; const v = IN.twV | 0; if (ready && v >= 1 && v <= 4) { if (K.wpS === 2) Object.assign(K, { wpn: v, wpT: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1, al: 0, tc: null }); else if (K.wpS === 0) Object.assign(K, { wpn: v, wpL: v, wpS: 1, wpT: 0, wpCd: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1 }); else if (K.wpS === 1) K.wpn = v; } }
   if (K.wpS === 1) { K.wpT += dt; if (K.wpT >= TT.PORT.IN) { K.wpS = 2; K.wpT = 0; } }
-  else if (K.wpS === 2) { K.wpT += dt; if (K.wpT >= TT.PORT.HOLD + (K.wpn === 3 ? 0.4 : 0)) { K.wpS = 3; K.wpT = 0; K.cs = -1; K.rl = -1; K.al = 0; K.tc = null; } }
+  else if (K.wpS === 2) { K.wpT += dt; if (K.wpT >= TT.PORT.HOLD + (K.wpn === 3 ? 0.4 : 0) && K.bk < 0) { K.wpS = 3; K.wpT = 0; K.cs = -1; K.rl = -1; K.al = 0; K.tc = null; } }
   else if (K.wpS === 3) { K.wpT += dt; if (K.wpT >= TT.PORT.OUT) { K.wpS = 0; K.wpT = 0; K.wpn = 0; K.wpCd = TT.PORT.CD; } }
   // ---- attacks: the cane, or whatever the portal brought ----
   const wq = K.wpS === 2 ? K.wpn : 0, busy = K.wpS === 1 || K.wpS === 3 || K.bk === 0 || K.bk === 2;
   if (K.rl >= 0) { K.rl += dt; if (K.rl >= TT.GUN.RELOAD) { K.rl = -1; K.ammo = TT.GUN.AMMO; } }
   if (IN.aim && (wq >= 2)) { const tg = Math.atan2(IN.aim[1], Math.abs(IN.aim[0]) || 1e-3); K.gA = lerp(K.gA ?? tg, tg, 1 - Math.exp(-dt * 18)); if (Math.abs(IN.aim[0]) > 0.15 && !ttRiding(K)) K.f = IN.aim[0] > 0 ? 1 : -1; }
   else if (wq >= 2 && !(K.cs >= 0)) K.gA = lerp(K.gA ?? 0.55, 0.55, 1 - Math.exp(-dt * 4));
-  if (wq === 3) { const A = TT.ALIEN, on = !!(IN.aim && ready && !busy && K.wpT < TT.PORT.HOLD); K.alC = (K.alC || 0) + dt; if (!K.tc || K.tc.length !== A.N) K.tc = Array(A.N).fill(null);
+  if (wq === 3) { const A = TT.ALIEN, on = !!(IN.aim && ready && !busy && (K.wpT < TT.PORT.HOLD || K.bk >= 0)); K.alC = (K.alC || 0) + dt; if (!K.tc || K.tc.length !== A.N) K.tc = Array(A.N).fill(null);
     if (on && !K.al) K.alNx = K.alC + A.OPEN; K.al = on ? 1 : 0;
     if (on) { K.alA = Math.round(gAng(IN.aim[0], IN.aim[1]) * 100) / 100; while (K.alC >= K.alNx) { K.alNx += A.EVERY; let sent = 0; for (let k = 0; k < A.N && sent < A.PER; k++) { K.alI = ((K.alI || 0) + 1) % A.N; if (!K.tc[K.alI]) { sent++; if (AUTH()) ttGrab(K.alI); } } } }
     // let go of everything when the stick is released
@@ -3295,7 +3295,7 @@ function draw() {
     x.restore(); }
   if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
   ST.textContent = (NET ? `Room ${NET.code} · ${LIVE().length}/${MAXP} · ` : '') + (LIVE().length > 1 ? `Enemies ${walkers.length} · ` + LIVE().map(kn => `${kn.i === ME ? 'You' : (NET && NET.names && NET.names[kn.i]) || pName(kn.i)} ${kn.kills}k/${Math.round(kn.hits)}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${Math.round(K.hits)}`);
-  const cdk = K.kind === 'time' ? (K.wpS === 2 ? 1 - K.wpT / TT.PORT.HOLD : K.wpS ? 1 : cl((K.wpCd || 0) / TT.PORT.CD, 0, 1)) : K.kind === 'priest' ? (K.hoT > 0 ? 1 : cl((K.hoCd || 0) / WP.HO.CD, 0, 1)) : K.kind === 'fire' ? (K.lava ? 1 : cl((K.lvCd || 0) / LAVA.CD, 0, 1)) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
+  const cdk = K.kind === 'time' ? (K.wpS === 2 ? (K.bk >= 0 && K.wpT >= TT.PORT.HOLD ? 0.04 : cl(1 - K.wpT / TT.PORT.HOLD, 0, 1)) : K.wpS ? 1 : cl((K.wpCd || 0) / TT.PORT.CD, 0, 1)) : K.kind === 'priest' ? (K.hoT > 0 ? 1 : cl((K.hoCd || 0) / WP.HO.CD, 0, 1)) : K.kind === 'fire' ? (K.lava ? 1 : cl((K.lvCd || 0) / LAVA.CD, 0, 1)) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
   { const FV = K.kind === 'fire', WPV = K.kind === 'priest', live = FV ? K.vPh >= 0 : WPV ? K.pPh >= 0 : K.ultPh >= 0, pr = cl((K.kills - (K.ultBase || 0)) / ultNeed(K), 0, 1);
     document.body.classList.toggle('volc', FV && live); const vOpen = K.vPh === 1 || (K.vPh === 0 && K.vT >= V.RISE - 1); VTAP.classList.toggle('on', FV && vOpen && K.vSh < V.SHOTS && !(K.vBel >= 0)); if (FV && vOpen) { const tx = `Tap the screen to erupt · ${V.SHOTS - K.vSh} left`; if (VTAP.textContent !== tx) VTAP.textContent = tx; }
     if (FV) ULI.style.height = (live ? (K.vPh === 1 ? 1 - K.vT / V.T : K.vPh === 0 ? 1 : 0) : pr) * 100 + '%'; else if (WPV) ULI.style.height = (live ? (K.pPh === 1 ? 1 - K.pT / WP.PEN.T : K.pPh === 0 ? 1 : 0) : pr) * 100 + '%'; else ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live);
@@ -3678,7 +3678,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'ca41d8';
+const KBUILD = '2cd26d';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
