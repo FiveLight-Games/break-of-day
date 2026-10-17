@@ -2392,12 +2392,10 @@ function smBladeArt(c, h, a, near) { const C = SMC, d = [Math.cos(a), Math.sin(a
   const cv = -0.75; c.fillStyle = C.STEELD; c.beginPath(); c.moveTo(...P(0.75, 0.3)); c.quadraticCurveTo(...P(len * 0.55, 0.32 + cv), ...P(len, cv * 0.6)); c.quadraticCurveTo(...P(len * 0.55, -0.2 + cv), ...P(0.75, -0.25)); c.closePath(); c.fill();
   c.strokeStyle = near ? '#ffffff' : C.STEEL; c.lineWidth = 0.22; c.beginPath(); c.moveTo(...P(0.8, -0.2)); c.quadraticCurveTo(...P(len * 0.55, -0.15 + cv), ...P(len, cv * 0.6)); c.stroke(); }
 function smHand(c, h, far) { const dk = far ? -0.15 : 0; c.fillStyle = shade(SMC.SKIN, dk); c.beginPath(); c.arc(h[0], h[1], 0.6, 0, 7); c.fill(); c.fillStyle = shade(SMC.SKIN, dk + 0.12); c.beginPath(); c.arc(h[0] - 0.15, h[1] - 0.18, 0.22, 0, 7); c.fill(); }
-function smArm(c, s, h, f, far) { const C = SMC, e1 = ik(s, h, 2.6, 2.6, 1), e2 = ik(s, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2, dk = far ? -0.18 : 0; c.lineCap = 'round';
-  // coat sleeve in his colour, cream cuff at the wrist
-  c.strokeStyle = shade(COL, dk - 0.22); c.lineWidth = 1.55; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke(); c.strokeStyle = shade(COL, dk); c.lineWidth = 1.2; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke();
-  const wr = L2(el, h, 0.72); c.strokeStyle = shade(COL, dk - 0.22); c.lineWidth = 1.4; c.beginPath(); c.moveTo(...el); c.lineTo(...wr); c.stroke(); c.strokeStyle = shade(COL, dk - 0.05); c.lineWidth = 1.1; c.beginPath(); c.moveTo(...el); c.lineTo(...wr); c.stroke();
-  c.strokeStyle = shade(C.CREAM, dk); c.lineWidth = 1.25; c.beginPath(); c.moveTo(...L2(el, h, 0.66)); c.lineTo(...L2(el, h, 0.8)); c.stroke();
-  c.fillStyle = shade(COL, dk + 0.08); c.beginPath(); c.ellipse(s[0], s[1] + 0.1, 0.95, 0.75, 0, Math.PI, 0); c.fill(); }
+function smArm(c, s, h, f, far) { const C = SMC, e1 = ik(s, h, 2.6, 2.6, 1), e2 = ik(s, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2, dk = far ? -0.18 : 0, wr = L2(el, h, 0.72);
+  // one continuous coat sleeve from shoulder to wrist (outline, then the sleeve), cream cuff at the wrist
+  c.lineCap = 'round'; c.lineJoin = 'round'; for (const [col, w] of [[shade(COL, dk - 0.22), 1.5], [shade(COL, dk), 1.15]]) { c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.lineTo(...wr); c.stroke(); }
+  c.strokeStyle = shade(C.CREAM, dk); c.lineWidth = 1.25; c.beginPath(); c.moveTo(...L2(el, h, 0.66)); c.lineTo(...L2(el, h, 0.8)); c.stroke(); }
 function smTorso(c, P, f, t) { const C = SMC, hip = P.pel, [Ls, Rs] = P.sh, mx = (Ls[0] + Rs[0]) / 2, my = (Ls[1] + Rs[1]) / 2, hw = 1.75 * (1 - 0.1 * Math.abs(P.tw)), hl = [hip[0] - hw, hip[1]], hr = [hip[0] + hw, hip[1]];
   const sway = -f * cl((K.spd || 0) / RUN, 0, 1) * 1.6 + Math.sin(t * 1.9) * 0.12, hem = hip[1] + 4.3 - P.cr * 0.4;
   // dark under-robe from shoulders to hips
