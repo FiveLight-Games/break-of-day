@@ -2495,7 +2495,7 @@ const TT = {
   RUN: 1.0, ATK: 0.8, CLEN: 7.4,
   CANE: { T: 0.3, HIT: 0.4, R: 16, HALF: 0.8, DMG: 46, KB: 13.6 },
   SABER: { T: 0.405, HIT: 0.4, R: 25, HALF: 1.0, DMG: 230, KB: 20, LEN: 10.5, GROW: 1.418, TDMG: 120, TGAP: 0.25, DASH: { D: 30, T0: 0, T1: 0.324, R: 6 } },
-  GUN: { T: 0.238, R: 72.9, HALF: 0.567, DMG: 180, KB: 8, AMMO: 2, RELOAD: 0.6 },
+  GUN: { T: 0.238, R: 72.9, HALF: 0.567, DMG: 108, NEAR: 2.5, KB: 8, AMMO: 2, RELOAD: 0.6 },
   ALIEN: { R: 150, HALF: 0.837, SZ: 1.35, LEN: 120, N: 24, PER: 2, EVERY: 0.05, OPEN: 0.25, REACH: 0.22, LIFT: 0.5, SQZ: 0.57, BACK: 0.22, DMG: 420, TDMG: 30, LDMG: 140, TOSSP: 0.45,
     SPL: { R: 12, DMG: 90, KB: 120 }, BOWL: 60, POP: { R: 10, DMG: 80, KB: 110 }, LASH: { DMG: 25, GAP: 0.3, SLOW: 0.5 }, NEAR: { R: 37.8, HALF: 0.75, DMG: 35, KB: 150, GAP: 0.25 },
     // the attack pool: 0 toss, 1 squeeze, 2 whip, 3 eat, 4 slam (when each finishes, from the grab's start); any of them can skewer up to 2 more
@@ -2617,7 +2617,7 @@ function ttCone(R, half, dmg, kb, kill) { const a0 = K.csA; let n = 0;
 function ttStart(IN, t) { const a = gAng(IN.aim[0], IN.aim[1]), wq = K.wpS === 2 ? K.wpn : 0;
   K.cs = 0; K.csA = a; K.csW = wq; K.csN = (K.csN || 0) + 1; if (Math.abs(Math.cos(a)) > 0.2 && !ttRiding(K)) K.f = Math.cos(a) >= 0 ? 1 : -1;
   K.csTl = cl(Math.atan2(Math.sin(a), Math.abs(Math.cos(a))), -1.2, 1.2) * 0.8; K.cs0 = t;
-  if (wq === 2) { K.ammo--; K.gunN = (K.gunN || 0) + 1; if (AUTH()) ttCone(TT.GUN.R, TT.GUN.HALF, d => TT.GUN.DMG * (1 - 0.4 * d / TT.GUN.R), TT.GUN.KB, (w, a2) => ttKillFx(w, a2, 1)); }
+  if (wq === 2) { K.ammo--; K.gunN = (K.gunN || 0) + 1; if (AUTH()) ttCone(TT.GUN.R, TT.GUN.HALF, d => TT.GUN.DMG * lerp(TT.GUN.NEAR, 1, cl(d / TT.GUN.R, 0, 1)), TT.GUN.KB, (w, a2) => ttKillFx(w, a2, 1)); }
   if (wq === 1 && !ttRiding(K)) { K.dsP = [K.x, K.y]; K.dsA = a; }
   if (wq === 4) { const d = gDir(a); K.sawN = (K.sawN || 0) + 1; K.sawX = r1(K.x + d[0] * 8); K.sawY = r1(K.y + d[1] * 8); K.sawA = Math.round(a * 100) / 100; }
   }
@@ -3713,7 +3713,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '965819';
+const KBUILD = '327b20';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
