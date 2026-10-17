@@ -2649,6 +2649,8 @@ function ttHold(dt) { const A = TT.ALIEN, byId = new Map(walkers.map(w => [w.id,
       if (m === 3) { const mx = K.x + mouth[0] * 5, my = K.y + mouth[1] * 5, e = smt(p); w.x = lerp(w.g0[0], mx, e); w.y = lerp(w.g0[1], my, e); w.z = 6 * e; }
       // slam: hauled high and over, then driven down into the crowd
       if (m === 4) { const S = A.SLAM, up = (S.UP - A.REACH) / (done - A.REACH), e = p < up ? smt(p / up) : 1; w.x = lerp(w.g0[0], w.slP[0], e); w.y = lerp(w.g0[1], w.slP[1], e); w.z = p < up ? S.Z * smt(p / up) : S.Z * (1 - ((p - up) / (1 - up)) ** 2); }
+      // a held enemy can't be left further out than the tentacle reaches: it's hauled along after him (its path moves with it)
+      { const ex = w.x - K.x, ey = (w.y - K.y) * 1.25, ed = Math.hypot(ex, ey); if (ed > A.R) { const k = A.R / ed, sx = K.x + ex * k - w.x, sy = K.y + ey * k / 1.25 - w.y; w.x += sx; w.y += sy; w.g0[0] += sx; w.g0[1] += sy; w.slP[0] += sx; w.slP[1] += sy; } }
       // skewered ones slide up against the first, along the tentacle, and go wherever it goes
       held.forEach((h, k) => { h.gr = 0.08; h.grK = K.i; h.atk = -1; if (!k) return; const d = gDir(Math.atan2((w.y - K.y) * 1.25, w.x - K.x)), tx = w.x + d[0] * 3.6 * k, ty = w.y + d[1] * 3.6 * k, e = 1 - Math.exp(-dt * 12); h.x = lerp(h.x, tx, e); h.y = lerp(h.y, ty, e); h.z = w.z || 0; }); }
     if (u >= done) { q[3] = 1;
@@ -3038,6 +3040,7 @@ function ttTentLines(kn, dt, t) { const A = TT.ALIEN, S = kn.tcS || (kn.tcS = []
     if (!s) { const [pl, b] = spot(kn.alA + ((j + 0.5) / A.N - 0.5) * 2 * A.HALF * 0.85); s = S[j] = { pl, b, from: null, st: 1, pts: null, old: null, L: 0 }; }
     // a tip pressed against an enemy follows it
     if (s.b >= 0) { const w = byId.get(s.b); if (w) { const dx = w.x - kn.x, dy = (w.y - kn.y) * 1.25, d = Math.hypot(dx, dy) || 1, k = Math.max(7, d - UK[w.k].r - 3) / d; s.pl = [kn.x + dx * k, kn.y + dy * k / 1.25]; } else s.b = -2; }
+    { const ex = s.pl[0] - kn.x, ey = (s.pl[1] - kn.y) * 1.25, ed = Math.hypot(ex, ey), RM = A.LEN * 1.12; if (ed > RM) { s.pl = [kn.x + ex * RM / ed, kn.y + ey * RM / ed / 1.25]; if (s.from) { const fx = s.from[0] - kn.x, fy = (s.from[1] - kn.y) * 1.25, fd = Math.hypot(fx, fy); if (fd > RM) s.from = [kn.x + fx * RM / fd, kn.y + fy * RM / fd / 1.25]; } } }
     const dx = s.pl[0] - kn.x, dy = (s.pl[1] - kn.y) * 1.25, d = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
     let bad = Math.abs(wrapA(a - kn.alA)) > A.HALF || d > A.LEN * 1.15 || s.b === -2;
     if (!bad) for (const [d2, a2, rw, id] of near) { if (id === s.b) continue; const da = wrapA(a2 - a); if (Math.cos(da) > 0 && d2 * Math.abs(Math.sin(da)) < rw + 1.5 * A.SZ && d2 + rw < d - 2) { bad = true; break; } }
@@ -3052,18 +3055,27 @@ function ttTendrils(c, kn, t) { const A = TT.ALIEN, m0 = kn.mouth, byId = new Ma
   for (let j = 0; j < A.N; j++) { const s = kn.tcS[j]; if (!s || !s.tip) continue; const q = kn.tc && kn.tc[j], ax = kn.mouthAx || [0, 0], kk = ((j * 7) % A.N + 0.5) / A.N - 0.5, m0 = [kn.mouth[0] + ax[0] * kk * 1.4, kn.mouth[1] + ax[1] * kk * 1.4]; let tip = s.tip, hold = 0, w = null, sq = 0;
     if (q) { const [id, m, t0] = q, u = now - t0, done = A.END[m]; w = byId.get(id);
       if (w && !w.dead && u < done) C0[j] = [w.x, w.y - 5 * UK[w.k].sc - (w.zd || w.z || 0)];
+      if (C0[j]) { const ex = C0[j][0] - m0[0], ey = C0[j][1] - m0[1], ed = Math.hypot(ex, ey), RM = A.R + 8; if (ed > RM) C0[j] = [m0[0] + ex * RM / ed, m0[1] + ey * RM / ed]; }
       const k = u < A.REACH ? smt(cl(u / A.REACH, 0, 1)) : u < done ? 1 : 1 - smt(cl((u - done) / A.BACK, 0, 1)); if (C0[j]) tip = L2(tip, C0[j], k); hold = k; if (m === 1 && w && !w.dead && u >= A.REACH && u < done) sq = (u - A.REACH) / (done - A.REACH); }
     // the rope
     const D = Math.hypot(tip[0] - m0[0], tip[1] - m0[1]); s.L = s.L ? lerp(s.L, Math.max(8, D * 1.08), 1 - Math.exp(-dt * 10)) : D * 1.08;
     if (!s.pts) { s.pts = []; for (let i = 0; i <= NN; i++) s.pts.push(L2(m0, tip, i / NN)); s.old = s.pts.map(p => p.slice()); }
+    // the rope rides along with the mouth (he may be on a bike at full tilt), so it never trails out behind and stretches
+    if (s.m0p) { const mx = m0[0] - s.m0p[0], my = m0[1] - s.m0p[1]; if (mx || my) for (let i = 0; i <= NN; i++) { s.pts[i][0] += mx; s.pts[i][1] += my; s.old[i][0] += mx; s.old[i][1] += my; } } s.m0p = m0.slice();
     const P = s.pts, O = s.old, seg = s.L / NN, damp = Math.exp(-dt * 6);
     for (let i = 1; i <= NN; i++) { const vx = (P[i][0] - O[i][0]) * damp, vy = (P[i][1] - O[i][1]) * damp; O[i] = P[i].slice(); P[i][0] += vx + Math.sin(t * 7 + i * 0.8 + j) * 0.6 * A.SZ * dt * 8 * (1 - hold * 0.7); P[i][1] += vy + Math.cos(t * 6 + i * 0.7 + j * 1.7) * 0.6 * A.SZ * dt * 8 * (1 - hold * 0.7); }
     const pull = 1 - Math.exp(-dt * (hold > 0.5 ? 40 : 22)); P[NN][0] = lerp(P[NN][0], tip[0], pull); P[NN][1] = lerp(P[NN][1], tip[1], pull);
-    for (let it = 0; it < 6; it++) { P[0] = m0.slice(); for (let i = 0; i < NN; i++) { const a = P[i], b = P[i + 1], ddx = b[0] - a[0], ddy = b[1] - a[1], dd = Math.hypot(ddx, ddy) || 1, e = (dd - seg) / dd * 0.5; if (i) { a[0] += ddx * e; a[1] += ddy * e; } b[0] -= ddx * e; b[1] -= ddy * e; } }
+    for (let it = 0; it < 10; it++) { P[0] = m0.slice(); for (let i = 0; i < NN; i++) { const a = P[i], b = P[i + 1], ddx = b[0] - a[0], ddy = b[1] - a[1], dd = Math.hypot(ddx, ddy) || 1, e = (dd - seg) / dd * 0.5; if (i) { a[0] += ddx * e; a[1] += ddy * e; } b[0] -= ddx * e; b[1] -= ddy * e; } }
     list.push([j, P, w, sq, tip, m0]); }
   list.sort((p, q) => p[4][1] - q[4][1]);
   for (const [j, P0, w, sq, , m0] of list) { const pts = []; for (let i = 0; i < NN; i++) for (let k = 0; k < 3; k++) pts.push(L2(P0[i], P0[i + 1], k / 3)); pts.push(P0[NN]); const n = pts.length - 1, use = pts.map(p => L2(m0, p, ext));
+    // a continuous body under the rings, so a long reach never shows daylight between them
+    const rAt = i => { const qq = i / n; return 1.05 * A.SZ * (qq < 0.12 ? lerp(0.45, 1, qq / 0.12) : 1 - 0.62 * (qq - 0.12) / 0.88); };
+    const band = add => { const L = [], R = []; for (let i = 0; i <= n; i++) { const a = use[Math.max(0, i - 1)], b = use[Math.min(n, i + 1)], tx = b[0] - a[0], ty = b[1] - a[1], tl = Math.hypot(tx, ty) || 1, r = rAt(i) + add, nx = -ty / tl * r, ny = tx / tl * r; L.push([use[i][0] + nx, use[i][1] + ny]); R.push([use[i][0] - nx, use[i][1] - ny]); }
+      c.beginPath(); c.moveTo(...L[0]); for (const q of L) c.lineTo(...q); for (let i = n; i >= 0; i--) c.lineTo(...R[i]); c.closePath(); c.fill(); };
+    c.fillStyle = '#5e2236'; band(0.18 * A.SZ);
     for (let i = n; i >= 0; i--) { const qq = i / n, r = 1.05 * A.SZ * (qq < 0.12 ? lerp(0.45, 1, qq / 0.12) : 1 - 0.62 * (qq - 0.12) / 0.88); c.fillStyle = '#5e2236'; c.beginPath(); c.arc(use[i][0], use[i][1], r + 0.18 * A.SZ, 0, 7); c.fill(); }
+    c.fillStyle = '#b85574'; band(0);
     for (let i = n; i >= 0; i--) { const qq = i / n, r = 1.05 * A.SZ * (qq < 0.12 ? lerp(0.45, 1, qq / 0.12) : 1 - 0.62 * (qq - 0.12) / 0.88); c.fillStyle = (i >> 1) % 2 ? '#c4607e' : '#d47a94'; c.beginPath(); c.arc(use[i][0], use[i][1], r, 0, 7); c.fill(); c.fillStyle = '#f0b6c8'; c.beginPath(); c.arc(use[i][0] - r * 0.25, use[i][1] - r * 0.35, r * 0.28, 0, 7); c.fill(); }
     // constricting: coils round the body, tightening
     if (sq > 0 && w) { const sc = UK[w.k].sc, wz = w.zd || 0; c.lineWidth = 1.5; for (let i = 0; i < 3; i++) { c.strokeStyle = i % 2 ? '#c4607e' : '#d47a94'; c.beginPath(); c.ellipse(w.x + Math.sin(t * 40 + i) * 0.2 * sq, w.y - wz - (2 + i * 2.3) * sc, (2.4 - sq * 0.6) * sc, 0.8 * sc, 0.15, 0, 7); c.stroke(); } } } }
