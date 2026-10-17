@@ -2500,7 +2500,7 @@ const TT = {
     SPL: { R: 12, DMG: 90, KB: 120 }, BOWL: 60, POP: { R: 10, DMG: 80, KB: 110 }, LASH: { DMG: 25, GAP: 0.3, SLOW: 0.5 }, NEAR: { R: 37.8, HALF: 0.75, DMG: 35, KB: 150, GAP: 0.25 },
     // the attack pool: 0 toss, 1 squeeze, 2 whip, 3 eat, 4 slam (when each finishes, from the grab's start); any of them can skewer up to 2 more
     END: [0.5, 0.57, 0.75, 0.55, 0.62], W: [0.2, 0.25, 0.2, 0.2, 0.15], WHIP: { DMG: 70, KB: 120, ARC: 1.6, R0: 18, R1: 55 }, SLAM: { Z: 20, UP: 0.42, R: 18, DMG: 140, KB: 160 }, SKEW: { P: 0.45, MAX: 2, GAP: 26 } },
-  HURL: { RANGE: 110, FLY: 0.6, SIT: 3, BACK: 0.5, CD: 8, R: 60, LEN: 52, ARC: 26 },
+  HURL: { RANGE: 110, FLY: 0.6, SIT: 3, BACK: 0.5, CD: 1, KB: 0.3, R: 60, LEN: 52, ARC: 26 },
   TRAP: { RANGE: 100, FLY: 0.45, T: 4, R: 9, DMG: 160, GAP: 0.3, CD: 6 },
   SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 30, BR: 110, TURN: 3, CONE: 0.873, DMG: 260, W: 9.625, Z: 8, R: 6.6, GUN: 1.3, MU: [3.8, 0.6] },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
@@ -2722,7 +2722,7 @@ function timeStep(dt, t) {
     if (AUTH()) ttHold(dt);
     // anyone right in front of the creature is battered back, damaged every GAP
     if (AUTH() && K.al && K.alC - K.alNx > -TT.ALIEN.EVERY) { const N2 = TT.ALIEN.NEAR; for (const w of walkers) { if (w.hp <= 0 || w.air || w.gr > 0 || Math.abs(w.x - aox) > N2.R + 6 || t - (w.anT ?? -9) < N2.GAP) continue; const dx = w.x - aox, dy = (w.y - aoy) * 1.25, d = Math.hypot(dx, dy), U = UK[w.k];
-      if (d > N2.R + U.r || (!afull && d > U.r + 2 && Math.abs(wrapA(Math.atan2(dy, dx) - K.alA)) > N2.HALF)) continue; w.anT = t; w.atk = -1; const a = Math.atan2(w.y - aoy, w.x - aox); w.kx += Math.cos(a) * N2.KB; w.ky += Math.sin(a) * N2.KB * 0.6; hurt(w, N2.DMG, ww => flingFx(ww, a, 1.3)); } }
+      if (d > N2.R + U.r || (!afull && d > U.r + 2 && Math.abs(wrapA(Math.atan2(dy, dx) - K.alA)) > N2.HALF)) continue; w.anT = t; w.atk = -1; const a = Math.atan2(w.y - aoy, w.x - aox); const kb = N2.KB * (afull ? TT.HURL.KB : 1); w.kx += Math.cos(a) * kb; w.ky += Math.sin(a) * kb * 0.6; hurt(w, N2.DMG, ww => flingFx(ww, a, 1.3)); } }
     if (AUTH() && K.al && K.tcB) { const L = TT.ALIEN.LASH, byId = new Map(); for (let j = 0; j < TT.ALIEN.N; j++) { if (K.tc[j] || !(K.tcB[j] >= 0)) continue; if (!byId.size) for (const w of walkers) byId.set(w.id, w); const w = byId.get(K.tcB[j]); if (!w || w.hp <= 0 || w.gr > 0 || w.air || t - (w.lsT ?? -9) < L.GAP) continue;
       w.lsT = t; w.sl = Math.max(w.sl || 0, L.SLOW); const a = Math.atan2(w.y - aoy, w.x - aox); w.kx += Math.cos(a) * 18; w.ky += Math.sin(a) * 10; hurt(w, L.DMG, ww => flingFx(ww, a, 0.8)); } } }
   else if (!(K.cs >= 0) && IN.aim && ready && !busy && !(wq === 2 && (K.rl >= 0 || K.ammo <= 0))) ttStart(IN, t);
