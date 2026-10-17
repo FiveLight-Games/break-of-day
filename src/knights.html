@@ -49,7 +49,7 @@ body.editing #bring,body.editing #lst,body.editing #rst,body.editing #dash,body.
 @media (orientation:portrait){#dash{right:calc(8vw + 6.5px);bottom:140px;width:84px;height:84px}#aoe{left:auto;right:calc(8vw + 118px);bottom:calc(150px - 8vw);width:84px;height:84px}#spin{bottom:276px !important;top:auto !important}#ult{right:12px;top:auto;bottom:356px;width:64px;height:64px}#bst{left:calc(50% - 40px);right:auto;top:auto;bottom:27px;width:80px;height:80px}body.fire #dash{left:calc(50% - 40px);right:auto;top:auto;bottom:27px;width:80px;height:80px}body.fire #aoe{left:calc(50% - 12px);right:auto;top:auto;bottom:126px;width:84px;height:84px}body.fire #spin{right:25px;bottom:154px !important;width:76px;height:76px}}
 .pnl{position:fixed;left:8px;top:54px;z-index:5;background:#14120fee;border:1px solid #3a332a;border-radius:12px;padding:10px;display:none;flex-direction:column;gap:8px;max-width:min(380px,calc(100vw - 16px));max-height:calc(100vh - 70px);overflow:auto}
 .pnl.open{display:flex}.pnl .hrow{display:flex;gap:5px;align-items:center;flex-wrap:wrap}.pnl b,.pnl span{font-size:12px;color:#a59c88;margin-right:4px}
-.pnl button{padding:6px 10px;font-size:12px}.pnl button.on{border-color:#f0c419;color:#f0c419}
+.pnl button{padding:6px 10px;font-size:12px}.pnl button.on{border-color:#f0c419;color:#f0c419}.pnl button.sw{width:30px;height:30px;padding:0;border-radius:50%;border:2px solid #0006}.pnl button.sw.on{border:3px solid #fff;box-shadow:0 0 0 2px #f0c419}
 .pnl .kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px}.pnl label{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0}.pnl input{width:18px;height:18px;accent-color:#f0c419}
 @media (orientation:portrait){.pnl{top:92px}.pnl .kgrid{grid-template-columns:repeat(2,1fr)}}
 button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none}
@@ -61,11 +61,12 @@ button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none
 <div id="lobbyUI"><div class="card" id="lcard"></div></div>
 <div id="note"></div>
 
+<div id="charP" class="pnl"><div class="hrow"><b>Character</b><button data-c="knight">Knight</button><button data-c="fire">Firebreather</button><button data-c="priest">Warpriest</button></div><div class="hrow" id="colRow"><b>Colour</b></div></div>
 <div id="horde" class="pnl"><div class="hrow"><b>Horde</b><button data-r="off" class="on">Off</button><button data-r="few">A few</button><button data-r="dozens">Dozens</button><button data-r="hundreds">Hundreds</button><button data-r="max">MAX</button></div>
 <div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button><button data-n="50">+50</button></div><div class="hrow"><span>Test</span><button id="fillUlt">Fill ult</button></div></div>
 <div id="layEd"><b id="layTitle">Control layout</b><span id="layHint">Drag a button's middle to move it, its rim to resize it.</span><div class="lrow"><span id="layName">Move stick</span><input type="range" id="laySize" min="44" max="230" step="1"><span id="laySizeV" class="lnum"></span></div><span id="layWarn"></span><div class="lrow"><button id="layReset">Reset</button><button id="layDone" class="pri2">Done</button></div></div>
 <div id="exitQ"><div><p>Exit to main menu?</p><div class="row"><button id="exitNo">Stay</button><button id="exitYes">Exit</button></div></div></div>
-<div id="top"><a id="menuBtn" href="./">&#8962; Menu</a><button id="hordeBtn">&#9776; Horde</button><button id="layBtn" title="Control layout" aria-label="Control layout">&#10021;</button><button id="clear">Clear</button><button id="reset">Reset</button><button id="restartBtn" title="Back to the start screen (pick a character, host or join)">&#8635; Restart</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><button id="sound">Sound: on</button><button id="music">Music: on</button><div id="vol" title="Music volume"><span>&#9835;</span><input type="range" min="0" max="100" step="1"></div><div id="stats"></div></div>
+<div id="top"><a id="menuBtn" href="./">&#8962; Menu</a><button id="hordeBtn">&#9776; Horde</button><button id="charBtn" title="Change character">&#9823; Character</button><button id="layBtn" title="Control layout" aria-label="Control layout">&#10021;</button><button id="clear">Clear</button><button id="reset">Reset</button><button id="restartBtn" title="Back to the start screen (pick a character, host or join)">&#8635; Restart</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><button id="sound">Sound: on</button><button id="music">Music: on</button><div id="vol" title="Music volume"><span>&#9835;</span><input type="range" min="0" max="100" step="1"></div><div id="stats"></div></div>
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
 <div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
 <div id="vtap"></div><button id="spin"><i></i><span>SPIN</span></button>
@@ -170,8 +171,18 @@ function mkKnight(i, near) {
   const T = near ? { x: near.x - 26 - i * 6, y: cl(near.y - 30 + i * 9, 40, LANE_Y - 30) } : { x: W / 2 + (NP > 1 ? [-36, 36, -108, 108][i] : 0), y: LANE_Y - 45 };
   return { i, on: 1, col: KCOLS[i], dashSeen: 0, leapSeen: 0, in: { mv: [0, 0], aim: null, spin: false, dashN: 0, leapN: 0, ultN: 0 }, ultSeen: 0, ultPh: -1, ult: 0, ultBase: 0, sz: 1, ultLeapt: 0, kills: 0, hits: 0, T, x: T.x + HOME.x, y: T.y + HOME.y, f: 1, st: 'kneel', u: 0, kn: 1, wk: 0, wp: 0, hold: 0, swing: -1, swN: 0, spinCd: 0, spin: -1, glow: 0, slotGlow: 0, look: 0, lookT: 3 + i, post: 0, spd: 0, gp: 0 };
 }
+// swap a seated player's character where he stands, ready to fight (no kneel); kills, hits and ult progress carry over
+function switchChar(kn, ch) {
+  if ((kn.kind || 'knight') === ch) return;
+  for (const w of walkers) { if (w.hook === kn.i) w.hook = null; if (w.bnd === kn.i) { w.bT = 0; w.bnd = null; } }
+  const keep = { i: kn.i, on: kn.on, col: kn.col, x: kn.x, y: kn.y, f: kn.f || 1, kills: kn.kills || 0, hits: kn.hits || 0, ultBase: kn.ultBase || 0, in: kn.in, chSeen: kn.chSeen, drT: kn.drT };
+  for (const k of Object.keys(kn)) delete kn[k];
+  Object.assign(kn, mkKnight(keep.i), keep, { T: { x: keep.x - HOME.x, y: keep.y - HOME.y }, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, dashSeen: keep.in.dashN || 0, leapSeen: keep.in.leapN || 0, ultSeen: keep.in.ultN || 0 });
+  const k0 = K; K = kn; if (ch === 'fire') makeFire(kn); else if (ch === 'priest') makePriest(kn); K = k0;
+  for (let i = 0; i < 24; i++) { const a = rr(0, 6.28); sparks.push({ x: kn.x + rr(-3, 3), y: kn.y - rr(0, 14), vx: Math.cos(a) * rr(10, 40), vy: -rr(10, 50), t: 0, max: rr(0.4, 0.9) }); }
+}
 function setup() {
-  KN = []; for (let i = 0; i < NP; i++) KN.push(mkKnight(i)); K = KN[ME]; K.in.ch = CHAR; if (CHAR === 'fire') makeFire(K); else if (CHAR === 'priest') makePriest(K, true); GOUGE = [];
+  KN = []; for (let i = 0; i < NP; i++) KN.push(mkKnight(i)); K = KN[ME]; K.in.ch = CHAR; if (MYCOL) K.in.col = K.col = MYCOL; if (CHAR === 'fire') makeFire(K); else if (CHAR === 'priest') makePriest(K, true); GOUGE = [];
   // the host keeps empty seats empty after a reset
   if (NET && NET.mode === 'host') { const held = new Set(Object.values(NET.seats)); KN.forEach((kn, i) => { if (i && !held.has(i)) kn.on = 0; }); }
   walkers = []; parts = []; blood = []; splats = []; dust = []; sparks = []; camX = K.x; camY = K.y - 6;
@@ -1427,6 +1438,7 @@ const CO = { FRONT: 220, SPD: 150, W: 28, SIDE: 24, L0: 40, L1: 75, DMG: 110, DP
 // shorter beds are wider: full length is CO.W wide, the shortest about 1.75x
 const coW = L => CO.W * Math.pow((CO.L0 + CO.L1) / Math.max(L, 1), 0.53);
 const PL = { T: 3, CD: 12, Z: 27, SPD: 90, R: 41.6, HALF: 0.35, OFF: [34, 16], DPS: 320, KB: 140, DOWN: 0.6 };
+let MYCOL = null; try { MYCOL = localStorage.getItem('kn_col'); } catch (e) { }
 let CHAR = 'knight'; try { const c0 = localStorage.getItem('kn_char'); CHAR = c0 === 'fire' || c0 === 'priest' ? c0 : 'knight'; } catch (e) { }
 const pitOf = kn => [kn.T.x + STONE.x, kn.T.y + STONE.y + 1.5];
 function makeFire(kn) { Object.assign(kn, { fpos: kn.i * 2.5, brC: FIRE.BR_T, brH: 0, vPh: -1, vBel: -1, vSh: 0, ultSeen: kn.in.ultN || 0, vtSeen: kn.in.vtN || 0, lvSeen: kn.in.lvN || 0, lvC: 0, lvQ: 0, lava: 0, lvCd: 0, lvOn: 0, landT: 0, coSeen: kn.in.coN || 0, coT: -1, coCd: 0, plT: -1, plCd: 0, tsw: -1, tswN: 0, brOn: 0, brUse: 0, brCd: 0, waves: [], kind: 'fire', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
@@ -2290,7 +2302,7 @@ const cleaveFx = (w, dir) => { EV.push([w.id, 0, dir, K.i, Math.round(w.x * 10) 
 const spinFx = w => { EV.push([w.id, 1, 0, K.i, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10]); spinKill(w); };
 function step(dt, t) {
   worldStep(dt, t);
-  for (const kn of KN) { if (kn.on === 0) continue; K = kn; if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else if (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) priestStep(dt, t); else knightStep(dt, t); }
+  for (const kn of KN) { if (kn.on === 0) continue; if (kn.in.col && kn.in.col !== kn.col && /^#[0-9a-f]{6}$/i.test(kn.in.col)) kn.col = kn.in.col; if ((kn.in.chN || 0) !== (kn.chSeen || 0)) { kn.chSeen = kn.in.chN || 0; switchChar(kn, kn.in.ch || 'knight'); } K = kn; if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else if (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) priestStep(dt, t); else knightStep(dt, t); }
   K = KN[ME];
   volcFx(dt, t); wpFx(dt, t);
   if (K.hits > lastHits) { hurtT = 0.12; } lastHits = K.hits; hurtT = Math.max(0, hurtT - dt);
@@ -2475,7 +2487,7 @@ function draw() {
     if (k === 0 && K.kind === 'priest') continue;
     if (k === 0 && K.kind === 'fire') { const pt = pitOf(K); x.save(); x.translate(pt[0], pt[1]); FBX.firePit(x, 5, t, FBX.pal(5)); x.restore(); continue; }
     if (k === 0) { x.save(); x.translate(K.T.x, K.T.y); boulder(x, t, !(K.st === 'kneel' || (K.st === 'pull' && !K.hold) || (K.st === 'sheathe' && !K.hold)), K.slotGlow); if (!K.hold) { x.translate(STONE.x, STONE.y); x.scale(KS, KS); x.beginPath(); x.rect(-20, -30, 40, 30 - 4.3 / KS); x.clip(); sword(x, [0, -4.3 / KS - 1.3 - 1.1], Math.PI / 2, 10.5); } x.restore(); }
-    else if (k === 1) { if (K.kind === 'fire') drawFire(x, t); else if (K.kind === 'priest') drawPriest(x, t); else drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; x.fillText(K.i === ME ? 'YOU' : pName(K.i), K.x, K.y - (K.kind === 'priest' ? 23 + (K.z || 0) : 17 * (K.sz || 1))); } }
+    else if (k === 1) { if (K.kind === 'fire') drawFire(x, t); else if (K.kind === 'priest') drawPriest(x, t); else drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; if (K.i !== ME) x.fillText((NET && NET.names && NET.names[K.i]) || pName(K.i), K.x, K.y - (K.kind === 'priest' ? 23 + (K.z || 0) : 17 * (K.sz || 1))); } }
     else if (k === 2) walker(x, o, t);
     else { x.fillStyle = 'rgba(0,0,0,.2)'; x.beginPath(); x.ellipse(o.x, o.y + 0.5, 1.6, 0.6, 0, 0, 7); x.fill(); drawPartFast(x, o); }
   }
@@ -2503,7 +2515,7 @@ function draw() {
     for (let i = 0; i < 8; i++) { const a0 = (i - 0.5) * Math.PI / 4; const sa = Math.atan2(Math.sin(a0) * 25 / 12, Math.cos(a0)), sb = Math.atan2(Math.sin(a0 + Math.PI / 4) * 25 / 12, Math.cos(a0 + Math.PI / 4)); x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, 25, sa, sb); x.closePath(); x.fillStyle = live && i === K.sec ? 'rgba(255,60,40,.35)' : 'rgba(255,255,255,.06)'; x.fill(); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 0.3; x.stroke(); }
     x.restore(); }
   if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
-  ST.textContent = (NET ? `Room ${NET.code} · ${LIVE().length}/${MAXP} · ` : '') + (LIVE().length > 1 ? `Enemies ${walkers.length} · ` + LIVE().map(kn => `${kn.i === ME ? 'You' : pName(kn.i)} ${kn.kills}k/${Math.round(kn.hits)}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${Math.round(K.hits)}`);
+  ST.textContent = (NET ? `Room ${NET.code} · ${LIVE().length}/${MAXP} · ` : '') + (LIVE().length > 1 ? `Enemies ${walkers.length} · ` + LIVE().map(kn => `${kn.i === ME ? 'You' : (NET && NET.names && NET.names[kn.i]) || pName(kn.i)} ${kn.kills}k/${Math.round(kn.hits)}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${Math.round(K.hits)}`);
   const cdk = K.kind === 'priest' ? (K.hoT > 0 ? 1 : cl((K.hoCd || 0) / WP.HO.CD, 0, 1)) : K.kind === 'fire' ? (K.lava ? 1 : cl((K.lvCd || 0) / LAVA.CD, 0, 1)) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
   { const FV = K.kind === 'fire', WPV = K.kind === 'priest', live = FV ? K.vPh >= 0 : WPV ? K.pPh >= 0 : K.ultPh >= 0, pr = cl((K.kills - (K.ultBase || 0)) / ultNeed(K), 0, 1);
     document.body.classList.toggle('volc', FV && live); const vOpen = K.vPh === 1 || (K.vPh === 0 && K.vT >= V.RISE - 1); VTAP.classList.toggle('on', FV && vOpen && K.vSh < V.SHOTS && !(K.vBel >= 0)); if (FV && vOpen) { const tx = `Tap the screen to erupt · ${V.SHOTS - K.vSh} left`; if (VTAP.textContent !== tx) VTAP.textContent = tx; }
@@ -2525,7 +2537,13 @@ function frame(ms) {
 }
 const ST = document.getElementById('stats'), SPI = document.querySelector('#spin i');
 const HZE = document.getElementById('horde'), KG = HZE.querySelector('.kgrid');
-document.getElementById('hordeBtn').onclick = () => HZE.classList.toggle('open');
+document.getElementById('hordeBtn').onclick = () => { CHP.classList.remove('open'); HZE.classList.toggle('open'); };
+// in-game character select: the pick goes to the host as input ch + counter chN; whoever steps the knight swaps it on the spot (switchChar)
+const CHP = document.getElementById('charP'), chMark = () => { CHP.querySelectorAll('button[data-c]').forEach(b => b.classList.toggle('on', b.dataset.c === ((KN[ME] && KN[ME].kind) || 'knight'))); CHP.querySelectorAll('button[data-col]').forEach(b => b.classList.toggle('on', KN[ME] && b.dataset.col === KN[ME].col)); };
+document.getElementById('charBtn').onclick = () => { HZE.classList.remove('open'); chMark(); CHP.classList.toggle('open'); };
+const CPAL = ['#3a7bd5', '#d64541', '#3fae5a', '#e0a020', '#8e44ad', '#16a6b6', '#e67e22', '#e84393', '#e8e8e8', '#6b4a2a'], COLR = document.getElementById('colRow');
+for (const c of CPAL) { const b = document.createElement('button'); b.className = 'sw'; b.dataset.col = c; b.style.background = c; b.setAttribute('aria-label', c); COLR.appendChild(b); b.onclick = () => { MYCOL = c; try { localStorage.setItem('kn_col', c); } catch (e) { } const IN = KN[ME].in; IN.col = c; KN[ME].col = c; markIn(); chMark(); b.blur(); }; }
+CHP.querySelectorAll('button[data-c]').forEach(b => b.onclick = () => { const c = b.dataset.c; CHAR = c; try { localStorage.setItem('kn_char', c); } catch (e) { } const IN = KN[ME].in; IN.ch = c; IN.chN = (IN.chN || 0) + 1; markIn(); CHP.classList.remove('open'); b.blur(); });
 KG.innerHTML = UKEYS.map(k => `<label><input type="checkbox" data-kk="${k}">${UK[k].n}</label>`).join('');
 function hordeUI() { HZE.querySelectorAll('[data-r]').forEach(b => b.classList.toggle('on', b.dataset.r === HZ.rate)); KG.querySelectorAll('[data-kk]').forEach(cb => cb.checked = HZ.kinds.includes(cb.dataset.kk)); }
 function setHorde(rate, kinds) { if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'horde', rate, kinds } }); if (rate && rate !== HZ.rate) { HZ.rate = rate; HZ.t = 0.3; } if (kinds) HZ.kinds = kinds.filter(k => UK[k]); hordeUI(); }
@@ -2693,9 +2711,9 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
-const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
+const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
 // a player is called by their character; a second one of the same gets a number (Knight 2)
 const cName = kn => kn && (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) ? 'Firebreather' : kn && (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) ? 'Warpriest' : 'Knight';
