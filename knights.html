@@ -2726,7 +2726,7 @@ function ttKill(w, a, m) { killSnd(w, m === 1 || m === 2); w.dead = 1; const ca 
 // ---------- per frame on every screen: shots, saws, shells, portals' sparks ----------
 let SAWS = [], TTFX = [], SKID = [];
 function ttFx(dt, t) {
-  for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue; if (kn.wpn === 3 && (kn.al || (kn.alV || 0) > 0.01)) ttTentLines(kn, dt, t); kn.alV = ap(kn.alV || 0, kn.al && kn.wpn === 3 ? 1 : 0, dt / (kn.al ? TT.ALIEN.OPEN : 0.4)); kn.alCv = Math.abs((kn.alCv ?? 0) + dt - (kn.alC || 0)) > 0.15 ? kn.alC || 0 : (kn.alCv ?? 0) + dt; const S = kn.ttS || (kn.ttS = { gun: kn.gunN || 0, saw: kn.sawN || 0, rl: kn.rl, bk: kn.bk });
+  for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue; if (kn.wpn === 3 && (kn.al || (kn.alV || 0) > 0.01)) ttTentLines(kn, dt, t); else if (kn.tcS) kn.tcS = null; kn.alV = ap(kn.alV || 0, kn.al && kn.wpn === 3 ? 1 : 0, dt / (kn.al ? TT.ALIEN.OPEN : 0.4)); kn.alCv = Math.abs((kn.alCv ?? 0) + dt - (kn.alC || 0)) > 0.15 ? kn.alC || 0 : (kn.alCv ?? 0) + dt; const S = kn.ttS || (kn.ttS = { gun: kn.gunN || 0, saw: kn.sawN || 0, rl: kn.rl, bk: kn.bk });
     // shotgun: flash, pellets, smoke
     if ((kn.gunN || 0) !== S.gun) { S.gun = kn.gunN || 0; const a = kn.csA, d = gDir(a), mx = kn.x + d[0] * 10.5, my = kn.y + d[1] * 10.5 - 6.8 - (kn.z || 0);
       TTFX.push({ k: 'flash', x: mx, y: my, a: Math.atan2(d[1], d[0]), t: 0, max: 0.09 });
@@ -2954,27 +2954,45 @@ function ttAir(c, t) {
   for (const p of TTFX) { const k = p.t / p.max; if (p.k === 'smoke') { c.fillStyle = `rgba(190,185,175,${0.45 * (1 - k)})`; c.beginPath(); c.arc(p.x, p.y - k * 3, p.r * (1 + k * 1.5), 0, 7); c.fill(); }
     else if (p.k === 'shell') { c.save(); c.globalAlpha = Math.min(1, (p.max - p.t) / 0.5); c.translate(p.x, p.y - p.z); c.rotate(p.rot); c.fillStyle = '#b8322a'; c.fillRect(-0.55, -0.25, 0.8, 0.5); c.fillStyle = TTC.BRASS; c.fillRect(0.25, -0.27, 0.32, 0.54); c.restore(); } }
 }
-function ttTentLines(kn, dt, t) { const A = TT.ALIEN, LS = kn.tcL || (kn.tcL = []), AS = kn.tcA || (kn.tcA = []), BS = kn.tcB || (kn.tcB = []);
-  const near = []; for (const w of walkers) { if (w.dead || w.hp <= 0 || w.air) continue; const dx = w.x - kn.x, dy = (w.y - kn.y) * 1.25, d = Math.hypot(dx, dy); if (d > A.LEN * 1.1 + 6) continue; const a = Math.atan2(dy, dx); if (Math.abs(wrapA(a - kn.alA)) < A.HALF + 0.5) near.push([d, a, UK[w.k].r, w.id]); }
-  for (let j = 0; j < A.N; j++) { const ab = kn.alA + ((j + 0.5) / A.N - 0.5) * 2 * A.HALF * 0.85 + Math.sin(t * 1.7 + j * 2.1) * 0.12; let Lc = A.LEN * (1 + 0.06 * Math.sin(t * 1.1 + j * 1.7)), b = -1;
-    for (const [d, a, rw, id] of near) { const da = wrapA(a - ab); if (Math.cos(da) > 0 && d * Math.abs(Math.sin(da)) < rw + 2.5 * A.SZ && d - rw - 3 < Lc) { Lc = d - rw - 3; b = id; } } Lc = Math.max(7, Lc);
-    AS[j] = ab; BS[j] = b; LS[j] = LS[j] === undefined ? Lc : lerp(LS[j], Lc, 1 - Math.exp(-dt * (Lc < LS[j] ? 22 : 7))); } }
-function ttTendrils(c, kn, t) { const A = TT.ALIEN, m0 = kn.mouth, byId = new Map(walkers.map(w => [w.id, w])), ext = smt(cl(kn.alV, 0, 1)), C0 = kn.tcC || (kn.tcC = []), now = kn.alCv ?? kn.alC;
-  const list = []; if (!kn.tcA) return;
-  for (let j = 0; j < A.N; j++) { const q = kn.tc && kn.tc[j], ab = kn.tcA[j], Li = kn.tcL[j], gd2 = gDir(ab);
-    let tip = [kn.x + gd2[0] * Li, kn.y + gd2[1] * Li - 8 - 4 * Math.sin(t * 2.3 + j)], hold = 0, w = null, sq = 0;
+// each tentacle plants its tip on a spot (open ground at full reach, or just in front of the nearest enemy in its way) and stays
+// there; it only lets go and steps over (lifting, 0.25s) when the spot leaves the cone, gets too far, its enemy dies or someone
+// steps in between; at most one tentacle steps every 0.04s, so a turn of the aim reads as the grip crawling across. Worked out
+// per frame on every screen; tcB (the enemy each is pressed against) drives the host's lash.
+function ttTentLines(kn, dt, t) { const A = TT.ALIEN, S = kn.tcS || (kn.tcS = []), BS = kn.tcB || (kn.tcB = []), byId = new Map();
+  const near = []; for (const w of walkers) { if (w.dead || w.hp <= 0 || w.air) continue; const dx = w.x - kn.x, dy = (w.y - kn.y) * 1.25, d = Math.hypot(dx, dy); if (d > A.LEN * 1.2 + 6) continue; const a = Math.atan2(dy, dx); if (Math.abs(wrapA(a - kn.alA)) < A.HALF + 0.6) { near.push([d, a, UK[w.k].r, w.id]); byId.set(w.id, w); } }
+  const spot = ab => { let L = A.LEN * rr(0.85, 1), b = -1; for (const [d, a, rw, id] of near) { const da = wrapA(a - ab); if (Math.cos(da) > 0 && d * Math.abs(Math.sin(da)) < rw + 2.5 * A.SZ && d - rw - 3 < L) { L = d - rw - 3; b = id; } } L = Math.max(7, L); const g = gDir(ab); return [[kn.x + g[0] * L, kn.y + g[1] * L], b]; };
+  kn.tcStep = (kn.tcStep || 0) - dt;
+  for (let j = 0; j < A.N; j++) { let s = S[j];
+    if (!s) { const [pl, b] = spot(kn.alA + ((j + 0.5) / A.N - 0.5) * 2 * A.HALF * 0.85); s = S[j] = { pl, b, from: null, st: 1, pts: null, old: null, L: 0 }; }
+    // a tip pressed against an enemy follows it
+    if (s.b >= 0) { const w = byId.get(s.b); if (w) { const dx = w.x - kn.x, dy = (w.y - kn.y) * 1.25, d = Math.hypot(dx, dy) || 1, k = Math.max(7, d - UK[w.k].r - 3) / d; s.pl = [kn.x + dx * k, kn.y + dy * k / 1.25]; } else s.b = -2; }
+    const dx = s.pl[0] - kn.x, dy = (s.pl[1] - kn.y) * 1.25, d = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
+    let bad = Math.abs(wrapA(a - kn.alA)) > A.HALF || d > A.LEN * 1.15 || s.b === -2;
+    if (!bad) for (const [d2, a2, rw, id] of near) { if (id === s.b) continue; const da = wrapA(a2 - a); if (Math.cos(da) > 0 && d2 * Math.abs(Math.sin(da)) < rw + 1.5 * A.SZ && d2 + rw < d - 2) { bad = true; break; } }
+    if (bad && !s.from && kn.tcStep <= 0) { kn.tcStep = 0.04; const [pl, b] = spot(kn.alA + rr(-A.HALF, A.HALF) * 0.9); s.from = s.tip ? s.tip.slice() : null; s.pl = pl; s.b = b; s.st = 0; }
+    if (s.from) { s.st += dt / 0.25; if (s.st >= 1) s.from = null; }
+    let tip = [s.pl[0], s.pl[1] - 6 - 1.5 * Math.sin(t * 2.3 + j)]; if (s.from) { const q = sm(Math.min(1, s.st)); tip = [lerp(s.from[0], tip[0], q), lerp(s.from[1], tip[1], q) - Math.sin(q * Math.PI) * 12]; }
+    s.tip = tip; BS[j] = s.b >= 0 ? s.b : -1; } }
+// each tentacle is a rope: a chain of points pinned at the mouth with its tip pulled to where it's going (its planted spot, or the
+// enemy it's grabbing); the chain lags, swings and whips behind; drawn as segmented fleshy rings, tapering to the tip
+function ttTendrils(c, kn, t) { const A = TT.ALIEN, m0 = kn.mouth, byId = new Map(walkers.map(w => [w.id, w])), ext = smt(cl(kn.alV, 0, 1)), C0 = kn.tcC || (kn.tcC = []), now = kn.alCv ?? kn.alC; if (!kn.tcS) return;
+  const dt = cl(t - (kn.rpT ?? t), 0, 0.05); kn.rpT = t; const NN = 14, list = [];
+  for (let j = 0; j < A.N; j++) { const s = kn.tcS[j]; if (!s || !s.tip) continue; const q = kn.tc && kn.tc[j]; let tip = s.tip, hold = 0, w = null, sq = 0;
     if (q) { const [id, m, t0] = q, u = now - t0, done = m ? A.SQZ : A.LIFT; w = byId.get(id);
       if (w && !w.dead && u < done) C0[j] = [w.x, w.y - 5 * UK[w.k].sc - (w.zd || w.z || 0)];
       const k = u < A.REACH ? smt(cl(u / A.REACH, 0, 1)) : u < done ? 1 : 1 - smt(cl((u - done) / A.BACK, 0, 1)); if (C0[j]) tip = L2(tip, C0[j], k); hold = k; if (m === 1 && w && !w.dead && u >= A.REACH && u < done) sq = (u - A.REACH) / (done - A.REACH); }
-    list.push([j, L2(m0, tip, ext), hold, w, sq]); }
-  // draw the far ones first
-  list.sort((p, q) => p[1][1] - q[1][1]);
-  for (const [j, e, hold, w, sq] of list) { const L = Math.hypot(e[0] - m0[0], e[1] - m0[1]) || 1, nx = -(e[1] - m0[1]) / L, ny = (e[0] - m0[0]) / L, N = cl(Math.round(L / (1.6 * A.SZ * 0.8)), 4, 60);
-    // segmented: a chain of fleshy rings riding a travelling wave, tapering to the tip
-    const P = []; for (let i = 0; i <= N; i++) { const q = i / N, env = Math.sin(q * Math.PI) ** 0.8, wv = Math.sin(q * 6.5 - t * 9 + j * 1.3) * Math.min(1.8 * A.SZ, L * 0.07) * env * (1 - 0.6 * hold), arch = -Math.sin(q * Math.PI) * Math.min(3.5 * A.SZ, L * 0.08); P.push([lerp(m0[0], e[0], q) + nx * wv, lerp(m0[1], e[1], q) + ny * wv + arch, 1.05 * A.SZ * (1 - 0.62 * q)]); }
-    for (let i = N; i >= 0; i--) { const [x0, y0, r] = P[i]; c.fillStyle = '#5e2236'; c.beginPath(); c.arc(x0, y0, r + 0.18 * A.SZ, 0, 7); c.fill(); }
-    for (let i = N; i >= 0; i--) { const [x0, y0, r] = P[i]; c.fillStyle = i % 2 ? '#c4607e' : '#d47a94'; c.beginPath(); c.arc(x0, y0, r, 0, 7); c.fill(); c.fillStyle = '#f0b6c8'; c.beginPath(); c.arc(x0 - r * 0.25, y0 - r * 0.35, r * 0.28, 0, 7); c.fill(); }
-    c.fillStyle = '#7a2a44'; const tp = P[N]; c.beginPath(); c.arc(tp[0], tp[1], 0.35 * A.SZ, 0, 7); c.fill();
+    // the rope
+    const D = Math.hypot(tip[0] - m0[0], tip[1] - m0[1]); s.L = s.L ? lerp(s.L, Math.max(8, D * 1.08), 1 - Math.exp(-dt * 10)) : D * 1.08;
+    if (!s.pts) { s.pts = []; for (let i = 0; i <= NN; i++) s.pts.push(L2(m0, tip, i / NN)); s.old = s.pts.map(p => p.slice()); }
+    const P = s.pts, O = s.old, seg = s.L / NN, damp = Math.exp(-dt * 6);
+    for (let i = 1; i <= NN; i++) { const vx = (P[i][0] - O[i][0]) * damp, vy = (P[i][1] - O[i][1]) * damp; O[i] = P[i].slice(); P[i][0] += vx + Math.sin(t * 7 + i * 0.8 + j) * 0.6 * A.SZ * dt * 8 * (1 - hold * 0.7); P[i][1] += vy + Math.cos(t * 6 + i * 0.7 + j * 1.7) * 0.6 * A.SZ * dt * 8 * (1 - hold * 0.7); }
+    const pull = 1 - Math.exp(-dt * (hold > 0.5 ? 40 : 22)); P[NN][0] = lerp(P[NN][0], tip[0], pull); P[NN][1] = lerp(P[NN][1], tip[1], pull);
+    for (let it = 0; it < 6; it++) { P[0] = m0.slice(); for (let i = 0; i < NN; i++) { const a = P[i], b = P[i + 1], ddx = b[0] - a[0], ddy = b[1] - a[1], dd = Math.hypot(ddx, ddy) || 1, e = (dd - seg) / dd * 0.5; if (i) { a[0] += ddx * e; a[1] += ddy * e; } b[0] -= ddx * e; b[1] -= ddy * e; } }
+    list.push([j, P, w, sq, tip]); }
+  list.sort((p, q) => p[4][1] - q[4][1]);
+  for (const [j, P0, w, sq] of list) { const pts = []; for (let i = 0; i < NN; i++) for (let k = 0; k < 3; k++) pts.push(L2(P0[i], P0[i + 1], k / 3)); pts.push(P0[NN]); const n = pts.length - 1, use = pts.map(p => L2(m0, p, ext));
+    for (let i = n; i >= 0; i--) { const r = 1.05 * A.SZ * (1 - 0.62 * i / n); c.fillStyle = '#5e2236'; c.beginPath(); c.arc(use[i][0], use[i][1], r + 0.18 * A.SZ, 0, 7); c.fill(); }
+    for (let i = n; i >= 0; i--) { const r = 1.05 * A.SZ * (1 - 0.62 * i / n); c.fillStyle = (i >> 1) % 2 ? '#c4607e' : '#d47a94'; c.beginPath(); c.arc(use[i][0], use[i][1], r, 0, 7); c.fill(); c.fillStyle = '#f0b6c8'; c.beginPath(); c.arc(use[i][0] - r * 0.25, use[i][1] - r * 0.35, r * 0.28, 0, 7); c.fill(); }
     // constricting: coils round the body, tightening
     if (sq > 0 && w) { const sc = UK[w.k].sc, wz = w.zd || 0; c.lineWidth = 1.5; for (let i = 0; i < 3; i++) { c.strokeStyle = i % 2 ? '#c4607e' : '#d47a94'; c.beginPath(); c.ellipse(w.x + Math.sin(t * 40 + i) * 0.2 * sq, w.y - wz - (2 + i * 2.3) * sc, (2.4 - sq * 0.6) * sc, 0.8 * sc, 0.15, 0, 7); c.stroke(); } } } }
 // skid marks under everything
@@ -3609,7 +3627,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'a90758';
+const KBUILD = 'dfb246';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
