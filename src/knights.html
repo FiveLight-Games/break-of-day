@@ -2940,8 +2940,12 @@ function ttAir(c, t) {
     else if (p.k === 'shell') { c.save(); c.globalAlpha = Math.min(1, (p.max - p.t) / 0.5); c.translate(p.x, p.y - p.z); c.rotate(p.rot); c.fillStyle = '#b8322a'; c.fillRect(-0.55, -0.25, 0.8, 0.5); c.fillStyle = TTC.BRASS; c.fillRect(0.25, -0.27, 0.32, 0.54); c.restore(); } }
 }
 function ttTendrils(c, kn, t) { const A = TT.ALIEN, m0 = kn.mouth, byId = new Map(walkers.map(w => [w.id, w])), ext = smt(cl(kn.alV, 0, 1)), C0 = kn.tcC || (kn.tcC = []), now = kn.alCv ?? kn.alC;
-  const list = [];
-  for (let j = 0; j < A.N; j++) { const q = kn.tc && kn.tc[j], ab = kn.alA + ((j + 0.5) / A.N - 0.5) * 2 * A.HALF * 0.85 + Math.sin(t * 1.7 + j * 2.1) * 0.12, Li = A.LEN * (1 + 0.06 * Math.sin(t * 1.1 + j * 1.7)), gd2 = gDir(ab);
+  const list = [], LS = kn.tcL || (kn.tcL = []);
+  // enemies in the cone: a writhing tentacle never reaches past the nearest one in its way, it writhes just in front of it
+  const near = []; for (const w of walkers) { if (w.dead || w.hp <= 0) continue; const dx = w.x - kn.x, dy = (w.y - kn.y) * 1.25, d = Math.hypot(dx, dy); if (d > A.LEN * 1.1 + 6) continue; const a = Math.atan2(dy, dx); if (Math.abs(wrapA(a - kn.alA)) < A.HALF + 0.5) near.push([d, a, UK[w.k].r]); }
+  for (let j = 0; j < A.N; j++) { const q = kn.tc && kn.tc[j], ab = kn.alA + ((j + 0.5) / A.N - 0.5) * 2 * A.HALF * 0.85 + Math.sin(t * 1.7 + j * 2.1) * 0.12, Lmax = A.LEN * (1 + 0.06 * Math.sin(t * 1.1 + j * 1.7)), gd2 = gDir(ab);
+    let Lc = Lmax; for (const [d, a, rw] of near) { const da = wrapA(a - ab); if (Math.cos(da) > 0 && d * Math.abs(Math.sin(da)) < rw + 2.5 * A.SZ && d - rw - 3 < Lc) Lc = d - rw - 3; } Lc = Math.max(7, Lc);
+    const Li = LS[j] = lerp(LS[j] ?? Lc, Lc, Lc < (LS[j] ?? Lc) ? 0.35 : 0.12);
     let tip = [kn.x + gd2[0] * Li, kn.y + gd2[1] * Li - 8 - 4 * Math.sin(t * 2.3 + j)], hold = 0, w = null, sq = 0;
     if (q) { const [id, m, t0] = q, u = now - t0, done = m ? A.SQZ : A.LIFT; w = byId.get(id);
       if (w && !w.dead && u < done) C0[j] = [w.x, w.y - 5 * UK[w.k].sc - (w.zd || w.z || 0)];
