@@ -38,7 +38,10 @@ input.textin{width:100%;background:#0f0d0b;border:1px solid var(--line);border-r
 .menuPanel .btn.big{min-height:58px;font-size:16px;flex-direction:column;gap:2px}
 .menuPanel .btn.big small{font-weight:500;font-size:12px;opacity:.75}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-#ver{position:fixed;left:12px;bottom:8px;color:#6a6252;font-size:12px}
+#verBox{position:fixed;left:12px;bottom:8px;display:flex;align-items:center;gap:8px;color:#6a6252;font-size:12px}
+#logBtn{background:#0006;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:3px 8px;font:600 12px Inter;cursor:pointer}
+.logList{display:flex;flex-direction:column;gap:10px;margin:10px 0}
+.logList div{border-bottom:1px solid var(--line);padding-bottom:8px}.logList b{color:var(--gold2)}.logList small{color:var(--muted);margin-left:6px}.logList p{margin:4px 0 0}
 .lobbyList{display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow:auto}
 .lobbyItem{display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;text-align:left;cursor:pointer}
 .lobbyItem b{display:block}.lobbyItem .grow{flex:1;min-width:0}
@@ -189,7 +192,7 @@ table.stats td:first-child,table.stats th:first-child{text-align:left}
     </div>
     <div id="menuPanel" class="menuPanel panel"></div>
   </div>
-  <div id="ver"></div>
+  <div id="verBox"><span id="ver"></span><button id="logBtn">Changelog</button></div>
 </div>
 
 <div id="lobby" class="screen hidden">
@@ -230,7 +233,7 @@ table.stats td:first-child,table.stats th:first-child{text-align:left}
 <div id="netOv" class="hidden"><div class="spin"></div><b id="netTxt">Reconnecting…</b><button class="btn sm" id="netLeave">Leave match</button></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script>window.TD_BUILD='__BUILD__';window.TD_VER='__VER__';</script>
+<script>window.TD_BUILD='__BUILD__';window.TD_VER='__VER__';window.TD_LOG=/*__LOG__*/[];</script>
 <script>/*__GAME__*/</script>
 <script>/*__CLIENT__*/</script>
 </body>

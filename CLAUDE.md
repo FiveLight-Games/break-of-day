@@ -9,6 +9,7 @@ The previous game (Break of Day) was scrapped on 2026-10-13. Its full code (v0.1
 - `BUILDS.json` is the build log: version, internal 6-char build id, commit, date, notes.
 - Normal builds: `python3 build.py`. When shipping (commit + push): `python3 build.py --ship "short notes"` once, then commit,
   then fill the previous entry's `commit` field on the next ship.
+- Main menu: version bottom-left with a Changelog button next to it (`showLog`): build.py inlines every BUILDS.json entry (v, date, notes) as `window.TD_LOG`, shown newest first in the modal. So ship notes are player-facing: keep them a short summary of the changes.
 - `version.json` carries the build id (for client auto-reload) and the version.
 - The page is served by GitHub Pages from `index.html` at the repo root.
 

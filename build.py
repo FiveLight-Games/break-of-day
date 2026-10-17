@@ -20,7 +20,7 @@ tpl = (d / 'index.template.html').read_text()
 safe = lambda f: (d / f).read_text().replace('</script', '<\\/script')
 import base64
 assets = 'window.TD_ASSETS = { buildLoop: "data:audio/mpeg;base64,' + base64.b64encode((d / 'assets' / 'build-loop.mp3').read_bytes()).decode() + '" };'
-out = tpl.replace('__BUILD__', build).replace('__VER__', ver).replace('/*__GAME__*/', assets + '\n' + safe('game.js')).replace('/*__CLIENT__*/', safe('client.js').replace('const TD = window.TD;\n', 'const TD = window.TD;\n' + safe('tribe.js') + '\n', 1))
+out = tpl.replace('/*__LOG__*/[]', json.dumps([{'v': e['v'], 'date': e['date'], 'notes': e['notes']} for e in log], ensure_ascii=False).replace('</', '<\\/')).replace('__BUILD__', build).replace('__VER__', ver).replace('/*__GAME__*/', assets + '\n' + safe('game.js')).replace('/*__CLIENT__*/', safe('client.js').replace('const TD = window.TD;\n', 'const TD = window.TD;\n' + safe('tribe.js') + '\n', 1))
 (root / 'index.html').write_text(out)
 (root / 'knights.html').write_text((d / 'knights.html').read_text().replace('__BUILD__', build))  # Knight Brawl: a separate co-op mode page
 (root / 'audio').mkdir(exist_ok=True); (root / 'audio' / 'baroque-breakdown.mp3').write_bytes((d / 'assets' / 'baroque-breakdown.mp3').read_bytes())  # Knight Brawl music, served as a file (too big to inline)

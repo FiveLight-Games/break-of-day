@@ -1935,9 +1935,11 @@ function musicTick() {
 
 // ============================ BOOT ============================
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('td_reload_for'); } catch (e) { } if (tried === v) return false; try { sessionStorage.setItem('td_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); return true; }
+// changelog: every shipped version's notes, newest first (BUILDS.json inlined by build.py as TD_LOG)
+function showLog() { const L = (window.TD_LOG || []).slice().reverse(); openModal(`<div class="eyebrow">Changelog</div><h2 style="margin:0">What's new</h2><div class="logList">${L.length ? L.map(e => `<div><b>v${esc(e.v)}</b><small>${esc(e.date)}</small><p>${esc(e.notes)}</p></div>`).join('') : '<p class="muted">Nothing shipped yet.</p>'}</div><button class="btn" id="logClose">Close</button>`, () => { $('logClose').onclick = closeModal; }); }
 async function checkVersion() { if (BUILD === 'dev' || location.protocol === 'file:') return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== BUILD && !GS.running && !L.mode) tryReload(v); } catch (e) { } }
 setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
 $('netLeave').onclick = () => { $('netOv').classList.add('hidden'); quitGame(); };
-window.addEventListener('load', () => { $('ver').textContent = 'v' + VER; $('ver').title = 'build ' + BUILD; show('menu'); renderMenu(); checkVersion(); });
+window.addEventListener('load', () => { $('ver').textContent = 'v' + VER; $('ver').title = 'build ' + BUILD; $('logBtn').onclick = showLog; show('menu'); renderMenu(); checkVersion(); });
 window.TDC = { get V() { return V; }, GS, L, get LS() { return LS; }, cam, send, req, onTap, lookAtLane, renderAtk, build, setBuild, spell, AU, MUS, sfx, hissLevel };
 })();
