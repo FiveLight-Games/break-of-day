@@ -2504,7 +2504,7 @@ const TT = {
     END: [0.5, 0.57, 0.75, 0.55, 0.62], W: [0.2, 0.25, 0.2, 0.2, 0.15], WHIP: { DMG: 70, KB: 120, ARC: 1.6, R0: 18, R1: 55 }, SLAM: { Z: 20, UP: 0.42, R: 18, DMG: 140, KB: 160 }, SKEW: { P: 0.45, MAX: 2, GAP: 26 } },
   HURL: { RANGE: 110, FLY: 0.6, BACK: 0.5, CD: 0, KB: 1, R: 150, LEN: 120, ARC: 26 },
   TRAP: { RANGE: 100, FLY: 0.45, T: 4, R: 9, DMG: 160, GAP: 0.3, CD: 6 },
-  SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 30, BR: 110, TURN: 3, CONE: 0.873, DMG: 260, W: 9.625, Z: 8, R: 6.6, GUN: 1.3, MU: [3.8, 0.6] },
+  SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 30, BR: 110, TURN: 3, CONE: 0.873, DMG: 260, W: 9.625, Z: 8, R: 6.6, GUN: 1.3, MU: [3.8, 0.6], HZ: 5 },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
   BIKE: { CD: 14, T: 5, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
 };
@@ -2571,7 +2571,7 @@ function ttPose(kn, t) {
   if (wq >= 2 || (atk && W0 >= 2)) { const tg = kn.gA ?? 0.55; ga = cl(tg, -1.25, 1.25);
     if (atk && (W0 === 2 || W0 === 4)) { rk = Math.max(0, 1 - kn.cs / (W0 === 2 ? 0.2 : 0.14)) ** 2 * (W0 === 2 ? 1 : 0.5); ga -= rk * 0.45; lean -= rk * 0.25; }
     if (kn.rl >= 0 && wq === 2) { const r = kn.rl * 1.75 / TT.GUN.RELOAD; brk = r < 0.2 ? sm(r / 0.2) : r < 1.25 ? 1 : r < 1.45 ? 1 - sm((r - 1.25) / 0.2) : 0; ga = lerp(ga, 0.75, r < 1.45 ? sm(cl(r / 0.2, 0, 1)) : 1 - sm(cl((r - 1.45) / 0.3, 0, 1))); }
-    const hip = (wq === 4 || (atk && W0 === 4)) && !ride ? 1 : 0; if (hip) { ga = cl(ga, 0, 0.35); cr += 1.3; }
+    const hip = (wq === 4 || (atk && W0 === 4)) && !ride ? 1 : 0; if (hip) cr += 1.3;
     const d = [Math.cos(ga), Math.sin(ga)], ext = wq === 3 ? (kn.al ? 3.6 : 3.0) : 1.0;
     const g0 = [0.3 + hip * 0.4 + d[0] * ext - d[0] * rk * 1.1, 1.3 + hip * 6.4 + d[1] * ext - d[1] * rk * 1.1]; bx = g0[0]; by = g0[1]; ca = ga;
     if (wq === 3) { ax = lerp(ax, -0.4, 0.6); ay = 3.2; lean += kn.al ? 0.15 : 0; }
@@ -2628,7 +2628,7 @@ function ttStart(IN, t) { const a = gAng(IN.aim[0], IN.aim[1]), wq = K.wpS === 2
   if (wq === 2) { K.ammo--; K.gunN = (K.gunN || 0) + 1; if (AUTH()) ttCone(TT.GUN.R, TT.GUN.HALF, d => lerp(TT.GUN.NEAR, TT.GUN.DMG, cl((d - TT.GUN.PB) / (TT.GUN.R - TT.GUN.PB), 0, 1)), TT.GUN.KB, (w, a2) => ttKillFx(w, a2, 1), ttMuzzle(K, t).off); }
   if (wq === 1 && !ttRiding(K)) { K.dsP = [K.x, K.y]; K.dsA = a; }
   if (wq === 4) { const P = ttPose(K, t), ga = P.ga ?? P.aB, gd = [Math.cos(ga), Math.sin(ga)], G = TT.SAW.GUN, U = TT.SAW.MU, pt = ttW(K, [P.hB[0] + G * (gd[0] * U[0] - gd[1] * U[1]), P.hB[1] + G * (gd[1] * U[0] + gd[0] * U[1])]);
-    K.sawN = (K.sawN || 0) + 1; K.sawX = r1(pt[0]); K.sawY = r1(K.y + 1); K.sawZ = r1(Math.max(0, K.sawY - pt[1])); K.sawA = Math.round(a * 100) / 100; }
+    K.sawN = (K.sawN || 0) + 1; K.sawX = r1(pt[0]); K.sawZ = TT.SAW.HZ; K.sawY = r1(pt[1] + TT.SAW.HZ); K.sawA = Math.round(a * 100) / 100; }
   }
 // the creature, held: twelve tentacles writhe in a cone in front of it while the stick is held; every EVERY seconds the next one in
 // line (round the twelve) reaches for the nearest enemy in the cone no other tentacle has, grabs it, and either lifts and throws it
@@ -2706,7 +2706,7 @@ function timeStep(dt, t) {
   { const HU = TT.HURL, TR = TT.TRAP, wq0 = K.wpS === 2 ? K.wpn : 0, bsy = K.wpS === 1 || K.wpS === 3 || K.bk === 0 || K.bk === 2; if (K.huCd > 0) K.huCd -= dt; if (K.trCd > 0) K.trCd -= dt;
     if (leapP && ready && !bsy && IN.leapT && wq0 === 3 && K.hu !== 1 && !(K.huCd > 0)) { const tg = leapTarget(K, IN.leapT), f = K.f || 1, re = K.hu === 2; Object.assign(K, { hu: 1, huT: 0, hz0: re ? K.huz : 10, hsx: r1(re ? K.hux : K.x + f * 3.5), hsy: r1(re ? K.huy : K.y), htx: r1(tg[0]), hty: r1(tg[1]) }); if (!re) Object.assign(K, { hux: K.x + f * 3.5, huy: K.y, huz: 10 }); if (AUTH() && K.tc) K.tc = K.tc.map(q => q && !q[3] ? null : q); }
     if (leapP && ready && !bsy && IN.leapT && wq0 === 4 && !(K.trCd > 0)) { const tg = leapTarget(K, IN.leapT), P = ttPose(K, t), ga = P.ga ?? P.aB, gd = [Math.cos(ga), Math.sin(ga)], G = TT.SAW.GUN, U = TT.SAW.MU, pt = ttW(K, [P.hB[0] + G * (gd[0] * U[0] - gd[1] * U[1]), P.hB[1] + G * (gd[1] * U[0] + gd[0] * U[1])]);
-      Object.assign(K, { trN: (K.trN || 0) + 1, trX: r1(tg[0]), trY: r1(tg[1]), trSX: r1(pt[0]), trSY: r1(K.y + 1), trSZ: r1(Math.max(0, K.y + 1 - pt[1])), trCd: TR.CD }); }
+      Object.assign(K, { trN: (K.trN || 0) + 1, trX: r1(tg[0]), trY: r1(tg[1]), trSX: r1(pt[0]), trSY: r1(pt[1] + TT.SAW.HZ), trSZ: TT.SAW.HZ, trCd: TR.CD }); }
     const rcP = (IN.rcN || 0) !== (K.rcSeen ?? (IN.rcN || 0)); K.rcSeen = IN.rcN || 0;
     if (rcP && K.hu === 2 && K.wpS === 2) { Object.assign(K, { hu: 3, huT: 0, hsx: K.hux, hsy: K.huy }); if (AUTH() && K.tc) K.tc = K.tc.map(q => q && !q[3] ? null : q); }
     if (K.hu >= 1) { K.huT += dt; const hx = K.x + (K.f || 1) * 3.5;
