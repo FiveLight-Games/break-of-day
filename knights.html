@@ -2500,7 +2500,7 @@ const TT = {
     SPL: { R: 12, DMG: 90, KB: 120 }, BOWL: 60, POP: { R: 10, DMG: 80, KB: 110 }, LASH: { DMG: 25, GAP: 0.3, SLOW: 0.5 }, NEAR: { R: 37.8, HALF: 0.75, DMG: 35, KB: 150, GAP: 0.25 },
     // the attack pool: 0 toss, 1 squeeze, 2 whip, 3 eat, 4 slam (when each finishes, from the grab's start); any of them can skewer up to 2 more
     END: [0.5, 0.57, 0.75, 0.55, 0.62], W: [0.2, 0.25, 0.2, 0.2, 0.15], WHIP: { DMG: 70, KB: 120, ARC: 1.6, R0: 18, R1: 55 }, SLAM: { Z: 20, UP: 0.42, R: 18, DMG: 140, KB: 160 }, SKEW: { P: 0.45, MAX: 2, GAP: 26 } },
-  HURL: { RANGE: 110, FLY: 0.6, SIT: 3, BACK: 0.5, CD: 1, KB: 0.3, R: 95.7, LEN: 82.6, ARC: 26 },
+  HURL: { RANGE: 110, FLY: 0.6, BACK: 0.5, CD: 0, KB: 1, R: 150, LEN: 120, ARC: 26 },
   TRAP: { RANGE: 100, FLY: 0.45, T: 4, R: 9, DMG: 160, GAP: 0.3, CD: 6 },
   SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 30, BR: 110, TURN: 3, CONE: 0.873, DMG: 260, W: 9.625, Z: 8, R: 6.6, GUN: 1.3, MU: [3.8, 0.6] },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
@@ -2579,7 +2579,7 @@ function ttPose(kn, t) {
         const seg = (a0, a1, p0, p1) => r >= a0 && r < a1 ? L2(p0, p1, sm((r - a0) / (a1 - a0))) : null;
         hA = seg(0.2, 0.4, fe, pk) || seg(0.4, 0.58, pk, brc) || seg(0.58, 0.64, brc, brc) || seg(0.64, 0.82, brc, pk) || seg(0.82, 1.0, pk, brc) || seg(1.0, 1.25, brc, fe) || (r < 0.2 || r >= 1.25 ? fe : brc); ax = hA[0]; ay = hA[1]; } } }
   // the weapon arriving: his B hand reaches up for it as it falls from the portal; going back: the hand lifts it up into the portal
-  if (kn.wpS === 1 || kn.wpS === 3) { const q = kn.wpS === 1 ? (kn.wpT < 0.2 ? 0 : kn.wpT < 0.38 ? sm((kn.wpT - 0.2) / 0.18) : kn.wpT < 0.52 ? 1 : 1 - sm((kn.wpT - 0.52) / 0.23)) : (kn.wpT < 0.2 ? sm(kn.wpT / 0.2) : kn.wpT < 0.5 ? 1 : 1 - sm(cl((kn.wpT - 0.5) / 0.15, 0, 1))); bx = lerp(bx, 1.0, q); by = lerp(by, -3.6, q); ca = lerp(ca, -1.3, q); look = -0.25 * q; }
+  if (kn.wpS === 1 || (kn.wpS === 3 && !(kn.wpn === 3 && kn.hu >= 1))) { const q = kn.wpS === 1 ? (kn.wpT < 0.2 ? 0 : kn.wpT < 0.38 ? sm((kn.wpT - 0.2) / 0.18) : kn.wpT < 0.52 ? 1 : 1 - sm((kn.wpT - 0.52) / 0.23)) : (kn.wpT < 0.2 ? sm(kn.wpT / 0.2) : kn.wpT < 0.5 ? 1 : 1 - sm(cl((kn.wpT - 0.5) / 0.15, 0, 1))); bx = lerp(bx, 1.0, q); by = lerp(by, -3.6, q); ca = lerp(ca, -1.3, q); look = -0.25 * q; }
   // ---- legs: the Knight's gait (on foot) or on the pegs (riding) ----
   const front = f > 0 ? 1 : 0;
   let feet, pel, hips, bob = 0, Fr = null;
@@ -2698,16 +2698,16 @@ function timeStep(dt, t) {
   // test buttons: a given weapon right now (through the portal if he has none, swapped straight in if he has one)
   if ((IN.twN || 0) !== (K.twSeen || 0)) { K.twSeen = IN.twN || 0; const v = IN.twV | 0; if (ready && v >= 1 && v <= 4) { if (K.wpS === 2) Object.assign(K, { wpn: v, wpT: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1, al: 0, tc: null, hu: -1 }); else if (K.wpS === 0) Object.assign(K, { wpn: v, wpL: v, wpS: 1, wpT: 0, wpCd: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1 }); else if (K.wpS === 1) K.wpn = v; } }
   if (K.wpS === 1) { K.wpT += dt; if (K.wpT >= TT.PORT.IN) { K.wpS = 2; K.wpT = 0; } }
-  else if (K.wpS === 2) { K.wpT += dt; if (!(K.hu >= 0) && ((lvP && ready) || (K.wpT >= TT.PORT.HOLD + (K.wpn === 3 ? 0.4 : 0) && K.bk !== 0 && K.bk !== 1))) { K.wpS = 3; K.wpT = 0; K.cs = -1; K.rl = -1; K.al = 0; K.tc = null; } }
-  else if (K.wpS === 3) { K.wpT += dt; if (K.wpT >= TT.PORT.OUT) { K.wpS = 0; K.wpT = 0; K.wpn = 0; K.wpCd = TT.PORT.CD; } }
+  else if (K.wpS === 2) { K.wpT += dt; if (K.hu !== 1 && ((lvP && ready) || (K.wpT >= TT.PORT.HOLD + (K.wpn === 3 ? 0.4 : 0) && K.bk !== 0 && K.bk !== 1))) { K.wpS = 3; K.wpT = 0; K.cs = -1; K.rl = -1; K.al = 0; K.tc = null; } }
+  else if (K.wpS === 3) { K.wpT += dt; if (K.wpT >= TT.PORT.OUT) { K.wpS = 0; K.wpT = 0; K.wpn = 0; K.wpCd = TT.PORT.CD; K.hu = -1; } }
   // ---- weapon abilities on the leap circle: toss the alien (it grabs as it flies, then all round where it lands, then comes home) / a saw trap ----
   { const HU = TT.HURL, TR = TT.TRAP, wq0 = K.wpS === 2 ? K.wpn : 0, bsy = K.wpS === 1 || K.wpS === 3 || K.bk === 0 || K.bk === 2; if (K.huCd > 0) K.huCd -= dt; if (K.trCd > 0) K.trCd -= dt;
-    if (leapP && ready && !bsy && IN.leapT && wq0 === 3 && !(K.hu >= 0) && !(K.huCd > 0)) { const tg = leapTarget(K, IN.leapT), f = K.f || 1; Object.assign(K, { hu: 1, huT: 0, hsx: r1(K.x + f * 3.5), hsy: r1(K.y), htx: r1(tg[0]), hty: r1(tg[1]), hux: K.x + f * 3.5, huy: K.y, huz: 10 }); if (AUTH() && K.tc) K.tc = K.tc.map(q => q && !q[3] ? null : q); }
+    if (leapP && ready && !bsy && IN.leapT && wq0 === 3 && K.hu !== 1 && !(K.huCd > 0)) { const tg = leapTarget(K, IN.leapT), f = K.f || 1, re = K.hu === 2; Object.assign(K, { hu: 1, huT: 0, hz0: re ? K.huz : 10, hsx: r1(re ? K.hux : K.x + f * 3.5), hsy: r1(re ? K.huy : K.y), htx: r1(tg[0]), hty: r1(tg[1]) }); if (!re) Object.assign(K, { hux: K.x + f * 3.5, huy: K.y, huz: 10 }); if (AUTH() && K.tc) K.tc = K.tc.map(q => q && !q[3] ? null : q); }
     if (leapP && ready && !bsy && IN.leapT && wq0 === 4 && !(K.trCd > 0)) { const tg = leapTarget(K, IN.leapT), P = ttPose(K, t), ga = P.ga ?? P.aB, gd = [Math.cos(ga), Math.sin(ga)], G = TT.SAW.GUN, U = TT.SAW.MU, pt = ttW(K, [P.hB[0] + G * (gd[0] * U[0] - gd[1] * U[1]), P.hB[1] + G * (gd[1] * U[0] + gd[0] * U[1])]);
       Object.assign(K, { trN: (K.trN || 0) + 1, trX: r1(tg[0]), trY: r1(tg[1]), trSX: r1(pt[0]), trSY: r1(K.y + 1), trSZ: r1(Math.max(0, K.y + 1 - pt[1])), trCd: TR.CD }); }
     if (K.hu >= 1) { K.huT += dt; const hx = K.x + (K.f || 1) * 3.5;
-      if (K.hu === 1) { const u = cl(K.huT / HU.FLY, 0, 1); K.hux = lerp(K.hsx, K.htx, u); K.huy = lerp(K.hsy, K.hty, u); K.huz = lerp(10, 2, u) + HU.ARC * Math.sin(Math.PI * u); if (u >= 1) { K.hu = 2; K.huT = 0; } }
-      else if (K.hu === 2) { K.hux = K.htx; K.huy = K.hty; K.huz = 2; if (K.huT >= HU.SIT) { K.hu = 3; K.huT = 0; K.hsx = K.htx; K.hsy = K.hty; if (AUTH() && K.tc) K.tc = K.tc.map(q => q && !q[3] ? null : q); } }
+      if (K.hu === 1) { const u = cl(K.huT / HU.FLY, 0, 1); K.hux = lerp(K.hsx, K.htx, u); K.huy = lerp(K.hsy, K.hty, u); K.huz = lerp(K.hz0 ?? 10, 2, u) + HU.ARC * Math.sin(Math.PI * u); if (u >= 1) { K.hu = 2; K.huT = 0; } }
+      else if (K.hu === 2) { K.hux = K.htx; K.huy = K.hty; K.huz = 2; }
       else { const u = cl(K.huT / HU.BACK, 0, 1), e = smt(u); K.hux = lerp(K.hsx, hx, e); K.huy = lerp(K.hsy, K.y, e); K.huz = lerp(2, 10, e) + 18 * Math.sin(Math.PI * u); if (u >= 1) { K.hu = -1; K.huCd = HU.CD; } } } }
   // ---- attacks: the cane, or whatever the portal brought ----
   const wq = K.wpS === 2 ? K.wpn : 0, busy = K.wpS === 1 || K.wpS === 3 || K.bk === 0 || K.bk === 2;
@@ -3057,15 +3057,15 @@ function ttAir(c, t) {
   for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue;
     // the weapon portal above his head
     const pk = kn.wpS === 1 ? (kn.wpT < 0.25 ? sm(kn.wpT / 0.25) : kn.wpT < 0.55 ? 1 : 1 - sm((kn.wpT - 0.55) / 0.2)) : kn.wpS === 3 ? (kn.wpT < 0.25 ? sm(kn.wpT / 0.25) : kn.wpT < 0.68 ? 1 : 1 - sm((kn.wpT - 0.68) / 0.22)) : 0;
-    if (pk > 0) ttPortal(c, kn.x + (kn.f || 1) * 0.7 * KS, kn.y - (kn.z || 0) - 24.5, 5.5, 1.9, pk, t);
+    if (pk > 0) { if (kn.hu >= 1 && kn.wpn === 3) ttPortal(c, kn.hux, kn.huy - (kn.huz || 0) - 22, 6.5, 2.2, pk, t); else ttPortal(c, kn.x + (kn.f || 1) * 0.7 * KS, kn.y - (kn.z || 0) - 24.5, 5.5, 1.9, pk, t); }
     // the bike's portal: behind him on the way in, ahead of the bike on the way out
     const bk = kn.bk === 0 ? (kn.bkT < 0.25 ? sm(kn.bkT / 0.25) : kn.bkT < 0.55 ? 1 : 1 - sm(cl((kn.bkT - 0.55) / 0.25, 0, 1))) : kn.bk === 2 ? (kn.bkT < 0.2 ? sm(kn.bkT / 0.2) : kn.bkT < 0.5 ? 1 : 1 - sm(cl((kn.bkT - 0.5) / 0.2, 0, 1))) : 0;
     if (bk > 0) { const fw = gDir(kn.hd || 0), wide = 0.6 + 0.4 * Math.abs(fw[1]) / Math.hypot(fw[0], fw[1]); ttPortal(c, kn.bpx, kn.bpy - 8.5, 8 * wide, 9.5, bk, t, 0); }
     // tendrils: out to their targets, holding them, then slinking back into its mouth
-    if (kn.wpn === 3 && kn.hu >= 1) { const sc = KS * 1.35, a = t * 1.3, open = sm(cl(kn.alV || 0, 0, 1)); c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(kn.hux, kn.huy + 0.4, 4.5, 1.6, 0, 0, 7); c.fill();
-      c.save(); c.translate(kn.hux, kn.huy - kn.huz); c.scale(sc, sc); const mo = ttAlienArt(c, [0, 0], a, open, t, open > 0.02 ? 'back' : 'all'), m = c.getTransform(), S = CAM.s;
+    if (kn.wpn === 3 && kn.hu >= 1) { const lq = kn.wpS === 3 ? smt(cl((kn.wpT - 0.3) / 0.35, 0, 1)) : 0, sc = KS * 1.35 * (1 - 0.7 * lq), a = t * 1.3, open = sm(cl(kn.alV || 0, 0, 1)); c.fillStyle = `rgba(0,0,0,${0.25 * (1 - lq)})`; c.beginPath(); c.ellipse(kn.hux, kn.huy + 0.4, 4.5, 1.6, 0, 0, 7); c.fill();
+      if (kn.wpS === 3 && kn.wpT > 0.68) { } else { c.save(); c.translate(kn.hux, kn.huy - kn.huz - lq * 20); c.scale(sc, sc); const mo = ttAlienArt(c, [0, 0], a, open, t, open > 0.02 ? 'back' : 'all'), m = c.getTransform(), S = CAM.s;
       const W = q => [(m.a * q[0] + m.c * q[1] + m.e - CAM.e) / S, (m.b * q[0] + m.d * q[1] + m.f - CAM.f) / S], c0 = W(mo.mc), e0 = W([mo.mc[0] + mo.ax[0] * mo.ry, mo.mc[1] + mo.ax[1] * mo.ry]);
-      kn.mouth = c0; kn.mouthAx = [e0[0] - c0[0], e0[1] - c0[1]]; kn.alM = { m: [m.a / S, m.b / S, m.c / S, m.d / S, (m.e - CAM.e) / S, (m.f - CAM.f) / S], h: [0, 0], a, open }; c.restore(); }
+      kn.mouth = c0; kn.mouthAx = [e0[0] - c0[0], e0[1] - c0[1]]; kn.alM = { m: [m.a / S, m.b / S, m.c / S, m.d / S, (m.e - CAM.e) / S, (m.f - CAM.f) / S], h: [0, 0], a, open }; c.restore(); } }
     if ((kn.alV || 0) > 0.01 && kn.wpn === 3 && kn.mouth) { ttTendrils(c, kn, t); const M = kn.alM; if (M && M.open > 0.02) { c.save(); c.transform(...M.m); ttAlienArt(c, M.h, M.a, M.open, t, 'front'); c.restore(); } } }
   for (const s of SAWS) { const al = s.out ? Math.max(0, 1 - s.out / 0.35) : 1, z = (s.z0 ?? TT.SAW.Z) - (s.out ? s.out * 14 : 0), sr = TT.SAW.R * lerp(0.517 * KS, 1, smt(cl(s.t / 0.3, 0, 1))), x = s.x + (s.ox || 0), y = s.y + (s.oy || 0);
     c.fillStyle = `rgba(0,0,0,${0.25 * al})`; c.beginPath(); c.ellipse(x, y + 0.3, sr * 1.05, sr * 0.37, 0, 0, 7); c.fill();
@@ -3787,7 +3787,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '45446f';
+const KBUILD = 'ceac0b';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
