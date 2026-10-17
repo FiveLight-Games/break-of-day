@@ -2616,7 +2616,7 @@ function ttCone(R, half, dmg, kb, kill, off = 0) { const a0 = K.csA, ux = Math.c
   for (const w of walkers) { if (w.hp <= 0 || w.air || w.gr > 0) continue; const U = UK[w.k], ex = w.x - K.x, ey = (w.y - K.y) * 1.25, along = ex * ux + ey * uy;
     let dx = w.x - ox, dy = (w.y - oy) * 1.25, d = Math.hypot(dx, dy); if (off && along > -2 && along < off && Math.abs(ex * uy - ey * ux) < U.r + 4) { d = 0; dx = ux; dy = uy; } if (d > R + U.r) continue;
     const a = Math.atan2(dy, dx); if (d > U.r + 3 && Math.abs(wrapA(a - a0)) > half + Math.atan2(U.r, d)) continue;
-    n++; w.atk = -1; w.kx += Math.cos(a) * kb; w.ky += Math.sin(a) * kb * 0.6; hurt(w, typeof dmg === 'function' ? dmg(d) : dmg, ww => kill(ww, Math.atan2(ww.y - K.y, ww.x - K.x))); }
+    n++; w.atk = -1; w.kx += Math.cos(a) * kb; w.ky += Math.sin(a) * kb * 0.6; hurt(w, typeof dmg === 'function' ? dmg(Math.max(0, d - U.r - 2)) : dmg, ww => kill(ww, Math.atan2(ww.y - K.y, ww.x - K.x))); }
   return n; }
 function ttStart(IN, t) { const a = gAng(IN.aim[0], IN.aim[1]), wq = K.wpS === 2 ? K.wpn : 0;
   K.cs = 0; K.csA = a; K.csW = wq; K.csN = (K.csN || 0) + 1; if (Math.abs(Math.cos(a)) > 0.2 && !ttRiding(K)) K.f = Math.cos(a) >= 0 ? 1 : -1;
@@ -3746,7 +3746,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'd05a7f';
+const KBUILD = '9cc112';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
