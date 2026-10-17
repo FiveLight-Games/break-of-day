@@ -2500,7 +2500,7 @@ const TT = {
     SPL: { R: 12, DMG: 90, KB: 120 }, BOWL: 60, POP: { R: 10, DMG: 80, KB: 110 }, LASH: { DMG: 25, GAP: 0.3, SLOW: 0.5 }, NEAR: { R: 37.8, HALF: 0.75, DMG: 35, KB: 150, GAP: 0.25 },
     // the attack pool: 0 toss, 1 squeeze, 2 whip, 3 eat, 4 slam (when each finishes, from the grab's start); any of them can skewer up to 2 more
     END: [0.5, 0.57, 0.75, 0.55, 0.62], W: [0.2, 0.25, 0.2, 0.2, 0.15], WHIP: { DMG: 70, KB: 120, ARC: 1.6, R0: 18, R1: 55 }, SLAM: { Z: 20, UP: 0.42, R: 18, DMG: 140, KB: 160 }, SKEW: { P: 0.45, MAX: 2, GAP: 26 } },
-  SAW: { T: 0.46, SPD: 240, RANGE: 300, BOUNCE: 6, BR: 110, DMG: 260, W: 7.7, Z: 8, R: 6.6, GUN: 1.3 },
+  SAW: { T: 0.46, SPD: 240, RANGE: 300, BOUNCE: 6, BR: 110, DMG: 260, W: 9.625, Z: 8, R: 6.6, GUN: 1.3 },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
   BIKE: { CD: 14, T: 5, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
 };
@@ -2897,6 +2897,11 @@ function ttSawGun(c, h, a, t, loaded, kick) { const d = [Math.cos(a), Math.sin(a
   c.fillStyle = '#16181c'; c.beginPath(); c.moveTo(...P(2.0, -1.55)); c.lineTo(...P(5.9, -1.55)); c.lineTo(...P(5.9, -1.25)); c.lineTo(...P(2.0, -1.25)); c.closePath(); c.fill();
   if (loaded > 0) { const ctr = P(3.6 - (1 - loaded) * 1.2 - kick * 0.6, -2.0); sawDisc(c, ctr[0], ctr[1], 1.55 * TT.SAW.R / 3 / TT.SAW.GUN, t * (loaded >= 1 ? 6 : 0), 0.38, 1); } }
 // a flat spinning saw disc seen from above at an angle: r radius, flat = vertical squash
+// the whirr round a flying saw: fast streaks chasing round its rim out to the edge of its cutting width, fading tail-first
+function sawWhirr(c, x0, y0, r, rot, al) { const RW = TT.SAW.W; c.save(); c.translate(x0, y0); c.scale(1, 0.42); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
+  for (let k = 0; k < 3; k++) { const rr2 = r * 1.06 + (RW - r * 1.06) * (k / 2), sp = rot * (1.6 - k * 0.25), w = 0.9 - k * 0.22;
+    for (let j = 0; j < 3; j++) { const a0 = sp + j * 2.094 + k * 0.7; for (let q = 0; q < 4; q++) { c.strokeStyle = `rgba(235,242,250,${al * (0.42 - k * 0.1) * (1 - q / 4)})`; c.lineWidth = w; c.beginPath(); c.arc(0, 0, rr2, a0 - (q + 1) * 0.28, a0 - q * 0.28); c.stroke(); } } }
+  c.restore(); }
 function sawDisc(c, x0, y0, r, rot, flat, al) { c.save(); c.translate(x0, y0); c.scale(1, flat); c.globalAlpha = al;
   c.fillStyle = '#9aa3ad'; c.beginPath(); for (let i = 0; i < 16; i++) { const a = rot + i / 16 * T2, a2 = a + T2 / 32; c.lineTo(Math.cos(a) * r * 1.12, Math.sin(a) * r * 1.12); c.lineTo(Math.cos(a2) * r * 0.9, Math.sin(a2) * r * 0.9); } c.closePath(); c.fill();
   c.fillStyle = '#c9d0d8'; c.beginPath(); c.arc(0, 0, r * 0.82, 0, 7); c.fill(); c.strokeStyle = 'rgba(80,90,100,.6)'; c.lineWidth = r * 0.06; for (let i = 0; i < 3; i++) { const a = rot * 0.5 + i * 2.09; c.beginPath(); c.arc(0, 0, r * 0.55, a, a + 1.2); c.stroke(); }
@@ -3029,7 +3034,7 @@ function ttAir(c, t) {
     // tendrils: out to their targets, holding them, then slinking back into its mouth
     if ((kn.alV || 0) > 0.01 && kn.wpn === 3 && kn.mouth) { ttTendrils(c, kn, t); const M = kn.alM; if (M && M.open > 0.02) { c.save(); c.transform(...M.m); ttAlienArt(c, M.h, M.a, M.open, t, 'front'); c.restore(); } } }
   for (const s of SAWS) { const al = s.out ? Math.max(0, 1 - s.out / 0.35) : 1, z = TT.SAW.Z - (s.out ? s.out * 14 : 0); c.fillStyle = `rgba(0,0,0,${0.25 * al})`; c.beginPath(); c.ellipse(s.x, s.y + 0.3, TT.SAW.R * 1.05, TT.SAW.R * 0.37, 0, 0, 7); c.fill(); const d = gDir(s.a);
-    c.save(); c.globalAlpha = 0.25 * al; c.strokeStyle = '#dfe6ee'; c.lineWidth = TT.SAW.R * 0.85; c.lineCap = 'round'; c.beginPath(); c.moveTo(s.x - d[0] * 12, s.y - z - d[1] * 12); c.lineTo(s.x, s.y - z); c.stroke(); c.restore(); sawDisc(c, s.x, s.y - z, TT.SAW.R, s.rot, 0.42, al); }
+    c.save(); c.globalAlpha = 0.25 * al; c.strokeStyle = '#dfe6ee'; c.lineWidth = TT.SAW.R * 0.85; c.lineCap = 'round'; c.beginPath(); c.moveTo(s.x - d[0] * 12, s.y - z - d[1] * 12); c.lineTo(s.x, s.y - z); c.stroke(); c.restore(); sawDisc(c, s.x, s.y - z, TT.SAW.R, s.rot, 0.42, al); sawWhirr(c, s.x, s.y - z, TT.SAW.R, s.rot, al); }
   c.save(); c.globalCompositeOperation = 'lighter';
   for (const p of TTFX) { const k = p.t / p.max; if (p.k === 'flash' && p.t >= 0) { c.save(); c.translate(p.x, p.y); c.rotate(p.a); const g = c.createRadialGradient(2, 0, 0, 2, 0, 7); g.addColorStop(0, `rgba(255,250,220,${1 - k})`); g.addColorStop(0.4, `rgba(255,190,80,${0.8 * (1 - k)})`); g.addColorStop(1, 'rgba(255,120,30,0)'); c.fillStyle = g; c.beginPath(); c.ellipse(3, 0, 7, 3.2, 0, 0, 7); c.fill(); c.restore(); }
     else if (p.k === 'pellet' && p.t >= 0) { const q = cl(p.t / p.max, 0, 1), a = L2([p.x0, p.y0], [p.x1, p.y1], Math.max(0, q * 1.4 - 0.4)), b = L2([p.x0, p.y0], [p.x1, p.y1], Math.min(1, q * 1.4)); c.strokeStyle = `rgba(255,230,160,${0.9 * (1 - q)})`; c.lineWidth = 0.35; c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke(); } }
@@ -3723,7 +3728,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'a5c593';
+const KBUILD = 'ff5fa8';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
