@@ -2750,7 +2750,8 @@ function timeStep(dt, t) {
 // enemy at most every TGAP, swing or no swing. Swinging sweeps the blade between frames so fast cuts don't skip anyone.
 function ttW(kn, p) { if (ttRiding(kn)) { const F = bikeFrame(0, 0, kn.hd || 0, kn.bl || 0); return [kn.x + KS * (p[0] - F.up[0] * p[1]), kn.y + KS * (-F.up[1] * p[1])]; } return [kn.x + KS * p[0], kn.y - (kn.z || 0) + KS * p[1]]; }
 function ttSaberTouch(t) { const S = TT.SABER, P = ttPose(K, t), LB = S.LEN * (P.bL ?? 1) * ttSabGrow(K), d = [Math.cos(P.aB), Math.sin(P.aB)], a = ttW(K, [P.hB[0] + d[0] * 1.2, P.hB[1] + d[1] * 1.2]), b = ttW(K, [P.hB[0] + d[0] * (1.2 + LB), P.hB[1] + d[1] * (1.2 + LB)]), pv = K.sbP; K.sbP = [a, b];
-  for (const w of walkers) { if (w.hp <= 0 || w.air || Math.abs(w.x - K.x) > 30 || t - (w.sbT ?? -9) < S.TGAP) continue; const U = UK[w.k], h = 9 * U.sc; let hit = false;
+  const RC = Math.hypot(b[0] - K.x, b[1] - K.y) + 14;
+  for (const w of walkers) { if (w.hp <= 0 || w.air || Math.abs(w.x - K.x) > RC || t - (w.sbT ?? -9) < S.TGAP) continue; const U = UK[w.k], h = 9 * U.sc; let hit = false;
     for (const j of [0.15, 0.5, 0.85]) { const p = [w.x, w.y - h * j - (w.z || 0)]; if (ptSeg(p, a, b) < U.r * 0.8 + 0.5 || (pv && (inTri(p, pv[0], pv[1], b) || inTri(p, pv[0], b, a)))) { hit = true; break; } }
     if (!hit) continue; w.sbT = t; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; const ang = Math.atan2(w.y - K.y, w.x - K.x); w.kx += Math.cos(ang) * S.KB * 0.5; w.ky += Math.sin(ang) * S.KB * 0.3;
     hurt(w, K.cs >= 0 ? S.DMG : S.TDMG, ww => ttKillFx(ww, ang, 0)); } }
@@ -2968,7 +2969,7 @@ function drawTime(c, t) {
   // the saber, and the slice ribbon its sweep leaves (in his saber's colour)
   const drawSab = (wx, wa) => { if (K.cs >= 0 && K.csW === 1 && K.wpS === 2) { const m = c.getTransform(), S = CAM.s, W = q => [(m.a * q[0] + m.c * q[1] + m.e - CAM.e) / S, (m.b * q[0] + m.d * q[1] + m.f - CAM.f) / S], d = [Math.cos(wa), Math.sin(wa)], L = TT.SABER.LEN * (P.bL ?? 1) * ttSabGrow(K);
       if (K.slcN !== K.csN) { if (K.slc && K.slc.length > 1) FX.push({ k: 'slice', pts: K.slc, t: 0, max: 0.3, rgb: K.slcRgb }); K.slc = []; K.slcN = K.csN; const h = shade(COL, 0.25); K.slcRgb = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); }
-      K.slc.push({ b: W([wx[0] + d[0] * 1.5, wx[1] + d[1] * 1.5]), e: W([wx[0] + d[0] * (1.2 + L), wx[1] + d[1] * (1.2 + L)]), g: 1 }); if (K.slc.length > 30) K.slc.shift(); }
+      const su = K.cs / TT.SABER.T; if (su > 0.1 && su < 0.9) K.slc.push({ b: W([wx[0] + d[0] * 1.5, wx[1] + d[1] * 1.5]), e: W([wx[0] + d[0] * (1.2 + L), wx[1] + d[1] * (1.2 + L)]), g: 1 }); if (K.slc.length > 30) K.slc.shift(); }
     else if (K.slc && K.slc.length) { if (K.slc.length > 1) FX.push({ k: 'slice', pts: K.slc, t: 0, max: 0.3, rgb: K.slcRgb }); K.slc = null; K.slcN = -1; }
     ttSaber(c, wx, wa, t, sabOn() * (P.bL ?? 1) * ttSabGrow(K)); };
   if (caneBack) ttCane(c, cK, cA);
