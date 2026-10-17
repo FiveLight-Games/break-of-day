@@ -2718,7 +2718,7 @@ function timeStep(dt, t) {
     if (AUTH()) ttRunDown(t);
     if (K.bkT >= B.T) Object.assign(K, { bk: 2, bkT: 0, bkx: K.x, bky: K.y, dvx: K.bvx, dvy: K.bvy, bpx: r1(K.x + K.bvx * 0.38), bpy: r1(K.y + K.bvy * 0.38) }); }
   else if (K.bk === 2) { K.bkT += dt; const u = K.bkT, q = cl(u / B.HOP, 0, 1); K.z = q < 1 ? lerp(B.SEAT, 0, q) + 5 * Math.sin(Math.PI * q) : 0;
-    const e = Math.exp(-dt * 5); K.dvx *= e; K.dvy *= e; K.x += K.dvx * dt; K.y = cl(K.y + K.dvy * dt, 16, H - 4); K.bkx += K.bvx * dt; K.bky += K.bvy * dt; K.spd = Math.hypot(K.dvx, K.dvy);
+    const e = 1 - Math.exp(-dt * 5), mv2 = mvL > 0.12 ? [IN.mv[0] / mvL * Math.min(1, mvL) * RUN * TT.RUN, IN.mv[1] / mvL * Math.min(1, mvL) * RUN * TT.RUN] : [0, 0]; K.dvx = lerp(K.dvx, mv2[0], e); K.dvy = lerp(K.dvy, mv2[1], e); if (mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1; K.x += K.dvx * dt; K.y = cl(K.y + K.dvy * dt, 16, H - 4); K.bkx += K.bvx * dt; K.bky += K.bvy * dt; K.spd = Math.hypot(K.dvx, K.dvy);
     if (u >= B.OFF) { K.bk = -1; K.bkT = 0; K.bkCd = B.CD; K.z = 0; K.bl = 0; } }
   // ---- walking (the Swordmaster's / Knight's feel) ----
   if (K.bk < 0) { const v2 = RUN * TT.RUN * (K.cs >= 0 || K.al ? TT.ATK : 1);
@@ -3678,7 +3678,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '227f83';
+const KBUILD = '4ce309';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
