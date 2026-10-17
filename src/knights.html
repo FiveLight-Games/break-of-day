@@ -3056,6 +3056,8 @@ function drawTime(c, t) {
   const showW = K.wpS === 2 || (K.wpS === 1 && K.wpT > 0.22) || (K.wpS === 3 && K.wpT < 0.68);
   if (!sabBack && !gunBack) ttArm(c, sB, P.hB, true);
   if (!caneBack && tuck < 0.5) ttCane(c, cK, cA);
+  // the alien sits on his palm: his hand is drawn behind it, not over its mouth
+  const alH = showW && K.wpn === 3 && !(K.hu >= 1); if (alH && !sabBack && !gunBack) ttHand(c, P.hB, true);
   if (showW) { const wn = K.wpn;
     if (wn === 1) { if (!sabBack) drawSab(wx, wa); }
     else if (wn === 2) { if (!gunBack) ttShotgun(c, wx, wa, P.brk || 0); }
@@ -3064,7 +3066,7 @@ function drawTime(c, t) {
       const W = q => [(m.a * q[0] + m.c * q[1] + m.e - CAM.e) / S, (m.b * q[0] + m.d * q[1] + m.f - CAM.f) / S], c0 = W(mo.mc), e0 = W([mo.mc[0] + mo.ax[0] * mo.ry, mo.mc[1] + mo.ax[1] * mo.ry]);
       K.mouth = c0; K.mouthAx = [e0[0] - c0[0], e0[1] - c0[1]]; K.alM = { m: [m.a / S, m.b / S, m.c / S, m.d / S, (m.e - CAM.e) / S, (m.f - CAM.f) / S], h: wx.slice(), a: wa, open }; }
     else if (wn === 4 && !gunBack) { const kick = K.cs >= 0 && K.csW === 4 ? Math.max(0, 1 - K.cs / 0.14) : 0, ld = K.cs >= 0 && K.csW === 4 ? sm(cl((K.cs - 0.12) / 0.25, 0, 1)) : 1; c.save(); c.translate(wx[0], wx[1]); c.scale(TT.SAW.GUN, TT.SAW.GUN); ttSawGun(c, [0, 0], wa, t, ld, kick); c.restore(); } }
-  if (!sabBack && !gunBack) ttHand(c, P.hB, true);
+  if (!sabBack && !gunBack && !alH) ttHand(c, P.hB, true);
   if (gun && K.rl >= 0 && (q => (q > 0.4 && q < 0.6) || (q > 0.82 && q < 1.0))(K.rl * 1.75 / TT.GUN.RELOAD)) { c.fillStyle = '#b8322a'; c.beginPath(); c.ellipse(P.hA[0], P.hA[1] - 0.3, 0.42, 0.22, 0.4, 0, 7); c.fill(); c.fillStyle = TTC.BRASS; c.beginPath(); c.arc(P.hA[0] - 0.35, P.hA[1] - 0.45, 0.2, 0, 7); c.fill(); }
   if (gun) ttHand(c, P.hA, false);
   if (window.__labelArms && K.ttTags) for (const [m, txt, col] of K.ttTags) { c.save(); c.translate(m[0], m[1]); c.fillStyle = col; c.strokeStyle = '#fff'; c.lineWidth = 0.18; c.beginPath(); c.arc(0, 0, 0.62, 0, 7); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.font = '700 0.85px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 0, 0.05); c.restore(); }
