@@ -445,6 +445,8 @@ function drawLeapPreview(c, t) {
   const g = c.createRadialGradient(tx, ty, 0, tx, ty, SR); g.addColorStop(0, `rgba(255,220,120,${0.35 + 0.1 * pul})`); g.addColorStop(0.8, 'rgba(255,200,90,.18)'); g.addColorStop(1, 'rgba(255,200,90,0)');
   c.setLineDash([]); c.save(); c.translate(tx, ty); c.scale(1, 0.5); c.translate(-tx, -ty); c.fillStyle = g; c.beginPath(); c.arc(tx, ty, SR, 0, 7); c.fill();
   c.strokeStyle = `rgba(255,236,170,${0.7 + 0.3 * pul})`; c.lineWidth = 0.7; c.beginPath(); c.arc(tx, ty, SR, 0, 7); c.stroke(); c.restore();
+  // a toss also shows how far its tentacles will reach from where it lands
+  if (TTK && kn.wpn === 3) { const RR = TT.ALIEN.R; c.save(); c.setLineDash([3, 2.5]); c.lineDashOffset = -t * 6; c.fillStyle = 'rgba(200,120,255,.08)'; c.strokeStyle = `rgba(220,170,255,${0.55 + 0.2 * pul})`; c.lineWidth = 0.7; c.beginPath(); c.ellipse(tx, ty, RR, RR * 0.8, 0, 0, 7); c.fill(); c.stroke(); c.restore(); }
   const dist = Math.hypot(tx - O.x, ty - O.y), Hh = 22 + dist * 0.15, mx = (O.x + tx) / 2, my = (O.y + ty) / 2 - Hh * 2;
   c.strokeStyle = 'rgba(255,240,190,.85)'; c.lineWidth = 0.6; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 8; c.beginPath(); c.moveTo(O.x, O.y - (alo ? 3 : 6)); c.quadraticCurveTo(mx, my, tx, ty); c.stroke();
   c.restore();
@@ -3792,7 +3794,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '2589f0';
+const KBUILD = '3189bc';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
