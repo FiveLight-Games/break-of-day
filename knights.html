@@ -2495,7 +2495,7 @@ const TT = {
   RUN: 1.0, ATK: 0.8, CLEN: 7.4,
   CANE: { T: 0.3, HIT: 0.4, R: 16, HALF: 0.8, DMG: 46, KB: 13.6 },
   SABER: { T: 0.405, HIT: 0.4, R: 25, HALF: 1.0, DMG: 200, KB: 20, LEN: 10.5, GROW: 1.418, TDMG: 120, TGAP: 0.25, DASH: { D: 30, T0: 0, T1: 0.324, R: 6 } },
-  GUN: { T: 0.238, MZ: 10.5, R: 72.9, HALF: 0.567, DMG: 108, NEAR: 700, KB: 8, AMMO: 2, RELOAD: 0.6 },
+  GUN: { T: 0.238, MZ: 10.5, R: 72.9, HALF: 0.567, DMG: 108, NEAR: 700, PB: 9.1, KB: 8, AMMO: 2, RELOAD: 0.6 },
   ALIEN: { R: 150, HALF: 0.837, SZ: 1.35, LEN: 120, N: 24, PER: 2, EVERY: 0.05, OPEN: 0.25, REACH: 0.22, LIFT: 0.5, SQZ: 0.57, BACK: 0.22, DMG: 420, TDMG: 30, LDMG: 140, TOSSP: 0.45,
     SPL: { R: 12, DMG: 90, KB: 120 }, BOWL: 60, POP: { R: 10, DMG: 80, KB: 110 }, LASH: { DMG: 25, GAP: 0.3, SLOW: 0.5 }, NEAR: { R: 37.8, HALF: 0.75, DMG: 35, KB: 150, GAP: 0.25 },
     // the attack pool: 0 toss, 1 squeeze, 2 whip, 3 eat, 4 slam (when each finishes, from the grab's start); any of them can skewer up to 2 more
@@ -2616,12 +2616,12 @@ function ttCone(R, half, dmg, kb, kill, off = 0) { const a0 = K.csA, ux = Math.c
   for (const w of walkers) { if (w.hp <= 0 || w.air || w.gr > 0) continue; const U = UK[w.k], ex = w.x - K.x, ey = (w.y - K.y) * 1.25, along = ex * ux + ey * uy;
     let dx = w.x - ox, dy = (w.y - oy) * 1.25, d = Math.hypot(dx, dy); if (off && along > -2 && along < off && Math.abs(ex * uy - ey * ux) < U.r + 4) { d = 0; dx = ux; dy = uy; } if (d > R + U.r) continue;
     const a = Math.atan2(dy, dx); if (d > U.r + 3 && Math.abs(wrapA(a - a0)) > half + Math.atan2(U.r, d)) continue;
-    n++; w.atk = -1; w.kx += Math.cos(a) * kb; w.ky += Math.sin(a) * kb * 0.6; hurt(w, typeof dmg === 'function' ? dmg(Math.max(0, d - U.r - 2)) : dmg, ww => kill(ww, Math.atan2(ww.y - K.y, ww.x - K.x))); }
+    n++; w.atk = -1; w.kx += Math.cos(a) * kb; w.ky += Math.sin(a) * kb * 0.6; hurt(w, typeof dmg === 'function' ? dmg(Math.max(0, d - U.r)) : dmg, ww => kill(ww, Math.atan2(ww.y - K.y, ww.x - K.x))); }
   return n; }
 function ttStart(IN, t) { const a = gAng(IN.aim[0], IN.aim[1]), wq = K.wpS === 2 ? K.wpn : 0;
   K.cs = 0; K.csA = a; K.csW = wq; K.csN = (K.csN || 0) + 1; if (Math.abs(Math.cos(a)) > 0.2 && !ttRiding(K)) K.f = Math.cos(a) >= 0 ? 1 : -1;
   K.csTl = cl(Math.atan2(Math.sin(a), Math.abs(Math.cos(a))), -1.2, 1.2) * 0.8; K.cs0 = t;
-  if (wq === 2) { K.ammo--; K.gunN = (K.gunN || 0) + 1; if (AUTH()) ttCone(TT.GUN.R, TT.GUN.HALF, d => lerp(TT.GUN.NEAR, TT.GUN.DMG, cl(d / TT.GUN.R, 0, 1)), TT.GUN.KB, (w, a2) => ttKillFx(w, a2, 1), ttMuzzle(K, t).off); }
+  if (wq === 2) { K.ammo--; K.gunN = (K.gunN || 0) + 1; if (AUTH()) ttCone(TT.GUN.R, TT.GUN.HALF, d => lerp(TT.GUN.NEAR, TT.GUN.DMG, cl((d - TT.GUN.PB) / (TT.GUN.R - TT.GUN.PB), 0, 1)), TT.GUN.KB, (w, a2) => ttKillFx(w, a2, 1), ttMuzzle(K, t).off); }
   if (wq === 1 && !ttRiding(K)) { K.dsP = [K.x, K.y]; K.dsA = a; }
   if (wq === 4) { const P = ttPose(K, t), ga = P.ga ?? P.aB, gd = [Math.cos(ga), Math.sin(ga)], G = TT.SAW.GUN, U = TT.SAW.MU, pt = ttW(K, [P.hB[0] + G * (gd[0] * U[0] - gd[1] * U[1]), P.hB[1] + G * (gd[1] * U[0] + gd[0] * U[1])]);
     K.sawN = (K.sawN || 0) + 1; K.sawX = r1(pt[0]); K.sawY = r1(K.y + 1); K.sawZ = r1(Math.max(0, K.sawY - pt[1])); K.sawA = Math.round(a * 100) / 100; }
@@ -3746,7 +3746,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '9cc112';
+const KBUILD = '629da9';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
