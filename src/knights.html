@@ -3024,8 +3024,8 @@ function drawTime(c, t) {
   const f = P.f, B = TT.BIKE, riding = T.ride, Fr = riding ? bikeFrame(K.x, K.y, K.hd || 0, K.bl || 0) : null;
   K.bkSpin = (K.bkSpin || 0) + dt * (K.bk === 1 ? K.bv : K.bk >= 0 ? 140 : 0) / 2.6;
   // the bike on its own (coming out of the portal, or riding off into one), drawn clipped to the portal's open side
-  // the bike's portal and the bike: whichever is further south (nearer the camera) is drawn over the other; level, the portal goes over
-  const bkFront = K.bk >= 0 && K.bky > K.bpy + 0.5; if (K.bk === 0 || K.bk === 2) { if (bkFront || riding) ttBikePortal(c, K, t); }
+    // the bike is in front only when it's on the portal's near (south) side: coming out heading south, or going in heading north; otherwise (and level) the portal covers it
+  const bkFy = Math.sin(K.hd || 0), bkFront = K.bk === 0 ? bkFy > 0.15 : K.bk === 2 ? bkFy < -0.15 : false; if (K.bk === 0 || K.bk === 2) { if (bkFront || riding) ttBikePortal(c, K, t); }
   // height of the bike off the ground: on the way in it rides out of the portal's centre and drops to the ground once clear of it;
   // on the way out it speeds up and climbs as if up a very slight slope, reaching the portal's centre as it goes in
   let bz = 0, bOut = 1; if (!riding && K.bk >= 0) { const Z0 = 4.5, fwB = gDir(K.hd || 0), fl = Math.hypot(fwB[0], fwB[1] * 1.25) || 1;
