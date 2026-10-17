@@ -2344,10 +2344,12 @@ function swingSweep(t) {
   const seg = bladeSeg(t); if (!seg) return; const prev = K.swSeg || seg; K.swSeg = seg;
   if (!K.swZ || K.swZ.id !== K.swId) K.swZ = { id: K.swId, q: [] }; K.swZ.q.push([prev[0], prev[1], seg[1], seg[0]]); K.swZ.t = 0;
   const big = K.ultPh >= 0, id = K.i * 1e6 + K.swId, ad = [Math.cos(K.aimA), Math.sin(K.aimA)];
-  for (const w of walkers) { if (w.hp <= 0 || w.swCut === id) continue; const U = UK[w.k], h = 9 * U.sc; let hit = false;
+  // the blade's turn so far (from the keys): an enemy already cut this swing can be cut again once the blade has come all the way round (the twirl passes the front twice)
+  const ang = kfnS(u, [SW_A, SW_B, SW_C][(K.swN || 0) % 3])[6];
+  for (const w of walkers) { if (w.hp <= 0 || (w.swCut === id && Math.abs(ang - w.swAng) < Math.PI * 1.5)) continue; const U = UK[w.k], h = 9 * U.sc; let hit = false;
     for (const j of [0.15, 0.5, 0.85]) { const p = [w.x, w.y - h * j]; if (inTri(p, prev[0], prev[1], seg[1]) || inTri(p, prev[0], seg[1], seg[0]) || ptSeg(p, seg[0], seg[1]) < U.r * 0.9) { hit = true; break; } }
     if (!hit) { const ex = w.x - K.x, ey = (w.y - K.y) * 1.3; hit = Math.hypot(ex, ey) < (6 + U.r) * (K.sz || 1) && ex * ad[0] + ey * ad[1] > -1; } // right at his feet on the swing's side
-    if (!hit) continue; w.swCut = id; w.atk = -1; const a = Math.atan2(w.y - K.y, w.x - K.x);
+    if (!hit) continue; w.swCut = id; w.swAng = ang; w.atk = -1; const a = Math.atan2(w.y - K.y, w.x - K.x);
     if (big) { w.kx += Math.cos(a) * 160 + ad[0] * 90; w.ky += Math.sin(a) * 90 + ad[1] * 50; hurt(w, ULT_DMG, ww => slamFx(ww, a)); }
     else { w.kx += ad[0] * 18; w.ky += ad[1] * 10; hurt(w, CLEAVE_DMG, ww => cleaveFx(ww, w.x >= K.x ? 1 : -1)); } }
 }
