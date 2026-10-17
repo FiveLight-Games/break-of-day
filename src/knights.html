@@ -205,8 +205,10 @@ const SW_A = [G_, [0.26, 1.0, -0.22, -0.95, -1.4, -2.6, -2.75, 0.1], [0.34, 1.2,
 const T2 = Math.PI * 2, SW_B = [G_, [0.26, 1.5, 0.38, 0.95, -1.2, 4.4, 2.75 - T2, 0.3], [0.34, 1.2, 0.2, 0.1, 1.8, 4.2, 0.2 - T2, 1.0], [0.41, 0.7, -0.08, -0.8, 3.7, -0.5, -0.7 - T2, 1.5], [0.56, 0.45, -0.2, -0.9, 3.4, -2.4, -1.3 - T2, 1.4], [1, 0.5, 0.08, 0, 1.6, 3.0, -1.1 - T2, 0.8]];
 // the third swing: the underhand twirl turned the other way round (clockwise): the blade drops and loops round low, comes up over his head
 // before the hit window opens (u 0.3), then the cut comes down across the front of him
-const SW_C = [G_, [0.2, 1.1, -0.1, -0.7, 0.2, 2.6, 2.9, 0.2], [0.3, 1.0, -0.12, -0.35, 0.6, -4.2, 4.75, 0.6], [0.35, 1.3, 0.25, 0.4, 3.0, -2.0, 5.95, 1.2], [0.41, 1.8, 0.55, 0.9, 3.6, 1.8, 6.75, 1.7], [0.6, 1.9, 0.62, 1.05, 2.8, 3.9, 7.15, 1.85], [1, 0.5, 0.08, 0, 1.6, 3.0, -1.1 + T2, 0.8]];
+const SW_C = [G_, [0.2, 1.1, -0.1, -0.7, 0.2, 2.6, 2.9, 0.2], [0.3, 1.0, -0.12, -0.35, 0.6, -4.2, 4.75, 0.6], [0.35, 1.3, 0.25, 0.4, 3.0, -2.0, 5.95, 1.2], [0.41, 1.8, 0.55, 0.9, 3.6, 1.8, 6.75, 1.7], [0.62, 1.95, 0.64, 1.1, 2.6, 4.0, 7.55, 1.9], [1, 0.5, 0.08, 0, 1.6, 3.0, -1.1 + T2, 0.8]];
 // light-blade size per swing: the underhand (2nd) is 35% bigger than the 1st, the chop (3rd) 35% bigger again; the giant keeps his own
+// each swing deals damage for as long as the blade is moving at speed (over 10 rad/s): worked out from its keys
+const SWWIN = [SW_A, SW_B, SW_C].map(ks => { let a = 1, b = 0, pv = kfnS(0, ks)[6]; for (let u = 0.01; u <= 1; u += 0.01) { const v = kfnS(u, ks)[6]; if (Math.abs(v - pv) / 0.01 / SWING > 10) { a = Math.min(a, u - 0.01); b = u; } pv = v; } return [a, b]; });
 const SWSZ = [1, 1.35, 1.35 * 1.35], swSz = kn => kn.swing >= 0 && !(kn.ultPh >= 0) ? SWSZ[(kn.swN || 0) % 3] : 1;
 const PRE = [0, 1.3, 0.25, -1.0, -1.6, 4.0, 2.75, 0.6];
 // ---------------- abilities: dashing slice (8-way pad) and leap slam (aimed circle) ----------------
@@ -467,7 +469,7 @@ function pose(t) {
   if (K.hold && !combat && K.st === 'return') A = [0, 0.1, 0.05, 0.2, 1.2, 0.6, -2.45, 0]; // walking back: blade resting on his shoulder
   // carrying the sword low while running hard
   if (combat && K.swing < 0 && K.spin < 0 && !K.preGlow) { const k = run; A = A.map((v, j) => j ? lerp(v, [0, 0.45, 0.3, 0.1, 1.5, 2.6, -0.65, 0][j], k) : 0); }
-  if (K.swing >= 0) A = K.swN % 3 === 2 ? kfnS(K.swing / SWING, SW_C) : kfn(K.swing / SWING, [SW_A, SW_B][K.swN % 3]);
+  if (K.swing >= 0) A = kfnS(K.swing / SWING, [SW_A, SW_B, SW_C][K.swN % 3]);
   // bridge into / out of the spin: blend from the current pose to the spin's own start pose (same pose it ends on)
   const kp = K.preGlow && K.spin < 0 ? 1 - cl(K.pre / PRE_T, 0, 1) : 0, sdir = K.spinDir || f;
   const kb = K.spin >= 0 || K.swing >= 0 || K.preGlow ? 0 : K.post > 0 ? sm(K.post / 0.25) : 0;
@@ -2338,8 +2340,9 @@ const ptSeg = (p, a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], q = cl(((
 function bladeSeg(t) { const P = pose(t); if (!P.g) return null; const ks = KS * (K.sz || 1), Lb = 10.5 * (K.ultPh >= 0 ? 1 : 1.85 * swSz(K)), d = [Math.cos(P.a), Math.sin(P.a)], zy = K.z || 0, w2 = v => [K.x + v[0] * ks, K.y - zy + v[1] * ks];
   return [w2([P.g[0] + d[0], P.g[1] + d[1]]), w2([P.g[0] + d[0] * (Lb + 2), P.g[1] + d[1] * (Lb + 2)])]; }
 function swingSweep(t) {
-  const u = K.swing / SWING; if (u < 0.3) { K.swSeg = null; return; } if (u > 0.68) return;
+  const u = K.swing / SWING, WN = SWWIN[(K.swN || 0) % 3]; if (u < WN[0]) { K.swSeg = null; return; } if (u > WN[1]) return;
   const seg = bladeSeg(t); if (!seg) return; const prev = K.swSeg || seg; K.swSeg = seg;
+  if (!K.swZ || K.swZ.id !== K.swId) K.swZ = { id: K.swId, q: [] }; K.swZ.q.push([prev[0], prev[1], seg[1], seg[0]]); K.swZ.t = 0;
   const big = K.ultPh >= 0, id = K.i * 1e6 + K.swId, ad = [Math.cos(K.aimA), Math.sin(K.aimA)];
   for (const w of walkers) { if (w.hp <= 0 || w.swCut === id) continue; const U = UK[w.k], h = 9 * U.sc; let hit = false;
     for (const j of [0.15, 0.5, 0.85]) { const p = [w.x, w.y - h * j]; if (inTri(p, prev[0], prev[1], seg[1]) || inTri(p, prev[0], seg[1], seg[0]) || ptSeg(p, seg[0], seg[1]) < U.r * 0.9) { hit = true; break; } }
@@ -2522,6 +2525,8 @@ function draw() {
       x.fillStyle = gr; x.beginPath(); x.moveTo(...A2.b); x.lineTo(...A2.e); x.lineTo(...B2.e); x.lineTo(...B2.b); x.closePath(); x.fill(); }
     x.restore(); } }
   K = KN[ME];
+  // the swing's damage area: every quad its blade has swept this swing (fades out after it ends)
+  if (ZONES && K.swZ && K.swZ.q.length) { const al = K.swing >= 0 ? 0.22 : Math.max(0, 0.22 - (K.swZ.ft = (K.swZ.ft || 0) + 1 / 60) * 0.3); if (K.swing >= 0) K.swZ.ft = 0; if (al > 0) { x.fillStyle = `rgba(255,70,50,${al})`; x.beginPath(); for (const q of K.swZ.q) { x.moveTo(q[0][0], q[0][1]); x.lineTo(q[1][0], q[1][1]); x.lineTo(q[2][0], q[2][1]); x.lineTo(q[3][0], q[3][1]); x.closePath(); } x.fill(); } }
   if (ZONES && (K.spin >= 0 || K.preGlow)) { // spin pie: 8 slices, the live one lit
     x.save(); x.translate(K.x, K.y - 7); x.scale(1, 12 / 25); const live = K.spin >= 0 && spinSwept() >= SPIN_MOM;
     for (let i = 0; i < 8; i++) { const a0 = (i - 0.5) * Math.PI / 4; const sa = Math.atan2(Math.sin(a0) * 25 / 12, Math.cos(a0)), sb = Math.atan2(Math.sin(a0 + Math.PI / 4) * 25 / 12, Math.cos(a0 + Math.PI / 4)); x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, 25, sa, sb); x.closePath(); x.fillStyle = live && i === K.sec ? 'rgba(255,60,40,.35)' : 'rgba(255,255,255,.06)'; x.fill(); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 0.3; x.stroke(); }
