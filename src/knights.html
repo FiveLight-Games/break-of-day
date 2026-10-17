@@ -2819,7 +2819,7 @@ function ttFx(dt, t) {
     // saw blades are spawned on every screen from the counter; the host does their damage
     if ((kn.trN || 0) !== S.tr) { S.tr = kn.trN || 0; TRAPS.push({ i: kn.i, sx: kn.trSX, sy: kn.trSY, sz: kn.trSZ, x: kn.trX, y: kn.trY, t: 0, rot: 0 }); snd('saw', kn.x, kn.y); }
     if (kn.hu !== S.hu) { if (kn.hu === 2) { snd('slam', kn.hux, kn.huy); FX.push({ k: 'ring', x: kn.htx, y: kn.hty, t: 0, max: 0.35, s: 0.5 }); for (let i = 0; i < 10; i++) { const b = rr(0, 6.28); dust.push({ x: kn.htx + Math.cos(b) * 2, y: kn.hty + Math.sin(b), vx: Math.cos(b) * rr(14, 36), vy: Math.sin(b) * rr(6, 16), r: rr(0.9, 1.8), t: 0, max: rr(0.3, 0.6) }); } } else if (kn.hu === 1) snd('alien', kn.x, kn.y); S.hu = kn.hu; }
-    if ((kn.sawN || 0) !== S.saw) { S.saw = kn.sawN || 0; SAWS.push({ x: kn.sawX, y: kn.sawY, z0: kn.sawZ ?? TT.SAW.Z, a: kn.sawA, d: 0, t: 0, i: kn.i, n: S.saw, fx: kn.sawX, fy: kn.sawY, hit: new Set(), out: 0, rot: 0, b: 0, tg: -1 }); snd('saw', kn.x, kn.y); }
+    if ((kn.sawN || 0) !== S.saw) { S.saw = kn.sawN || 0; SAWS.push({ x: kn.sawX, y: kn.sawY, z0: kn.sawZ ?? TT.SAW.Z, a: kn.sawA, back: (d0 => d0[1] / Math.hypot(d0[0], d0[1]) < -0.5)(gDir(kn.sawA || 0)), oy0: kn.y, d: 0, t: 0, i: kn.i, n: S.saw, fx: kn.sawX, fy: kn.sawY, hit: new Set(), out: 0, rot: 0, b: 0, tg: -1 }); snd('saw', kn.x, kn.y); }
     if (kn.bk !== S.bk) { if (kn.bk === 0 || kn.bk === 2) snd('portal', kn.x, kn.y); if (kn.bk === 1) snd('bike', kn.x, kn.y); S.bk = kn.bk; }
     // skid marks where the back wheel slides
     if (kn.bk === 1) { const hv = gDir(kn.hd), vl = Math.hypot(kn.bvx, kn.bvy) || 1, slip = Math.abs(hv[0] * kn.bvy - hv[1] * kn.bvx) / vl, rx = kn.x - hv[0] * 6, ry = kn.y - hv[1] * 6;
@@ -3067,6 +3067,12 @@ function drawTime(c, t) {
   rigOff();
 }
 // over everything: portals, the creature's tendrils, saw blades, the shotgun's flash and pellets
+// a flying saw, drawn in the depth list by where it is on the ground (so one fired up past 2/10 o'clock starts behind him)
+function drawSawP(c, s, t) { const al = s.out ? Math.max(0, 1 - s.out / 0.35) : 1, z = (s.z0 ?? TT.SAW.Z) - (s.out ? s.out * 14 : 0), sr = TT.SAW.R * lerp(0.517 * KS, 1, smt(cl(s.t / 0.3, 0, 1))), x = s.x + (s.ox || 0), y = s.y + (s.oy || 0);
+    c.fillStyle = `rgba(0,0,0,${0.25 * al})`; c.beginPath(); c.ellipse(x, y + 0.3, sr * 1.05, sr * 0.37, 0, 0, 7); c.fill();
+    // a soft trail along the path it actually took, so its turns between targets read as curves
+    const tr = s.tr || []; if (tr.length > 1) { c.save(); c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = '#dfe6ee'; for (let k = 1; k < tr.length; k++) { const q = k / (tr.length - 1); c.globalAlpha = 0.22 * al * q; c.lineWidth = TT.SAW.R * (0.35 + 0.5 * q); c.beginPath(); c.moveTo(tr[k - 1][0], tr[k - 1][1] - z); c.lineTo(tr[k][0], tr[k][1] - z); c.stroke(); } c.restore(); }
+    sawDisc(c, x, y - z, sr, s.rot, 0.42, al); sawWhirr(c, x, y - z, sr, s.rot, al); }
 function ttAir(c, t) {
   for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue;
     // the weapon portal above his head
@@ -3081,11 +3087,7 @@ function ttAir(c, t) {
       const W = q => [(m.a * q[0] + m.c * q[1] + m.e - CAM.e) / S, (m.b * q[0] + m.d * q[1] + m.f - CAM.f) / S], c0 = W(mo.mc), e0 = W([mo.mc[0] + mo.ax[0] * mo.ry, mo.mc[1] + mo.ax[1] * mo.ry]);
       kn.mouth = c0; kn.mouthAx = [e0[0] - c0[0], e0[1] - c0[1]]; kn.alM = { m: [m.a / S, m.b / S, m.c / S, m.d / S, (m.e - CAM.e) / S, (m.f - CAM.f) / S], h: [0, 0], a, open }; c.restore(); } }
     if ((kn.alV || 0) > 0.01 && kn.wpn === 3 && kn.mouth) { ttTendrils(c, kn, t); const M = kn.alM; if (M && M.open > 0.02) { c.save(); c.transform(...M.m); ttAlienArt(c, M.h, M.a, M.open, t, 'front'); c.restore(); } } }
-  for (const s of SAWS) { const al = s.out ? Math.max(0, 1 - s.out / 0.35) : 1, z = (s.z0 ?? TT.SAW.Z) - (s.out ? s.out * 14 : 0), sr = TT.SAW.R * lerp(0.517 * KS, 1, smt(cl(s.t / 0.3, 0, 1))), x = s.x + (s.ox || 0), y = s.y + (s.oy || 0);
-    c.fillStyle = `rgba(0,0,0,${0.25 * al})`; c.beginPath(); c.ellipse(x, y + 0.3, sr * 1.05, sr * 0.37, 0, 0, 7); c.fill();
-    // a soft trail along the path it actually took, so its turns between targets read as curves
-    const tr = s.tr || []; if (tr.length > 1) { c.save(); c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = '#dfe6ee'; for (let k = 1; k < tr.length; k++) { const q = k / (tr.length - 1); c.globalAlpha = 0.22 * al * q; c.lineWidth = TT.SAW.R * (0.35 + 0.5 * q); c.beginPath(); c.moveTo(tr[k - 1][0], tr[k - 1][1] - z); c.lineTo(tr[k][0], tr[k][1] - z); c.stroke(); } c.restore(); }
-    sawDisc(c, x, y - z, sr, s.rot, 0.42, al); sawWhirr(c, x, y - z, sr, s.rot, al); }
+
   // saw traps: in flight a little canister tumbling on its arc; landed, a squat tower rises, its arm swings out and whirls the blade round
   for (const q of TRAPS) { const TR = TT.TRAP; if (q.t < TR.FLY) { const u = q.t / TR.FLY, x = lerp(q.sx, q.x, u), y = lerp(q.sy, q.y, u), z = lerp(q.sz, 0, u) + 16 * Math.sin(Math.PI * u);
       c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(x, y + 0.3, 3, 1.1, 0, 0, 7); c.fill(); c.save(); c.translate(x, y - z - 2); c.rotate(q.t * 14); c.fillStyle = '#3c4048'; c.fillRect(-1.8, -2.4, 3.6, 4.8); c.fillStyle = TTC.BRASS; c.fillRect(-1.8, -0.4, 3.6, 0.8); c.restore(); continue; }
@@ -3381,7 +3383,7 @@ function draw() {
   for (const kn of LIVE()) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
   drawFxGround(x); drawGouges(x, t); ttGround(x); drawVolcFloor(x, t); drawBikePreview(x, t); drawLeapPreview(x, t); drawDashPreview(x, t); drawSweepPreview(x, t); drawCoalPreview(x);
   for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = Math.max(0, 1 - (p.t - p.rest) / PFADE); drawPartFast(x, p); } x.globalAlpha = 1;
-  const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).sort((a, b) => a[0] - b[0]);
+  const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
   for (const [, k, o] of list) {
     if (k < 2) { K = o; COL = o.col; }
     if (k === 4) { COL = o.col; drawFlail(x, o, t); K = KN[ME]; continue; }
@@ -3389,6 +3391,7 @@ function draw() {
     if (k === 0 && K.kind === 'fire') { const pt = pitOf(K); x.save(); x.translate(pt[0], pt[1]); FBX.firePit(x, 5, t, FBX.pal(5)); x.restore(); continue; }
     if (k === 0) { x.save(); x.translate(K.T.x, K.T.y); boulder(x, t, !(K.st === 'kneel' || (K.st === 'pull' && !K.hold) || (K.st === 'sheathe' && !K.hold)), K.slotGlow); if (!K.hold) { x.translate(STONE.x, STONE.y); x.scale(KS, KS); x.beginPath(); x.rect(-20, -30, 40, 30 - 4.3 / KS); x.clip(); sword(x, [0, -4.3 / KS - 1.3 - 1.1], Math.PI / 2, 10.5); } x.restore(); }
     else if (k === 1) { if (K.kind === 'fire') drawFire(x, t); else if (K.kind === 'priest') drawPriest(x, t); else if (K.kind === 'sword') drawSword(x, t); else if (K.kind === 'time') drawTime(x, t); else drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; if (K.i !== ME) x.fillText((NET && NET.names && NET.names[K.i]) || pName(K.i), K.x, K.y - (K.kind === 'priest' ? 23 + (K.z || 0) : K.kind === 'time' ? 22 + (K.z || 0) : 17 * (K.sz || 1))); } }
+    else if (k === 5) { drawSawP(x, o, t); continue; }
     else if (k === 2) walker(x, o, t);
     else { x.fillStyle = 'rgba(0,0,0,.2)'; x.beginPath(); x.ellipse(o.x, o.y + 0.5, 1.6, 0.6, 0, 0, 7); x.fill(); drawPartFast(x, o); }
   }
