@@ -2494,7 +2494,7 @@ function drawSword(c, t) {
 const TT = {
   RUN: 1.0, ATK: 0.8, CLEN: 7.4,
   CANE: { T: 0.3, HIT: 0.4, R: 16, HALF: 0.8, DMG: 46, KB: 13.6 },
-  SABER: { T: 0.3, HIT: 0.4, R: 25, HALF: 1.0, DMG: 230, KB: 20, LEN: 10.5, TDMG: 120, TGAP: 0.25, DASH: { D: 30, T0: 0, T1: 0.24, R: 6 } },
+  SABER: { T: 0.3, HIT: 0.4, R: 25, HALF: 1.0, DMG: 230, KB: 20, LEN: 10.5, TDMG: 120, TGAP: 0.25, DASH: { D: 30, T0: 0, T1: 0.24, R: 6, HOP: 4.5 } },
   GUN: { T: 0.238, R: 72.9, HALF: 0.567, DMG: 180, KB: 8, AMMO: 2, RELOAD: 0.6 },
   ALIEN: { R: 150, HALF: 0.837, SZ: 1.35, LEN: 120, N: 24, PER: 2, EVERY: 0.05, OPEN: 0.25, REACH: 0.22, LIFT: 0.5, SQZ: 0.57, BACK: 0.22, DMG: 420, TDMG: 30, LDMG: 140, TOSSP: 0.45,
     SPL: { R: 12, DMG: 90, KB: 120 }, BOWL: 60, POP: { R: 10, DMG: 80, KB: 110 }, LASH: { DMG: 25, GAP: 0.3, SLOW: 0.5 }, NEAR: { R: 37.8, HALF: 0.75, DMG: 35, KB: 150, GAP: 0.25 },
@@ -2552,7 +2552,7 @@ function ttPose(kn, t) {
   if (!atk && mv > 0 && !wq) A[8] += Math.sin(gp) * 0.35 * mv * (1 - run);
   // idle: he checks his pocket watch until a control is touched; then he snaps it shut and pockets it
   if (kn.st === 'kneel' || kn.st === 'pull') { const q = kn.st === 'pull' ? sm(cl(kn.u / 0.45, 0, 1)) : 0; watch = 1 - q; A[4] = lerp(1.3, A[4], q); A[5] = lerp(1.4, A[5], q); look = 0.35 * (1 - q); A[2] -= 0.05 * (1 - q); }
-  if (atk && (W0 === 0 || W0 === 1)) { const keys = W0 === 1 ? TTSAB[ttSabV(kn.csN || 0)] : TTCUT[(kn.csN || 0) % 2], T = W0 === 1 ? TT.SABER.T : TT.CANE.T; A = kfnS(cl(kn.cs / T, 0, 1), keys).map((x, j) => j === 1 ? x * 0.6 : j === 9 ? x * 0.6 : x); }
+  if (atk && (W0 === 0 || W0 === 1)) { const keys = W0 === 1 ? TTSAB[ttSabV(kn.csN || 0)] : TTCUT[(kn.csN || 0) % 2], T = W0 === 1 ? TT.SABER.T : TT.CANE.T; A = kfnS(cl(kn.cs / T, 0, 1), keys).map((x, j) => W0 === 1 ? (j === 2 || j === 3 ? x * 1.45 : j === 9 ? x * 1.6 : x) : j === 1 ? x * 0.6 : j === 9 ? x * 0.6 : x); }
   // weapons held (not swinging): a fencer's ready stance with the saber; guns at low ready; the creature held out on his palm
   if (!atk && wq === 1) { A[4] = -1.1; A[5] = 3.3; A[6] = 2.0; A[7] = 3.0; A[8] = -1.0; }
   let [, cr, lean, tw, ax, ay, bx, by, ca, stepA] = A;
@@ -2587,6 +2587,8 @@ function ttPose(kn, t) {
     const air = kn.bk === 0 && kn.bkT >= TT.BIKE.JUMP * 0.5 && kn.bkT < TT.BIKE.LAND ? sm(cl((kn.bkT - TT.BIKE.JUMP * 0.5) / 0.15, 0, 1)) : kn.bk === 2 && kn.bkT < TT.BIKE.HOP ? Math.sin(Math.PI * kn.bkT / TT.BIKE.HOP) : 0;
     const crouch = kn.bk === 0 && kn.bkT < TT.BIKE.JUMP ? sm(kn.bkT / TT.BIKE.JUMP) : 0; cr += crouch * 1.6;
     if (air) feet = feet.map((p, i) => [lerp(p[0], (i === front ? 1.2 : -0.6) * f, air), lerp(p[1], -2.2, air)]);
+    const bnd = atk && W0 === 1 && kn.dsP ? Math.sin(Math.PI * cl(kn.cs / TT.SABER.DASH.T1, 0, 1)) : 0;
+    if (bnd > 0) { feet = feet.map((p, i) => [lerp(p[0], (i === front ? 2.6 : -2.3) * f, bnd), lerp(p[1], i === front ? -1.6 : -0.7, bnd)]); cr -= bnd * 0.4; }
     bob = mv * (Math.abs(Math.cos(gp)) * 0.5 - 0.28); pel = [f * (stepA * 0.5 * (1 - mv) + run * 0.3), -6.0 + cr * 0.95 + bob]; hips = [[pel[0] - 1.05, pel[1]], [pel[0] + 1.05, pel[1]]]; }
   lean += run * 0.24 * (atk ? 0.4 : 1); tw += Math.sin(gp) * 0.22 * mv;
   const L = f * lean, C = add(add(pel, rot([0, -4.3], L)), [f * tw * 0.55, 0]);
@@ -2703,10 +2705,10 @@ function timeStep(dt, t) {
   else if (!(K.cs >= 0) && IN.aim && ready && !busy && !(wq === 2 && (K.rl >= 0 || K.ammo <= 0))) ttStart(IN, t);
   if (K.cs >= 0) { const W0 = K.csW, T = [TT.CANE.T, TT.SABER.T, TT.GUN.T, 1, TT.SAW.T][W0], c0 = K.cs; K.cs += dt;
     if (W0 === 0 && c0 < TT.CANE.T * TT.CANE.HIT && K.cs >= TT.CANE.T * TT.CANE.HIT && AUTH()) ttCone(TT.CANE.R, TT.CANE.HALF, TT.CANE.DMG, TT.CANE.KB, (w, a) => flingFx(w, a, 0.9));
-    if (W0 === 1 && K.dsP && !ttRiding(K)) { const D = TT.SABER.DASH, qf = c => smt(cl((c - D.T0) / (D.T1 - D.T0), 0, 1)), dq = qf(K.cs) - qf(c0), d = gDir(K.dsA), ox = K.x, oy = K.y; K.x += d[0] * D.D * dq; K.y = cl(K.y + d[1] * D.D * dq, 16, H - 4);
+    if (W0 === 1 && K.dsP && !ttRiding(K)) { const D = TT.SABER.DASH, qf = c => smt(cl((c - D.T0) / (D.T1 - D.T0), 0, 1)), dq = qf(K.cs) - qf(c0), d = gDir(K.dsA), ox = K.x, oy = K.y; K.x += d[0] * D.D * dq; K.y = cl(K.y + d[1] * D.D * dq, 16, H - 4); K.z = D.HOP * Math.sin(Math.PI * cl(K.cs / D.T1, 0, 1));
       // cut along the path: anyone he dashes past is sliced once per swing
       if (AUTH() && (K.x !== ox || K.y !== oy)) for (const w of walkers) { if (w.hp <= 0 || w.air || w.sdH === K.csN || Math.abs(w.x - K.x) > 20) continue; if (ptSeg([w.x, w.y], [ox, oy], [K.x, K.y]) > D.R + UK[w.k].r) continue; w.sdH = K.csN; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; const aa = Math.atan2(w.y - K.y, w.x - K.x); hurt(w, TT.SABER.DMG, ww => ttKillFx(ww, aa, 0)); } }
-    if (K.cs >= T) { K.cs = -1; K.dsP = null; if (W0 === 2 && K.ammo <= 0) K.rl = 0; } }
+    if (K.cs >= T) { K.cs = -1; if (K.dsP) K.z = 0; K.dsP = null; if (W0 === 2 && K.ammo <= 0) K.rl = 0; } }
   if (wq === 1 && AUTH()) ttSaberTouch(t);
   // ---- the bike ----
   if (K.bkCd > 0) K.bkCd -= dt;
@@ -3691,7 +3693,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '5b15d8';
+const KBUILD = 'b1e1d6';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
