@@ -61,7 +61,7 @@ body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !
 <div id="lobbyUI"><div class="card" id="lcard"></div></div>
 <div id="note"></div>
 
-<div id="charP" class="pnl"><div class="hrow"><b>Character</b><button data-c="knight">Knight</button><button data-c="fire">Firebreather</button><button data-c="priest">Warpriest</button><button data-c="sword">Swordmaster</button></div><div class="hrow" id="colRow"><b>Colour</b></div></div>
+<div id="charP" class="pnl"><div class="hrow"><b>Character</b><button data-c="knight">Knight</button><button data-c="fire">Firebreather</button><button data-c="priest">Warpriest</button></div><div class="hrow" id="colRow"><b>Colour</b></div></div>
 <div id="horde" class="pnl"><div class="hrow"><b>Horde</b><button data-r="off" class="on">Off</button><button data-r="few">A few</button><button data-r="dozens">Dozens</button><button data-r="hundreds">Hundreds</button><button data-r="max">MAX</button></div>
 <div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button><button data-n="50">+50</button></div><div class="hrow"><span>Test</span><button id="fillUlt">Fill ult</button><button id="clear">Clear all enemies</button></div></div>
 <div id="layEd"><b id="layTitle">Control layout</b><span id="layHint">Drag a button's middle to move it, its rim to resize it.</span><div class="lrow"><span id="layName">Move stick</span><input type="range" id="laySize" min="44" max="230" step="1"><span id="laySizeV" class="lnum"></span></div><span id="layWarn"></span><div class="lrow"><button id="layReset">Reset</button><button id="layDone" class="pri2">Done</button></div></div>
@@ -1455,7 +1455,7 @@ const CO = { FRONT: 220, SPD: 150, W: 28, SIDE: 24, L0: 40, L1: 75, DMG: 110, DP
 const coW = L => CO.W * Math.pow((CO.L0 + CO.L1) / Math.max(L, 1), 0.53);
 const PL = { T: 3, CD: 12, Z: 27, SPD: 90, R: 41.6, HALF: 0.35, OFF: [34, 16], DPS: 320, KB: 140, DOWN: 0.6 };
 let MYCOL = null; try { MYCOL = localStorage.getItem('kn_col'); } catch (e) { }
-let CHAR = 'knight'; try { const c0 = localStorage.getItem('kn_char'); CHAR = c0 === 'fire' || c0 === 'priest' || c0 === 'sword' ? c0 : 'knight'; } catch (e) { }
+let CHAR = 'knight'; try { const c0 = localStorage.getItem('kn_char'); CHAR = c0 === 'fire' || c0 === 'priest' ? c0 : 'knight'; } catch (e) { }
 const pitOf = kn => [kn.T.x + STONE.x, kn.T.y + STONE.y + 1.5];
 function makeFire(kn) { Object.assign(kn, { fpos: kn.i * 2.5, brC: FIRE.BR_T, brH: 0, vPh: -1, vBel: -1, vSh: 0, ultSeen: kn.in.ultN || 0, vtSeen: kn.in.vtN || 0, lvSeen: kn.in.lvN || 0, lvC: 0, lvQ: 0, lava: 0, lvCd: 0, lvOn: 0, landT: 0, coSeen: kn.in.coN || 0, coT: -1, coCd: 0, plT: -1, plCd: 0, tsw: -1, tswN: 0, brOn: 0, brUse: 0, brCd: 0, waves: [], kind: 'fire', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
 const mouthOf = kn => kn.mouthW || [kn.x + kn.f * 3, kn.y - 12];
@@ -2929,7 +2929,7 @@ function lobby(screen, extra) {
     <div class="gh"><b>Open games</b><span id="lDirNote">${DIR.ready ? '' : 'Looking…'}</span></div><div class="games" id="lGames"></div>
     <button class="big pri" id="lHost" ${getSB() ? '' : 'disabled'}>Host a game</button>
     <input id="lCode" maxlength="4" placeholder="CODE" autocomplete="off"><button class="big" id="lJoin" ${getSB() ? '' : 'disabled'}>Join with code</button>
-    <div class="chars"><button id="cKnight" class="${CHAR === 'knight' ? 'on' : ''}">Knight</button><button id="cFire" class="${CHAR === 'fire' ? 'on' : ''}">Firebreather</button><button id="cPriest" class="${CHAR === 'priest' ? 'on' : ''}">Warpriest</button><button id="cSword" class="${CHAR === 'sword' ? 'on' : ''}">Swordmaster</button></div><button class="big" id="lSolo">Play solo</button><button id="lLay">Control layout</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
+    <div class="chars"><button id="cKnight" class="${CHAR === 'knight' ? 'on' : ''}">Knight</button><button id="cFire" class="${CHAR === 'fire' ? 'on' : ''}">Firebreather</button><button id="cPriest" class="${CHAR === 'priest' ? 'on' : ''}">Warpriest</button></div><button class="big" id="lSolo">Play solo</button><button id="lLay">Control layout</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
   else if (screen === 'hosting') LC.innerHTML = `<h1>Knight Brawl</h1><p>Give your friends this code</p><div class="code">${NET.code}</div><p>Waiting for players (up to 4; others can join any time)…</p>
     <button class="big" id="lSoloH">Start now (they can still join)</button><button id="lCancel">Cancel</button>`;
   else if (screen === 'joining') LC.innerHTML = `<h1>Knight Brawl</h1><p>Joining <b>${NET.code}</b>…</p><button id="lCancel">Cancel</button>`;
@@ -3082,7 +3082,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '584ec5';
+const KBUILD = '2798ae';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
