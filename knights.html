@@ -8,8 +8,8 @@ canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block}
 #top{position:fixed;top:8px;left:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;pointer-events:none}
 #top>*{pointer-events:auto}
 button{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;cursor:pointer}
-#vol{margin-left:auto;display:flex;align-items:center;gap:6px;background:#1b1813e6;border:1px solid #3a332a;border-radius:10px;padding:5px 10px;color:#f0c419;font-size:16px}#vol input{width:110px;height:26px;accent-color:#f0c419;touch-action:none}
-#stats{margin-left:0;background:#000a;border-radius:10px;padding:6px 10px;font-size:13px}
+#vol{position:fixed;right:6px;top:60px;z-index:4;display:flex;flex-direction:column;align-items:center;gap:6px;background:#1b1813e6;border:1px solid #3a332a;border-radius:10px;padding:6px 4px 8px;color:#f0c419;font-size:14px;touch-action:none}#vol span{cursor:pointer;line-height:1}#vol .vtr{position:relative;width:8px;height:96px;border-radius:4px;background:#3a332a;touch-action:none}#vol .vtr::before{content:'';position:absolute;left:-10px;right:-10px;top:-8px;bottom:-8px}#vol .vfill{position:absolute;left:0;right:0;bottom:0;border-radius:4px;background:#f0c419}
+#stats{margin-left:auto;background:#000a;border-radius:10px;padding:6px 10px;font-size:13px}
 .stick{position:fixed;bottom:22px;width:140px;height:140px;border-radius:50%;background:#ffffff14;border:2px solid #ffffff33;touch-action:none}
 .stick .knob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:#ffffff40;border:2px solid #ffffff80}
 #lst{left:22px} #rst{right:10vw}
@@ -37,7 +37,7 @@ body.fire #dash{left:calc(50% - 48px);right:auto;top:auto;bottom:22px;width:96px
 #layEd{position:fixed;left:50%;top:max(58px,12vh);transform:translateX(-50%);transition:opacity .15s;z-index:15;background:#14120ff2;border:1px solid #3a332a;border-radius:14px;padding:12px 14px;display:none;flex-direction:column;gap:8px;width:min(320px,calc(100vw - 32px));font-size:13px;color:#efe7d6}#layEd b{font:700 15px system-ui;color:#f0c419}#layHint{color:#a59c88;font-size:12px}#layEd .lrow{display:flex;gap:8px;align-items:center}#layEd input{flex:1;accent-color:#f0c419}#layEd .lnum{font:600 12px ui-monospace,monospace;min-width:30px;text-align:right}#layWarn{color:#ff6a4d;font-size:12px}#layEd button{flex:1}#layEd .pri2{border-color:#f0c419;color:#f0c419}
 body.editing #bring,body.editing #lst,body.editing #rst,body.editing #dash,body.editing #aoe,body.editing #spin{cursor:move;outline:2px dashed #ffffff55;outline-offset:2px}body.editing .lsel{outline:2px dashed #f0c419 !important}@media (orientation:portrait){#layEd{top:26vh}}#bst{display:none}#lst,#rst,#dash,#aoe,#spin,#ult{transition:opacity .45s}body.volc #lst,body.volc #rst,body.volc #dash,body.volc #aoe,body.volc #spin,body.volc #ult{opacity:0 !important;pointer-events:none !important}body.volc #help{opacity:0}#vtap{position:fixed;left:0;right:0;bottom:34px;text-align:center;font:800 17px system-ui;color:#ffd9a0;text-shadow:0 0 10px #ff6a00,0 2px 3px #000;opacity:0;transition:opacity .35s;pointer-events:none;letter-spacing:.5px}#vtap.on{opacity:1;animation:vtp 1.2s ease-in-out infinite}@keyframes vtp{50%{transform:scale(1.07)}}body.dragging #layEd{opacity:.25;pointer-events:none}body.editing .lbad{box-shadow:0 0 0 3px #ff6a4d}
 #exitQ{position:fixed;inset:0;z-index:20;background:#0008;display:none;align-items:center;justify-content:center}#exitQ.open{display:flex}#exitQ>div{background:#14120f;border:1px solid #3a332a;border-radius:14px;padding:18px 20px;text-align:center}#exitQ p{margin:0 0 14px;font:700 16px system-ui;color:#efe7d6}#exitQ .row{display:flex;gap:10px;justify-content:center}#exitQ button{padding:10px 18px;font-size:14px}#exitYes{border-color:#f0c419;color:#f0c419}
-#menuBtn{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:8px 12px;font:700 13px system-ui;text-decoration:none}
+#menuBtn{background:#211d18e0;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:6px 10px;font:700 12px system-ui;text-decoration:none}
 #dash{position:fixed;right:calc(10vw + 11px);bottom:172px;width:96px;height:96px;border-radius:50%;background:#9fd3ff14;border:2px solid #9fd3ff80;touch-action:none;overflow:hidden}
 #dash .dot{position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;background:#9fd3ff80;border:2px solid #9fd3ff}
 #dash i{position:absolute;left:0;right:0;bottom:0;background:#0009;height:0}
@@ -63,10 +63,12 @@ button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none
 
 <div id="charP" class="pnl"><div class="hrow"><b>Character</b><button data-c="knight">Knight</button><button data-c="fire">Firebreather</button><button data-c="priest">Warpriest</button></div><div class="hrow" id="colRow"><b>Colour</b></div></div>
 <div id="horde" class="pnl"><div class="hrow"><b>Horde</b><button data-r="off" class="on">Off</button><button data-r="few">A few</button><button data-r="dozens">Dozens</button><button data-r="hundreds">Hundreds</button><button data-r="max">MAX</button></div>
-<div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button><button data-n="50">+50</button></div><div class="hrow"><span>Test</span><button id="fillUlt">Fill ult</button></div></div>
+<div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button><button data-n="50">+50</button></div><div class="hrow"><span>Test</span><button id="fillUlt">Fill ult</button><button id="clear">Clear all enemies</button></div></div>
 <div id="layEd"><b id="layTitle">Control layout</b><span id="layHint">Drag a button's middle to move it, its rim to resize it.</span><div class="lrow"><span id="layName">Move stick</span><input type="range" id="laySize" min="44" max="230" step="1"><span id="laySizeV" class="lnum"></span></div><span id="layWarn"></span><div class="lrow"><button id="layReset">Reset</button><button id="layDone" class="pri2">Done</button></div></div>
 <div id="exitQ"><div><p>Exit to main menu?</p><div class="row"><button id="exitNo">Stay</button><button id="exitYes">Exit</button></div></div></div>
-<div id="top"><a id="menuBtn" href="./">&#8962; Menu</a><button id="hordeBtn">&#9776; Horde</button><button id="charBtn" title="Change character">&#9823; Character</button><button id="layBtn" title="Control layout" aria-label="Control layout">&#10021;</button><button id="clear">Clear</button><button id="reset">Reset</button><button id="restartBtn" title="Back to the start screen (pick a character, host or join)">&#8635; Restart</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><button id="sound">Sound: on</button><button id="music">Music: on</button><div id="vol" title="Music volume"><span>&#9835;</span><input type="range" min="0" max="100" step="1"></div><div id="stats"></div></div>
+<div id="top"><button id="setBtn" title="Menu">&#9881; Menu</button><button id="hordeBtn">&#9776; Horde</button><button id="charBtn" title="Change character">&#9823; Character</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><button id="zones">Hit zones: off</button><div id="stats"></div></div>
+<div id="vol" title="Music volume"><span>&#9835;</span><div class="vtr"><div class="vfill"></div></div></div>
+<div id="setP" class="pnl"><div class="hrow"><b>Menu</b></div><div class="hrow"><a id="menuBtn" href="./">&#8962; Main Menu</a><button id="restartBtn" title="Back to the start screen (pick a character, host or join)">&#8635; Restart</button></div><div class="hrow"><button id="sound">Sound: on</button><button id="music">Music: on</button></div><div class="hrow"><button id="layBtn" title="Control layout">&#10021; Controls setup</button></div></div>
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
 <div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
 <div id="vtap"></div><button id="spin"><i></i><span>SPIN</span></button>
@@ -2537,10 +2539,14 @@ function frame(ms) {
 }
 const ST = document.getElementById('stats'), SPI = document.querySelector('#spin i');
 const HZE = document.getElementById('horde'), KG = HZE.querySelector('.kgrid');
-document.getElementById('hordeBtn').onclick = () => { CHP.classList.remove('open'); HZE.classList.toggle('open'); };
+const SETP = document.getElementById('setP');
+// the volume slider sits on the right edge just under the top bar (which wraps to more rows on narrow screens)
+{ const TB = document.getElementById('top'), VO = document.getElementById('vol'), place = () => { VO.style.top = (TB.getBoundingClientRect().bottom + 6) + 'px'; }; if (window.ResizeObserver) new ResizeObserver(place).observe(TB); addEventListener('resize', place); place(); }
+document.getElementById('hordeBtn').onclick = () => { CHP.classList.remove('open'); SETP.classList.remove('open'); HZE.classList.toggle('open'); };
+document.getElementById('setBtn').onclick = e => { CHP.classList.remove('open'); HZE.classList.remove('open'); SETP.classList.toggle('open'); e.currentTarget.blur(); };
 // in-game character select: the pick goes to the host as input ch + counter chN; whoever steps the knight swaps it on the spot (switchChar)
 const CHP = document.getElementById('charP'), chMark = () => { CHP.querySelectorAll('button[data-c]').forEach(b => b.classList.toggle('on', b.dataset.c === ((KN[ME] && KN[ME].kind) || 'knight'))); CHP.querySelectorAll('button[data-col]').forEach(b => b.classList.toggle('on', KN[ME] && b.dataset.col === KN[ME].col)); };
-document.getElementById('charBtn').onclick = () => { HZE.classList.remove('open'); chMark(); CHP.classList.toggle('open'); };
+document.getElementById('charBtn').onclick = () => { HZE.classList.remove('open'); SETP.classList.remove('open'); chMark(); CHP.classList.toggle('open'); };
 const CPAL = ['#3a7bd5', '#d64541', '#3fae5a', '#e0a020', '#8e44ad', '#16a6b6', '#e67e22', '#e84393', '#e8e8e8', '#6b4a2a'], COLR = document.getElementById('colRow');
 for (const c of CPAL) { const b = document.createElement('button'); b.className = 'sw'; b.dataset.col = c; b.style.background = c; b.setAttribute('aria-label', c); COLR.appendChild(b); b.onclick = () => { MYCOL = c; try { localStorage.setItem('kn_col', c); } catch (e) { } const IN = KN[ME].in; IN.col = c; KN[ME].col = c; markIn(); chMark(); b.blur(); }; }
 CHP.querySelectorAll('button[data-c]').forEach(b => b.onclick = () => { const c = b.dataset.c; CHAR = c; try { localStorage.setItem('kn_char', c); } catch (e) { } const IN = KN[ME].in; IN.ch = c; IN.chN = (IN.chN || 0) + 1; markIn(); CHP.classList.remove('open'); b.blur(); });
@@ -2564,17 +2570,16 @@ document.getElementById('fillUlt').addEventListener('pointerdown', e => { e.prev
 window.__fillUlt = () => fillUlt(ME); window.__ult = doUlt;
 const doClear = () => { if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'clear' } }); walkers = []; };
 // Restart: back to the start screen without reloading the page (works inside file previews too)
-document.getElementById('restartBtn').addEventListener('click', e => { e.currentTarget.blur(); leave(); NP = 1; ME = 0; setup(); lobby('home'); });
+document.getElementById('restartBtn').addEventListener('click', e => { e.currentTarget.blur(); SETP.classList.remove('open'); leave(); NP = 1; ME = 0; setup(); lobby('home'); });
 const doReset = () => { if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'reset' } }); setup(); if (NET) NET.resync = 1; };
 document.getElementById('clear').onclick = doClear;
 document.getElementById('reset').onclick = doReset;
-{ const SB = document.getElementById('sound'), lab = () => SB.textContent = 'Sound: ' + (AU.on ? 'on' : 'off'); lab(); SB.onclick = () => { audioInit(); setSound(!AU.on); lab(); }; const VI = document.querySelector('#vol input'), MB = document.getElementById('music'), ml = () => { MB.textContent = 'Music: ' + (AU.vol > 0 ? 'on' : 'off'); }; VI.value = AU.vol; ml();
-  VI.addEventListener('input', () => { audioInit(); setVol(+VI.value); ml(); }); VI.addEventListener('change', () => VI.blur());
-  // the page blocks touch scrolling, which also stops the native slider drag on phones, so the slider follows the finger itself
-  let vid = null; const vset = e => { const r = VI.getBoundingClientRect(), v = Math.round(cl((e.clientX - r.left) / r.width, 0, 1) * 100); if (+VI.value !== v || AU.vol !== v) { VI.value = v; setVol(v); ml(); } };
-  VI.addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); vid = e.pointerId; VI.setPointerCapture(vid); vset(e); });
-  VI.addEventListener('pointermove', e => { if (e.pointerId === vid) vset(e); }); const vend = e => { if (e.pointerId === vid) vid = null; }; VI.addEventListener('pointerup', vend); VI.addEventListener('pointercancel', vend);
-  const mute = () => { audioInit(); const v = AU.vol > 0 ? 0 : (AU.lastVol || 44); if (AU.vol > 0) AU.lastVol = AU.vol; VI.value = v; setVol(v); ml(); };
+{ const SB = document.getElementById('sound'), lab = () => SB.textContent = 'Sound: ' + (AU.on ? 'on' : 'off'); lab(); SB.onclick = () => { audioInit(); setSound(!AU.on); lab(); }; const VT = document.querySelector('#vol .vtr'), VF = document.querySelector('#vol .vfill'), MB = document.getElementById('music'), ml = () => { MB.textContent = 'Music: ' + (AU.vol > 0 ? 'on' : 'off'); VF.style.height = AU.vol + '%'; }; ml();
+  // a narrow vertical slider on the right edge: it follows the finger itself (the page blocks touch scrolling)
+  let vid = null; const vset = e => { const r = VT.getBoundingClientRect(), v = Math.round(cl((r.bottom - e.clientY) / r.height, 0, 1) * 100); if (AU.vol !== v) { audioInit(); setVol(v); } ml(); };
+  VT.addEventListener('pointerdown', e => { e.preventDefault(); audioInit(); vid = e.pointerId; VT.setPointerCapture(vid); vset(e); });
+  VT.addEventListener('pointermove', e => { if (e.pointerId === vid) vset(e); }); const vend = e => { if (e.pointerId === vid) vid = null; }; VT.addEventListener('pointerup', vend); VT.addEventListener('pointercancel', vend);
+  const mute = () => { audioInit(); const v = AU.vol > 0 ? 0 : (AU.lastVol || 44); if (AU.vol > 0) AU.lastVol = AU.vol; setVol(v); ml(); };
   document.querySelector('#vol span').onclick = mute; MB.onclick = mute; }
 { const Q = document.getElementById('exitQ'), MB2 = document.getElementById('menuBtn');
   MB2.addEventListener('click', e => { e.preventDefault(); Q.classList.add('open'); });
@@ -2874,7 +2879,7 @@ function layPanel() {
 LE.querySelector('#laySize').addEventListener('input', e => { const L = layEnsure(); L[EDIT.sel].s = +e.target.value; LE.querySelector('#laySizeV').textContent = e.target.value; applyLayout(); laySave(); });
 LE.querySelector('#layDone').onclick = () => layClose();
 LE.querySelector('#layReset').onclick = () => { if (LAY[layCh()]) delete LAY[layCh()][orient()]; laySave(); applyLayout(); layEnsure(); layPanel(); };
-document.getElementById('layBtn').onclick = () => layOpen(false);
+document.getElementById('layBtn').onclick = () => { SETP.classList.remove('open'); layOpen(false); };
 // while editing, touches on the controls move them (drag the middle) or resize them (drag the rim); the game never sees them
 let ldrag = null;
 window.addEventListener('pointerdown', e => {
@@ -2897,7 +2902,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = '56f241';
+const KBUILD = '1c3319';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
