@@ -3005,7 +3005,7 @@ const NJ = { RUN: 1.3, ATK: 0.8, T: [0.3, 0.3, 0.4], DMG: 70, KB: 22, LEN: 9.6, 
 // action keys (chest-relative, facing right, y down): [u, crouch, lean, twist, A hand x, y, B hand x, y, B blade angle, step]
 const NJG = [0, 1.6, 0.2, 0.15, 2.5, 0.7, 0.5, 2.5, 2.75, 0];
 // the ninja run: leaning hard into it, both arms swept straight back behind him, the blade trailing back and a little up
-const NJRUN = [0, 0.9, 0.78, 0.05, -1.4, 3.2, -4.0, 4.7, 3.05, 0];
+const NJRUN = [0, 0.3, 0.78, 0.05, -1.4, 3.2, -4.0, 4.7, 3.05, 0];
 const NJCUTS = [
   // 1: rising diagonal from low behind to high in front
   [NJG, [0.25, 1.4, 0.3, 0.6, 1.4, 1.8, -1.0, 3.0, 2.5, 0.3], [0.5, 0.9, -0.1, -0.6, 0.8, 1.0, 2.6, -2.2, -1.0, 1.2], [0.7, 0.8, -0.15, -0.7, 0.6, 1.2, 2.0, -2.8, -1.6, 1.3], [1, ...NJG.slice(1)]],
@@ -3142,21 +3142,26 @@ function ninjaStep(dt, t) {
 }
 // ---- art (Knight-rig units, scaled by KS) ----
 const NJC = { GI: '#2a3040', GIL: '#46506a', GID: '#181b24', WRAP: '#8f897e', WRAPD: '#615c55', SKIN: '#e2b48c', SKIND: '#b8865f', TABI: '#1b1d25', STEEL: '#e3e8ee', STEELD: '#8d97a2', GRIP: '#151515' };
-// leg: thigh in the gi, then the wrapped shin running straight on into the split-toed tabi as one shape (one fill, one outline)
-function njLeg(c, hip, knee, foot, f, far) { const C = NJC, dk = far ? -0.16 : 0; c.lineCap = 'round'; c.lineJoin = 'round';
-  c.strokeStyle = shade(C.GID, dk); c.lineWidth = 2.3; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke(); c.strokeStyle = shade(C.GI, dk); c.lineWidth = 1.9; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke();
-  const ank = [foot[0], foot[1] - 0.5], ux0 = ank[0] - knee[0], uy0 = ank[1] - knee[1], ul = Math.hypot(ux0, uy0) || 1; let nx = -uy0 / ul, ny = ux0 / ul; if (nx * f < 0) { nx = -nx; ny = -ny; }
-  const g = foot[1] + 0.3, X = v => foot[0] + f * v, kb = [knee[0] - nx * 0.8, knee[1] - ny * 0.8], kf = [knee[0] + nx * 0.8, knee[1] + ny * 0.8], ab = [ank[0] - nx * 0.68, ank[1] - ny * 0.68], af = [ank[0] + nx * 0.62, ank[1] + ny * 0.62];
-  const shape = () => { c.beginPath(); c.moveTo(...kb); c.lineTo(...ab); c.quadraticCurveTo(X(-0.78), g - 0.1, X(-0.45), g); c.lineTo(X(0.9), g); c.quadraticCurveTo(X(1.32), g, X(1.28), g - 0.38); c.quadraticCurveTo(X(1.15), ank[1] + 0.25, ...af); c.lineTo(...kf); c.closePath(); };
-  c.strokeStyle = shade(C.GID, dk - 0.2); c.lineWidth = 0.38; shape(); c.stroke(); c.fillStyle = shade(C.WRAP, dk); c.fill();
+// leg: one silhouette from the hip to the toe (one outline), so nothing shows a seam: a slightly baggy gi thigh that narrows into the
+// knee, a rounded knee on the front, the wrapped shin, then the split-toed tabi; the colour bands are painted inside it (clipped)
+function njLeg(c, hip, knee, foot, f, far) { const C = NJC, dk = far ? -0.16 : 0, ank = [foot[0], foot[1] - 0.5], g = foot[1] + 0.3, X = v => foot[0] + f * v;
+  const nrm = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1; let n = [-dy / l, dx / l]; if (n[0] * f < 0) n = [-n[0], -n[1]]; return [[dx / l, dy / l], n]; };
+  const [u1, n1] = nrm(hip, knee), [u2, n2] = nrm(knee, ank); let nk = [n1[0] + n2[0], n1[1] + n2[1]]; const nl = Math.hypot(...nk) || 1; nk = [nk[0] / nl, nk[1] / nl];
+  const P = (o, n, w, u = [0, 0], a = 0) => [o[0] + n[0] * w + u[0] * a, o[1] + n[1] * w + u[1] * a];
+  const shape = () => { c.beginPath(); c.moveTo(...P(hip, n1, -1.25, u1, -0.4)); c.quadraticCurveTo(...P(L2(hip, knee, 0.6), n1, -1.1), ...P(knee, nk, -0.78)); c.quadraticCurveTo(...P(L2(knee, ank, 0.35), n2, -0.74), ...P(ank, n2, -0.66));
+    c.quadraticCurveTo(X(-0.8), g - 0.1, X(-0.45), g); c.lineTo(X(0.9), g); c.quadraticCurveTo(X(1.34), g, X(1.3), g - 0.38); c.quadraticCurveTo(X(1.15), ank[1] + 0.25, ...P(ank, n2, 0.6));
+    c.lineTo(...P(knee, n2, 0.8, u2, 0.6)); c.quadraticCurveTo(...P(knee, nk, 1.12), ...P(knee, n1, 1.0, u1, -0.6)); c.lineTo(...P(hip, n1, 1.25, u1, -0.4)); c.closePath(); };
+  c.lineJoin = 'round'; c.lineCap = 'round'; shape(); c.fillStyle = shade(C.GI, dk); c.fill();
   c.save(); shape(); c.clip();
-  // wrap bands across the shin
-  c.strokeStyle = shade(C.WRAPD, dk); c.lineWidth = 0.16; for (let q = 0.18; q < 0.95; q += 0.17) { const p = L2(knee, ank, q); c.beginPath(); c.moveTo(p[0] - nx * 1.2 - ny * 0.25, p[1] - ny * 1.2 + nx * 0.25); c.lineTo(p[0] + nx * 1.2 + ny * 0.25, p[1] + ny * 1.2 - nx * 0.25); c.stroke(); }
-  // the tabi below the ankle
-  c.fillStyle = shade(C.TABI, dk); c.beginPath(); c.moveTo(ab[0] - nx * 2, ab[1] - ny * 2 - 0.1); c.lineTo(af[0] + nx * 2, af[1] + ny * 2 - 0.1); c.lineTo(X(3), g + 2); c.lineTo(X(-3), g + 2); c.closePath(); c.fill();
-  c.restore();
-  c.strokeStyle = shade(C.GIL, dk); c.lineWidth = 0.14; c.beginPath(); c.moveTo(X(0.95), ank[1] + 0.2); c.lineTo(X(1.0), g - 0.05); c.stroke();
-  c.fillStyle = shade(C.GI, dk); c.beginPath(); c.arc(knee[0], knee[1], 0.95, 0, 7); c.fill(); }
+  // a lit fold down the front of the thigh
+  c.strokeStyle = shade(C.GIL, dk - 0.05); c.lineWidth = 0.22; c.beginPath(); c.moveTo(...P(hip, n1, 0.55, u1, 0.2)); c.quadraticCurveTo(...P(L2(hip, knee, 0.55), n1, 0.75), ...P(knee, nk, 0.7, u1, -0.5)); c.stroke();
+  // the wraps: from just below the knee to the ankle, banded
+  const k0 = P(knee, u2, 0.7), big = 3; c.fillStyle = shade(C.WRAP, dk); c.beginPath(); c.moveTo(k0[0] + n2[0] * big, k0[1] + n2[1] * big); c.lineTo(k0[0] - n2[0] * big, k0[1] - n2[1] * big); c.lineTo(X(-3), g + 3); c.lineTo(X(3), g + 3); c.closePath(); c.fill();
+  c.strokeStyle = shade(C.WRAPD, dk); c.lineWidth = 0.15; for (let q = 0.12; q < 0.95; q += 0.16) { const p0 = L2(k0, ank, q); c.beginPath(); c.moveTo(p0[0] - n2[0] * 1.2 - u2[0] * 0.18, p0[1] - n2[1] * 1.2 - u2[1] * 0.18); c.lineTo(p0[0] + n2[0] * 1.2 + u2[0] * 0.18, p0[1] + n2[1] * 1.2 + u2[1] * 0.18); c.stroke(); }
+  // the tabi below the ankle, its split toe
+  c.fillStyle = shade(C.TABI, dk); c.beginPath(); c.moveTo(...P(ank, n2, 2, u2, -0.25)); c.lineTo(...P(ank, n2, -2, u2, -0.25)); c.lineTo(X(-3), g + 3); c.lineTo(X(3), g + 3); c.closePath(); c.fill();
+  c.strokeStyle = shade(C.GIL, dk - 0.1); c.lineWidth = 0.14; c.beginPath(); c.moveTo(X(0.95), ank[1] + 0.35); c.lineTo(X(1.0), g - 0.05); c.stroke();
+  c.restore(); shape(); c.strokeStyle = shade(C.GID, dk - 0.2); c.lineWidth = 0.38; c.stroke(); }
 // the elbow always folds the natural way: down and back (away from where he faces), never bent backwards; it only swaps sides once
 // the other side is clearly better and then swings across (eased bend sign + eased upper-arm angle, like the Warpriest's), so it never jumps
 function njElbow(s, h, f, st, dt) { const e1 = ik(s, h, 2.5, 2.5, 1), e2 = ik(s, h, 2.5, 2.5, -1), sc = e => (e[1] - s[1]) - (e[0] - s[0]) * f * 0.8, want = sc(e1) >= sc(e2) ? 1 : -1;
@@ -3186,8 +3191,12 @@ function njBack(c, P, f, t) { const C = NJC, fl = cl((K.spd || 0) / RUN, 0, 1), 
   c.strokeStyle = COL; c.lineWidth = 0.42; const k = [h[0] - f * 1.25, h[1] - 0.7];
   for (const [dx, dy, ph] of [[2.6, 0.9, 0], [2.1, 1.8, 1.3]]) { c.beginPath(); c.moveTo(...k); c.quadraticCurveTo(k[0] - f * (dx * 0.6 + fl * 1.2), k[1] + dy * 0.3 + Math.sin(t * 7 + ph) * 0.2, k[0] - f * (dx + fl * 3) + Math.sin(t * 5 + ph) * 0.3, k[1] + dy - fl * 0.8 + Math.sin(t * 6 + ph) * 0.25); c.stroke(); } }
 function njTorso(c, P, f, t) { const C = NJC, hip = P.pel, [Ls, Rs] = P.sh, mx = (Ls[0] + Rs[0]) / 2, my = (Ls[1] + Rs[1]) / 2, hw = 1.65 * (1 - 0.1 * Math.abs(P.tw)), hl = [hip[0] - hw, hip[1]], hr = [hip[0] + hw, hip[1]];
-  // short skirt flaps over the hips, then the jacket
-  c.fillStyle = C.GID; c.beginPath(); c.moveTo(hl[0] - 0.2, hl[1] - 0.4); c.lineTo(hr[0] + 0.2, hr[1] - 0.4); c.lineTo(hr[0] + 0.7, hr[1] + 1.6); c.lineTo(hip[0] + 0.2, hip[1] + 1.2); c.lineTo(hl[0] - 0.7, hl[1] + 1.6); c.closePath(); c.fill();
+  // the jacket's skirts: a flap over each thigh, following it down a little way and swinging with it, rounded at the hem
+  for (let i = 0; i < 2; i++) { const h0 = P.hips[i], k0 = P.knees[i], d = [k0[0] - h0[0], k0[1] - h0[1]], dl = Math.hypot(...d) || 1, u = [d[0] / dl, d[1] / dl], n = [-u[1], u[0]], e = L2(h0, k0, 0.42), sd = i ? 1 : -1, w0 = [hip[0] + sd * (hw + 0.15), hip[1] - 0.3], w1 = [hip[0] + sd * 0.1, hip[1] - 0.3];
+    const a1 = [e[0] + n[0] * 1.45, e[1] + n[1] * 1.45], a2 = [e[0] - n[0] * 1.45, e[1] - n[1] * 1.45], ends = (a1[0] - e[0]) * sd > 0 ? [a1, a2] : [a2, a1];
+    c.fillStyle = i === (f > 0 ? 1 : 0) ? C.GI : shade(C.GI, -0.12); c.strokeStyle = C.GID; c.lineWidth = 0.32; c.lineJoin = 'round';
+    c.beginPath(); c.moveTo(...w0); c.lineTo(...ends[0]); c.quadraticCurveTo(e[0] + u[0] * 0.7, e[1] + u[1] * 0.7, ...ends[1]); c.lineTo(...w1); c.closePath(); c.fill(); c.stroke();
+    c.strokeStyle = C.GIL; c.lineWidth = 0.16; c.beginPath(); c.moveTo(...L2(w0, w1, 0.5)); c.lineTo(...L2(ends[0], ends[1], 0.5)); c.stroke(); }
   c.fillStyle = C.GI; c.beginPath(); c.moveTo(hl[0], hl[1]); c.lineTo(Ls[0] + 0.15, Ls[1] + 0.3); c.quadraticCurveTo(mx, my - 0.5, Rs[0] - 0.15, Rs[1] + 0.3); c.lineTo(hr[0], hr[1]); c.closePath(); c.fill();
   // crossed collar
   { const a = [mx - 0.95, my - 0.15], b = [mx + 0.95, my - 0.15], q = [lerp(mx, hip[0], 0.62) + f * 0.25, lerp(my, hip[1], 0.62)];
@@ -3198,8 +3207,14 @@ function njTorso(c, P, f, t) { const C = NJC, hip = P.pel, [Ls, Rs] = P.sh, mx =
   // side away from the light
   c.fillStyle = 'rgba(0,0,0,.18)'; const sx = f > 0 ? [Ls, hl] : [Rs, hr]; c.beginPath(); c.moveTo(sx[0][0] + f * 0.4, sx[0][1] + 0.6); c.lineTo(lerp(sx[0][0], mx, 0.4), my + 0.4); c.lineTo(lerp(sx[1][0], hip[0], 0.4), hip[1] - 0.3); c.lineTo(sx[1][0] + f * 0.3, sx[1][1] - 0.3); c.closePath(); c.fill();
   // sash in his colour, its knot tails flying behind
-  const wy = lerp(my, hip[1], 0.82), wx = lerp(mx, hip[0], 0.82), fl = cl((K.spd || 0) / RUN, 0, 1); c.fillStyle = COL; c.beginPath(); c.moveTo(wx - hw - 0.1, wy - 0.4); c.lineTo(wx + hw + 0.1, wy - 0.4); c.lineTo(wx + hw, wy + 0.4); c.lineTo(wx - hw, wy + 0.4); c.closePath(); c.fill();
-  c.strokeStyle = shade(COL, -0.2); c.lineWidth = 0.4; c.lineCap = 'round'; c.beginPath(); c.moveTo(wx - f * 1.2, wy); c.quadraticCurveTo(wx - f * (1.8 + fl), wy + 1.0, wx - f * (1.8 + fl * 2.4) + Math.sin(t * 6) * 0.2, wy + 2.0 - fl * 0.8); c.stroke(); }
+  // the sash wraps round his waist (its edges curve with the body), knotted on the facing side, the long tail flying out behind
+  const wy = lerp(my, hip[1], 0.82), wx = lerp(mx, hip[0], 0.82), fl = cl((K.spd || 0) / RUN, 0, 1), sl = (P.lean || 0) * f * 0.25;
+  c.fillStyle = COL; c.beginPath(); c.moveTo(wx - hw - 0.12, wy - 0.42 - sl); c.quadraticCurveTo(wx, wy - 0.18, wx + hw + 0.12, wy - 0.42 + sl); c.lineTo(wx + hw + 0.05, wy + 0.38 + sl); c.quadraticCurveTo(wx, wy + 0.66, wx - hw - 0.05, wy + 0.38 - sl); c.closePath(); c.fill();
+  c.strokeStyle = shade(COL, 0.25); c.lineWidth = 0.14; c.beginPath(); c.moveTo(wx - hw, wy - 0.28 - sl); c.quadraticCurveTo(wx, wy - 0.04, wx + hw, wy - 0.28 + sl); c.stroke();
+  c.fillStyle = shade(COL, -0.18); c.beginPath(); c.moveTo(wx - hw - 0.05, wy + 0.38 - sl); c.quadraticCurveTo(wx, wy + 0.66, wx + hw + 0.05, wy + 0.38 + sl); c.lineTo(wx + hw, wy + 0.5 + sl); c.quadraticCurveTo(wx, wy + 0.78, wx - hw, wy + 0.5 - sl); c.closePath(); c.fill();
+  c.strokeStyle = shade(COL, -0.2); c.lineWidth = 0.4; c.lineCap = 'round'; c.beginPath(); c.moveTo(wx - f * 1.2, wy + 0.1); c.quadraticCurveTo(wx - f * (1.8 + fl), wy + 1.0, wx - f * (1.8 + fl * 2.4) + Math.sin(t * 6) * 0.2, wy + 2.0 - fl * 0.8); c.stroke();
+  const kx = wx + f * 0.75, ky = wy + 0.18; c.lineWidth = 0.34; c.beginPath(); c.moveTo(kx, ky); c.quadraticCurveTo(kx + f * 0.35, ky + 0.7, kx + f * 0.15 + Math.sin(t * 5) * 0.08, ky + 1.35); c.moveTo(kx, ky); c.quadraticCurveTo(kx - f * 0.15, ky + 0.8, kx - f * 0.35 + Math.sin(t * 5 + 1) * 0.08, ky + 1.2); c.stroke();
+  c.fillStyle = shade(COL, -0.05); c.beginPath(); c.ellipse(kx, ky, 0.36, 0.3, 0, 0, 7); c.fill(); }
 function njHead(c, P, f, t) { const C = NJC, [hx, hy] = P.head, blink = (t % 5.1) < 0.12; c.save(); c.translate(hx, hy); c.rotate(f * (P.lean || 0) * 0.3);
   // hood: a dark egg with a lit crown, the chin of the mask pushed a little forward on the facing side
   c.fillStyle = C.GI; c.beginPath(); c.ellipse(0, 0, 1.45, 1.66, 0, 0, 7); c.fill(); c.beginPath(); c.moveTo(f * 0.9, 0.2); c.quadraticCurveTo(f * 1.62, 0.25, f * 1.45, 0.9); c.quadraticCurveTo(f * 1.1, 1.4, f * 0.3, 1.55); c.fill();
@@ -5584,7 +5599,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '37613e';
+const KBUILD = '998fdd';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
