@@ -3262,6 +3262,13 @@ function njTorso(c, P, f, t) { const C = NJC, hip = P.pel, [Ls, Rs] = P.sh, mx =
   c.strokeStyle = shade(COL, -0.2); c.lineWidth = 0.4; c.lineCap = 'round'; c.beginPath(); c.moveTo(wx - f * 1.2, wy + 0.1); c.quadraticCurveTo(wx - f * (1.8 + fl), wy + 1.0, wx - f * (1.8 + fl * 2.4) + Math.sin(t * 6) * 0.2, wy + 2.0 - fl * 0.8); c.stroke();
   const kx = wx + f * 0.75, ky = wy + 0.18; c.lineWidth = 0.34; c.beginPath(); c.moveTo(kx, ky); c.quadraticCurveTo(kx + f * 0.35, ky + 0.7, kx + f * 0.15 + Math.sin(t * 5) * 0.08, ky + 1.35); c.moveTo(kx, ky); c.quadraticCurveTo(kx - f * 0.15, ky + 0.8, kx - f * 0.35 + Math.sin(t * 5 + 1) * 0.08, ky + 1.2); c.stroke();
   c.fillStyle = shade(COL, -0.05); c.beginPath(); c.ellipse(kx, ky, 0.36, 0.3, 0, 0, 7); c.fill(); }
+// three kunai hanging from the sash on his near hip, ring pommel up, swinging back with his speed and a little with his step
+function njKunai(c, P, f, t) { const C = NJC, [Ls, Rs] = P.sh, mx = (Ls[0] + Rs[0]) / 2, my = (Ls[1] + Rs[1]) / 2, wy = lerp(my, P.pel[1], 0.82) + 0.45, wx = lerp(mx, P.pel[0], 0.82), fl = cl((K.spd || 0) / RUN, 0, 1);
+  for (let i = 0; i < 3; i++) { const ax = wx - f * (0.5 + i * 0.5), ay = wy + i * 0.04, a = Math.PI / 2 + f * (0.15 + i * 0.07 + fl * 0.75) + Math.sin(t * 4.5 + i * 1.7) * (0.06 + fl * 0.1), d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]], Z = 1.35, P2 = (u, v) => [ax + (d[0] * u + n[0] * v) * Z, ay + (d[1] * u + n[1] * v) * Z];
+    c.lineCap = 'round'; c.strokeStyle = C.GRIP; c.lineWidth = 0.13; c.beginPath(); c.arc(...P2(0.1, 0), 0.23, 0, 7); c.stroke();
+    c.strokeStyle = shade(C.WRAPD, -0.1); c.lineWidth = 0.32; c.beginPath(); c.moveTo(...P2(0.27, 0)); c.lineTo(...P2(0.95, 0)); c.stroke();
+    c.fillStyle = C.STEELD; c.beginPath(); c.moveTo(...P2(0.95, 0)); c.lineTo(...P2(1.3, 0.24)); c.lineTo(...P2(2.05, 0)); c.lineTo(...P2(1.3, -0.24)); c.closePath(); c.fill();
+    if (!NJOLM) { c.strokeStyle = C.STEEL; c.lineWidth = 0.06; c.beginPath(); c.moveTo(...P2(1.0, 0)); c.lineTo(...P2(1.95, 0)); c.stroke(); } } }
 function njHead(c, P, f, t) { const C = NJC, [hx, hy] = P.head, blink = (t % 5.1) < 0.12; c.save(); c.translate(hx, hy); c.rotate(f * (P.lean || 0) * 0.3);
   // hood: a dark egg with a lit crown, the chin of the mask pushed a little forward on the facing side
   c.fillStyle = C.GI; c.beginPath(); c.ellipse(0, 0, 1.45, 1.66, 0, 0, 7); c.fill(); c.beginPath(); c.moveTo(f * 0.9, 0.2); c.quadraticCurveTo(f * 1.62, 0.25, f * 1.45, 0.9); c.quadraticCurveTo(f * 1.1, 1.4, f * 0.3, 1.55); c.fill();
@@ -3318,13 +3325,13 @@ function drawNinjaBody(c, t, ghost) {
   const fr = njFlip(K) + (K.gh ? K.gh.rot : 0); if (K.gh) { const m = c.getTransform(), px = P.pel[0], py = P.pel[1] - 2; K.gh.pv = [m.a * px + m.c * py + m.e, m.b * px + m.d * py + m.f]; } if (fr) { const cx = P.pel[0], cy = P.pel[1] - 2; c.translate(cx, cy); c.rotate(fr); c.translate(-cx, -cy); }
   // ---- depth, the Knight's A/B method: A (facing-side shoulder, the free hand) behind the body when it drops low; B (the ninjato) last ----
   const far = f > 0 ? 0 : 1, near = 1 - far, sA = P.sh[near], sB = P.sh[far];
-  const rB = [(P.hB[0] - P.C[0]) * f, P.hB[1] - P.C[1]], backB = Math.cos(P.aB) * f < -0.3 && rB[0] < 0.5, aBehind = (P.hA[1] - P.C[1]) > 3.6 || (P.hA[0] - P.C[0]) * f < -1.2;
+  const rB = [(P.hB[0] - P.C[0]) * f, P.hB[1] - P.C[1]], backB = Math.cos(P.aB) * f < -0.3 && rB[0] < -0.6, aBehind = (P.hA[1] - P.C[1]) > 3.6 || (P.hA[0] - P.C[0]) * f < -1.2;
   K.njEA = K.njEA || {}; K.njEB = K.njEB || {}; const armA = () => njArm(c, sA, P.hA, f, false, ghost ? null : K.njEA, dt), armB = () => njArm(c, sB, P.hB, f, true, ghost ? null : K.njEB, dt), blade = () => njBlade(c, P.hB, P.aB, true);
   njBack(c, P, f, t);
   if (backB) blade();
   // back limbs behind front limbs: back leg, back (A) arm, front leg, then the body over them
   njLeg(c, P.hips[near], P.knees[near], P.feet[near], f, true); armA(); njLeg(c, P.hips[far], P.knees[far], P.feet[far], f, false);
-  njTorso(c, P, f, t);
+  njTorso(c, P, f, t); njKunai(c, P, f, t);
   njHead(c, P, f, t);
   armB(); if (!backB) blade(); c.fillStyle = NJC.TABI; c.beginPath(); c.arc(P.hB[0], P.hB[1], 0.6, 0, 7); c.fill();
   // test hook: where each part sits on the canvas (window.__njLab)
