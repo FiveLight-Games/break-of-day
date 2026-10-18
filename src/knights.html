@@ -1053,8 +1053,9 @@ function drawPart(c, p) {
 // ---------- sound: all synthesized (Web Audio), throttled per kind so a horde doesn't turn into noise ----------
 const AU = { ctx: null, on: true, mus: true, last: {} };
 // the helicopter recording (src/assets/heli.mp3, inlined by build.py), decoded once the audio context exists
-// three helicopter recordings (src/assets/heli.mp3, heli2.mp3, heli3.mp3, inlined by build.py), decoded once the audio context exists; each strafe picks one at random
-const HELI_MP3 = ['__HELI_MP3__', '__HELI2_MP3__', '__HELI3_MP3__']; let HELI_BUF = null, HELI_DEC = false;
+// ten helicopter recordings (src/assets/heli1.mp3 .. heli10.mp3, inlined by build.py), decoded once the audio context exists; each strafe picks one at random,
+// never one of the last two played (HELI_LAST)
+const HELI_MP3 = ['__HELI_LIST__']; let HELI_BUF = null, HELI_DEC = false, HELI_LAST = [];
 function heliBuf() { if (HELI_BUF || HELI_DEC || !AU.ctx || HELI_MP3[0].startsWith('__')) return HELI_BUF; HELI_DEC = true; const out = [];
   HELI_MP3.forEach((d, k) => { try { const b = atob(d), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); AU.ctx.decodeAudioData(u.buffer).then(x => { out[k] = x; if (out.filter(Boolean).length === HELI_MP3.length) HELI_BUF = out; }).catch(() => { }); } catch (e) { } }); return HELI_BUF; }
 try { AU.on = localStorage.getItem('kn_sfx') !== '0'; const sv = localStorage.getItem('kn_vol'); if (sv !== null) AU.vol = +sv; } catch (e) { }
@@ -3565,7 +3566,7 @@ function heliFx(kn) { const S = heliShots(kn); if (kn.hlFN !== kn.hlN) { kn.hlFN
 // the recording plays from when the helicopter comes out of the first portal, fading in over 0.3s, and fades out as it goes into the second
 function heliAudio(kn) { const bufs = heliBuf(); if (!bufs || !AU.ctx || AU.ctx.state !== 'running') return; const H = TT.HELI, c = AU.ctx, now = c.currentTime;
   if (kn.hlAu && kn.hlAu.n !== kn.hlN) kn.hlAu = null; if (kn.hlAu || kn.hl < H.OPEN || kn.hl > heliGone(kn)) return;
-  const src = c.createBufferSource(), g = c.createGain(), vol = 0.54, left = heliGone(kn) - kn.hl, tOut = now + Math.max(0.05, left - 0.25), tEnd = now + left + 0.2; const buf = bufs[Math.floor(Math.random() * bufs.length)]; src.buffer = buf; src.playbackRate.value = speed < 1 ? 0.62 : 1;
+  const src = c.createBufferSource(), g = c.createGain(), vol = 0.54, left = heliGone(kn) - kn.hl, tOut = now + Math.max(0.05, left - 0.25), tEnd = now + left + 0.2; const pool = bufs.map((b, i) => i).filter(i => !HELI_LAST.includes(i)), pick = pool[Math.floor(Math.random() * pool.length)], buf = bufs[pick]; HELI_LAST = [pick, ...HELI_LAST].slice(0, 2); src.buffer = buf; src.playbackRate.value = speed < 1 ? 0.62 : 1;
   g.gain.setValueAtTime(0.0001, now); g.gain.linearRampToValueAtTime(vol, now + Math.min(0.3, left * 0.4)); g.gain.setValueAtTime(vol, Math.max(now + Math.min(0.3, left * 0.4), tOut)); g.gain.linearRampToValueAtTime(0.0001, tEnd);
   src.connect(g); g.connect(AU.out); src.start(now, Math.random() * Math.max(0, buf.duration - (left + 0.3))); src.stop(tEnd + 0.05); kn.hlAu = { n: kn.hlN, src }; }
 // ---- the stampede: the herd is worked out from the synced call (dnx/dny portal, dnf direction, dnN) the same way on every screen ----
