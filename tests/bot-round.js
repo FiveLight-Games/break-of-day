@@ -5,8 +5,8 @@ const { chromium } = require('playwright');
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 412, height: 760 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto('http://localhost:8765/knights.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(400);
-  await p.click('#lChars'); await p.click(`[data-ch=${kind}]`); await p.click('#lBack'); await p.click('#lSolo'); await p.waitForTimeout(400);
-  await p.evaluate(RATE => { window.__stop(); window.__horde(RATE); }, process.argv[4] || 'hundreds');
+  await p.click('#lChars'); await p.click(kind === 'time' ? '#lWatch' : `[data-ch=${kind}]`); await p.click('#lBack'); await p.click('#lSolo'); await p.waitForTimeout(400);
+  await p.evaluate(([RATE, M]) => { window.__ULTM = M; window.__stop(); window.__horde(RATE); }, [process.argv[4] || 'hundreds', +process.argv[5] || 1]);
   await p.evaluate(() => {
     const S = window.__BS = { uses: {}, t: 0 }; const use = k => S.uses[k] = (S.uses[k] || 0) + 1;
     const near = (K, W, R) => W.filter(w => w.hp > 0 && Math.hypot(w.x - K.x, (w.y - K.y) * 1.3) < R);
@@ -21,7 +21,7 @@ const { chromium } = require('playwright');
       const dir = (x, y) => { const dx = x - K.x, dy = y - K.y, l = Math.hypot(dx, dy) || 1; return [dx / l, dy / l]; };
       if (K.kind === 'priest') {
         const hn = (R, x, y) => W.filter(w => w.hp > 0 && Math.hypot(w.x - x, (w.y - y) * 1.25) < R).length;
-        if (!(K.pPh >= 0) && K.kills - (K.ultBase || 0) >= 450 && !K.ab) { IN.ultN = (IN.ultN || 0) + 1; use('penance'); }
+        if (!(K.pPh >= 0) && K.kills - (K.ultBase || 0) >= window.__ultNeed(K.kind) && !K.ab) { IN.ultN = (IN.ultN || 0) + 1; use('penance'); }
         IN.pn = null;
         if (K.pPh >= 0) { const c = dense({ x: K.hx, y: K.hy }, W, 30, 160); if (c) { const dx = c.p[0] - K.hx, dy = c.p[1] - K.hy, d = Math.hypot(dx, dy) || 1; IN.pn = [dx / d, dy / d]; const sp = Math.hypot(K.hvx, K.hvy); if (d < 14 && sp > 50 && !(K.smCd > 0)) { IN.smN = (IN.smN || 0) + 1; use('smash'); } } return; }
         if (!(K.hoT > 0) && !(K.hoCd > 0) && hn(18, K.hx, K.hy) >= 6) { IN.lvN = (IN.lvN || 0) + 1; use('holy'); }
@@ -30,8 +30,26 @@ const { chromium } = require('playwright');
         else if (c && c.n >= 6 && !(K.slCd > 0) && !K.ab && !(K.hOut > 0)) { let v = [(c.p[0] - K.x) / 80, (c.p[1] - K.y) / 64]; const m = Math.hypot(...v); if (m > 1) v = v.map(q => q / m); window.__leap(v); use('slam'); }
         else if (!(K.swCd > 0) && !K.ab && near(K, W, 42).length >= 4) { const c2 = dense(K, W, 16, 42); if (c2) { window.__dash(dir(c2.p[0], c2.p[1])); use('sweep'); } }
         if (nd < 26) IN.aim = dir(nn.x, nn.y); if (nd > 18) IN.mv = dir(nn.x, nn.y);
+      } else if (K.kind === 'time') {
+        const T = window.__TT; IN.hdN = IN.hdN || 0;
+        // ult: the ride; while driving, steer at the densest crowd
+        if (!(K.cr >= 0) && !K.ulOn && K.kills - (K.ultBase || 0) >= window.__ultNeed(K.kind) && K.bk !== 0 && K.bk !== 2) { IN.ultN = (IN.ultN || 0) + 1; use('ride'); }
+        if (K.cr === 1 || K.cr === 2) { const c = dense(K, W, 30, 220); IN.mv = c ? dir(c.p[0], c.p[1]) : dir(nn.x, nn.y); return; }
+        // a weapon whenever the portal's ready
+        if (K.wpS === 0 && !(K.wpCd > 0) && !(K.cr >= 0)) { IN.lvN = (IN.lvN || 0) + 1; use('portal'); }
+        const wq = K.wpS === 2 ? K.wpn : 0, lv = (c, R) => { let v = [(c[0] - K.x) / R, (c[1] - K.y) / (R * 0.8)]; const m = Math.hypot(...v); return m > 1 ? v.map(q => q / m) : v; };
+        let range = 16, aimAt = [nn.x, nn.y];
+        if (wq === 1) { range = 26; const c = dense(K, W, 34, 130); if (c && c.n >= 8 && !(K.sc >= 1) && !(K.scCd > 0)) { window.__leap(lv(c.p, T.SHIP.RANGE)); use('ship'); } }
+        else if (wq === 2) { range = 45; const c = dense(K, W, 30, 200); if (c && c.n >= 8 && !(K.hl >= 0) && !(K.hlCd > 0)) { const u = dir(c.p[0], c.p[1]); IN.hdN++; IN.hdP = [K.x + u[0] * 20, K.y + u[1] * 20, K.x + u[0] * 200, K.y + u[1] * 200]; use('strafe'); } }
+        else if (wq === 3) { range = 110; const c = dense(K, W, 40, 160); if (c) aimAt = c.p; if (c && c.n >= 8 && K.hu !== 1 && !(K.huCd > 0) && !(K.hu === 2 && Math.hypot(K.hux - c.p[0], K.huy - c.p[1]) < 60)) { const b0 = K.hu === 2 ? { x: K.hux, y: K.huy } : K; let v = [(c.p[0] - b0.x) / T.HURL.RANGE, (c.p[1] - b0.y) / (T.HURL.RANGE * 0.8)]; const m = Math.hypot(...v); if (m > 1) v = v.map(q => q / m); window.__leap(v); use('toss'); } }
+        else if (wq === 4) { range = 160; const c = dense(K, W, 28, 100); if (c && c.n >= 6 && (K.trQ ?? 2) > 0 && !(K.trG > 0)) { window.__leap(lv(c.p, T.TRAP.RANGE)); use('trap'); } }
+        // bike into a big crowd, steering through the thick of it
+        if (K.bk === 1) { const c = dense(K, W, 30, 160); IN.mv = c ? dir(c.p[0], c.p[1]) : dir(nn.x, nn.y); if (nd < range) IN.aim = dir(aimAt[0], aimAt[1]); return; }
+        if (K.bk < 0 && !(K.bkCd > 0) && near(K, W, 70).length >= 12) { window.__dash(dir(nn.x, nn.y)); use('bike'); }
+        if (nd < range) IN.aim = dir(aimAt[0], aimAt[1]);
+        if (nd > range * 0.8) IN.mv = dir(nn.x, nn.y);
       } else if (K.kind !== 'fire') {
-        if (!(K.ultPh >= 0) && K.kills - (K.ultBase || 0) >= 450) { window.__ult(); use('ult'); }
+        if (!(K.ultPh >= 0) && K.kills - (K.ultBase || 0) >= window.__ultNeed(K.kind)) { window.__ult(); use('ult'); }
         const c = dense(K, W, 26, 80);
         // leap onto the densest group
         if (c && c.n >= 6 && !(K.leapCd > 0) && !K.ab && (K.ultPh < 0 || (K.ultPh === 1 && !K.ultLeapt))) { const LR = K.ultPh === 1 ? 78 * 2.25 : 78; let v = [(c.p[0] - K.x) / LR, (c.p[1] - K.y) / (LR * 0.8)]; const m = Math.hypot(...v); if (m > 1) v = v.map(q => q / m); window.__leap(v); use('leap'); }
@@ -41,7 +59,7 @@ const { chromium } = require('playwright');
         if (nd < 22 * (K.sz || 1)) IN.aim = dir(nn.x, nn.y); else IN.mv = dir(nn.x, nn.y);
         if (nd < 30 * (K.sz || 1)) IN.aim = dir(nn.x, nn.y);
       } else {
-        const ready = K.kills - (K.ultBase || 0) >= 300;
+        const ready = K.kills - (K.ultBase || 0) >= window.__ultNeed(K.kind);
         if (!(K.vPh >= 0) && ready && !(K.plT >= 0) && !(K.coT >= 0)) { IN.ultN = (IN.ultN || 0) + 1; use('volcano'); }
         if ((K.vPh === 1 || (K.vPh === 0 && K.vT >= 0.5)) && !(K.vBel >= 0) && K.vSh < 5) { const c = dense(K, W, 38, 200); if (c) { IN.vtN = (IN.vtN || 0) + 1; IN.vtP = c.p; use('rock'); } }
         if (K.vPh >= 0) return;
@@ -58,8 +76,9 @@ const { chromium } = require('playwright');
         if (nd > 45) IN.mv = dir(nn.x, nn.y);
       }
     };
-    const prev = {}; let lk = 0; const watch = () => { const K = window.__KN()[0], U = S.real = S.real || {}; const dk = K.kills - lk; lk = K.kills; const ul = K.kind === 'fire' ? K.vPh >= 0 : K.kind === 'priest' ? K.pPh >= 0 : K.ultPh >= 0; S.kb = S.kb || { ult: 0, other: 0, ultTime: 0 }; S.kb[ul ? 'ult' : 'other'] += dk; if (ul) S.kb.ultTime += 1 / 60; const tr = (key, val, start) => { if (start(val, prev[key])) U[key] = (U[key] || 0) + 1; prev[key] = val; };
+    const prev = {}; let lk = 0; const watch = () => { const K = window.__KN()[0], U = S.real = S.real || {}; const dk = K.kills - lk; lk = K.kills; const ul = K.kind === 'fire' ? K.vPh >= 0 : K.kind === 'priest' ? K.pPh >= 0 : K.kind === 'time' ? K.cr >= 0 || !!K.ulOn : K.ultPh >= 0; S.kb = S.kb || { ult: 0, other: 0, ultTime: 0 }; S.kb[ul ? 'ult' : 'other'] += dk; if (ul) S.kb.ultTime += 1 / 60; const tr = (key, val, start) => { if (start(val, prev[key])) U[key] = (U[key] || 0) + 1; prev[key] = val; };
       if (K.kind === 'priest') { tr('sweep', K.ab, (v, o) => v === 'sweep' && o !== 'sweep'); tr('slam', K.ab, (v, o) => v === 'slam' && o !== 'slam'); tr('reel', K.ab, (v, o) => v === 'reel' && o !== 'reel'); tr('holy', K.hoT > 0, (v, o) => v && !o); tr('penance', K.pPh >= 0, (v, o) => v && !o); tr('smash', K.impN || 0, (v, o) => o !== undefined && v !== o && K.pPh >= 0); }
+      else if (K.kind === 'time') { tr('w' + (K.wpn || 0), K.wpS === 1, (v, o) => v && !o); tr('ride', K.cr >= 0, (v, o) => v && !o); tr('bike', K.bk === 1, (v, o) => v && !o); tr('ship', K.sc === 2, (v, o) => v && !o); tr('strafe', K.hl >= 0, (v, o) => v && !o); tr('trap', K.trN || 0, (v, o) => o !== undefined && v !== o); tr('toss', K.hu === 1, (v, o) => v && !o); }
       else if (K.kind !== 'fire') { tr('dash', K.ab, (v, o) => v === 'dash' && o !== 'dash'); tr('leap', K.ab, (v, o) => v === 'leap' && o !== 'leap'); tr('spin', K.spin >= 0, (v, o) => v && !o); tr('ult', K.ultPh >= 0, (v, o) => v && !o); }
       else { tr('coals', K.coId || 0, (v, o) => o !== undefined && v !== o); tr('plume', K.plT >= 0, (v, o) => v && !o); tr('lava', !!K.lava, (v, o) => v && !o); tr('volcano', K.vPh >= 0, (v, o) => v && !o); tr('rocks', K.vSN || 0, (v, o) => o !== undefined && v !== o); } };
     window.__botRun = n => { for (let i = 0; i < n; i++) { window.__botStep(); window.__step(1 / 60); watch(); } };
