@@ -3471,10 +3471,10 @@ function shipPush(o, r, SB) { for (const kn of SB) { const [A, B] = TT.SHIP.BLK,
   let al = dx * ch + dy * sh, ac = -dx * sh + dy * ch; const e = Math.hypot(al / (A + r), ac / (B + r)); if (e >= 1) continue;
   if (e < 0.02) ac = B + r; else { const k = 1 / e; al *= k; ac *= k; } o.x = kn.scx + al * ch - ac * sh; o.y = kn.scy + (al * sh + ac * ch) / 1.25; } }
 // ---- the helicopter strafe: everything is worked out from the synced call (hlx/hly strip start, hla heading, hlL length, hl clock) the same way on every screen ----
-// a drawn strip, kept legal: the start within AREA of him, the end within LMAX of the start (a tap with no drag points it away from him)
+// a drawn strip: the start kept within AREA of him; the drag only picks the direction, the strip is always LMAX long (a tap with no drag points it away from him)
 const FIELD_H = H;
 function heliClamp(kn, s0, e0) { const H = TT.HELI, cap = (o, p, R) => { const dx = p[0] - o[0], dy = (p[1] - o[1]) * 1.25, d = Math.hypot(dx, dy); return d > R ? [o[0] + dx / d * R, o[1] + dy / d * R / 1.25] : p.slice(); };
-  const s = cap([kn.x, kn.y], s0, H.AREA); s[1] = cl(s[1], 16, FIELD_H - 4); let e = cap(s, e0, H.LMAX); if (Math.hypot(e[0] - s[0], (e[1] - s[1]) * 1.25) < 8) { const dx = s[0] - kn.x, dy = (s[1] - kn.y) * 1.25, d = Math.hypot(dx, dy) || 1; e = [s[0] + dx / d * H.LMIN, s[1] + dy / d * H.LMIN / 1.25]; } return [s, e]; }
+  const s = cap([kn.x, kn.y], s0, H.AREA); s[1] = cl(s[1], 16, FIELD_H - 4); let dx = e0[0] - s[0], dy = (e0[1] - s[1]) * 1.25; if (Math.hypot(dx, dy) < 6) { dx = s[0] - kn.x; dy = (s[1] - kn.y) * 1.25; if (Math.hypot(dx, dy) < 1) { dx = kn.f || 1; dy = 0; } } const d = Math.hypot(dx, dy); return [s, [s[0] + dx / d * H.LMAX, s[1] + dy / d * H.LMAX / 1.25]]; }
 const heliG = (kn, u, v) => { const ca = Math.cos(kn.hla), sa = Math.sin(kn.hla); return [kn.hlx + u * ca - v * sa, kn.hly + (u * sa + v * ca) / 1.25]; };
 const heliU = s => -TT.HELI.PRE + TT.HELI.SPD * Math.max(0, s - TT.HELI.OPEN);
 const heliEnd = kn => TT.HELI.OPEN + (kn.hlL + TT.HELI.PRE + TT.HELI.POST) / TT.HELI.SPD;
