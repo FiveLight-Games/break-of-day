@@ -637,11 +637,14 @@ function drawKnight(c, t) {
   const bx = Math.cos(P.a) * f, swordBack = K.hold && P.th == null && bx < -0.3 && hx < 0.5; // blade pointing back past him
   if (window.__labelArms) { const tag = (sh, h, txt, col) => { const e1 = ik(sh, h, 2.6, 2.6, 1), e2 = ik(sh, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2; window.__tags.push([L2(sh, el, 0.6), txt, col]); }; window.__tags = []; tag(P.sh[near], P.hands[0], 'A', '#ff3b30'); tag(P.sh[far], P.hands[1], 'B', '#1e90ff'); }
   const body = () => {
-    // legs: the one on the facing side is in front (drawn last), the other behind (darker)
-    leg(c, P.hips[near], P.knees[near], P.feet[near], f, true, K.kn > 0.5);
-    if (K.kn <= 0.5) leg(c, P.hips[far], P.knees[far], P.feet[far], f, false, false);
+    // legs: facing the camera, the one on the facing side is in front (drawn last), the other behind (darker);
+    // kneeling at the stone or turned away from the camera they keep the original order (the kneeling leg is the back one)
+    const sw = !(P.back || P.away) && !(K.kn > 0.5), lb = sw ? near : far, lf = sw ? far : near;
+    const bv = !!(P.back || P.away);
+    leg(c, P.hips[lb], P.knees[lb], P.feet[lb], f, true, K.kn > 0.5, bv);
+    if (K.kn <= 0.5) leg(c, P.hips[lf], P.knees[lf], P.feet[lf], f, false, false, bv);
     torso(c, P, f, P.back || P.away);
-    if (K.kn > 0.5) leg(c, P.hips[far], P.knees[far], P.feet[far], f, false, false);
+    if (K.kn > 0.5) leg(c, P.hips[lf], P.knees[lf], P.feet[lf], f, false, false, bv);
   };
   const hd = () => head(c, P, f, t, P.away ? 'away' : P.back);
   if (P.back && !P.away) { // straight from behind: arms and sword are all on the far side of him
@@ -667,7 +670,7 @@ function drawKnight(c, t) {
   if (window.__labelArms && window.__tags) for (const [m, txt, col] of window.__tags) { c.save(); c.translate(m[0], m[1]); c.fillStyle = col; c.strokeStyle = '#fff'; c.lineWidth = 0.18; c.beginPath(); c.arc(0, 0, 0.62, 0, 7); c.fill(); c.stroke(); c.fillStyle = "#fff"; c.font = "700 0.85px system-ui"; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 0, 0.05); c.restore(); }
   c.restore();
 }
-function leg(c, hip, knee, foot, f, far, kneelBack) {
+function leg(c, hip, knee, foot, f, far, kneelBack, bv) {
   const dk = far ? -0.14 : 0;
   c.lineCap = 'round';
   c.strokeStyle = shade(STEELD, dk - 0.2); c.lineWidth = 1.9; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke();
@@ -682,12 +685,25 @@ function leg(c, hip, knee, foot, f, far, kneelBack) {
   const ux0 = ank[0] - knee[0], uy0 = ank[1] - knee[1], ul = Math.hypot(ux0, uy0) || 1, ux = ux0 / ul, uy = uy0 / ul;
   let nx = -uy, ny = ux; if (nx * d < 0) { nx = -nx; ny = -ny; }
   const tb = [ank[0] - nx * 0.92 - ux * 0.25, ank[1] - ny * 0.92 - uy * 0.25], tf = [ank[0] + nx * 0.92 - ux * 0.25, ank[1] + ny * 0.92 - uy * 0.25];
+  // seen from behind (kneeling at the stone, back to the camera) the toe points away from us: the boot is just the shaft
+  // ending in a rounded heel, with the dark sole showing under it
+  // the kneeling leg: the shin lies along the ground, so the boot just carries on along it and ends in its sole (toes tucked under)
+  if (kneelBack) { const L = Math.hypot(foot[0] - ank[0], foot[1] - ank[1]) + 0.55, eb = [tb[0] + ux * L, tb[1] + uy * L], ef = [tf[0] + ux * L, tf[1] + uy * L], e = [ank[0] + ux * (L - 0.25), ank[1] + uy * (L - 0.25)];
+    const kb = () => { c.beginPath(); c.moveTo(...tb); c.lineTo(...eb); c.quadraticCurveTo(e[0] + ux * 1.15 - nx * 0.9, e[1] + uy * 1.15 - ny * 0.9, e[0] + ux * 1.0, e[1] + uy * 1.0); c.quadraticCurveTo(e[0] + ux * 1.15 + nx * 0.9, e[1] + uy * 1.15 + ny * 0.9, ...ef); c.lineTo(...tf); c.closePath(); };
+    c.lineJoin = 'round'; c.strokeStyle = shade(bD, dk - 0.1); c.lineWidth = 0.4; kb(); c.stroke(); c.fillStyle = shade(bM, dk); c.fill();
+    c.fillStyle = shade(bD, dk - 0.25); c.beginPath(); c.ellipse(e[0] + ux * 0.6, e[1] + uy * 0.6, 0.28, 0.7, Math.atan2(uy, ux), 0, 7); c.fill();
+  } else if (bv) { const hb = () => { c.beginPath(); c.moveTo(...tb); c.lineTo(X(-0.78), ay); c.quadraticCurveTo(X(-0.85), g + 0.05, X(0), g + 0.05); c.quadraticCurveTo(X(0.85), g + 0.05, X(0.78), ay); c.lineTo(...tf); c.closePath(); };
+    c.lineJoin = 'round'; c.strokeStyle = shade(bD, dk - 0.1); c.lineWidth = 0.4; hb(); c.stroke(); c.fillStyle = shade(bM, dk); c.fill();
+    c.fillStyle = shade(bD, dk - 0.25); c.beginPath(); c.ellipse(foot[0], g - 0.12, 0.62, 0.2, 0, 0, 7); c.fill();
+    c.strokeStyle = shade(bL, dk); c.lineWidth = 0.16; c.beginPath(); c.moveTo(ank[0] - 0.35, ank[1] + 0.2); c.lineTo(foot[0] - 0.4, ay); c.stroke();
+  } else {
   const boot = () => { c.beginPath(); c.moveTo(...tb); c.lineTo(X(-0.72), ay);
     c.quadraticCurveTo(X(-0.82), g - 0.1, X(-0.52), g); c.lineTo(X(0.95), g); c.quadraticCurveTo(X(1.45), g, X(1.42), g - 0.4);
     c.quadraticCurveTo(X(1.3), ay + 0.1, X(0.68), ay - 0.18); c.lineTo(...tf); c.closePath(); };
   c.lineJoin = 'round'; c.strokeStyle = shade(bD, dk - 0.1); c.lineWidth = 0.4; boot(); c.stroke(); c.fillStyle = shade(bM, dk); c.fill();
   c.strokeStyle = shade(bL, dk); c.lineWidth = 0.18; c.beginPath(); c.moveTo(ank[0] + d * 0.35, ank[1] + 0.3); c.lineTo(X(0.4), ay - 0.1); c.quadraticCurveTo(X(0.95), ay + 0.05, X(1.2), g - 0.45); c.stroke();
   c.strokeStyle = shade(bD, dk - 0.25); c.lineWidth = 0.2; c.beginPath(); c.moveTo(X(-0.5), g - 0.07); c.lineTo(X(1.0), g - 0.07); c.stroke();
+  }
   c.fillStyle = shade(STEELL, dk - 0.05); c.beginPath(); c.arc(knee[0], knee[1], 0.72, 0, 7); c.fill();
   c.fillStyle = shade(STEELD, dk); c.beginPath(); c.arc(knee[0] + 0.15, knee[1] + 0.2, 0.32, 0, 7); c.fill();
 }
