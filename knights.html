@@ -459,9 +459,11 @@ function drawLeapPreview(c, t) {
 // the saber throw's aim: the whole loop it will fly, as a band the width of what it cuts, with chevrons running round it the way it goes,
 // and a small mark at the far tip; plus the faint range ring
 // the ship call's aim: the range ring, the blast circle and the ship's outline lying along the aim, all in pale blue
+// the ship's blast area on the ground: an ellipse RA along its heading hd (iso-corrected angle) by RB across
+const shipEll = (c, x, y, hd, ra = TT.SHIP.RA, rb = TT.SHIP.RB) => { c.save(); c.translate(x, y); c.scale(1, 0.8); c.rotate(hd); c.beginPath(); c.ellipse(0, 0, ra, rb, 0, 0, 7); c.restore(); };
 function drawShipPreview(c, kn, tg, t) { const SH = TT.SHIP, pul = 0.5 + 0.5 * Math.sin(t * 8), hd = Math.atan2((tg[1] - kn.y) * 1.25, tg[0] - kn.x), fw = [Math.cos(hd), Math.sin(hd) / 1.25];
   c.save(); c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 0.4; c.setLineDash([1.5, 1.5]); c.beginPath(); c.ellipse(kn.x, kn.y, SH.RANGE, SH.RANGE * 0.8, 0, 0, 7); c.stroke();
-  c.setLineDash([]); c.fillStyle = `rgba(120,180,255,${0.12 + 0.06 * pul})`; c.strokeStyle = `rgba(170,215,255,${0.7 + 0.3 * pul})`; c.lineWidth = 0.7; c.beginPath(); c.ellipse(tg[0], tg[1], SH.R, SH.R * 0.8, 0, 0, 7); c.fill(); c.stroke();
+  c.setLineDash([]); c.fillStyle = `rgba(120,180,255,${0.12 + 0.06 * pul})`; c.strokeStyle = `rgba(170,215,255,${0.7 + 0.3 * pul})`; c.lineWidth = 0.7; shipEll(c, tg[0], tg[1], hd); c.fill(); c.stroke();
   c.setLineDash([2.5, 2]); c.lineDashOffset = -t * 8; c.strokeStyle = 'rgba(200,230,255,.75)'; c.beginPath(); c.ellipse(tg[0], tg[1], SH.LEN / 2 * Math.hypot(fw[0], fw[1]), 9, Math.atan2(fw[1], fw[0]), 0, 7); c.stroke(); c.restore(); }
 function drawBoomPreview(c, kn, tg, t) { const BM = TT.BOOM, f = kn.f || 1, sx = kn.x + f * 3.5, sy = kn.y, pts = []; for (let i = 0; i <= 64; i++) pts.push(boomPt(sx, sy, tg[0], tg[1], i / 64));
   c.save(); c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 0.4; c.setLineDash([1.5, 1.5]); c.beginPath(); c.ellipse(kn.x, kn.y, BM.RANGE, BM.RANGE * 0.8, 0, 0, 7); c.stroke(); c.setLineDash([]);
@@ -2529,7 +2531,7 @@ const TT = {
   TRAP: { RANGE: 100, FLY: 0.45, R: 9, ARM: 20.8, BL: 8.25, SPIN: 11.25, UP: 0.35, H: 7.5, DMG: 160, GAP: 0.3, CD: 6, N: 2, NEXT: 0.5 },
   SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 30, BR: 110, TURN: 3, CONE: 0.873, DMG: 175, W: 9.625, Z: 8, R: 6.6, GUN: 1.3, MU: [3.8, 0.6], HZ: 5 },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
-  SHIP: { RANGE: 130, SHADOW: 1.0, DROP: 0.32, LIE: 2.6, FADE: 0.8, R: 34, DMG: 600, KB: 260, CD: 6, DB: { N: 7, R: 12, DMG: 160, KB: 120, MIN: 38, MAX: 85 }, SLOW: 0.6, LEN: 72 },
+  SHIP: { RANGE: 130, SHADOW: 1.0, DROP: 0.32, LIE: 2.6, FADE: 0.8, RA: 54, RB: 31, DMG: 600, KB: 260, CD: 6, DB: { N: 7, R: 12, DMG: 160, KB: 120, MIN: 38, MAX: 85 }, SLOW: 0.6, LEN: 72 },
   BOOM: { RANGE: 123.5, LOOP: 1.0, WID: 0.25, R: 16.8, DMG: 200, CD: 0, SPIN: 24, Z: 6, SZ: 1.82 },
   BIKE: { BV: 140, CD: 10, T: 7, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
 };
@@ -2761,7 +2763,9 @@ function timeStep(dt, t) {
         if (leapP && ready && !bsy && IN.leapT && wq0 === 1 && !(K.sc >= 1) && !(K.scCd > 0)) { const tg = leapTarget(K, IN.leapT); Object.assign(K, { sc: 1, scT: 0, scx: r1(tg[0]), scy: r1(tg[1]), sch: Math.round(Math.atan2((tg[1] - K.y) * 1.25, tg[0] - K.x) * 100) / 100, scN: (K.scN || 0) + 1 }); }
         if (K.sc >= 1) { K.scT += dt;
           if (K.sc === 1 && K.scT >= SH.SHADOW) { K.sc = 2; K.scT = 0; K.scCd = SH.CD; K.wdH = 0;
-            if (AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.scx, dy = (w.y - K.scy) * 1.25, d = Math.hypot(dx, dy), R = SH.R + UK[w.k].r; if (d > R) continue; const a = Math.atan2(dy / 1.25, dx), k = 1 - 0.4 * d / R; w.atk = -1; w.kx += Math.cos(a) * SH.KB * k; w.ky += Math.sin(a) * SH.KB * 0.6 * k; hurt(w, SH.DMG * k, ww => slamFx(ww, a)); } }
+            if (AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.scx, dy = (w.y - K.scy) * 1.25, ch = Math.cos(K.sch), sh = Math.sin(K.sch), al = dx * ch + dy * sh, ac = -dx * sh + dy * ch, r = UK[w.k].r, d = Math.hypot(al / (SH.RA + r), ac / (SH.RB + r)); if (d > 1) continue;
+              // the blast lies along the ship (an ellipse RA x RB round its heading); it throws them out mostly sideways, away from the hull
+              const ox = al * 0.35 * ch - ac * sh, oy = al * 0.35 * sh + ac * ch, a = Math.atan2(oy / 1.25, ox), k = 1 - 0.4 * d; w.atk = -1; w.kx += Math.cos(a) * SH.KB * k; w.ky += Math.sin(a) * SH.KB * 0.6 * k; hurt(w, SH.DMG * k, ww => slamFx(ww, a)); } }
           else if (K.sc === 2 && K.scT >= SH.LIE + SH.FADE) { K.sc = 0; K.scT = 0; }
           // the wreck's big pieces: each one that lands hurts whoever it comes down on
           if (K.sc === 2 && AUTH()) { const D = shipDebris(K), DB = SH.DB; D.forEach((q, i) => { if (!q.big || K.scT < q.t0 + q.tl || (K.wdH & 1 << i)) return; K.wdH |= 1 << i;
@@ -2898,8 +2902,8 @@ const trapOut = q => q.end !== undefined ? (q.t - q.end) / 0.4 : 0, trapArm = q 
 function ttFx(dt, t) {
   for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue; if (kn.wpn === 3 && (kn.al || (kn.alV || 0) > 0.01)) ttTentLines(kn, dt, t); else if (kn.tcS) kn.tcS = null; kn.alV = ap(kn.alV || 0, kn.al && kn.wpn === 3 ? 1 : 0, dt / (kn.al ? TT.ALIEN.OPEN : 0.4)); kn.alCv = Math.abs((kn.alCv ?? 0) + dt - (kn.alC || 0)) > 0.15 ? kn.alC || 0 : (kn.alCv ?? 0) + dt; const S = kn.ttS || (kn.ttS = { gun: kn.gunN || 0, saw: kn.sawN || 0, rl: kn.rl, bk: kn.bk, tr: kn.trN || 0, hu: kn.hu });
     // the ship hitting the ground (every screen): a huge ring, crater, dust, sparks, shake
-    if ((kn.sc || 0) !== S.sc) { if (kn.sc === 2) { const x = kn.scx, y = kn.scy; FX.push({ k: 'ring', x, y, t: 0, max: 0.8, s: TT.SHIP.R / SLAM_R }, { k: 'crater', x, y, t: 0, max: 9, seed: Math.random() * 1e4, s: 2.8 });
-      for (let i = 0; i < 110; i++) { const a = rr(0, 6.28), v = rr(30, 120); dust.push({ x: x + Math.cos(a) * 14, y: y + Math.sin(a) * 6, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1.5, 3.4), t: 0, max: rr(0.6, 1.4) }); }
+    if ((kn.sc || 0) !== S.sc) { if (kn.sc === 2) { const x = kn.scx, y = kn.scy; FX.push({ k: 'crater', x, y, t: 0, max: 9, seed: Math.random() * 1e4, s: 2.8 }); const ch = Math.cos(kn.sch || 0), sh = Math.sin(kn.sch || 0);
+      for (let i = 0; i < 130; i++) { const a = rr(0, 6.28), v = rr(30, 120), e0 = Math.cos(a) * TT.SHIP.RA * 0.45, e1 = Math.sin(a) * TT.SHIP.RB * 0.45, ex = e0 * ch - e1 * sh, ey = e0 * sh + e1 * ch, el = Math.hypot(ex, ey) || 1; dust.push({ x: x + ex, y: y + ey / 1.25, vx: ex / el * v, vy: ey / el * v * 0.5, r: rr(1.5, 3.4), t: 0, max: rr(0.6, 1.4) }); }
       for (let i = 0; i < 40; i++) { const a = rr(3.3, 6.1); sparks.push({ x: x + rr(-20, 20), y: y - 4, vx: Math.cos(a) * rr(30, 110), vy: Math.sin(a) * rr(30, 90), t: 0, max: rr(0.4, 1.0) }); }
       if (KN[ME] && Math.hypot(KN[ME].x - x, KN[ME].y - y) < 260) shake = Math.max(shake, 1.0); snd('gslam', x, y); snd('boom', x, y); } S.sc = kn.sc || 0; }
     // shotgun: flash, pellets, smoke
@@ -3408,11 +3412,13 @@ function ttWreckFx(c, kn, t, al) { const D = shipDebris(kn), w = kn.scT, BR = '#
 function ttShipGround(c, kn) { const SH = TT.SHIP; if (!(kn.sc >= 1)) return; const fw = gDir(kn.sch || 0), ang = Math.atan2(fw[1], fw[0]), L = Math.hypot(fw[0], fw[1]);
   const k = kn.sc === 1 ? sm(cl(kn.scT / SH.SHADOW, 0, 1)) : 1 - cl((kn.scT - SH.LIE) / SH.FADE, 0, 1), grow = kn.sc === 1 ? lerp(1.35, 1, k) : 1;
   c.save(); c.translate(kn.scx, kn.scy); c.rotate(ang); for (const [sx, sy, al] of [[52, 20, 0.22], [44, 15, 0.25], [34, 10, 0.25]]) { c.fillStyle = `rgba(0,0,0,${al * k})`; c.beginPath(); c.ellipse(0, 0, sx * grow * L, sy * grow, 0, 0, 7); c.fill(); } c.restore();
-  if (kn.sc === 1) { c.save(); c.translate(kn.scx, kn.scy); c.scale(1, 0.8); c.strokeStyle = `rgba(160,205,255,${0.35 + 0.4 * k})`; c.lineWidth = 0.6; c.setLineDash([3, 2]); c.beginPath(); c.arc(0, 0, SH.R, 0, 7); c.stroke(); c.restore(); } }
+  if (kn.sc === 1) { c.strokeStyle = `rgba(160,205,255,${0.35 + 0.4 * k})`; c.lineWidth = 0.6; c.setLineDash([3, 2]); shipEll(c, kn.scx, kn.scy, kn.sch || 0); c.stroke(); c.setLineDash([]); }
+  // the impact's shockwave runs out along the blast's ellipse
+  if (kn.sc === 2 && kn.scT < 0.6) { const q = kn.scT / 0.6, g = 0.55 + 0.6 * (1 - (1 - q) ** 2); c.strokeStyle = `rgba(255,235,200,${0.8 * (1 - q)})`; c.lineWidth = 2.2 * (1 - q) + 0.4; shipEll(c, kn.scx, kn.scy, kn.sch || 0, SH.RA * g, SH.RB * g); c.stroke(); } }
 function ttGround(c) { for (const kn of KN) if (kn.kind === 'time' && kn.on !== 0) ttShipGround(c, kn); c.lineCap = 'round'; for (const s of SKID) { c.strokeStyle = `rgba(25,20,18,${0.35 * s.a * (1 - s.t / 2.5)})`; c.lineWidth = 0.9; c.beginPath(); c.moveTo(s.x0, s.y0); c.lineTo(s.x1, s.y1); c.stroke(); } }
 // hit zones: the attack's cone (or the bike's contact strip)
 function ttZones(c) { const kn = KN[ME]; if (!kn || kn.kind !== 'time') return; c.save(); c.fillStyle = 'rgba(255,70,50,.18)';
-  if (kn.sc === 1) { c.save(); c.translate(kn.scx, kn.scy); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.3)'; c.beginPath(); c.arc(0, 0, TT.SHIP.R, 0, 7); c.fill(); c.restore(); }
+  if (kn.sc === 1) { c.fillStyle = 'rgba(255,70,50,.3)'; shipEll(c, kn.scx, kn.scy, kn.sch || 0); c.fill(); c.fillStyle = 'rgba(255,70,50,.18)'; }
   if (kn.sc === 2) for (const q of shipDebris(kn)) if (q.big && kn.scT < q.t0 + q.tl) { c.save(); c.translate(q.ex, q.ey); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.25)'; c.beginPath(); c.arc(0, 0, TT.SHIP.DB.R, 0, 7); c.fill(); c.restore(); }
   if (kn.wpn === 3 && (kn.hu === 1 || kn.hu === 2) && !kn.alq) { c.save(); c.translate(kn.hux, kn.huy); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.1)'; c.strokeStyle = 'rgba(255,120,100,.7)'; c.lineWidth = 0.5; c.setLineDash([2, 2]); c.beginPath(); c.arc(0, 0, TT.HURL.R, 0, 7); c.fill(); c.stroke(); c.restore(); }
   for (const q of TRAPS) if (q.t >= TT.TRAP.FLY && q.end === undefined) { const T2 = TT.TRAP; c.save(); c.translate(q.x, q.y); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.25)'; c.beginPath(); c.arc(0, 0, T2.ARM + T2.BL, 0, 7); c.arc(0, 0, Math.max(0, T2.ARM - T2.BL), 0, 7, true); c.fill(); c.restore(); }
@@ -4069,7 +4075,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn);
-const KBUILD = 'eadfee';
+const KBUILD = 'abe3d0';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
