@@ -637,10 +637,11 @@ function drawKnight(c, t) {
   const bx = Math.cos(P.a) * f, swordBack = K.hold && P.th == null && bx < -0.3 && hx < 0.5; // blade pointing back past him
   if (window.__labelArms) { const tag = (sh, h, txt, col) => { const e1 = ik(sh, h, 2.6, 2.6, 1), e2 = ik(sh, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2; window.__tags.push([L2(sh, el, 0.6), txt, col]); }; window.__tags = []; tag(P.sh[near], P.hands[0], 'A', '#ff3b30'); tag(P.sh[far], P.hands[1], 'B', '#1e90ff'); }
   const body = () => {
-    leg(c, P.hips[far], P.knees[far], P.feet[far], f, true, K.kn > 0.5);
-    if (K.kn <= 0.5) leg(c, P.hips[near], P.knees[near], P.feet[near], f, false, false);
+    // legs: the one on the facing side is in front (drawn last), the other behind (darker)
+    leg(c, P.hips[near], P.knees[near], P.feet[near], f, true, K.kn > 0.5);
+    if (K.kn <= 0.5) leg(c, P.hips[far], P.knees[far], P.feet[far], f, false, false);
     torso(c, P, f, P.back || P.away);
-    if (K.kn > 0.5) leg(c, P.hips[near], P.knees[near], P.feet[near], f, false, false);
+    if (K.kn > 0.5) leg(c, P.hips[far], P.knees[far], P.feet[far], f, false, false);
   };
   const hd = () => head(c, P, f, t, P.away ? 'away' : P.back);
   if (P.back && !P.away) { // straight from behind: arms and sword are all on the far side of him
@@ -5234,7 +5235,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '984b71';
+const KBUILD = '7a5bb4';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
