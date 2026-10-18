@@ -2516,8 +2516,22 @@ function tpLeg(c, hip, knee, foot, f, far, kneelBack) {
   c.strokeStyle = GOLD; c.lineWidth = 0.25; c.beginPath(); c.ellipse(knee[0] + f * 0.15, knee[1], 1.15, 0.95, 0, Math.PI, 0); c.stroke(); tpCross(c, knee[0] + f * 0.15, knee[1] - 0.05, 0.4, GOLD);
 }
 function tpGauntlet(c, h, far) { const A = far ? TPD : TPA; c.fillStyle = shade(A, -0.15); c.beginPath(); c.ellipse(h[0], h[1], 0.95, 0.85, 0, 0, 7); c.fill(); c.fillStyle = shade(A, 0.2); c.beginPath(); c.ellipse(h[0] - 0.25, h[1] - 0.3, 0.4, 0.28, 0, 0, 7); c.fill(); }
-function tpArm(c, s, h, f, far, noGlove) {
-  const e1 = ik(s, h, 2.6, 2.6, 1), e2 = ik(s, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2, A = far ? TPD : TPA; c.lineCap = 'round';
+// the elbow hangs on the lower side, but only swaps sides once the other side is clearly lower, and then swings over smoothly
+// (a continuous bend sign eased toward the wanted side) instead of jumping across in one frame as the swing passes vertical
+function tpElbow(s, h, st, dt) {
+  const e1 = ik(s, h, 2.6, 2.6, 1), e2 = ik(s, h, 2.6, 2.6, -1);
+  if (!st) return e1[1] >= e2[1] ? e1 : e2;
+  if (st.t === undefined) { st.t = e1[1] >= e2[1] ? 1 : -1; st.s = st.t; }
+  const yc = st.t > 0 ? e1[1] : e2[1], yo = st.t > 0 ? e2[1] : e1[1];
+  if (yo > yc + 0.7) st.t = -st.t;
+  st.s += (st.t - st.s) * (1 - Math.exp(-dt * 14));
+  // the upper arm's angle is eased too, so the elbow never whips round when the hand passes close by the shoulder
+  const e = ik(s, h, 2.6, 2.6, st.s), ta = Math.atan2(e[1] - s[1], e[0] - s[0]);
+  if (st.a === undefined || !dt) st.a = ta; else { let da = ta - st.a; da -= Math.round(da / (2 * Math.PI)) * 2 * Math.PI; st.a += da * (1 - Math.exp(-dt * 22)); }
+  return [s[0] + Math.cos(st.a) * 2.6, s[1] + Math.sin(st.a) * 2.6];
+}
+function tpArm(c, s, h, f, far, noGlove, st, dt) {
+  const el = tpElbow(s, h, st, dt || 0), A = far ? TPD : TPA; c.lineCap = 'round';
   c.strokeStyle = shade(TPD, -0.25); c.lineWidth = 2.1; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.lineTo(...h); c.stroke();
   c.strokeStyle = A; c.lineWidth = 1.7; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke(); c.lineWidth = 1.6; c.beginPath(); c.moveTo(...el); c.lineTo(...h); c.stroke();
   const wb = L2(el, h, 0.7); c.strokeStyle = far ? GOLDD : GOLD; c.lineWidth = 1.75; c.beginPath(); c.moveTo(...L2(el, h, 0.62)); c.lineTo(...wb); c.stroke();
@@ -2600,7 +2614,8 @@ function drawPriest(c, t) {
   const haftBack = hu[0] * f < -0.3 && (P.hB[0] - P.C[0]) * f < 0.5 && hu[1] < 0.6;
   const haft = () => { c.lineCap = 'round'; c.strokeStyle = '#3a2614'; c.lineWidth = 0.95; c.beginPath(); c.moveTo(P.hB[0] - hu[0] * 0.8, P.hB[1] - hu[1] * 0.8); c.lineTo(...he); c.stroke(); c.strokeStyle = '#6b4a2a'; c.lineWidth = 0.55; c.beginPath(); c.moveTo(P.hB[0] - hu[0] * 0.7, P.hB[1] - hu[1] * 0.7); c.lineTo(...he); c.stroke(); c.fillStyle = STEELD; c.beginPath(); c.arc(he[0], he[1], 0.55, 0, 7); c.fill(); };
   const censer = () => drawCenser(c, P.hA, cp, t);
-  const armA = () => { tpArm(c, P.shA, P.hA, f, false); tpBigPauldron(c, P.shA, f, t); }, armB = () => { tpArm(c, P.shB, P.hB, f, true, true); tpSmallPauldron(c, P.shB, f); };
+  K.elA = K.elA || {}; K.elB = K.elB || {};
+  const armA = () => { tpArm(c, P.shA, P.hA, f, false, false, K.elA, dt); tpBigPauldron(c, P.shA, f, t); }, armB = () => { tpArm(c, P.shB, P.hB, f, true, true, K.elB, dt); tpSmallPauldron(c, P.shB, f); };
   // cape behind everything
   const sway = -f * cl((K.spd || 0) / RUN, 0, 1) * 1.2 + Math.sin(t * 1.7) * 0.15;
   { const g = c.createRadialGradient(P.head[0], P.head[1] - 0.5, 0, P.head[0], P.head[1] - 0.5, 6); g.addColorStop(0, `rgba(255,232,150,${0.28 + 0.12 * (P.fly || 0)})`); g.addColorStop(1, 'rgba(255,220,120,0)'); c.fillStyle = g; c.beginPath(); c.arc(P.head[0], P.head[1] - 0.5, 6, 0, 7); c.fill(); }
@@ -5160,7 +5175,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '8d40f1';
+const KBUILD = '1914dd';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
