@@ -2531,7 +2531,7 @@ function tpElbow(s, h, st, dt) {
   return [s[0] + Math.cos(st.a) * 2.6, s[1] + Math.sin(st.a) * 2.6];
 }
 function tpArm(c, s, h, f, far, noGlove, st, dt) {
-  const el = tpElbow(s, h, st, dt || 0), A = far ? TPD : TPA; c.lineCap = 'round';
+  const el = tpElbow(s, h, st, dt || 0), A = far ? TPD : TPA; c.lineCap = 'round'; c.lineJoin = 'round';
   c.strokeStyle = shade(TPD, -0.25); c.lineWidth = 2.1; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.lineTo(...h); c.stroke();
   c.strokeStyle = A; c.lineWidth = 1.7; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke(); c.lineWidth = 1.6; c.beginPath(); c.moveTo(...el); c.lineTo(...h); c.stroke();
   const wb = L2(el, h, 0.7); c.strokeStyle = far ? GOLDD : GOLD; c.lineWidth = 1.75; c.beginPath(); c.moveTo(...L2(el, h, 0.62)); c.lineTo(...wb); c.stroke();
