@@ -63,7 +63,7 @@ body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !
 <div id="note"></div>
 
 <div id="charP" class="pnl"><div class="hrow"><b>Character</b><button data-c="knight">Knight</button><button data-c="fire">Firebreather</button><button data-c="priest">Warpriest</button><button data-c="time">Time Traveler</button></div><div class="hrow" id="colRow"><b>Colour</b></div></div>
-<div id="horde" class="pnl"><div class="hrow"><b>Horde</b><button data-r="off" class="on">Off</button><button data-r="few">A few</button><button data-r="dozens">Dozens</button><button data-r="hundreds">Hundreds</button><button data-r="max">MAX</button></div>
+<div id="horde" class="pnl"><div class="hrow"><b>Horde</b><button data-r="off" class="on">Off</button><button data-r="few">A few</button><button data-r="dozens">Dozens</button><button data-r="hundreds">Hundreds</button><button data-r="max">Swarm</button><button data-r="thou">Thousands</button><button data-r="apoc">Apocalypse</button></div>
 <div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button><button data-n="50">+50</button></div><div class="hrow"><span>Test</span><button id="fillUlt">Fill ult</button><button id="clear">Clear all enemies</button></div></div>
 <div id="layEd"><b id="layTitle">Control layout</b><span id="layHint">Drag a button's middle to move it, its rim to resize it.</span><div class="lrow"><span id="layName">Move stick</span><input type="range" id="laySize" min="44" max="230" step="1"><span id="laySizeV" class="lnum"></span></div><span id="layWarn"></span><div class="lrow"><button id="layReset">Reset</button><button id="layDone" class="pri2">Done</button></div></div>
 <div id="exitQ"><div><p>Exit to main menu?</p><div class="row"><button id="exitNo">Stay</button><button id="exitYes">Exit</button></div></div></div>
@@ -348,13 +348,15 @@ function boomFx(w) {
   for (const kn of LIVE()) { const dx = kn.x - w.x, dy = kn.y - w.y, d = Math.hypot(dx, dy); if (d < 14 && !kn.ab && !(kn.ultPh >= 0)) { kn.vx = (kn.vx || 0) + dx / (d || 1) * 60; kn.vy = (kn.vy || 0) + dy / (d || 1) * 35; } }
   gib(w, 'head', rr(-30, 30), rr(-10, 10), rr(30, 44), rr(-20, 20)); gib(w, 'arm', rr(-30, 30), rr(-10, 10), rr(25, 40), rr(-20, 20)); spray(w.x, w.y, 4, 1, 16, 1.4);
 }
-const HORDE = { off: [0, 1], few: [6, 3], dozens: [24, 3], hundreds: [80, 2], max: [160, 2] };
+const HORDE = { off: [0, 1], few: [6, 3], dozens: [24, 3], hundreds: [80, 2], max: [160, 2], thou: [300, 1.5], apoc: [500, 1] };
 // enemy cap: 360 solo, +150 per extra player, 800 on MAX
-const wCap = () => HZ.rate === 'max' ? 800 : Math.min(800, 360 + 150 * (LIVE().length - 1));
+const wCap = () => HZ.rate === 'apoc' ? 2000 : HZ.rate === 'thou' ? 1500 : HZ.rate === 'max' ? 1000 : Math.min(800, 360 + 150 * (LIVE().length - 1));
 let HZ = { rate: 'off', kinds: ['foot', 'zombie', 'scout'], t: 0 };
 // waves come in from the right, just past what the host can see, spread down the field in clumps
 function hordeStep(dt) {
   if (!AUTH() || HZ.rate === 'off' || !HZ.kinds.length) return;
+  // safety brake: if this device is already at its lowest render quality and still slow, hold new spawns until it recovers
+  if (FP.slow) return;
   if ((HZ.t -= dt) > 0) return; const [n, per] = HORDE[HZ.rate]; HZ.t = per;
   const room = wCap() - walkers.length; if (room <= 0) return;
   // more players, more enemies; each clump spawns just past the view of one of the players in turn, so everyone gets a crowd
@@ -789,7 +791,9 @@ const UK = {
 const UKEYS = Object.keys(UK);
 function mkWalker(k, x0, y0) { const U = UK[k]; return { id: 0, k, tk: 0, x: x0, y: y0, tx: x0, ty: y0, hp: U.hp, max: U.hp, ph: rr(0, 6), sp: rr(U.sp[0], U.sp[1]), hit: 0, kx: 0, ky: 0, atk: -1, cd: rr(0, 0.6) }; }
 let NOHP = false;
-function hpBar(c, w, top) { if (NOHP) { HPT = top; return; } if (!(w.hp < w.max)) return; const U = UK[w.k], bw = 8 * Math.max(1, U.sc * 0.8); c.fillStyle = '#000a'; c.fillRect(w.x - bw / 2, w.y - top, bw, 1.4); c.fillStyle = '#e04b3a'; c.fillRect(w.x - bw / 2, w.y - top, bw * Math.max(0, w.hp) / w.max, 1.4); }
+// hp bars of the walkers in the depth list are queued (HPQ) and drawn in two batched fills after it: thousands of tiny fillRects were the second biggest draw cost
+let HPQ = null;
+function hpBar(c, w, top) { if (NOHP) { HPT = top; return; } if (!(w.hp < w.max)) return; const U = UK[w.k], bw = 8 * Math.max(1, U.sc * 0.8); if (HPQ) { HPQ.push(w.x - bw / 2, w.y - top - (w.zd || 0), bw, Math.max(0, w.hp) / w.max); return; } c.fillStyle = '#000a'; c.fillRect(w.x - bw / 2, w.y - top, bw, 1.4); c.fillStyle = '#e04b3a'; c.fillRect(w.x - bw / 2, w.y - top, bw * Math.max(0, w.hp) / w.max, 1.4); }
 // club raise (0..1) and the lean for an attack at u (0..1)
 const clubRaise = u => u < 0 ? 0 : u < 0.6 ? sm(u / 0.6) : u < 0.72 ? 1 - sm((u - 0.6) / 0.12) * 1.6 : -0.6 + sm((u - 0.72) / 0.28) * 0.6;
 const clubLean = u => u < 0 ? 0 : u < 0.6 ? -0.15 * sm(u / 0.6) : u < 0.8 ? 0.3 : 0.3 * (1 - sm((u - 0.8) / 0.2));
@@ -906,9 +910,15 @@ function walker(c, w, t) {
   walkerBody(c, w, t);
   if (UK[w.k].regen && w.hp < w.max && w.hp > 0) regenMotes(c, w, t);
 }
+// a sprite trimmed to its drawn pixels (most of each box was empty, and every empty pixel still cost a blend per enemy per frame); world-space placement in wx/wy/ww/wh
+function sprTrim(sp, SB, sc) { let x0 = sp.width, y0 = sp.height, x1 = -1, y1 = -1; try { const d = sp.getContext('2d').getImageData(0, 0, sp.width, sp.height).data, W2 = sp.width;
+    for (let y = 0; y < sp.height; y++) for (let x = 0; x < W2; x++) if (d[(y * W2 + x) * 4 + 3] > 2) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; } } catch (e) { x0 = 0; y0 = 0; x1 = sp.width - 1; y1 = sp.height - 1; }
+  if (x1 < 0) { x0 = y0 = 0; x1 = y1 = 0; } x0 = Math.max(0, x0 - 1); y0 = Math.max(0, y0 - 1); x1 = Math.min(sp.width - 1, x1 + 1); y1 = Math.min(sp.height - 1, y1 + 1);
+  const o = document.createElement('canvas'); o.width = x1 - x0 + 1; o.height = y1 - y0 + 1; o.getContext('2d').drawImage(sp, -x0, -y0);
+  o.wx = SB.x + x0 / sc; o.wy = SB.y + y0 / sc; o.ww = o.width / sc; o.wh = o.height / sc; return o; }
 function walkerBody(c, w, t) {
   const U = UK[w.k], tkn = KN[w.tk] || K, fx = tkn.x >= w.x ? 1 : -1, u = w.atk < 0 ? -1 : w.atk / U.atkT, white = w.hit > 0;
-  const sc = c.getTransform().a;
+  const sc = CAM.s;
   if (white || sc < 0.5) { walkerLive(c, w, t, fx, u, white); return; }
   const kph = PHK[w.k] || (6 + (U.sp[0] + U.sp[1]) / 2 * 0.18), ph = (((t * kph + w.ph) % 6.2832) + 6.2832) % 6.2832;
   const fr = u < 0 ? 'w' + Math.floor(ph / 6.2832 * 10) : 'a' + Math.min(9, Math.floor(u * 10)), key = w.k + fx + fr;
@@ -917,9 +927,9 @@ function walkerBody(c, w, t) {
   if (!sp) { sprBudget--;
     sp = document.createElement('canvas'); sp.width = Math.ceil(SB.w * sc); sp.height = Math.ceil(SB.h * sc); const g = sp.getContext('2d'); g.setTransform(sc, 0, 0, sc, -SB.x * sc, -SB.y * sc);
     const ph2 = u < 0 ? (Math.floor(ph / 6.2832 * 10) + 0.5) / 10 * 6.2832 : w.ph, u2 = u < 0 ? -1 : (Math.min(9, Math.floor(u * 10)) + 0.5) / 10;
-    const fake = Object.assign({}, w, { x: 0, y: 0, ph: ph2, atk: u2 < 0 ? -1 : u2 * U.atkT, hit: 0 }); NOHP = true; walkerLive(g, fake, 0, fx, u2, false); NOHP = false; SPR.set(key, sp); sp.hpt = HPT;
+    const fake = Object.assign({}, w, { x: 0, y: 0, ph: ph2, atk: u2 < 0 ? -1 : u2 * U.atkT, hit: 0 }); NOHP = true; walkerLive(g, fake, 0, fx, u2, false); NOHP = false; sp = sprTrim(sp, SB, sc); SPR.set(key, sp); sp.hpt = HPT;
   }
-  c.drawImage(sp, w.x + SB.x, w.y + SB.y, SB.w, SB.h);
+  c.drawImage(sp, w.x + sp.wx, w.y + sp.wy, sp.ww, sp.wh);
   if (w.hp < w.max) hpBar(c, w, sp.hpt);
 }
 function drawFoot(c, w, t, U, fx, u, white, top = 14) {
@@ -3110,13 +3120,16 @@ function timeStep(dt, t) {
   if (ultP && K.st === 'fight' && !(K.cr >= 0) && !K.ulOn && ultReady(K) && (!(K.bk >= 0) || K.bk === 1)) carStart();
   if (K.dn >= 0) { K.dn += dt; if (AUTH()) dinoHits(dt, t); if (K.dn >= dinoTot(K)) { K.dn = -1; if (K.ulOn && !(K.cr >= 0)) { K.ulOn = 0; K.ultBase = K.kills; } } }
   if (K.dg && (K.dg.length || K.ulOn)) dgStep(dt, t);
+  // a PORTAL press from the moment he bails out of the craft is kept and opens the portal as soon as he's back on his feet
+  if (K.cr === 2 && K.cEj >= 0 && lvP) K.wpQ = 1;
   if (K.cr >= 0 && carStep(dt, t, IN, mvL)) return;
   if (K.st === 'kneel') { K.vx = K.vy = 0; K.spd = 0; if (mine && (mvL > 0.2 || IN.aim || lvP || dashP)) { K.st = 'pull'; K.u = 0; } return; }
   if (K.st === 'pull') { K.u += dt; if (K.u >= 0.5) K.st = 'fight'; }
   const ready = K.st === 'fight';
   // ---- the weapon portal ----
   if (K.wpCd > 0) K.wpCd -= dt;
-  if (lvP && ready && K.wpS === 0 && !(K.wpCd > 0) && !(K.cr >= 0)) { K.wpn = ttRoll(K); K.wpL = K.wpn; ttGot(K, K.wpn); K.wpS = 1; K.trQ = TT.TRAP.N; K.trCd = 0; K.trG = 0; K.wpT = 0; K.ammo = TT.GUN.AMMO; K.rl = -1; if (K.cs >= 0) K.cs = -1; }
+  if ((lvP || K.wpQ) && ready && K.wpS === 0 && !(K.wpCd > 0) && !(K.cr >= 0)) { K.wpQ = 0; K.wpn = ttRoll(K); K.wpL = K.wpn; ttGot(K, K.wpn); K.wpS = 1; K.trQ = TT.TRAP.N; K.trCd = 0; K.trG = 0; K.wpT = 0; K.ammo = TT.GUN.AMMO; K.rl = -1; if (K.cs >= 0) K.cs = -1; }
+  if (!(K.cr >= 0)) K.wpQ = 0;
   // test buttons: a given weapon right now (through the portal if he has none, swapped straight in if he has one)
   if ((IN.twN || 0) !== (K.twSeen || 0)) { K.twSeen = IN.twN || 0; const v = IN.twV | 0; if (ready && v >= 1 && v <= 4) { K.wpL = v; ttGot(K, v); if (K.wpS === 2) Object.assign(K, { wpn: v, wpT: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1, al: 0, tc: null, hu: -1, sb: -1, sbCd: 0, scCd: 0, trQ: TT.TRAP.N, trCd: 0, trG: 0 }); else if (K.wpS === 0) Object.assign(K, { wpn: v, wpL: v, wpS: 1, wpT: 0, wpCd: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1, trQ: TT.TRAP.N, trCd: 0, trG: 0 }); else if (K.wpS === 1) K.wpn = v; } }
   if (K.wpS === 1) { K.wpT += dt; if (K.wpT >= TT.PORT.IN) { K.wpS = 2; K.wpT = 0; } }
@@ -4169,11 +4182,11 @@ function shipDraw(c, x, y, z, hd, pitch, t, col) { const R = meshDraw(c, shipMes
 const carGone = kn => kn.cr === 1 ? true : kn.cr === 2 ? !(kn.cEj >= 0) : false;
 // his weapon goes back up its portal when he casts (and is gone outright when the car hits him); the portal is ready again the moment he lands
 function ttWeaponOff() { Object.assign(K, { wpS: 0, wpT: 0, wpn: 0, wpCd: 0, hu: -1, hlCd: 0, A2: null, a2s: null, sb: -1, sbCd: 0, scCd: 0, trQ: TT.TRAP.N, trCd: 0, trG: 0, huCd: 0, cs: -1, rl: -1, al: 0, tc: null }); }
-function carStart() { if (K.wpS === 1 || K.wpS === 2) Object.assign(K, { wpS: 3, wpT: 0, cs: -1, rl: -1, al: 0, tc: null });
+function carStart() { K.wpQ = 0; if (K.wpS === 1 || K.wpS === 2) Object.assign(K, { wpS: 3, wpT: 0, cs: -1, rl: -1, al: 0, tc: null });
  const C = TT.CAR, f = K.f || 1, cx0 = r1(K.x - f * C.BACK * 0.85), cy0 = r1(cl(K.y - C.BACK * 0.45, 20, H - 10)), hd = gAng(K.x - cx0, K.y - cy0), d = gDir(hd);
   Object.assign(K, { cr: 0, crT: 0, crN: (K.crN || 0) + 1, ulOn: 1, cx0, cy0, cph: Math.round(hd * 1000) / 1000, crh: hd, cv: C.ASPD, cyr: 0, ctu: 0, uC: 0, dg: K.dg || [], dgT: 0, cEj: -1, cBl: -1,
     cxp: cx0 - d[0] * C.LH * C.SC, cyp: cy0 - d[1] * C.LH * C.SC, cvx: d[0] * C.ASPD, cvy: d[1] * C.ASPD }); }
-function carEnd() { K.wpCd = 0; K.cr = -1; K.ctu = 0; K.z = 0; if (!(K.dg && K.dg.length)) { K.ulOn = 0; K.ultBase = K.kills; } }
+function carEnd() { K.wpCd = 0; K.cr = -1; K.st = 'fight'; K.ctu = 0; K.z = 0; if (!(K.dg && K.dg.length)) { K.ulOn = 0; K.ultBase = K.kills; } }
 // driving: steering toward the stick capped by a turning radius that grows with speed, throttle, coasting, and grip that lets go in hard turns
 function carDrive(dt, t, mv) { const C = TT.CAR, mvL = Math.hypot(mv[0], mv[1]), m = mvL > 0.15 ? Math.min(1, mvL) : 0, want = m ? gAng(mv[0], mv[1]) : K.crh, diff = wrapA(want - K.crh);
   const Rt = 15 + K.cv * 0.12, maxYaw = Math.max(m ? 1.2 : 0, K.cv / Rt), yaw = cl(diff * 4.5, -maxYaw, maxYaw); K.cyr = lerp(K.cyr || 0, yaw, 1 - Math.exp(-dt * 7)); K.crh = wrapA(K.crh + K.cyr * dt);
@@ -4613,6 +4626,7 @@ function draw() {
   drawFxGround(x); drawGouges(x, t); ttGround(x); drawVolcFloor(x, t); drawBikePreview(x, t); drawLeapPreview(x, t); drawHeliDraw(x, t); drawDashPreview(x, t); drawSweepPreview(x, t); drawCoalPreview(x);
   for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = pAlpha(p); drawPartFast(x, p); } x.globalAlpha = 1;
   const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(TRAPS.filter(q => q.t >= TT.TRAP.FLY).flatMap(q => { const G = trapGeo(q); return [[q.y, 6, q], [G.ey + 0.01, 7, q]]; })).concat(dinoList()).concat(dgList()).concat(KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.cr >= 0).map(kn => [kn.cyp, 10, kn])).concat(WRECKS.flatMap(q => [[q.y, 11, { q, ship: 0 }], [q.sy + 0.01, 11, { q, ship: 1 }]])).concat(HDEAD.filter(inV).map(q => [q.y - 0.3, 9, q])).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
+  HPQ = [];
   for (const [, k, o] of list) {
     if (k < 2) { K = o; COL = o.col; }
     if (k === 4) { COL = o.col; drawFlail(x, o, t); K = KN[ME]; continue; }
@@ -4629,6 +4643,7 @@ function draw() {
     else if (k === 2) walker(x, o, t);
     else { x.fillStyle = 'rgba(0,0,0,.2)'; x.beginPath(); x.ellipse(o.x, o.y + 0.5, 1.6, 0.6, 0, 0, 7); x.fill(); drawPartFast(x, o); }
   }
+  { const Q = HPQ; HPQ = null; if (Q.length) { x.fillStyle = '#000a'; x.beginPath(); for (let i = 0; i < Q.length; i += 4) x.rect(Q[i], Q[i + 1], Q[i + 2], 1.4); x.fill(); x.fillStyle = '#e04b3a'; x.beginPath(); for (let i = 0; i < Q.length; i += 4) x.rect(Q[i], Q[i + 1], Q[i + 2] * Q[i + 3], 1.4); x.fill(); } }
   K = KN[ME];
   // stone blade covered by the boulder's front: redraw the boulder lip over the buried part
   // blood droplets are tiny: squares are far cheaper than round paths when a mass kill throws hundreds
@@ -4664,7 +4679,7 @@ function draw() {
   else if (document.body.classList.contains('ttab')) { document.body.classList.remove('ttab'); const sm2 = AOE.querySelector('small'); if (sm2) sm2.textContent = 'leap'; }
   const cdk = K.kind === 'time' ? (K.wpS === 2 ? (K.bk >= 0 && K.wpT >= TT.PORT.HOLD ? 0.04 : cl(1 - K.wpT / TT.PORT.HOLD, 0, 1)) : K.wpS ? 1 : cl((K.wpCd || 0) / TT.PORT.CD, 0, 1)) : K.kind === 'priest' ? (K.hoT > 0 ? 1 : cl((K.hoCd || 0) / WP.HO.CD, 0, 1)) : K.kind === 'fire' ? (K.lava ? 1 : cl((K.lvCd || 0) / LAVA.CD, 0, 1)) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
   { const FV = K.kind === 'fire', WPV = K.kind === 'priest', TV = K.kind === 'time', live = FV ? K.vPh >= 0 : WPV ? K.pPh >= 0 : TV ? (K.cr >= 0 || !!K.ulOn) : K.ultPh >= 0, pr = cl((K.kills - (K.ultBase || 0)) / ultNeed(K), 0, 1);
-    document.body.classList.toggle('volc', FV && live); document.body.classList.toggle('drive', TV && K.cr >= 0); const vOpen = K.vPh === 1 || (K.vPh === 0 && K.vT >= V.RISE - 1); VTAP.classList.toggle('on', FV && vOpen && K.vSh < V.SHOTS && !(K.vBel >= 0)); if (FV && vOpen) { const tx = `Tap the screen to erupt · ${V.SHOTS - K.vSh} left`; if (VTAP.textContent !== tx) VTAP.textContent = tx; }
+    document.body.classList.toggle('volc', FV && live); document.body.classList.toggle('drive', TV && carGone(K)); const vOpen = K.vPh === 1 || (K.vPh === 0 && K.vT >= V.RISE - 1); VTAP.classList.toggle('on', FV && vOpen && K.vSh < V.SHOTS && !(K.vBel >= 0)); if (FV && vOpen) { const tx = `Tap the screen to erupt · ${V.SHOTS - K.vSh} left`; if (VTAP.textContent !== tx) VTAP.textContent = tx; }
     if (FV) ULI.style.height = (live ? (K.vPh === 1 ? 1 - K.vT / V.T : K.vPh === 0 ? 1 : 0) : pr) * 100 + '%'; else if (WPV) ULI.style.height = (live ? (K.pPh === 1 ? 1 - K.pT / WP.PEN.T : K.pPh === 0 ? 1 : 0) : pr) * 100 + '%'; else if (TV) ULI.style.height = (live ? (K.cr === 0 ? 1 : K.cr === 1 ? 1 - cl(K.crT / TT.CAR.T, 0, 1) : 0) : pr) * 100 + '%'; else ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live);
     const lab = live ? (TV ? '' : FV ? (K.vPh === 1 ? Math.ceil(V.T - K.vT) + 's' : '') : WPV ? (K.pPh === 1 ? Math.ceil(WP.PEN.T - K.pT) + 's' : '') : K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (K.kills - (K.ultBase || 0)) + '/' + ultNeed(K); if (ULS.textContent !== lab) ULS.textContent = lab;
     document.body.classList.toggle('pen', WPV && live); if (WPV && live && !PENPOS) penPos(); if (!(WPV && live)) PENPOS = 0;
@@ -4692,6 +4707,7 @@ function frame(ms) {
   const dt = Math.min(0.05, (ms - last) / 1000) * speed; last = ms; t += dt; step(dt, t); sndWatch(); draw();
   FP.work += performance.now() - w0; if (iv > 0 && iv < 150) { FP.acc += iv; FP.n++; }
   if (ms - FP.t0 > 1000) { const n = FP.n, avg = n ? FP.acc / n : 16; FP.fps = n ? Math.round(1000 / avg) : 0; FP.ms = n ? FP.work / n : 0; FP.t0 = ms; FP.acc = FP.n = FP.work = 0;
+    FP.slow = n >= 10 && avg > 30 && QL <= 0.56;
     if (n >= 10 && avg > 24 && QL > 0.56) { QL = Math.max(0.55, QL * 0.85); if (ms - FP.lastUp < 4000) FP.noUp = true; FP.lastDrop = ms; resize(); }
     else if (n >= 10 && avg < 19 && QL < 1 && !FP.noUp && ms - FP.lastDrop > 10000 && ms - FP.lastUp > 10000) { QL = Math.min(1, QL / 0.85); FP.lastUp = ms; resize(); }
     if (SHOWFPS) FPSE.textContent = `${FP.fps} fps · ${FP.ms.toFixed(1)} ms · ${cv.width}x${cv.height}${QL < 1 ? ' · ' + Math.round(QL * 100) + '%' : ''}`; }
@@ -4970,7 +4986,7 @@ function netTick(dt) {
   const now = performance.now();
   if (NET.mode === 'host') {
     // 15 snapshots/s, 10/s once there are big hordes about (keeps each guest's download near 200KB/s on MAX)
-    if (now - (NET.lastSend || 0) > (walkers.length > 300 ? 100 : 66)) { NET.lastSend = now; const pl = { k: KN.map(packK), w: walkers.filter(w => LIVE().some(k2 => Math.abs(w.x - k2.x) < 300)).slice(0, 560).map(packW), e: EV.splice(0), sw: SAWS.map(q => [q.i, q.n, r1(q.x), r1(q.y), Math.round(q.a * 100) / 100, q.out ? 1 : 0]), sp: speed, hz: [HZ.rate, HZ.kinds] }; if (window.__snapStat) window.__snapB = Math.max(window.__snapB || 0, JSON.stringify(pl).length); NET.ch.send({ type: 'broadcast', event: 's', payload: pl }); }
+    if (now - (NET.lastSend || 0) > (walkers.length > 600 ? 125 : walkers.length > 300 ? 100 : 66)) { NET.lastSend = now; const pl = { k: KN.map(packK), w: walkers.filter(w => LIVE().some(k2 => Math.abs(w.x - k2.x) < 300)).slice(0, 900).map(packW), e: EV.splice(0), sw: SAWS.map(q => [q.i, q.n, r1(q.x), r1(q.y), Math.round(q.a * 100) / 100, q.out ? 1 : 0]), sp: speed, hz: [HZ.rate, HZ.kinds] }; if (window.__snapStat) window.__snapB = Math.max(window.__snapB || 0, JSON.stringify(pl).length); NET.ch.send({ type: 'broadcast', event: 's', payload: pl }); }
   } else {
     if ((NET.inDirty && now - (NET.lastIn || 0) > 50) || now - (NET.lastIn || 0) > 250) { NET.lastIn = now; NET.inDirty = 0; NET.ch.send({ type: 'broadcast', event: 'in', payload: Object.assign(packIn(KN[ME].in), { s: ME }) }); }
     if (now - NET.lastSnap > 4000 && !NET.lostNoted) { NET.lostNoted = 1; note('Lost connection to the host', 6); }
