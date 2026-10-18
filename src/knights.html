@@ -645,6 +645,7 @@ function drawKnight(c, t) {
     if (K.kn <= 0.5) leg(c, P.hips[lf], P.knees[lf], P.feet[lf], f, false, false, bv);
     torso(c, P, f, P.back || P.away);
     if (K.kn > 0.5) leg(c, P.hips[lf], P.knees[lf], P.feet[lf], f, false, false, bv);
+    if (window.__labelLegs) window.__legT = [[P.feet[lb], 'BACK', '#1e90ff'], [P.feet[lf], 'FRONT', '#ff3b30']];
   };
   const hd = () => head(c, P, f, t, P.away ? 'away' : P.back);
   if (P.back && !P.away) { // straight from behind: arms and sword are all on the far side of him
@@ -667,6 +668,7 @@ function drawKnight(c, t) {
   }
   if (PLATE > 0 && PLATE < 1) { // transforming: light floods over him
     c.save(); c.globalCompositeOperation = 'lighter'; const gl = Math.sin(PLATE * Math.PI), g = c.createRadialGradient(P.C[0], P.C[1], 0, P.C[0], P.C[1], 12); g.addColorStop(0, `rgba(255,245,210,${0.85 * gl})`); g.addColorStop(1, 'rgba(255,230,160,0)'); c.fillStyle = g; c.beginPath(); c.arc(P.C[0], P.C[1], 12, 0, 7); c.fill(); c.restore(); }
+  if (window.__labelLegs && window.__legT) for (const [k, txt, col] of window.__legT) { c.fillStyle = col; c.font = '700 1.3px system-ui'; c.textAlign = 'center'; c.lineWidth = 0.3; c.strokeStyle = '#fff'; c.strokeText(txt, k[0], k[1] + (txt === 'BACK' ? 4.2 : 2.6)); c.fillText(txt, k[0], k[1] + (txt === 'BACK' ? 4.2 : 2.6)); }
   if (window.__labelArms && window.__tags) for (const [m, txt, col] of window.__tags) { c.save(); c.translate(m[0], m[1]); c.fillStyle = col; c.strokeStyle = '#fff'; c.lineWidth = 0.18; c.beginPath(); c.arc(0, 0, 0.62, 0, 7); c.fill(); c.stroke(); c.fillStyle = "#fff"; c.font = "700 0.85px system-ui"; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 0, 0.05); c.restore(); }
   c.restore();
 }
@@ -2699,10 +2701,12 @@ function drawPriest(c, t) {
   if (haftBack) haft();
   if (aBehind) { armA(); if (!cenBack) censer(); }
   const far = f > 0 ? 0 : 1, near = 1 - far;
-  tpLeg(c, P.hips[far], P.knees[far], P.feet[far], f, true, (K.kn || 0) > 0.5);
-  if ((K.kn || 0) <= 0.5) tpLeg(c, P.hips[near], P.knees[near], P.feet[near], f, false, false);
+  // legs: standing, the one on the facing side is in front (drawn last), the other behind (darker); kneeling keeps the original order
+  const lsw = !((K.kn || 0) > 0.5), lb = lsw ? near : far, lf = lsw ? far : near;
+  tpLeg(c, P.hips[lb], P.knees[lb], P.feet[lb], f, true, (K.kn || 0) > 0.5);
+  if ((K.kn || 0) <= 0.5) tpLeg(c, P.hips[lf], P.knees[lf], P.feet[lf], f, false, false);
   tpTorso(c, P, f); tpSkirt(c, P, f, sway * 0.5);
-  if ((K.kn || 0) > 0.5) tpLeg(c, P.hips[near], P.knees[near], P.feet[near], f, false, false);
+  if ((K.kn || 0) > 0.5) tpLeg(c, P.hips[lf], P.knees[lf], P.feet[lf], f, false, false);
   if (!aBehind) { armA(); if (!cenBack) censer(); }
   // great helm (bigger than the knight's)
   c.save(); c.translate(P.head[0], P.head[1] + 0.3); c.rotate(f * (P.lean || 0) * 0.3 + f * (K.kn || 0) * 0.25); tpHelm(c, f, t); c.restore();
@@ -2711,6 +2715,7 @@ function drawPriest(c, t) {
   armB(); if (!haftBack) haft(); tpGauntlet(c, P.hB, true);
   K.handW = [K.x + he[0] * S * 1.1, K.y - z + he[1] * S]; K.cenW = [K.x + cp[0] * S * 1.1, K.y - z + cp[1] * S];
   if (window.__labelArms) { for (const [sh, h, txt, col] of [[P.shA, P.hA, 'A', '#ff3b30'], [P.shB, P.hB, 'B', '#1e90ff']]) { const m = L2(sh, h, 0.5); c.fillStyle = col; c.beginPath(); c.arc(m[0], m[1], 0.62, 0, 7); c.fill(); c.fillStyle = '#fff'; c.font = '700 0.85px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, m[0], m[1] + 0.05); } }
+  if (window.__labelLegs) for (const [i, txt, col] of [[lb, 'BACK', '#1e90ff'], [lf, 'FRONT', '#ff3b30']]) { const k = P.feet[i]; c.fillStyle = col; c.font = '700 1.6px system-ui'; c.textAlign = 'center'; c.lineWidth = 0.35; c.strokeStyle = '#fff'; c.strokeText(txt, k[0], k[1] + (txt === 'BACK' ? 5.2 : 3.2)); c.fillText(txt, k[0], k[1] + (txt === 'BACK' ? 5.2 : 3.2)); }
   PLATE = PL0; c.restore();
   // incense smoke and the odd ember off the censer
   { const sw = u >= 0; if (Math.random() < dt * (sw ? 30 : 7)) dust.push({ x: K.cenW[0], y: K.cenW[1] - 1, vx: rr(-2, 2) - (sw ? Math.cos(ca) * 8 : 0), vy: -rr(4, 9), r: rr(0.6, 1.1), t: 0, max: rr(0.8, 1.6) });
