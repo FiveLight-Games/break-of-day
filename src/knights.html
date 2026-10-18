@@ -67,7 +67,7 @@ body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !
 <div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button><button data-n="50">+50</button></div><div class="hrow"><span>Test</span><button id="fillUlt">Fill ult</button><button id="clear">Clear all enemies</button></div></div>
 <div id="layEd"><b id="layTitle">Control layout</b><span id="layHint">Drag a button's middle to move it, its rim to resize it.</span><div class="lrow"><span id="layName">Move stick</span><input type="range" id="laySize" min="44" max="230" step="1"><span id="laySizeV" class="lnum"></span></div><span id="layWarn"></span><div class="lrow"><button id="layReset">Reset</button><button id="layDone" class="pri2">Done</button></div></div>
 <div id="exitQ"><div><p>Exit to main menu?</p><div class="row"><button id="exitNo">Stay</button><button id="exitYes">Exit</button></div></div></div>
-<div id="top"><button id="setBtn" title="Menu">&#9881; Menu</button><button id="hordeBtn">&#9776; Horde</button><button id="charBtn" title="Change character">&#9823; Character</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><div id="stats"></div></div>
+<div id="top"><button id="setBtn" title="Menu">&#9881; Menu</button><button id="hordeBtn">&#9776; Horde</button><button id="charBtn" title="Change character">&#9823; Character</button><button id="reset">Reset</button><button class="fsBtn" title="Full screen">&#x26F6; Full screen</button><button id="slow">Slow-mo: off</button><div id="stats"></div></div>
 <div id="vol" title="Music volume"><span>&#9835;</span><div class="vtr"><div class="vfill"></div></div></div>
 <div id="setP" class="pnl"><div class="hrow"><b>Menu</b></div><div class="hrow"><a id="menuBtn" href="./">&#8962; Main Menu</a><button id="restartBtn" title="Back to the start screen (pick a character, host or join)">&#8635; Restart</button></div><div class="hrow"><button id="sound">Sound: on</button><button id="music">Music: on</button></div><div class="hrow"><button id="layBtn" title="Control layout">&#10021; Controls setup</button><button id="zones">Hit zones: off</button></div><div class="hrow"><button id="fpsBtn">FPS: off</button></div></div><div id="fps"></div>
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
@@ -4784,6 +4784,12 @@ document.getElementById('restartBtn').addEventListener('click', e => { e.current
 const doReset = () => { if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'reset' } }); setup(); if (NET) NET.resync = 1; };
 document.getElementById('clear').onclick = doClear;
 document.getElementById('reset').onclick = doReset;
+// full screen (Fullscreen API; webkit prefix for older Safari); the buttons hide where it isn't supported (iPhone Safari)
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement, fsOK = () => !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
+function fsToggle() { const d = document.documentElement; try { if (fsEl()) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else { const r = (d.requestFullscreen || d.webkitRequestFullscreen).call(d, { navigationUI: 'hide' }); if (r && r.then) r.then(() => { try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => { }); } catch (e) { } }).catch(() => { }); } } catch (e) { } }
+function fsLabel() { document.querySelectorAll('.fsBtn').forEach(b => { b.style.display = fsOK() ? '' : 'none'; b.innerHTML = fsEl() ? '&#x2715; Exit full screen' : '&#x26F6; Full screen'; }); }
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('.fsBtn'); if (b) { e.preventDefault(); fsToggle(); b.blur(); } });
+['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { fsLabel(); setTimeout(resize, 120); })); fsLabel();
 { const SB = document.getElementById('sound'), lab = () => SB.textContent = 'Sound: ' + (AU.on ? 'on' : 'off'); lab(); SB.onclick = () => { audioInit(); setSound(!AU.on); lab(); }; const VT = document.querySelector('#vol .vtr'), VF = document.querySelector('#vol .vfill'), MB = document.getElementById('music'), ml = () => { MB.textContent = 'Music: ' + (AU.vol > 0 ? 'on' : 'off'); VF.style.height = AU.vol + '%'; }; ml();
   // a narrow vertical slider on the right edge: it follows the finger itself (the page blocks touch scrolling)
   let vid = null; const vset = e => { const r = VT.getBoundingClientRect(), v = Math.round(cl((r.bottom - e.clientY) / r.height, 0, 1) * 100); if (AU.vol !== v) { audioInit(); setVol(v); } ml(); };
@@ -4990,7 +4996,7 @@ function lobby(screen, extra) {
     <div class="gh"><b>Open games</b><span id="lDirNote">${DIR.ready ? '' : 'Looking…'}</span></div><div class="games" id="lGames"></div>
     <button class="big pri" id="lHost" ${getSB() ? '' : 'disabled'}>Host a game</button>
     <button class="big" id="lChars"><img src="${charPic(CHAR)}" alt=""><span><small>Character</small>${CNAME[CHAR] || 'Knight'}</span></button>
-    <button class="big" id="lSolo">Play solo</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
+    <button class="big" id="lSolo">Play solo</button><button class="fsBtn">&#x26F6; Full screen</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
   else if (screen === 'chars') LC.innerHTML = `<h1>Characters</h1><div class="cgrid">${['knight', 'fire', 'priest', 'time'].map(k => `<button data-ch="${k}" class="${CHAR === k ? 'on' : ''}"><img src="${charPic(k)}" alt=""><span>${CNAME[k]}</span></button>`).join('')}</div>
     <button class="big" id="lLay">Control layout · ${CNAME[CHAR] || 'Knight'}</button><button class="big pri" id="lBack">Done</button>`;
   else if (screen === 'hosting') LC.innerHTML = `<h1>Knight Brawl</h1><p>Give your friends this code</p><div class="code">${NET.code}</div><p>Waiting for players (up to 4; others can join any time)…</p>
@@ -4998,7 +5004,7 @@ function lobby(screen, extra) {
   else if (screen === 'joining') LC.innerHTML = `<h1>Knight Brawl</h1><p>Joining <b>${NET.code}</b>…</p><button id="lCancel">Cancel</button>`;
   const on = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
   on('lHost', host); on('lLay', () => layOpen(true)); const pick = c => { CHAR = c; try { localStorage.setItem('kn_char', c); } catch (e) { } charUI(c); applyLayout(); lobby('chars'); }; on('lChars', () => lobby('chars')); on('lBack', () => lobby('home')); LC.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => { audioInit(); pick(b.dataset.ch); if (b.dataset.ch === 'time') setTimeout(() => snd('tick'), 30); }); on('cKnight', () => pick('knight')); on('cFire', () => pick('fire')); on('cPriest', () => pick('priest')); on('cTime', () => pick('time')); on('cSword', () => pick('sword')); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
-  if (screen === 'home') renderGames();
+  if (screen === 'home') renderGames(); if (typeof fsLabel === 'function') fsLabel();
   on('lCancel', () => { leave(); lobby('home'); });
 }
 function leave() { unadvertise(); if (NET && NET.ch) { try { NET.ch.untrack(); sbc.removeChannel(NET.ch); } catch (e) { } } NET = null; }
