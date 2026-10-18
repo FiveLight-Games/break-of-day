@@ -2824,7 +2824,8 @@ function timeStep(dt, t) {
   if (K.cs >= 0) { const W0 = K.csW, T = [TT.CANE.T, TT.SABER.T, TT.GUN.T + (K.gR || 0), 1, TT.SAW.T][W0], c0 = K.cs; K.cs += dt;
     if (W0 === 2 && K.gq && K.cs >= (K.gR || 0)) ttShot(t);
     if (W0 === 0 && c0 < TT.CANE.T * TT.CANE.HIT && K.cs >= TT.CANE.T * TT.CANE.HIT && AUTH()) ttCone(TT.CANE.R, TT.CANE.HALF, TT.CANE.DMG, TT.CANE.KB, (w, a) => flingFx(w, a, 0.9));
-    if (W0 === 1 && K.dsP && !ttRiding(K)) { const D = TT.SABER.DASH, qf = c => smt(cl((c - D.T0) / (D.T1 - D.T0), 0, 1)), dq = qf(K.cs) - qf(c0), d = gDir(K.dsA), ox = K.x, oy = K.y; K.x += d[0] * D.D * dq; K.y = cl(K.y + d[1] * D.D * dq, 16, H - 4); K.dsd = (K.dsd || 0) + Math.hypot(K.x - ox, K.y - oy);
+    // (while the bike is on its way to him the slices don't carry him, so he can't outrun it)
+    if (W0 === 1 && K.dsP && !ttRiding(K) && K.bk !== 0) { const D = TT.SABER.DASH, qf = c => smt(cl((c - D.T0) / (D.T1 - D.T0), 0, 1)), dq = qf(K.cs) - qf(c0), d = gDir(K.dsA), ox = K.x, oy = K.y; K.x += d[0] * D.D * dq; K.y = cl(K.y + d[1] * D.D * dq, 16, H - 4); K.dsd = (K.dsd || 0) + Math.hypot(K.x - ox, K.y - oy);
       // cut along the path: anyone he dashes past is sliced once per swing
       if (AUTH() && (K.x !== ox || K.y !== oy)) for (const w of walkers) { if (w.hp <= 0 || w.air || w.sdH === K.csN || Math.abs(w.x - K.x) > 20) continue; if (ptSeg([w.x, w.y], [ox, oy], [K.x, K.y]) > D.R + UK[w.k].r) continue; w.sdH = K.csN; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; const aa = Math.atan2(w.y - K.y, w.x - K.x); hurt(w, TT.SABER.DMG, ww => ttKillFx(ww, aa, 0)); } }
     if (K.cs >= T) { K.cs = -1; K.dsP = null; if (W0 === 2) { K.gEnd = t; if (K.ammo <= 0) K.rl = 0; } } }
