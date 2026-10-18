@@ -439,6 +439,7 @@ function drawLeapPreview(c, t) {
   // a Warpriest with his flail out: the pull along the chain
   if (kn.kind === 'priest' && !(kn.hOut > 0 || kn.hRet >= 0) && (kn.ab || kn.slCd > 0 || kn.slWait)) return;
   if (kn.kind === 'priest' && kn.hOut > 0) { c.save(); c.strokeStyle = 'rgba(255,240,190,.85)'; c.lineWidth = 0.7; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 14; c.beginPath(); c.moveTo(kn.x, kn.y - 6); c.lineTo(kn.hx, kn.hy - 3); c.stroke(); c.restore(); return; }
+  if (kn.kind === 'time' && kn.wpn === 1) return drawBoomPreview(c, kn, leapTarget(kn, LEAPAIM), t);
   const aim0 = leapTarget(kn, LEAPAIM), spot = kn.kind === 'time' && kn.wpn === 4 ? trapSpot(kn, ...aim0) : null, [tx, ty] = spot || aim0, pul = 0.5 + 0.5 * Math.sin(t * 8), alo = kn.kind === 'time' && kn.wpn === 3 && kn.hu === 2, O = alo ? { x: kn.hux, y: kn.huy } : kn;
   c.save();
   c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 0.4; c.setLineDash([1.5, 1.5]); const WPK = kn.kind === 'priest', TTK = kn.kind === 'time', LR = TTK ? (kn.wpn === 4 ? TT.TRAP.RANGE : kn.wpn === 1 ? TT.BOOM.RANGE : TT.HURL.RANGE) : WPK ? WP.SL.RANGE : LEAP_R * (kn.ultPh >= 0 ? ULT_LEAP : 1), SR = TTK ? (kn.wpn === 4 ? TT.TRAP.ARM + TT.TRAP.BL : kn.wpn === 1 ? TT.BOOM.R : 14) : WPK ? WP.SL.WAVE : kn.ultPh >= 0 ? ULT_SLAM_R : SLAM_R; c.beginPath(); c.ellipse(O.x, O.y, LR, LR * 0.8, 0, 0, 7); c.stroke();
@@ -455,6 +456,16 @@ function drawLeapPreview(c, t) {
   c.restore();
 }
 
+// the saber throw's aim: the whole loop it will fly, as a band the width of what it cuts, with chevrons running round it the way it goes,
+// and a small mark at the far tip; plus the faint range ring
+function drawBoomPreview(c, kn, tg, t) { const BM = TT.BOOM, f = kn.f || 1, sx = kn.x + f * 3.5, sy = kn.y, pts = []; for (let i = 0; i <= 64; i++) pts.push(boomPt(sx, sy, tg[0], tg[1], i / 64));
+  c.save(); c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 0.4; c.setLineDash([1.5, 1.5]); c.beginPath(); c.ellipse(kn.x, kn.y, BM.RANGE, BM.RANGE * 0.8, 0, 0, 7); c.stroke(); c.setLineDash([]);
+  const path = () => { c.beginPath(); pts.forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); };
+  c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = 'rgba(255,220,120,.16)'; c.lineWidth = BM.R * 2 * 0.9; path(); c.stroke();
+  c.strokeStyle = 'rgba(255,240,190,.85)'; c.lineWidth = 0.6; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 10; path(); c.stroke(); c.setLineDash([]);
+  c.fillStyle = 'rgba(255,240,190,.9)'; for (let k = 0; k < 5; k++) { const s0 = ((t * 0.35 + k / 5) % 1), a = boomPt(sx, sy, tg[0], tg[1], s0), b = boomPt(sx, sy, tg[0], tg[1], Math.min(1, s0 + 0.01)), an = Math.atan2(b[1] - a[1], b[0] - a[0]);
+    c.save(); c.translate(a[0], a[1]); c.rotate(an); c.beginPath(); c.moveTo(1.6, 0); c.lineTo(-1, 1.2); c.lineTo(-0.3, 0); c.lineTo(-1, -1.2); c.closePath(); c.fill(); c.restore(); }
+  c.strokeStyle = 'rgba(255,236,170,.9)'; c.lineWidth = 0.6; c.beginPath(); c.ellipse(tg[0], tg[1], 2.2, 1.6, 0, 0, 7); c.stroke(); c.restore(); }
 // total angle the blade has swept: steady turns, a short wind-in and wind-down
 const spinSector = a => ((Math.floor((a + Math.PI / 8) / (Math.PI / 4)) % 8) + 8) % 8;
 function spinSwept() { const u = cl(K.spin / SPIN_T, 0, 1), e1 = 0.001, e2 = 0.08, A = 1 - e1 / 2 - e2 / 2, v = u < e1 ? u * u / (2 * e1) : u < 1 - e2 ? e1 / 2 + (u - e1) : A - (1 - u) * (1 - u) / (2 * e2); return v / A * (SPIN_O + SPIN_TURNS * Math.PI * 2); }
@@ -2509,7 +2520,7 @@ const TT = {
   TRAP: { RANGE: 100, FLY: 0.45, R: 9, ARM: 20.8, BL: 8.25, SPIN: 11.25, UP: 0.35, H: 7.5, DMG: 160, GAP: 0.3, CD: 6, N: 2, NEXT: 0.5 },
   SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 30, BR: 110, TURN: 3, CONE: 0.873, DMG: 175, W: 9.625, Z: 8, R: 6.6, GUN: 1.3, MU: [3.8, 0.6], HZ: 5 },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
-  BOOM: { RANGE: 123.5, OUT: 0.475, CURVE: 16, SPD: 264.5, R: 16.8, DMG: 200, CD: 0, SPIN: 24, Z: 6, SZ: 1.82 },
+  BOOM: { RANGE: 123.5, LOOP: 1.0, WID: 0.25, R: 16.8, DMG: 200, CD: 0, SPIN: 24, Z: 6, SZ: 1.82 },
   BIKE: { BV: 140, CD: 10, T: 7, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
 };
 const TTC = { SKIN: '#e8bb98', SKIND: '#c08f6c', HAIR: '#6b4a33', HAIRL: '#8a6446', TROU: '#3a3842', TROUD: '#2c2a33', SHOE: '#16131a', SPAT: '#e9e3d3', VEST: '#2e2a35', VESTL: '#433d4c', SHIRT: '#f4f1ea', GLOVE: '#efe9dc', GLOVED: '#cfc6b2',
@@ -2648,6 +2659,10 @@ function ttStart(IN, t) { const a = gAng(IN.aim[0], IN.aim[1]), wq = K.wpS === 2
 // line (round the twelve) reaches for the nearest enemy in the cone no other tentacle has, grabs it, and either lifts and throws it
 // (mode 0) or coils round it and squeezes until it bursts (mode 1). tc[j] = [walker id, mode, start time on the alC clock, done flag]
 // where the alien's tentacles come from: him (a cone along his aim), or the creature itself once tossed (all the way round it)
+// the saber's loop: an ellipse from his hand out to the aimed spot and back, symmetric about the aim line (`WID` x its length across),
+// swinging out on one side and home on the other; theta runs evenly in time, so it slows at the far tip as it turns and is fastest along the sides
+function boomPt(sx, sy, tx, ty, s) { const gx = tx - sx, gy = (ty - sy) * 1.25, L = Math.hypot(gx, gy) || 1, ux = gx / L, uy = gy / L, a = L / 2, b = L * TT.BOOM.WID, th = s * Math.PI * 2, al = a * (1 - Math.cos(th)), pp = b * Math.sin(th);
+  return [sx + ux * al - uy * pp, sy + (uy * al + ux * pp) / 1.25]; }
 // his weapon is away from his hand (the alien tossed out, the saber thrown): he has the cane meanwhile
 const ttAway = kn => (kn.wpn === 3 && kn.hu >= 1) || (kn.wpn === 1 && kn.sb >= 1);
 const ttO = kn => kn.hu >= 1 ? [kn.hux, kn.huy, kn.alq ? 0 : 1] : [kn.x, kn.y, 0];
@@ -2716,7 +2731,7 @@ function timeStep(dt, t) {
   // test buttons: a given weapon right now (through the portal if he has none, swapped straight in if he has one)
   if ((IN.twN || 0) !== (K.twSeen || 0)) { K.twSeen = IN.twN || 0; const v = IN.twV | 0; if (ready && v >= 1 && v <= 4) { K.wpL = v; if (K.wpS === 2) Object.assign(K, { wpn: v, wpT: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1, al: 0, tc: null, hu: -1, sb: -1, sbCd: 0, trQ: TT.TRAP.N, trCd: 0, trG: 0 }); else if (K.wpS === 0) Object.assign(K, { wpn: v, wpL: v, wpS: 1, wpT: 0, wpCd: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1, trQ: TT.TRAP.N, trCd: 0, trG: 0 }); else if (K.wpS === 1) K.wpn = v; } }
   if (K.wpS === 1) { K.wpT += dt; if (K.wpT >= TT.PORT.IN) { K.wpS = 2; K.wpT = 0; } }
-  else if (K.wpS === 2) { K.wpT += dt; if (K.sb === 1 && ((lvP && ready) || K.wpT >= TT.PORT.HOLD)) { K.sb = 2; K.sbT = 0; K.sbsx = K.sbx; K.sbsy = K.sby; K.sbN = (K.sbN || 0) + 1; } if (!(K.sb >= 1) && K.hu !== 1 && K.hu !== 3 && ((lvP && ready) || (K.wpT >= TT.PORT.HOLD + (K.wpn === 3 ? 0.4 : 0) && K.bk !== 0 && K.bk !== 1))) { K.wpS = 3; K.wpT = 0; K.cs = -1; K.rl = -1; K.al = 0; K.tc = null; } }
+  else if (K.wpS === 2) { K.wpT += dt; if (!(K.sb >= 1) && K.hu !== 1 && K.hu !== 3 && ((lvP && ready) || (K.wpT >= TT.PORT.HOLD + (K.wpn === 3 ? 0.4 : 0) && K.bk !== 0 && K.bk !== 1))) { K.wpS = 3; K.wpT = 0; K.cs = -1; K.rl = -1; K.al = 0; K.tc = null; } }
   else if (K.wpS === 3) { K.wpT += dt; if (K.wpT >= TT.PORT.OUT) { K.wpS = 0; K.wpT = 0; K.wpn = 0; K.wpCd = TT.PORT.CD; K.hu = -1; K.sb = -1; K.sbCd = 0; K.trQ = TT.TRAP.N; K.trCd = 0; K.trG = 0; K.huCd = 0; } }
   // ---- weapon abilities on the leap circle: toss the alien (it grabs as it flies, then all round where it lands, then comes home) / a saw trap ----
   { const HU = TT.HURL, TR = TT.TRAP, wq0 = K.wpS === 2 ? K.wpn : 0, bsy = K.wpS === 1 || K.wpS === 3 || K.bk === 0 || K.bk === 2; if (K.huCd > 0) K.huCd -= dt; if ((K.trQ ?? TR.N) < TR.N) { K.trCd -= dt; if (K.trCd <= 0) { K.trQ = (K.trQ ?? TR.N) + 1; K.trCd = K.trQ < TR.N ? TR.CD : 0; } } else K.trCd = 0;
@@ -2725,10 +2740,9 @@ function timeStep(dt, t) {
     { const BM = TT.BOOM; if (K.sbCd > 0) K.sbCd -= dt;
       if (leapP && ready && !bsy && IN.leapT && wq0 === 1 && !(K.sb >= 1) && !(K.sbCd > 0)) { const tg = leapTarget(K, IN.leapT), f = K.f || 1; Object.assign(K, { sb: 1, sbT: 0, sbsx: r1(K.x + f * 3.5), sbsy: r1(K.y), sbtx: r1(tg[0]), sbty: r1(tg[1]), sbx: K.x + f * 3.5, sby: K.y, sbN: (K.sbN || 0) + 1 }); if (K.cs >= 0 && K.csW === 1) K.cs = -1; }
       if (K.sb >= 1) { K.sbT += dt; const ox = K.sbx, oy = K.sby;
-        if (K.sb === 1) { const u = cl(K.sbT / BM.OUT, 0, 1), e = 1 - (1 - u) * (1 - u), dx = K.sbtx - K.sbsx, dy = (K.sbty - K.sbsy) * 1.25, dl = Math.hypot(dx, dy) || 1, cv = BM.CURVE * Math.sin(Math.PI * u) * (Math.min(1, dl / 60));
-          K.sbx = lerp(K.sbsx, K.sbtx, e) - dy / dl * cv; K.sby = lerp(K.sbsy, K.sbty, e) + dx / dl * cv / 1.25; if (u >= 1) { K.sb = 2; K.sbT = 0; K.sbsx = K.sbx; K.sbsy = K.sby; K.sbN = (K.sbN || 0) + 1; } }
-        else { const hx = K.x + (K.f || 1) * 3.5, hy = K.y, dx = hx - K.sbx, dy = (hy - K.sby) * 1.25, d = Math.hypot(dx, dy), v = BM.SPD * (0.45 + Math.min(1, K.sbT * 2.2)), st = Math.min(d, v * dt);
-          if (d > 0.01) { K.sbx += dx / d * st; K.sby += dy / d * st / 1.25; } if (d < 3) { K.sb = -1; K.sbCd = BM.CD; } }
+        // one even loop; the far half (s past 0.5) is the return pass, and the loop's end is pulled along with his hand so it comes back to him wherever he went
+        { const sp = cl(K.sbT / BM.LOOP, 0, 1), P0 = boomPt(K.sbsx, K.sbsy, K.sbtx, K.sbty, sp), hx = K.x + (K.f || 1) * 3.5, k = smt(sp); K.sbx = P0[0] + (hx - K.sbsx) * k; K.sby = P0[1] + (K.y - K.sbsy) * k;
+          if (K.sb === 1 && sp >= 0.5) { K.sb = 2; K.sbN = (K.sbN || 0) + 1; } if (sp >= 1) { K.sb = -1; K.sbCd = BM.CD; } }
         if (AUTH() && K.sb >= 1) { const key = K.i * 100000 + K.sbN; for (const w of walkers) { if (w.hp <= 0 || w.air || w.bmH === key || Math.abs(w.x - K.sbx) > 40) continue; const U = UK[w.k]; if (ptSeg([w.x, w.y], [ox, oy], [K.sbx, K.sby]) > BM.R + U.r) continue; w.bmH = key; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; const a = Math.atan2(w.y - K.sby, w.x - K.sbx); w.kx += Math.cos(a) * 30; w.ky += Math.sin(a) * 18; hurt(w, BM.DMG, ww => ttKillFx(ww, a, 0)); } } } }
     if (K.trG > 0) K.trG -= dt;
     if (leapP && ready && !bsy && IN.leapT && wq0 === 4 && (K.trQ ?? TR.N) > 0 && !(K.trG > 0) && trapSpot(K, ...leapTarget(K, IN.leapT))) { K.trG = TR.NEXT; const tg = trapSpot(K, ...leapTarget(K, IN.leapT)), P = ttPose(K, t), ga = P.ga ?? P.aB, gd = [Math.cos(ga), Math.sin(ga)], G = TT.SAW.GUN, U = TT.SAW.MU, pt = ttW(K, [P.hB[0] + G * (gd[0] * U[0] - gd[1] * U[1]), P.hB[1] + G * (gd[1] * U[0] + gd[0] * U[1])]);
