@@ -191,7 +191,7 @@ function setup() {
   KN = []; for (let i = 0; i < NP; i++) KN.push(mkKnight(i)); K = KN[ME]; K.in.ch = CHAR; if (MYCOL) K.in.col = K.col = MYCOL; if (CHAR === 'fire') makeFire(K); else if (CHAR === 'priest') makePriest(K, true); else if (CHAR === 'sword') makeSword(K); else if (CHAR === 'time') makeTime(K); GOUGE = []; SAWS = []; TTFX = []; SKID = [];
   // the host keeps empty seats empty after a reset
   if (NET && NET.mode === 'host') { const held = new Set(Object.values(NET.seats)); KN.forEach((kn, i) => { if (i && !held.has(i)) kn.on = 0; }); }
-  walkers = []; HDEAD = []; parts = []; blood = []; splats = []; dust = []; sparks = []; camX = K.x; camY = K.y - 6;
+  walkers = []; HDEAD = []; WRECKS = []; parts = []; blood = []; splats = []; dust = []; sparks = []; camX = K.x; camY = K.y - 6;
 }
 let camX = 0, camY = 0, hurtT = 0, lastHits = 0;
 // net: null = solo; {mode:'host'|'guest', ch, ...}
@@ -3284,6 +3284,7 @@ let SAWS = [], TTFX = [], SKID = [], TRAPS = [];
 // a saw trap's arm length (swings out, folds back) and angle (spinning up) at its age: the same on every screen
 const trapOut = q => q.end !== undefined ? (q.t - q.end) / 0.4 : 0, trapArm = q => { const TR = TT.TRAP, k = q.t - TR.FLY, out = trapOut(q); return TR.ARM * smt(cl((k - TR.UP * 0.5) / TR.UP, 0, 1)) * (1 - smt(Math.min(1, out))); }, trapAng = q => { const TR = TT.TRAP; return (q.a0 || 0) + TR.SPIN * Math.max(0, q.t - TR.FLY - TR.UP * 0.5) ** 1.15; };
 function ttFx(dt, t) {
+  wreckStep(dt);
   for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue; if (kn.hl >= 0) heliFx(kn); if (kn.cr >= 0) carFx(kn, dt); dgFx(kn, dt); if (kn.dn >= 0) { dinoFx(kn, dt); if (kn.dnSN !== kn.dnN) { kn.dnSN = kn.dnN; snd('rumble', kn.dnx, kn.dny); snd('trex', kn.dnx, kn.dny); } }
     // guests: the host's tossed-alien state (grabs; for other players its whole tentacle clock too)
     if (!AUTH() && kn.a2s && kn.a2s !== kn.a2sSeen) { kn.a2sSeen = kn.a2s; const P = ttA2(kn); if (kn === KN[ME]) { P.tc = kn.a2s.tc; P.alG = kn.a2s.alG; } else Object.assign(P, kn.a2s); }
@@ -3780,9 +3781,11 @@ function ttWreckBurn(c, P, ctr, er, bf, wr, t, R) {
   c.save(); c.globalCompositeOperation = 'lighter'; for (const [t0, u, h, s] of SHIPX) { const e = wr - t0; if (e < 0 || e > 0.55) continue; const k = e / 0.55, q = P(u, 0, h), r = 14 * s * (0.3 + 0.7 * (1 - (1 - k) ** 3)), al = (1 - k) ** 1.5, g = c.createRadialGradient(q[0], q[1], 0, q[0], q[1], r);
     g.addColorStop(0, `rgba(255,250,220,${al})`); g.addColorStop(0.35, `rgba(255,190,70,${0.9 * al})`); g.addColorStop(0.7, `rgba(230,80,20,${0.6 * al})`); g.addColorStop(1, 'rgba(120,30,10,0)'); c.fillStyle = g; c.beginPath(); c.arc(q[0], q[1], r, 0, 7); c.fill(); } c.restore(); }
 // fallen ships that block the ground: every Time Traveler's ship from the moment it lands until it's half faded
-const shipBlockers = () => KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.sc === 2 && kn.scT < TT.SHIP.LIE + TT.SHIP.FADE * 0.5);
+// solid footprints: fallen sky-dreadnoughts, and the Time Ride's wrecked car and spacecraft for WRK.LIE s after the crash
+const shipBlockers = () => KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.sc === 2 && kn.scT < TT.SHIP.LIE + TT.SHIP.FADE * 0.5).map(kn => ({ scx: kn.scx, scy: kn.scy, sch: kn.sch, A: TT.SHIP.BLK[0], B: TT.SHIP.BLK[1] }))
+  .concat(WRECKS.filter(q => q.t < WRK.LIE).flatMap(q => [{ scx: q.x, scy: q.y, sch: q.hd, A: TT.CAR.LH * TT.CAR.SC * 0.95, B: TT.CAR.WH * TT.CAR.SC * 0.95 }, { scx: q.sx, scy: q.sy, sch: q.sh, A: 13.5, B: 8.5 }]));
 // push o (x, y; body radius r) out of every ship's footprint: an ellipse BLK[0] along its heading by BLK[1] across, in iso-corrected ground space
-function shipPush(o, r, SB) { for (const kn of SB) { const [A, B] = TT.SHIP.BLK, ch = Math.cos(kn.sch || 0), sh = Math.sin(kn.sch || 0), dx = o.x - kn.scx, dy = (o.y - kn.scy) * 1.25;
+function shipPush(o, r, SB) { for (const kn of SB) { const A = kn.A, B = kn.B, ch = Math.cos(kn.sch || 0), sh = Math.sin(kn.sch || 0), dx = o.x - kn.scx, dy = (o.y - kn.scy) * 1.25;
   let al = dx * ch + dy * sh, ac = -dx * sh + dy * ch; const e = Math.hypot(al / (A + r), ac / (B + r)); if (e >= 1) continue;
   if (e < 0.02) ac = B + r; else { const k = 1 / e; al *= k; ac *= k; } o.x = kn.scx + al * ch - ac * sh; o.y = kn.scy + (al * sh + ac * ch) / 1.25; } }
 // ---- the helicopter strafe: everything is worked out from the synced call (hlx/hly strip start, hla heading, hlL length, hl clock) the same way on every screen ----
@@ -4122,9 +4125,9 @@ function carWheel(c, Sc, W, u, s, st, spin) { const R = 2.3, o = Sc(W(0, 0, 0)),
   for (const dv of offs) disc(dv, () => { c.fillStyle = '#16171a'; c.beginPath(); c.arc(0, 0, 1, 0, 7); c.fill(); });
   disc(out ? 0.02 : -0.97, () => { c.fillStyle = '#26282c'; c.beginPath(); c.arc(0, 0, 0.82, 0, 7); c.fill(); if (!out) return; c.fillStyle = '#8e959d'; c.beginPath(); c.arc(0, 0, 0.6, 0, 7); c.fill(); c.fillStyle = '#3c4148'; c.beginPath(); c.arc(0, 0, 0.5, 0, 7); c.fill();
     c.strokeStyle = '#aab1b8'; c.lineWidth = 0.1; c.beginPath(); for (let i = 0; i < 5; i++) { const a = spin + i * 1.2566; c.moveTo(Math.cos(a) * 0.13, Math.sin(a) * 0.13); c.lineTo(Math.cos(a) * 0.5, Math.sin(a) * 0.5); } c.stroke(); c.fillStyle = '#c3c9cf'; c.beginPath(); c.arc(0, 0, 0.13, 0, 7); c.fill(); }); }
-function thunderDraw(c, x, y, z, hd, S, spin, steer) {
+function thunderDraw(c, x, y, z, hd, S, spin, steer, pitch = 0) {
   const faces = thunderMesh().concat([[8.3, 1, 1], [8.3, -1, 1], [-8.3, 1, 0], [-8.3, -1, 0]].map(([u, s, fr]) => ({ pts: [[u, s * 5.0, 2.3]], n: [0, s, 0], two: 1, draw: (c2, Sc, W) => carWheel(c2, Sc, W, u, s, fr ? steer : 0, spin) })));
-  return meshDraw(c, faces, x, y, z, hd, S); }
+  return meshDraw(c, faces, x, y, z, hd, S, pitch); }
 // ---- the spacecraft: an original time-ship: an elongated saucer hull with a lit rim in his colour, a glass dome over the cockpit (his top hat
 // showing through), a pointed prow, a dorsal fin, two thruster pods and a big glowing drive ring at the stern ----
 let CSHIP = null;
@@ -4191,7 +4194,7 @@ function carStep(dt, t, IN, mvL) { const C = TT.CAR; K.crT += dt;
       if (K.crT > tail) { const lead = Math.min(0.4, dist / K.cv), want = gAng(K.x + tvx * lead - K.cxp, K.y + tvy * lead - K.cyp), mx = (7 + 600 / Math.max(dist, 15)) * dt; K.crh = wrapA(K.crh + cl(wrapA(want - K.crh), -mx, mx)); }
       const d = gDir(K.crh); K.cvx = d[0] * K.cv; K.cvy = d[1] * K.cv; K.cxp += K.cvx * dt; K.cyp = cl(K.cyp + K.cvy * dt, 16, H - 4); if (AUTH()) carHits(t, K.cxp, K.cyp, K.crh, K.cv);
       const Lh = C.LH * C.SC; if (K.crT > tail && (ptSeg([K.x, K.y], [K.cxp - d[0] * Lh * 0.8, K.cyp - d[1] * Lh * 0.8], [K.cxp + d[0] * Lh, K.cyp + d[1] * Lh]) < C.WH * C.SC + 4 || K.crT > 3.5)) {
-        if (K.bk >= 0) { K.bk = -1; K.bkT = 0; K.bkCd = 0; }
+        K.cBk = K.bk >= 0 ? 1 : 0; if (K.bk >= 0) { K.bk = -1; K.bkT = 0; K.bkCd = 0; }
         Object.assign(K, { cHT: Math.round(K.crT * 1000) / 1000, cHitN: K.crN, ctx: r1(K.x), cty: r1(K.y), chd: Math.round(K.crh * 1000) / 1000, cr: 1, crT: 0, z: 0 }); K.x = K.cxp; K.y = K.cyp; return true; } }
     return false; }
   if (K.cr === 1) { K.cxp = K.x; K.cyp = K.y; carDrive(dt, t, mvL > 0 ? IN.mv : [0, 0]);
@@ -4274,6 +4277,9 @@ function ttPart(c, p) { const col = p.uk.slice(3), BL = '#7a1a12'; c.save(); c.t
   else if (p.kind === 'ttarm') { c.strokeStyle = col; c.lineWidth = 1.15; c.lineCap = 'round'; c.beginPath(); c.moveTo(0, -1.7); c.lineTo(0, 1.0); c.stroke(); c.fillStyle = '#f4f2ea'; c.beginPath(); c.arc(0, 1.55, 0.62, 0, 7); c.fill(); c.fillStyle = BL; c.beginPath(); c.arc(0, -1.9, 0.5, 0, 7); c.fill(); }
   else if (p.kind === 'ttlegs') { c.strokeStyle = '#4a4a52'; c.lineWidth = 1.2; c.lineCap = 'round'; c.beginPath(); c.moveTo(-0.8, -1.8); c.lineTo(-1.0, 1.6); c.moveTo(0.8, -1.8); c.lineTo(1.1, 1.6); c.stroke(); c.fillStyle = '#f0ede2'; c.fillRect(-1.6, 1.2, 1.2, 0.6); c.fillRect(0.5, 1.2, 1.2, 0.6); c.fillStyle = '#141414'; c.fillRect(-1.8, 1.8, 1.4, 0.5); c.fillRect(0.4, 1.8, 1.4, 0.5);
     c.fillStyle = '#3a3a42'; c.beginPath(); c.ellipse(0, -2, 1.6, 0.8, 0, 0, 7); c.fill(); c.fillStyle = BL; c.beginPath(); c.ellipse(0, -2.2, 1.0, 0.4, 0, 0, 7); c.fill(); }
+  else if (p.kind === 'ttbtank') { c.fillStyle = col; c.beginPath(); c.ellipse(0, 0, 2.4, 1.3, 0, 0, 7); c.fill(); c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.ellipse(-0.4, -0.5, 1.2, 0.4, 0, 0, 7); c.fill(); c.fillStyle = '#d6dbe1'; c.beginPath(); c.arc(0.6, -1.0, 0.35, 0, 7); c.fill(); }
+  else if (p.kind === 'ttbfork') { c.strokeStyle = '#d6dbe1'; c.lineWidth = 0.45; c.lineCap = 'round'; c.beginPath(); c.moveTo(-1.8, -2.2); c.lineTo(1.2, 2.2); c.moveTo(-1.0, -2.6); c.lineTo(2.0, 1.8); c.stroke(); c.strokeStyle = '#1e2026'; c.lineWidth = 0.35; c.beginPath(); c.moveTo(-2.8, -2.6); c.lineTo(0.2, -2.0); c.stroke(); c.fillStyle = '#f6f2d8'; c.beginPath(); c.arc(-1.2, -1.4, 0.6, 0, 7); c.fill(); }
+  else if (p.kind === 'ttbseat') { c.fillStyle = '#22232a'; c.beginPath(); c.ellipse(0, 0, 2.2, 0.75, 0, 0, 7); c.fill(); c.strokeStyle = '#555'; c.lineWidth = 0.3; c.beginPath(); c.moveTo(-1.8, 0.6); c.lineTo(1.8, 0.6); c.stroke(); }
   else if (p.kind === 'ttcane') { c.strokeStyle = '#2a1a10'; c.lineWidth = 0.45; c.lineCap = 'round'; c.beginPath(); c.moveTo(-2.7, 0); c.lineTo(2.5, 0); c.stroke(); c.fillStyle = '#c9ced4'; c.beginPath(); c.arc(2.7, 0, 0.5, 0, 7); c.fill(); }
   c.restore(); }
 // every screen: the run-over (his pieces fly), engine, skids, the sky portal, the blast, his landing
@@ -4281,6 +4287,9 @@ function ttGibs(kn) { const x = kn.ctx, y = kn.cty, d = gDir(kn.chd ?? kn.cph), 
   const P2 = (kind, sp, vz, z, sc = 1.3) => parts.push({ kind, uk, sc, x: x + rr(-1.5, 1.5), y: y + rr(-1, 1), z, vx: ca * sp + rr(-25, 25), vy: sa * sp * 0.8 + rr(-15, 15), vz, rot: rr(0, 6.28), spin: rr(-16, 16), t: 0, rest: 0, side: 1 });
   P2('tthat', rr(90, 130), rr(45, 60), 22); P2('tthead', rr(110, 150), rr(30, 45), 17); P2('tttorso', rr(120, 160), rr(18, 28), 11); P2('ttarm', rr(90, 140), rr(25, 40), 12); P2('ttarm', rr(100, 150), rr(20, 35), 12); P2('ttlegs', rr(80, 120), rr(14, 22), 4); P2('ttcane', rr(60, 120), rr(30, 50), 10);
   for (let i = 0; i < 5; i++) P2('gut', rr(60, 150), rr(10, 30), 9, rr(0.9, 1.2));
+  // riding when it hit him: the bike comes apart too (wheels, tank, fork, seat, bits)
+  if (kn.cBk) { const B2 = (kind, uk2, sc, z) => parts.push({ kind, uk: uk2, sc, x: x + rr(-3, 3), y: y + rr(-1.5, 1.5), z, vx: ca * rr(70, 150) + rr(-40, 40), vy: sa * rr(70, 150) * 0.8 + rr(-25, 25), vz: rr(20, 45), rot: rr(0, 6.28), spin: rr(-18, 18), t: 0, rest: 0, side: 1 });
+    B2('tire', 'golem', 1.25, 3); B2('tire', 'golem', 1.25, 3); B2('ttbtank', uk, 1.3, 6); B2('ttbfork', uk, 1.3, 6); B2('ttbseat', uk, 1.3, 5); for (let i = 0; i < 4; i++) B2('bolt', 'golem', 1.1, 4); B2('plate', 'golem', 1.1, 4); }
   spray(x, y, 12, Math.sign(ca) || 1, 50, 1.8); for (let i = 0; i < 12; i++) splats.push({ x: x + ca * rr(0, 30) + rr(-4, 4), y: y + sa * rr(0, 30) + rr(-3, 3), r: rr(0.8, 2), t: 0 });
   snd('gore', x, y, 1); snd('gslam', x, y); if (Math.abs(x - camX) < 160) shake = Math.max(shake, 0.4); }
 function carBoomFx(kn) { const x = kn.ckx, y = kn.cky;
@@ -4289,7 +4298,23 @@ function carBoomFx(kn) { const x = kn.ckx, y = kn.cky;
   for (let i = 0; i < 70; i++) { const a = rr(0, 6.28), v = rr(30, 120); dust.push({ x: x + Math.cos(a) * 5, y: y + Math.sin(a) * 2.5, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1.4, 3), t: 0, max: rr(0.6, 1.4) }); }
   const B = (kind, n, sc) => { for (let i = 0; i < n; i++) { const a = rr(0, 6.28), v = rr(40, 130); parts.push({ kind, uk: 'golem', sc, x: x + rr(-6, 6), y: y + rr(-3, 3), z: rr(4, 10), vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: rr(25, 60), rot: rr(0, 6.28), spin: rr(-14, 14), t: 0, rest: 0, side: 1 }); } };
   B('plate', 9, 1.6); B('bolt', 6, 1.2); B('tire', 4, 1.2);
+  wreckAdd(kn);
   snd('boom', x, y); snd('gslam', x, y); if (Math.abs(x - camX) < 200) shake = Math.max(shake, 0.9); }
+// the wrecks left by the crash: the burnt-out car and the spacecraft nose-down beside it, solid for WRK.LIE s, then they fade; drawn once into
+// canvases (charred), with smoke and a few flames on top while they lie
+const WRK = { LIE: 3, FADE: 0.6, RES: 4 }; let WRECKS = [];
+function wreckPic(fn, w, hgt, oy) { const R = WRK.RES, cv2 = document.createElement('canvas'); cv2.width = w * R; cv2.height = hgt * R; const g = cv2.getContext('2d'); g.setTransform(R, 0, 0, R, w / 2 * R, oy * R); fn(g);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(30,22,18,.5)'; g.fillRect(0, 0, cv2.width, cv2.height); return cv2; }
+function wreckAdd(kn) { const C = TT.CAR, hd = kn.crh || 0, sh = Math.atan2(kn.sdy || 0, kn.sdx || 1), sd = gDir(sh), x = kn.ckx, y = kn.cky;
+  const q = { x, y, hd, sh, sx: x + sd[0] * 9, sy: y + sd[1] * 9, t: 0, col: kn.col || COL };
+  q.car = wreckPic(g => thunderDraw(g, 0, 0, -1, hd, C.SC, 0, 0.35, 0.1), 56, 40, 28); q.ship = wreckPic(g => shipDraw(g, 0, 0, -2.5, sh, -0.5, 0, q.col), 56, 44, 30); WRECKS.push(q); if (WRECKS.length > 6) WRECKS.shift(); }
+function wreckStep(dt) { for (const q of WRECKS) { q.t += dt; if (q.t < WRK.LIE && Math.random() < dt * 6) { const p = Math.random() < 0.5 ? [q.x, q.y] : [q.sx, q.sy]; dust.push({ x: p[0] + rr(-8, 8), y: p[1] - rr(10, 16), vx: rr(-4, 4), vy: rr(-18, -10), r: rr(1.6, 3), t: 0, max: rr(0.8, 1.6) }); } }
+  WRECKS = WRECKS.filter(q => q.t < WRK.LIE + WRK.FADE); }
+function wreckDraw(c, o, t) { const q = o.q, a = 1 - sm(cl((q.t - WRK.LIE) / WRK.FADE, 0, 1)), x = o.ship ? q.sx : q.x, y = o.ship ? q.sy : q.y, im = o.ship ? q.ship : q.car, R = WRK.RES;
+  c.save(); c.globalAlpha = a; c.fillStyle = 'rgba(20,14,10,.35)'; c.beginPath(); c.ellipse(x, y + 0.5, 20, 6, 0, 0, 7); c.fill(); c.drawImage(im, x - im.width / R / 2, y - (o.ship ? 30 : 28), im.width / R, im.height / R);
+  // a few flames licking off it
+  for (let i = 0; i < 3; i++) { const fx = x + (i - 1) * 6 + Math.sin(t * 3 + i) * 1.5, fy = y - 6 - (o.ship ? 2 : 0), hh = (5 + 2 * Math.sin(t * 11 + i * 2)) * (1 - q.t / (WRK.LIE + WRK.FADE)); for (const [k, col] of [[1, '#d9431e'], [0.55, '#ffd23f']]) { c.fillStyle = col; c.beginPath(); c.moveTo(fx - 1.6 * k, fy); c.quadraticCurveTo(fx - 1.6 * k, fy - hh * k * 0.6, fx + Math.sin(t * 9 + i) * 0.8, fy - hh * k); c.quadraticCurveTo(fx + 1.6 * k, fy - hh * k * 0.6, fx + 1.6 * k, fy); c.fill(); } }
+  c.restore(); }
 function carFx(kn, dt) { const C = TT.CAR, S = kn.cFx && kn.cFx.n === kn.crN ? kn.cFx : (kn.cFx = { n: kn.crN });
   if (kn.cr === 0 && !S.go) { S.go = 1; snd('portal', kn.cx0, kn.cy0); snd('rumble', kn.cx0, kn.cy0); }
   if (kn.cHitN === kn.crN && !S.hit) { S.hit = 1; ttGibs(kn); }
@@ -4562,7 +4587,7 @@ function draw() {
   for (const kn of LIVE()) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
   drawFxGround(x); drawGouges(x, t); ttGround(x); drawVolcFloor(x, t); drawBikePreview(x, t); drawLeapPreview(x, t); drawHeliDraw(x, t); drawDashPreview(x, t); drawSweepPreview(x, t); drawCoalPreview(x);
   for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = pAlpha(p); drawPartFast(x, p); } x.globalAlpha = 1;
-  const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(TRAPS.filter(q => q.t >= TT.TRAP.FLY).flatMap(q => { const G = trapGeo(q); return [[q.y, 6, q], [G.ey + 0.01, 7, q]]; })).concat(dinoList()).concat(dgList()).concat(KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.cr >= 0).map(kn => [kn.cyp, 10, kn])).concat(HDEAD.filter(inV).map(q => [q.y - 0.3, 9, q])).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
+  const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(TRAPS.filter(q => q.t >= TT.TRAP.FLY).flatMap(q => { const G = trapGeo(q); return [[q.y, 6, q], [G.ey + 0.01, 7, q]]; })).concat(dinoList()).concat(dgList()).concat(KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.cr >= 0).map(kn => [kn.cyp, 10, kn])).concat(WRECKS.flatMap(q => [[q.y, 11, { q, ship: 0 }], [q.sy + 0.01, 11, { q, ship: 1 }]])).concat(HDEAD.filter(inV).map(q => [q.y - 0.3, 9, q])).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
   for (const [, k, o] of list) {
     if (k < 2) { K = o; COL = o.col; }
     if (k === 4) { COL = o.col; drawFlail(x, o, t); K = KN[ME]; continue; }
@@ -4574,6 +4599,7 @@ function draw() {
     else if (k === 8) { if (o.g) drawDinoQ(x, o, t); else drawDinoP(x, o, t); continue; }
     else if (k === 9) { drawHeavyDead(x, o); continue; }
     else if (k === 10) { carDrawP(x, o, t); continue; }
+    else if (k === 11) { wreckDraw(x, o, t); continue; }
     else if (k === 6 || k === 7) { drawTrapP(x, o, t, k === 6 ? 'tower' : 'blade'); continue; }
     else if (k === 2) walker(x, o, t);
     else { x.fillStyle = 'rgba(0,0,0,.2)'; x.beginPath(); x.ellipse(o.x, o.y + 0.5, 1.6, 0.6, 0, 0, 7); x.fill(); drawPartFast(x, o); }
@@ -4835,7 +4861,7 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plE', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'a2T', 'a2s', 'wpM', 'hl', 'hla', 'hlL', 'hlx', 'hly', 'hlN', 'hlCd', 'dn', 'dnf', 'dnx', 'dny', 'dnN', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc', 'cr', 'crT', 'crN', 'crh', 'cv', 'cvx', 'cvy', 'cyr', 'cxp', 'cyp', 'cx0', 'cy0', 'ctx', 'cty', 'cph', 'cHit', 'ulOn', 'cdn', 'ctu', 'cfx', 'cfy', 'cfvx', 'cfvy', 'ckx', 'cky', 'csx', 'csy', 'clx', 'cly', 'uC', 'dg', 'dgN', 'cHitN', 'chd', 'cHT', 'spx', 'spy', 'spz', 'sdx', 'sdy', 'sdz', 'sd0x', 'sd0y', 'sd0z', 'spv', 'sTr', 'cEj', 'cBl', 'ex0', 'ey0', 'ez0'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plE', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'a2T', 'a2s', 'wpM', 'hl', 'hla', 'hlL', 'hlx', 'hly', 'hlN', 'hlCd', 'dn', 'dnf', 'dnx', 'dny', 'dnN', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc', 'cr', 'crT', 'crN', 'crh', 'cv', 'cvx', 'cvy', 'cyr', 'cxp', 'cyp', 'cx0', 'cy0', 'ctx', 'cty', 'cph', 'cHit', 'ulOn', 'cdn', 'ctu', 'cfx', 'cfy', 'cfvx', 'cfvy', 'ckx', 'cky', 'csx', 'csy', 'clx', 'cly', 'uC', 'dg', 'dgN', 'cHitN', 'chd', 'cHT', 'spx', 'spy', 'spz', 'sdx', 'sdy', 'sdz', 'sd0x', 'sd0y', 'sd0z', 'spv', 'sTr', 'cEj', 'cBl', 'ex0', 'ey0', 'ez0', 'cBk'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
 const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, hdN: n.hdN || 0, hdP: n.hdP || null, twV: n.twV || 0, la: n.la || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
@@ -5023,7 +5049,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '2430d5';
+const KBUILD = '0d94fe';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
