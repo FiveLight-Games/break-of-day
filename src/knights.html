@@ -3107,7 +3107,7 @@ function timeStep(dt, t) {
   const lvP = (IN.lvN || 0) !== (K.lvSeen || 0); K.lvSeen = IN.lvN || 0; const dashP = (IN.dashN || 0) !== (K.dashSeen || 0); K.dashSeen = IN.dashN || 0; const leapP = (IN.leapN || 0) !== (K.leapSeen || 0); K.leapSeen = IN.leapN || 0; const ultP = (IN.ultN || 0) !== (K.ultSeen ?? (IN.ultN || 0)); K.ultSeen = IN.ultN || 0;
   // TIME RIDE (ult): a car comes out of a portal and runs him over; the player drives it while stampedes cross the field (see carStep);
   // the rest of him (weapon, bike) is frozen until he's back
-  if (ultP && K.st === 'fight' && !(K.cr >= 0) && !K.ulOn && ultReady(K) && (!(K.bk >= 0) || K.bk === 1) && (K.wpS === 0 || K.wpS === 2)) carStart();
+  if (ultP && K.st === 'fight' && !(K.cr >= 0) && !K.ulOn && ultReady(K) && (!(K.bk >= 0) || K.bk === 1)) carStart();
   if (K.dn >= 0) { K.dn += dt; if (AUTH()) dinoHits(dt, t); if (K.dn >= dinoTot(K)) { K.dn = -1; if (K.ulOn && !(K.cr >= 0)) { K.ulOn = 0; K.ultBase = K.kills; } } }
   if (K.dg && (K.dg.length || K.ulOn)) dgStep(dt, t);
   if (K.cr >= 0 && carStep(dt, t, IN, mvL)) return;
@@ -4167,10 +4167,13 @@ function shipDraw(c, x, y, z, hd, pitch, t, col) { const R = meshDraw(c, shipMes
 // ---- the ride itself (stepped for his knight in timeStep) ----
 // he's playing normally until the car reaches him; gone while he drives; back once he bails out of the craft
 const carGone = kn => kn.cr === 1 ? true : kn.cr === 2 ? !(kn.cEj >= 0) : false;
-function carStart() { const C = TT.CAR, f = K.f || 1, cx0 = r1(K.x - f * C.BACK * 0.85), cy0 = r1(cl(K.y - C.BACK * 0.45, 20, H - 10)), hd = gAng(K.x - cx0, K.y - cy0), d = gDir(hd);
+// his weapon goes back up its portal when he casts (and is gone outright when the car hits him); the portal is ready again the moment he lands
+function ttWeaponOff() { Object.assign(K, { wpS: 0, wpT: 0, wpn: 0, wpCd: 0, hu: -1, hlCd: 0, A2: null, a2s: null, sb: -1, sbCd: 0, scCd: 0, trQ: TT.TRAP.N, trCd: 0, trG: 0, huCd: 0, cs: -1, rl: -1, al: 0, tc: null }); }
+function carStart() { if (K.wpS === 1 || K.wpS === 2) Object.assign(K, { wpS: 3, wpT: 0, cs: -1, rl: -1, al: 0, tc: null });
+ const C = TT.CAR, f = K.f || 1, cx0 = r1(K.x - f * C.BACK * 0.85), cy0 = r1(cl(K.y - C.BACK * 0.45, 20, H - 10)), hd = gAng(K.x - cx0, K.y - cy0), d = gDir(hd);
   Object.assign(K, { cr: 0, crT: 0, crN: (K.crN || 0) + 1, ulOn: 1, cx0, cy0, cph: Math.round(hd * 1000) / 1000, crh: hd, cv: C.ASPD, cyr: 0, ctu: 0, uC: 0, dg: K.dg || [], dgT: 0, cEj: -1, cBl: -1,
     cxp: cx0 - d[0] * C.LH * C.SC, cyp: cy0 - d[1] * C.LH * C.SC, cvx: d[0] * C.ASPD, cvy: d[1] * C.ASPD }); }
-function carEnd() { K.cr = -1; K.ctu = 0; K.z = 0; if (!(K.dg && K.dg.length)) { K.ulOn = 0; K.ultBase = K.kills; } }
+function carEnd() { K.wpCd = 0; K.cr = -1; K.ctu = 0; K.z = 0; if (!(K.dg && K.dg.length)) { K.ulOn = 0; K.ultBase = K.kills; } }
 // driving: steering toward the stick capped by a turning radius that grows with speed, throttle, coasting, and grip that lets go in hard turns
 function carDrive(dt, t, mv) { const C = TT.CAR, mvL = Math.hypot(mv[0], mv[1]), m = mvL > 0.15 ? Math.min(1, mvL) : 0, want = m ? gAng(mv[0], mv[1]) : K.crh, diff = wrapA(want - K.crh);
   const Rt = 15 + K.cv * 0.12, maxYaw = Math.max(m ? 1.2 : 0, K.cv / Rt), yaw = cl(diff * 4.5, -maxYaw, maxYaw); K.cyr = lerp(K.cyr || 0, yaw, 1 - Math.exp(-dt * 7)); K.crh = wrapA(K.crh + K.cyr * dt);
@@ -4194,7 +4197,7 @@ function carStep(dt, t, IN, mvL) { const C = TT.CAR; K.crT += dt;
       if (K.crT > tail) { const lead = Math.min(0.4, dist / K.cv), want = gAng(K.x + tvx * lead - K.cxp, K.y + tvy * lead - K.cyp), mx = (7 + 600 / Math.max(dist, 15)) * dt; K.crh = wrapA(K.crh + cl(wrapA(want - K.crh), -mx, mx)); }
       const d = gDir(K.crh); K.cvx = d[0] * K.cv; K.cvy = d[1] * K.cv; K.cxp += K.cvx * dt; K.cyp = cl(K.cyp + K.cvy * dt, 16, H - 4); if (AUTH()) carHits(t, K.cxp, K.cyp, K.crh, K.cv);
       const Lh = C.LH * C.SC; if (K.crT > tail && (ptSeg([K.x, K.y], [K.cxp - d[0] * Lh * 0.8, K.cyp - d[1] * Lh * 0.8], [K.cxp + d[0] * Lh, K.cyp + d[1] * Lh]) < C.WH * C.SC + 4 || K.crT > 3.5)) {
-        K.cBk = K.bk >= 0 ? 1 : 0; if (K.bk >= 0) { K.bk = -1; K.bkT = 0; K.bkCd = 0; }
+        ttWeaponOff(); K.cBk = K.bk >= 0 ? 1 : 0; if (K.bk >= 0) { K.bk = -1; K.bkT = 0; K.bkCd = 0; }
         Object.assign(K, { cHT: Math.round(K.crT * 1000) / 1000, cHitN: K.crN, ctx: r1(K.x), cty: r1(K.y), chd: Math.round(K.crh * 1000) / 1000, cr: 1, crT: 0, z: 0 }); K.x = K.cxp; K.y = K.cyp; return true; } }
     return false; }
   if (K.cr === 1) { K.cxp = K.x; K.cyp = K.y; carDrive(dt, t, mvL > 0 ? IN.mv : [0, 0]);
