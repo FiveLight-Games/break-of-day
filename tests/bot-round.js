@@ -5,7 +5,7 @@ const { chromium } = require('playwright');
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 412, height: 760 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
   await p.goto('http://localhost:8765/knights.html'); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForTimeout(400);
-  await p.click(kind === 'fire' ? '#cFire' : kind === 'priest' ? '#cPriest' : '#cKnight'); await p.click('#lSolo'); await p.waitForTimeout(400);
+  await p.click('#lChars'); await p.click(`[data-ch=${kind}]`); await p.click('#lBack'); await p.click('#lSolo'); await p.waitForTimeout(400);
   await p.evaluate(RATE => { window.__stop(); window.__horde(RATE); }, process.argv[4] || 'hundreds');
   await p.evaluate(() => {
     const S = window.__BS = { uses: {}, t: 0 }; const use = k => S.uses[k] = (S.uses[k] || 0) + 1;

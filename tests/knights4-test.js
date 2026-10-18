@@ -10,10 +10,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     p.on('pageerror', e => errs.push(tag + ': ' + e.message + ' ' + (e.stack || '').split('\n')[1]));
     await p.route('**/supabase-js@*/**', r => r.fulfill({ body: fs.readFileSync(ROOT + '/tests/supabase-mock.js', 'utf8'), contentType: 'application/javascript' }));
     await p.exposeFunction('__relayOut', msg => { if (msg && msg.event === 's') maxSnap = Math.max(maxSnap, JSON.stringify(msg).length); for (const o of pages) if (o !== p && !o.isClosed()) o.evaluate(m => window.__relayIn && window.__relayIn(m), msg).catch(() => { }); });
-    pages.add(p); await p.goto('http://localhost:8782/knights.html'); await sleep(300); if (ch) await p.click(ch); return p; }
-  const A = await mk('A', { width: 844, height: 390 }), Bp = await mk('B', { width: 412, height: 820 }, '#cFire'), C = await mk('C', { width: 412, height: 820 });
+    pages.add(p); await p.goto('http://localhost:8782/knights.html'); await sleep(300); if (ch) { await p.click('#lChars'); await p.click(ch); await p.click('#lBack'); } return p; }
+  const A = await mk('A', { width: 844, height: 390 }), Bp = await mk('B', { width: 412, height: 820 }, '[data-ch=fire]'), C = await mk('C', { width: 412, height: 820 });
   await A.click('#lHost'); await sleep(300); const code = await A.evaluate(() => document.querySelector('.code').textContent);
-  const join = async p => { await p.fill('#lCode', code); await p.click('#lJoin'); await sleep(1500); };
+  const join = async p => { await p.evaluate(c => window.__join(c), code); await sleep(1500); };
   await join(Bp);
   // C joins from the open-games list instead of typing the code
   await sleep(5500); const rows = await C.evaluate(() => [...document.querySelectorAll('#lGames [data-code]')].map(b => b.textContent));
@@ -26,7 +26,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const D = await mk('D', { width: 844, height: 390 }); await join(D);
   console.log('4 in (late):', await st(A)); console.log('D sees:', await st(D));
   console.log('D seat/knight:', await D.evaluate(() => { const K = window.__KN(); return { n: K.length, on: K.map(k => k.on), me: K.findIndex(k => k === window.__K()) }; }));
-  const E = await mk('E', { width: 412, height: 820 }); await E.fill('#lCode', code); await E.click('#lJoin'); await sleep(2000);
+  const E = await mk('E', { width: 412, height: 820 }); await E.evaluate(c => window.__join(c), code); await sleep(2000);
   console.log('E (5th):', await E.evaluate(() => (document.querySelector('#lobbyUI .err') || {}).textContent || getComputedStyle(document.getElementById('lobbyUI')).display));
   await sleep(4000);
   // frame time on the host with MAX running

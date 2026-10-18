@@ -27,7 +27,7 @@ body.fire #dash{left:calc(50% - 48px);right:auto;top:auto;bottom:22px;width:96px
 @media (orientation:portrait){.stick{width:110px;height:110px;bottom:18px}.stick .knob{width:46px;height:46px;margin:-23px 0 0 -23px}#lst{left:14px}#rst{right:8vw}#spin{right:12px;bottom:150px;width:64px;height:64px}#top button{padding:6px 9px;font-size:12px}#stats{font-size:11px}}
 #lobbyUI{position:fixed;inset:0;background:radial-gradient(circle at 50% 30%,#2a2620,#0d0c0a);display:flex;align-items:center;justify-content:center;z-index:10;padding:16px;box-sizing:border-box}
 #lobbyUI .card{background:#1a1713;border:1px solid #3a332a;border-radius:16px;padding:20px;max-width:360px;width:100%;display:flex;flex-direction:column;gap:10px;text-align:center}
-#lobbyUI .chars{display:flex;gap:6px}#lobbyUI .chars button{flex:1}#lobbyUI .chars .on{border-color:#f0c419;color:#f0c419;background:#2a2416}
+#lobbyUI #lChars{display:flex;align-items:center;gap:12px;text-align:left;padding:6px 14px}#lobbyUI #lChars img{width:48px;height:60px;object-fit:contain}#lobbyUI #lChars span{display:flex;flex-direction:column;font-size:17px}#lobbyUI #lChars small{font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:.08em}#lobbyUI .cgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}#lobbyUI .cgrid button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px 8px}#lobbyUI .cgrid img{width:72px;height:90px;object-fit:contain}#lobbyUI .cgrid .on{border-color:#f0c419;color:#f0c419;background:#2a2416}#lobbyUI .chars{display:flex;gap:6px}#lobbyUI .chars button{flex:1}#lobbyUI .chars .on{border-color:#f0c419;color:#f0c419;background:#2a2416}
 #lobbyUI h1{margin:0;font:800 26px system-ui;color:#f0c419}#lobbyUI p{margin:0;color:#a59c88;font-size:13px}
 #lobbyUI .games{display:flex;flex-direction:column;gap:6px;max-height:34vh;overflow:auto}#lobbyUI .games button{display:flex;justify-content:space-between;align-items:center;text-align:left;padding:10px 12px}#lobbyUI .games small{color:#a59c88}#lobbyUI .gh{display:flex;justify-content:space-between;color:#a59c88;font-size:12px;margin-top:4px}#lobbyUI .big{font-size:16px;padding:12px}#lobbyUI .pri{background:#f0c419;color:#1a1713;border-color:#f0c419}
 #lobbyUI input{background:#0d0c0a;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:12px;font:800 22px system-ui;text-align:center;letter-spacing:6px;text-transform:uppercase}
@@ -4703,7 +4703,7 @@ function draw() {
     document.body.classList.toggle('pen', WPV && live); if (WPV && live && !PENPOS) penPos(); if (!(WPV && live)) PENPOS = 0;
     if (WPV) { dialIdle(K); if (K.hRet >= 0 && !(K.hRetSeen >= 0)) cancelSweepAim(); K.hRetSeen = K.hRet; DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); // while a slam's head is in the air the button is only ever Go to (lit once that's allowed), never another slam
     const early = K.ab === 'slam' && K.abT >= WP.SL.GOEARLY && gd(K.x, K.y, K.sx, K.sy) > WP.DRAG + 2, hOut = K.hOut > 0 || K.hRet >= 0 || early; const abBusy = !!K.penRet || K.ab === 'sweep' || K.ab === 'reel' || (K.ab === 'slam' && !early) || (!hOut && (K.slCd > 0 || K.slWait)); AOE.classList.toggle('out', hOut && !abBusy); AOE.classList.toggle('dim', abBusy); DASHE.classList.toggle('dim', !!K.penRet); if (K.penRet) cancelSweepAim(); BRB.classList.toggle('ready', K.hOut > 0); const al = hOut ? 'go to' : 'slam'; if (AOEL.textContent !== al) AOEL.textContent = al; SMI.style.height = (K.pPh === 1 ? 100 * cl(Math.hypot(K.hvx || 0, K.hvy || 0) / WP.PEN.MAXV, 0, 1) : 0) + '%'; } else if (!FV) { DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); } else { DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); } }
-  if ((K.kind || 'knight') !== CHAR_UI) { charUI(K.kind || 'knight'); applyLayout(); } // switching character in game puts that character's control layout on
+  { const want = LUI.style.display !== 'none' || (EDIT && EDIT.back === 'lobby') ? CHAR : K.kind || 'knight'; if (want !== CHAR_UI) { charUI(want); applyLayout(); } } // switching character in game puts that character's control layout on
   if (K.kind === 'time') AOEI.style.height = (K.wpn === 4 ? ((K.trQ ?? TT.TRAP.N) < TT.TRAP.N ? cl((K.trCd || 0) / TT.TRAP.CD, 0, 1) : 0) : K.wpn === 3 ? (K.hu === 1 || K.hu === 3 ? 1 : cl((K.huCd || 0) / Math.max(0.01, TT.HURL.CD), 0, 1)) : K.wpn === 1 ? (K.sc === 1 ? 1 : cl((K.scCd || 0) / TT.SHIP.CD, 0, 1)) : K.wpn === 2 ? (K.hl >= 0 ? 1 : cl((K.hlCd || 0) / TT.HELI.CD, 0, 1)) : 0) * 100 + '%';
   if (HDRAW && !hdOK()) HDRAW = null; HDT.classList.toggle('on', !!HDRAW && !HDRAW.s);
   // anything a press would call off reads 'cancel': the portal while he holds a weapon, the bike while it's coming or he's riding
@@ -4946,23 +4946,34 @@ function advertise() { const sb = getSB(); if (!sb || !NET || NET.mode !== 'host
   const beat = () => { if (!NET || NET.mode !== 'host') return unadvertise(); sb.from('bod_lobbies').upsert(gameRow(), { onConflict: 'code' }).then(() => { }, () => { }); }; NET.beat = beat; beat(); if (!beatT) beatT = setInterval(beat, 5000); }
 function unadvertise() { if (beatT) clearInterval(beatT); beatT = null; const sb = getSB(); if (advertised && sb) { const c = advertised; advertised = null; sb.from('bod_lobbies').delete().eq('code', c).then(() => { }, () => { }); } }
 addEventListener('pagehide', () => { if (advertised) unadvertise(); });
+// a picture of a character for the menu: a stand-in drawn once into a small canvas (cached per character + colour)
+const CPIC = {}, CNAME = { knight: 'Knight', fire: 'Firebreather', priest: 'Warpriest', time: 'Time Traveler', sword: 'Swordmaster' };
+function charPic(kind, w = 96, h = 120) { const col = MYCOL || KCOLS[0], key = kind + '|' + col + '|' + w; if (CPIC[key]) return CPIC[key];
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const g = cv.getContext('2d'), k0 = K;
+  const kn = mkKnight(0); Object.assign(kn, { col, kind, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, f: 1, x: 0, y: 0 });
+  try { if (kind === 'fire') makeFire(kn); else if (kind === 'priest') makePriest(kn); else if (kind === 'time') makeTime(kn);
+    Object.assign(kn, { st: 'fight', u: 1, kn: 0, hold: 1, x: 0, y: 0, f: 1 }); if (kind === 'priest') Object.assign(kn, { hx: 14, hy: 6, hz: 0 });
+    K = kn; const S = { knight: 4.4, fire: 2.9, priest: 3.1, time: 3.6 }[kind] || 3.6; g.translate(w / 2, h * 0.86); g.scale(S, S);
+    if (kind === 'fire') drawFire(g, 1.2); else if (kind === 'priest') drawPriest(g, 1.2); else if (kind === 'time') drawTime(g, 1.2); else drawKnight(g, 1.2);
+  } catch (e) { console.warn('charPic', kind, e); } K = k0; return CPIC[key] = cv.toDataURL(); }
+window.__charPic = charPic; window.__join = c => join(c);
 function lobby(screen, extra) {
   LUI.style.display = 'flex'; browse(screen === 'home');
   const back = '<a href="./">← Back to Hold the Line</a>';
   if (screen === 'home') LC.innerHTML = `<h1>Knight Brawl</h1><p>Up to four players, one horde. Play together online or practise alone.</p>
     <div class="gh"><b>Open games</b><span id="lDirNote">${DIR.ready ? '' : 'Looking…'}</span></div><div class="games" id="lGames"></div>
     <button class="big pri" id="lHost" ${getSB() ? '' : 'disabled'}>Host a game</button>
-    <input id="lCode" maxlength="4" placeholder="CODE" autocomplete="off"><button class="big" id="lJoin" ${getSB() ? '' : 'disabled'}>Join with code</button>
-    <div class="chars"><button id="cKnight" class="${CHAR === 'knight' ? 'on' : ''}">Knight</button><button id="cFire" class="${CHAR === 'fire' ? 'on' : ''}">Firebreather</button><button id="cPriest" class="${CHAR === 'priest' ? 'on' : ''}">Warpriest</button><button id="cTime" class="${CHAR === 'time' ? 'on' : ''}">Time Traveler</button></div><button class="big" id="lSolo">Play solo</button><button id="lLay">Control layout</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
+    <button class="big" id="lChars"><img src="${charPic(CHAR)}" alt=""><span><small>Character</small>${CNAME[CHAR] || 'Knight'}</span></button>
+    <button class="big" id="lSolo">Play solo</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
+  else if (screen === 'chars') LC.innerHTML = `<h1>Characters</h1><div class="cgrid">${['knight', 'fire', 'priest', 'time'].map(k => `<button data-ch="${k}" class="${CHAR === k ? 'on' : ''}"><img src="${charPic(k)}" alt=""><span>${CNAME[k]}</span></button>`).join('')}</div>
+    <button class="big" id="lLay">Control layout · ${CNAME[CHAR] || 'Knight'}</button><button class="big pri" id="lBack">Done</button>`;
   else if (screen === 'hosting') LC.innerHTML = `<h1>Knight Brawl</h1><p>Give your friends this code</p><div class="code">${NET.code}</div><p>Waiting for players (up to 4; others can join any time)…</p>
     <button class="big" id="lSoloH">Start now (they can still join)</button><button id="lCancel">Cancel</button>`;
   else if (screen === 'joining') LC.innerHTML = `<h1>Knight Brawl</h1><p>Joining <b>${NET.code}</b>…</p><button id="lCancel">Cancel</button>`;
   const on = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
-  on('lHost', host); on('lLay', () => layOpen(true)); const pick = c => { CHAR = c; try { localStorage.setItem('kn_char', c); } catch (e) { } charUI(c); applyLayout(); lobby('home'); }; on('cKnight', () => pick('knight')); on('cFire', () => pick('fire')); on('cPriest', () => pick('priest')); on('cTime', () => pick('time')); on('cSword', () => pick('sword')); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
+  on('lHost', host); on('lLay', () => layOpen(true)); const pick = c => { CHAR = c; try { localStorage.setItem('kn_char', c); } catch (e) { } charUI(c); applyLayout(); lobby('chars'); }; on('lChars', () => lobby('chars')); on('lBack', () => lobby('home')); LC.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => pick(b.dataset.ch)); on('cKnight', () => pick('knight')); on('cFire', () => pick('fire')); on('cPriest', () => pick('priest')); on('cTime', () => pick('time')); on('cSword', () => pick('sword')); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
   if (screen === 'home') renderGames();
-  on('lJoin', () => { const c = (document.getElementById('lCode').value || '').toUpperCase().replace(/[^A-Z]/g, ''); if (c.length !== 4) return lobby('home', 'Enter the 4-letter code.'); join(c); });
   on('lCancel', () => { leave(); lobby('home'); });
-  const ci = document.getElementById('lCode'); if (ci) ci.onkeydown = e => { if (e.key === 'Enter') document.getElementById('lJoin').click(); };
 }
 function leave() { unadvertise(); if (NET && NET.ch) { try { NET.ch.untrack(); sbc.removeChannel(NET.ch); } catch (e) { } } NET = null; }
 function startGame(np, me) { NP = np; ME = me; setup(); LUI.style.display = 'none'; browse(false); syncIn(); if (NET) NET.started = 1; }
@@ -5108,7 +5119,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '086d17';
+const KBUILD = '269e79';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }

@@ -14,7 +14,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const A = await mk('A', { width: 844, height: 390 }), B = await mk('B', { width: 412, height: 820 });
   await A.screenshot({ path: OUT + '/0-lobby.png' });
   await A.click('#lHost'); await sleep(300); const code = await A.evaluate(() => document.querySelector('.code').textContent);
-  await B.fill('#lCode', code); await B.click('#lJoin'); await sleep(1500);
+  await B.evaluate(c => window.__join(c), code); await sleep(1500);
   console.log('code', code, 'A lobby hidden', await A.evaluate(() => getComputedStyle(document.getElementById('lobbyUI')).display), 'B', await B.evaluate(() => getComputedStyle(document.getElementById('lobbyUI')).display));
   // both move: A right, B left (B through its joystick input object)
   await A.evaluate(() => { __IN0 = null; }).catch(() => { });
