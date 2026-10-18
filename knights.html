@@ -3545,7 +3545,8 @@ function heliAir(c, kn, t) { const H = TT.HELI, s = kn.hl, near = heliNear(kn), 
   const kIn = s < H.OPEN ? sm(s / H.OPEN) : 1 - sm(cl((s - H.OPEN - 0.45) / 0.3, 0, 1)), kOut = s < tEnd - 0.45 ? sm(cl((s - (tEnd - 0.8)) / 0.35, 0, 1)) : 1 - sm(cl((s - tEnd - 0.15) / 0.3, 0, 1));
   const u = heliU(s), g = heliG(kn, u, vP), S = heliShots(kn); let last = null, fire = false; for (const q of S) { if (q[0] > s) break; last = q; } if (last && s - last[0] < 0.035) fire = true;
   // its shadow on the ground
-  c.fillStyle = 'rgba(0,0,0,.14)'; c.beginPath(); c.ellipse(g[0], g[1] + 2, 14, 5, Math.atan2(fw[1], fw[0]), 0, 7); c.fill();
+  // (only the part of it that's out between the two portals casts a shadow, like the bike's: it grows in as it comes out and shrinks away as it goes in)
+  { const a0 = Math.max(u - 30, uIn), a1 = Math.min(u + 14, uOut), vis = a1 - a0; if (s > H.OPEN * 0.6 && vis > 0.5) { const mc = heliG(kn, (a0 + a1) / 2, vP), k = vis / 44; c.fillStyle = `rgba(0,0,0,${0.14 * Math.min(1, k * 1.6)})`; c.beginPath(); c.ellipse(mc[0], mc[1] + 2, Math.max(1, 15 * k) * Math.hypot(fw[0], fw[1]) + 0.8, 5 * Math.min(1, k * 2), Math.atan2(fw[1], fw[0]), 0, 7); c.fill(); } }
   if (kIn > 0) heliPortal(c, kn, ePos[0], ePos[1] - H.Z - 2, kIn, t);
   if (kOut > 0) heliPortal(c, kn, xPos[0], xPos[1] - H.Z - 2, kOut, t);
   if (s > H.OPEN * 0.6 && s < tEnd + 0.15) { c.save(); const L2p = (px, py, dir) => { const n = [-fw[1], fw[0]], big = 900; c.moveTo(px + n[0] * big, py + n[1] * big); c.lineTo(px - n[0] * big, py - n[1] * big); c.lineTo(px - n[0] * big + dir * fw[0] * big, py - n[1] * big + dir * fw[1] * big); c.lineTo(px + n[0] * big + dir * fw[0] * big, py + n[1] * big + dir * fw[1] * big); c.closePath(); };
@@ -4354,7 +4355,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '19ee2c';
+const KBUILD = '0349c8';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
