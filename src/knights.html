@@ -2881,7 +2881,7 @@ function drawSword(c, t) {
 // Portal (Spin button / E): a small portal above him drops one of four weapons into his hands for 8s (lightsaber, double-barrel shotgun,
 // an alien tendril creature, a saw-blade gun), then sucks it back. Bike (dash stick / Shift): a portal opens behind him, he jumps, a
 // motorcycle bursts through and he lands on it as it passes under him; 5s of heavy, leaning, sliding riding that runs enemies down.
-const TT = {
+const TT = { WAKE: 1.7,
   RUN: 1.0, ATK: 0.8, CLEN: 7.4,
   CANE: { T: 0.3, HIT: 0.4, R: 16, HALF: 0.8, DMG: 46, KB: 13.6 },
   SABER: { T: 0.405, HIT: 0.4, R: 25, HALF: 1.0, DMG: 200, KB: 20, LEN: 10.5, GROW: 1.418, TDMG: 120, TGAP: 0.25, DASH: { D: 30, T0: 0, T1: 0.324, R: 6 } },
@@ -2919,6 +2919,8 @@ const gAng = (sx, sy) => Math.atan2(sy * 1.25, sx), gDir = a => [Math.cos(a), Ma
 // ---------- pose ----------
 // keys (chest-relative, facing right, y down): [u, crouch, lean, twist, A hand x, y, B hand x, y, cane/blade angle, step]
 const TTG = [0, -0.1, 0.0, 0, 0.7, 3.1, 2.2, 3.4, 1.32, 0.15];
+// waking keys: [time s, head tilt (+ down), head turn (rad, ~pi = looking behind him), watch hand x, y, watch shown]
+const TTWAKE = [[0, 0.35, 0, 1.3, 1.4, 1], [0.28, -0.2, 0, 1.25, 2.1, 1], [0.6, -0.12, 2.5, 1.25, 2.2, 1], [0.9, -0.08, 0, 1.25, 2.2, 1], [1.12, 0.42, 0, 1.3, 1.35, 1], [1.3, 0.35, 0, 1.3, 1.35, 1], [1.52, 0.08, 0, 1.15, 3.2, 0], [1.7, 0, 0, 0.7, 3.1, 0]];
 const TTRUN = [0, 0.12, 0.22, 0.1, -0.5, 3.0, 1.6, 3.4, 0.35, 0];
 const TTCUT = [
   // forehand: cocked high behind, whips down across his front, follows through low (= where the backhand starts)
@@ -2951,12 +2953,14 @@ function bikeFrame(x0, y0, hd, l) { const fw = [Math.cos(hd), Math.sin(hd) / 1.2
 function ttPose(kn, t) {
   const f = kn.f || 1, ride = ttRiding(kn), mv = ride ? 0 : cl((kn.spd || 0) / 10, 0, 1), run = ride ? 0 : cl((kn.spd || 0) / (RUN * TT.RUN), 0, 1), gp = kn.gp || 0, br = Math.sin(t * 2.1);
   const wq = kn.wpS === 2 && !ttAway(kn) ? kn.wpn : 0, atk = kn.cs >= 0, W0 = kn.csW || 0;
-  let A = TTG.map((v, j) => j === 7 ? v + br * 0.06 : v), look = 0, ga = null, brk = 0, rk = 0, watch = 0;
+  let A = TTG.map((v, j) => j === 7 ? v + br * 0.06 : v), look = 0, ga = null, brk = 0, rk = 0, watch = 0, ht = 0;
   if (!atk) A = A.map((x, j) => j ? lerp(x, TTRUN[j], run) : 0);
   // walking: the cane taps along with his stride
   if (!atk && mv > 0 && !wq) A[8] += Math.sin(gp) * 0.35 * mv * (1 - run);
   // idle: he checks his pocket watch until a control is touched; then he snaps it shut and pockets it
-  if (kn.st === 'kneel' || kn.st === 'pull') { const q = kn.st === 'pull' ? sm(cl(kn.u / 0.45, 0, 1)) : 0; watch = 1 - q; A[4] = lerp(1.3, A[4], q); A[5] = lerp(1.4, A[5], q); look = 0.35 * (1 - q); A[2] -= 0.05 * (1 - q); }
+  if (kn.st === 'kneel' || kn.st === 'pull') { const u = kn.st === 'pull' ? kn.u : 0, k = TTWAKE; let i = 0; while (i < k.length - 2 && u > k[i + 1][0]) i++;
+    const a = k[i], b2 = k[i + 1], e = sm(cl((u - a[0]) / (b2[0] - a[0]), 0, 1)), v = j => lerp(a[j], b2[j], e), rest = i === k.length - 2 ? e : 0;
+    look = v(1); ht = v(2); A[4] = lerp(v(3), A[4], rest); A[5] = lerp(v(4), A[5], rest); watch = v(5); A[2] -= 0.05 * (1 - rest); }
   if (atk && (W0 === 0 || W0 === 1)) { const keys = W0 === 1 ? TTSAB[ttSabV(kn.csN || 0)] : TTCUT[(kn.csN || 0) % 2], T = W0 === 1 ? TT.SABER.T : TT.CANE.T; A = kfnS(cl(kn.cs / T, 0, 1), keys).map((x, j) => j === 1 ? x * 0.6 : j === 9 ? x * 0.6 : x); }
   // weapons held (not swinging): a fencer's ready stance with the saber; guns at low ready; the creature held out on his palm
   if (!atk && wq === 1) { A[4] = -1.1; A[5] = 3.3; A[6] = 2.0; A[7] = 3.0; A[8] = -1.0; }
@@ -3014,7 +3018,7 @@ function ttPose(kn, t) {
   // keep the hands within arm's reach of the shoulders
   const far = f > 0 ? 0 : 1, near = 1 - far, reach = (s, h) => { const d = Math.hypot(h[0] - s[0], h[1] - s[1]); return d > 5.1 ? [s[0] + (h[0] - s[0]) * 5.1 / d, s[1] + (h[1] - s[1]) * 5.1 / d] : h; };
   hA = reach(sh[near], hA); hB = reach(sh[far], hB);
-  return { f, pel, hips, feet, knees: hips.map((h, i) => ik(h, feet[i], 3.1, 3.1, f > 0 ? -1 : 1)), C, sh, head, lean, tw, cr, hA, hB, aB: ang(ca), ga: ga === null ? null : ang(ga), brk, look, watch, ride, bBack, bL };
+  return { f, pel, hips, feet, knees: hips.map((h, i) => ik(h, feet[i], 3.1, 3.1, f > 0 ? -1 : 1)), C, sh, head, lean, tw, cr, hA, hB, aB: ang(ca), ga: ga === null ? null : ang(ga), brk, look, watch, ht, ride, bBack, bL };
 }
 // ---------- sim ----------
 // a cone in front of him along the aim: everyone in it is hit once
@@ -3141,7 +3145,8 @@ function timeStep(dt, t) {
   if (K.cr === 2 && K.cEj >= 0 && lvP) K.wpQ = 1;
   if (K.cr >= 0 && carStep(dt, t, IN, mvL)) return;
   if (K.st === 'kneel') { K.vx = K.vy = 0; K.spd = 0; if (mine && (mvL > 0.2 || IN.aim || lvP || dashP)) { K.st = 'pull'; K.u = 0; } return; }
-  if (K.st === 'pull') { K.u += dt; if (K.u >= 0.5) K.st = 'fight'; }
+  // waking: he looks up and round about him, back down at his watch, pockets it, and only then sets off (`TT.WAKE`)
+  if (K.st === 'pull') { K.u += dt; if (K.u >= TT.WAKE) K.st = 'fight'; else { K.vx = K.vy = 0; K.spd = 0; return; } }
   const ready = K.st === 'fight';
   // ---- the weapon portal ----
   if (K.wpCd > 0) K.wpCd -= dt;
@@ -3404,7 +3409,11 @@ function ttCoatFront(c, P, f, t) { const hip = P.pel, hw = 1.7, coat = shade(COL
   for (const s of [-1, 1]) { const H0 = [hip[0] + s * hw, hip[1]]; c.fillStyle = s * f < 0 ? coatD : coat; c.beginPath(); c.moveTo(H0[0] + s * 0.45, H0[1] - 0.3); c.lineTo(hip[0] + s * 1.0, hip[1] + 0.2);
     c.quadraticCurveTo(H0[0] + s * 0.9 + sway * 0.5, lerp(hip[1], hemY, 0.6), H0[0] + s * 1.0 + sway, hemY); c.lineTo(H0[0] + s * 0.55 + sway * 0.8, hemY - 0.2); c.closePath(); c.fill(); } }
 function ttHead(c, P, f, t) { const C = TTC, [hx, hy] = P.head, blink = (t % 5.3) < 0.12;
-  c.save(); c.translate(hx, hy); c.rotate(f * (P.lean || 0) * 0.35 + f * (P.look || 0));
+  // the neck: from inside the shirt collar up into the head, whichever way the head is turned, so it never floats off the body
+  { const rA = f * (P.lean || 0) * 0.35 + f * (P.look || 0), mx = (P.sh[0][0] + P.sh[1][0]) / 2, my = (P.sh[0][1] + P.sh[1][1]) / 2, nb = [mx + f * 0.05, my - 0.1], nt = [hx + Math.cos(rA + Math.PI / 2) * 0.9 - Math.sin(rA) * 0, hy + Math.sin(rA + Math.PI / 2) * 0.9];
+    c.lineCap = 'round'; c.strokeStyle = C.SKIND; c.lineWidth = 1.05; c.beginPath(); c.moveTo(nb[0], nb[1]); c.lineTo(nt[0], nt[1]); c.stroke(); c.strokeStyle = C.SKIN; c.lineWidth = 0.55; c.beginPath(); c.moveTo(nb[0] + f * 0.12, nb[1] - 0.1); c.lineTo(nt[0] + f * 0.12, nt[1]); c.stroke();
+    c.fillStyle = C.SHIRT; c.beginPath(); c.moveTo(nb[0] - 0.75, nb[1] - 0.25); c.quadraticCurveTo(nb[0], nb[1] - 0.75, nb[0] + 0.75, nb[1] - 0.25); c.lineTo(nb[0] + 0.6, nb[1] + 0.25); c.lineTo(nb[0] - 0.6, nb[1] + 0.25); c.closePath(); c.fill(); }
+  c.save(); c.translate(hx, hy); c.rotate(f * (P.lean || 0) * 0.35 + f * (P.look || 0)); const hc = Math.cos(P.ht || 0); c.save(); if (P.ht) c.scale(Math.sign(hc || 1) * Math.max(Math.abs(hc), 0.3), 1);
   c.fillStyle = C.SKIND; c.fillRect(-0.4 - f * 0.1, 0.9, 0.8, 0.9);
   // hair at the back below the hat, then the face
   c.fillStyle = C.HAIR; c.beginPath(); c.ellipse(-f * 0.6, -0.25, 1.05, 1.25, 0, 0, 7); c.fill();
@@ -3418,8 +3427,8 @@ function ttHead(c, P, f, t) { const C = TTC, [hx, hy] = P.head, blink = (t % 5.3
   c.strokeStyle = C.HAIR; c.lineWidth = 0.24; c.lineCap = 'round'; c.beginPath(); c.moveTo(f * 0.4, -0.66); c.quadraticCurveTo(f * 0.8, -0.8, f * 1.2, -0.62); c.stroke();
   c.fillStyle = C.HAIRL; c.beginPath(); c.moveTo(f * 1.25, 0.55); c.quadraticCurveTo(f * 0.8, 0.45, f * 0.45, 0.75); c.quadraticCurveTo(f * 0.05, 1.0, -f * 0.15, 0.7); c.quadraticCurveTo(f * 0.1, 1.15, f * 0.55, 1.0); c.quadraticCurveTo(f * 0.95, 0.9, f * 1.3, 0.85);
   c.quadraticCurveTo(f * 1.75, 0.95, f * 1.9, 0.55); c.quadraticCurveTo(f * 1.75, 0.75, f * 1.55, 0.6); c.closePath(); c.fill();
-  // top hat, tipped back a touch, a band in his colour
-  c.rotate(-f * 0.08); c.fillStyle = C.HAT; c.beginPath(); c.moveTo(-1.45, -1.25); c.quadraticCurveTo(-1.6, -3.2, -1.65, -5.0); c.lineTo(1.65, -5.0); c.quadraticCurveTo(1.6, -3.2, 1.45, -1.25); c.closePath(); c.fill();
+  // top hat, tipped back a touch, a band in his colour (it turns with the head only a little: it's round)
+  c.restore(); if (P.ht) c.scale(0.86 + 0.14 * Math.abs(hc), 1); c.rotate(-f * 0.08 * Math.sign(hc || 1)); c.fillStyle = C.HAT; c.beginPath(); c.moveTo(-1.45, -1.25); c.quadraticCurveTo(-1.6, -3.2, -1.65, -5.0); c.lineTo(1.65, -5.0); c.quadraticCurveTo(1.6, -3.2, 1.45, -1.25); c.closePath(); c.fill();
   c.fillStyle = C.HATL; c.beginPath(); c.ellipse(0, -5.0, 1.65, 0.38, 0, 0, 7); c.fill(); c.fillStyle = 'rgba(255,255,255,.08)'; c.fillRect(f > 0 ? 0.55 : -1.0, -4.8, 0.45, 3.3);
   c.fillStyle = COL; c.fillRect(-1.5, -2.15, 3.0, 0.75); c.fillStyle = shade(COL, -0.3); c.fillRect(-1.5, -1.55, 3.0, 0.15);
   c.fillStyle = C.HAT; c.beginPath(); c.ellipse(0, -1.2, 2.35, 0.5, 0, 0, 7); c.fill(); c.strokeStyle = C.HATL; c.lineWidth = 0.12; c.beginPath(); c.ellipse(0, -1.2, 2.35, 0.5, 0, Math.PI * 0.05, Math.PI * 0.95); c.stroke();
@@ -3519,7 +3528,7 @@ function drawTime(c, t) {
   { const rdN = ttRiding(K); if (rdN && !K.rdW) { const dz = (K.zW || 0) / KS; for (const k of keys) P[k] = [P[k][0], P[k][1] - dz]; for (const k of ['sh', 'hips', 'feet', 'knees']) P[k] = P[k].map(p => [p[0], p[1] - dz]); } K.rdW = rdN; K.zW = rdN ? 0 : (K.z || 0); }
   for (const k of keys) P[k] = L2(P[k], T[k], e); for (const k of ['sh', 'hips', 'feet', 'knees']) P[k] = P[k].map((p, i) => L2(p, T[k][i], e));
   for (const k of ['aB', 'ga']) { if (T[k] === null) { P[k] = null; continue; } if (P[k] === null || P[k] === undefined) { P[k] = T[k]; continue; } let tg = T[k]; tg += T2 * Math.round((P[k] - tg) / T2); P[k] = lerp(P[k], tg, e); }
-  for (const k of ['lean', 'tw', 'cr', 'look', 'watch', 'brk']) P[k] = lerp(P[k] || 0, T[k] || 0, e); P.bL = lerp(P.bL ?? 1, T.bL ?? 1, e); P.ride = T.ride; P.bBack = T.bBack;
+  for (const k of ['lean', 'tw', 'cr', 'look', 'watch', 'brk', 'ht']) P[k] = lerp(P[k] || 0, T[k] || 0, e); P.bL = lerp(P.bL ?? 1, T.bL ?? 1, e); P.ride = T.ride; P.bBack = T.bBack;
   const f = P.f, B = TT.BIKE, riding = T.ride, Fr = riding ? bikeFrame(K.x, K.y, K.hd || 0, K.bl || 0) : null;
   K.bkSpin = (K.bkSpin || 0) + dt * (K.bk === 1 ? K.bv : K.bk >= 0 ? 140 : 0) / 2.6;
   // the bike on its own (coming out of the portal, or riding off into one), drawn clipped to the portal's open side
@@ -4957,7 +4966,8 @@ function charPic(kind, w = 96, h = 120) { const col = MYCOL || KCOLS[0], key = k
     K = kn; const S = { knight: 4.4, fire: 2.9, priest: 3.1, time: 3.6 }[kind] || 3.6; g.translate(w / 2, h * 0.86); g.scale(S, S);
     if (kind === 'fire') drawFire(g, 1.2); else if (kind === 'priest') drawPriest(g, 1.2); else if (kind === 'time') drawTime(g, 1.2); else drawKnight(g, 1.2);
   } catch (e) { console.warn('charPic', kind, e); } K = k0; return CPIC[key] = cv.toDataURL(); }
-window.__charPic = charPic; window.__join = c => join(c);
+window.__charPic = charPic; window.__ttPic = (st, u, spd, tt = 1.2) => { const cv = document.createElement('canvas'); cv.width = 260; cv.height = 320; const g = cv.getContext('2d'), k0 = K; g.fillStyle = '#556'; g.fillRect(0, 0, 260, 320);
+  const kn = mkKnight(0); Object.assign(kn, { col: MYCOL || KCOLS[0], x: 0, y: 0, f: 1 }); makeTime(kn); Object.assign(kn, { st, u, spd, x: 0, y: 0, f: 1, gp: 1 }); K = kn; g.translate(130, 290); g.scale(12, 12); for (let i = 0; i < 40; i++) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = "#556"; g.fillRect(0, 0, 260, 320); g.restore(); drawTime(g, tt); } K = k0; return cv.toDataURL(); }; window.__join = c => join(c);
 function lobby(screen, extra) {
   LUI.style.display = 'flex'; browse(screen === 'home');
   const back = '<a href="./">← Back to Hold the Line</a>';
