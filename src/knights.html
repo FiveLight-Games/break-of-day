@@ -218,7 +218,7 @@ const DASH_W = 1.4, DASH_D = 52 * 1.6, DASH_CD = 2, DASH_DMG = 200, DASH_R = 11 
 const DIR8 = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]].map(([a, b]) => { const l = Math.hypot(a, b); return [a / l, b / l]; });
 const lcr = () => K.lcr || LT_CR;
 const GCR = [0, 2.0, 0.4, -0.8, -1.4, -2.4, -2.75, 0.35]; // the giant's charge: deep squat, sword cocked back over his shoulder // the leap's crouch: the giant squats and charges for a full second
-const DT_PREP = 0.1, DT_GO = 0.26 * 1.6, DT_REC = 0.24, LT_CR = 0.28, LT_AIR = 0.85, LT_LAND = 0.4;
+const DT_PREP = 0.1, DT_GO = 0.26 * 1.6, DT_REC = 0.24, LT_CR = 0.28, LT_AIR = 0.85, LT_LAND = 0.26;
 const lerpA = (A, B, k) => A.map((v, j) => j ? lerp(v, B[j], k) : 0);
 // [u, crouch, lean, twist, hand x, hand y, sword angle, step]
 const DP_PREP = [0, 1.5, 0.35, 0.5, 2.2, 4.4, 1.25, 1.2], DP_GO = [0, 0.6, 0.55, -0.9, 2.6, -2.6, -2.3, 1.6];
@@ -3377,7 +3377,8 @@ function stepK(dt, t) {
     if (K.qDash && !(K.dashCd > 0) && canChain('dash')) { const v = K.qDash.v; K.qDash = null; chainOut(); startDash(v); }
     else if (K.qLeap && !(K.leapCd > 0) && !(K.ultPh >= 0 && K.ultLeapt) && canChain('leap')) { const v = K.qLeap.v; K.qLeap = null; chainOut(); startLeap(v); }
     else if (K.qSpin > 0 && K.spinCd <= 0 && (K.ab || K.swing >= 0) && canChain('spin')) { K.qSpin = 0; chainOut(); startSpin(); }
-    if (K.ab === 'dash' && K.abT >= DT_PREP + DT_GO * 0.8 && mvL > 0.12) chainOut(); // stick held: run straight on out of the slash instead of stopping // the stick takes over as soon as the dash has landed
+    if (K.ab === 'dash' && K.abT >= DT_PREP + DT_GO * 0.8 && mvL > 0.12) chainOut();
+    if (K.ab === 'leap' && !(K.ultPh >= 0) && K.abT >= lcr() + LT_AIR + LT_LAND * 0.35 && mvL > 0.12) chainOut(); // and out of the slam's recovery // stick held: run straight on out of the slash instead of stopping // the stick takes over as soon as the dash has landed
     // the dash's wind-up (tip down + squat) doesn't stop him: he carries his momentum through it, and the dash's path is carried along with him
     // the leap's crouch: he slides into it on his momentum (easing off), and the take-off point follows him; the landing spot stays where it was aimed
     if (K.ab === 'leap' && K.abT < lcr()) { const dmp = Math.exp(-dt * 6); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); K.ax0 = K.x; K.ay0 = K.y; stepAbility(dt); abilityBody(); K.st = 'fight'; return; }
