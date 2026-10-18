@@ -72,5 +72,6 @@
   {"v": "0.71", "build": "100046", "commit": "a7fe9b7", "date": "2026-10-17", "notes": "Time Traveler: every weapon comes up at least once every 5 portals"},
   {"v": "0.72", "build": "ce2108", "commit": "ed24454", "date": "2026-10-17", "notes": "Time Traveler: ult Prehistoric Stampede (dinosaur herd through a portal); shotgun ability Strafe (draw a strip, a helicopter door gunner rakes it from a portal); weapons come out of the portal properly"},
   {"v": "0.73", "build": "5737a1", "commit": "4cd3975", "date": "2026-10-18", "notes": "Big Hold the Line enemies join the horde; bigger horde sizes (Swarm, Thousands, Apocalypse); new Characters screen; Warpriest is unstoppable, censer holy fire burns 5% max hp/s; Time Traveler: new ult Time Ride (car, dinosaurs, spacecraft), wake-up animation, hidden behind the watch; Firebreather plume lands cleanly"},
-  {"v": "0.74", "build": "bd2878", "commit": "", "date": "2026-10-18", "notes": "Knight's ult no longer zooms the camera out"}
+  {"v": "0.74", "build": "bd2878", "commit": "8630308", "date": "2026-10-18", "notes": "Knight's ult no longer zooms the camera out"},
+  {"v": "0.75", "build": "d89594", "commit": "", "date": "2026-10-18", "notes": "Ults cost 3x the kills; Time Traveler is a regular character, ride shortened, weapons last 14s; Warpriest holy fire and slam toned down; Firebreather's volcano blasts enemies away as it sinks"}
 ]
