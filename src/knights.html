@@ -53,7 +53,7 @@ body.editing #bring,body.editing #lst,body.editing #rst,body.editing #dash,body.
 .pnl .kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px}.pnl label{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0}.pnl input{width:18px;height:18px;accent-color:#f0c419}
 @media (orientation:portrait){.pnl{top:92px}.pnl .kgrid{grid-template-columns:repeat(2,1fr)}}
 button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none}
-body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !important}body.time #aoe,body.time #ult{display:none !important}body.time.ttab #aoe{display:block !important}#ttTest{display:none;position:fixed;left:8px;top:32vh;flex-direction:column;gap:6px;z-index:6}body.time #ttTest{display:flex}body.editing #ttTest,body.volc #ttTest{display:none}#ttTest b{font:800 9px system-ui;color:#ffffff88;letter-spacing:1px;text-align:center}#ttTest button{background:#000a;color:#fff;border:1px solid #ffffff44;border-radius:8px;font:700 12px system-ui;padding:8px 10px;min-width:74px}#pst{display:none;right:10vw;border-color:#ffd34a99;background:#ffd34a1a}#pst .knob{background:#ffd34a66;border-color:#ffe28a}#pst small{color:#ffe28acc}#smash{display:none;position:fixed;left:22px;bottom:22px;width:140px;height:140px;border-radius:50%;padding:0;font:800 20px system-ui;letter-spacing:1px;background:#f0c41933;border:3px solid #ffd34a;color:#fff0b0;overflow:hidden;text-shadow:0 0 8px #ff9a00}#smash i{position:absolute;left:0;right:0;bottom:0;background:#ffd34a66;height:0}#smash span{position:relative}body.pen #pst,body.pen #smash{display:block}body.pen #lst,body.pen #rst,body.pen #dash,body.pen #aoe,body.pen #spin{display:none}body.priest #spin{background:#ffd34a26;border-color:#ffd34a;color:#ffe28a}body.priest #aoe.out{border-color:#fff3c4;box-shadow:0 0 12px #f0c419aa}@media (orientation:portrait){#smash{left:14px;bottom:18px;width:110px;height:110px;font-size:17px}#pst{right:8vw}}
+body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !important}body.time #aoe,body.time #ult{display:none !important}body.time.ttab #aoe{display:block !important}#ttTest{display:none;position:fixed;left:8px;top:32vh;flex-direction:column;gap:6px;z-index:6}body.time #ttTest{display:flex}body.live #ttTest{display:none !important}body.editing #ttTest,body.volc #ttTest{display:none}#ttTest b{font:800 9px system-ui;color:#ffffff88;letter-spacing:1px;text-align:center}#ttTest button{background:#000a;color:#fff;border:1px solid #ffffff44;border-radius:8px;font:700 12px system-ui;padding:8px 10px;min-width:74px}#pst{display:none;right:10vw;border-color:#ffd34a99;background:#ffd34a1a}#pst .knob{background:#ffd34a66;border-color:#ffe28a}#pst small{color:#ffe28acc}#smash{display:none;position:fixed;left:22px;bottom:22px;width:140px;height:140px;border-radius:50%;padding:0;font:800 20px system-ui;letter-spacing:1px;background:#f0c41933;border:3px solid #ffd34a;color:#fff0b0;overflow:hidden;text-shadow:0 0 8px #ff9a00}#smash i{position:absolute;left:0;right:0;bottom:0;background:#ffd34a66;height:0}#smash span{position:relative}body.pen #pst,body.pen #smash{display:block}body.pen #lst,body.pen #rst,body.pen #dash,body.pen #aoe,body.pen #spin{display:none}body.priest #spin{background:#ffd34a26;border-color:#ffd34a;color:#ffe28a}body.priest #aoe.out{border-color:#fff3c4;box-shadow:0 0 12px #f0c419aa}@media (orientation:portrait){#smash{left:14px;bottom:18px;width:110px;height:110px;font-size:17px}#pst{right:8vw}}
 #bring{display:none;position:fixed;right:calc(10vw + 128px);bottom:150px;width:62px;height:62px;border-radius:50%;padding:0;font:800 10px/1.1 system-ui;background:#f0c4191a;border:2px solid #f0c41966;color:#f0c41999;opacity:.45;transition:opacity .2s,box-shadow .2s}body.priest #bring{display:block}#recall{display:none;position:fixed;width:64px;height:30px;border-radius:15px;padding:0;font:800 11px/1 system-ui;background:#b05cff33;border:2px solid #d9a6ff;color:#f3e3ff;z-index:5;touch-action:none}body.time.recall #recall{display:block}body.priest #aoe.dim,#dash.dim{opacity:.45;pointer-events:none;transition:none}#bring.ready{opacity:1;background:#f0c41940;border-color:#fff3c4;color:#fff8e0;box-shadow:0 0 12px #f0c419aa}body.pen #bring,body.volc #bring{display:none}@media (orientation:portrait){#bring{right:calc(8vw + 44px);bottom:228px;width:52px;height:52px}}
 #help{position:fixed;left:50%;transform:translateX(-50%);bottom:6px;font-size:11px;color:#fff9;text-align:center;pointer-events:none}
 </style></head><body>
@@ -1009,7 +1009,9 @@ function spinKill(w) {
 }
 // body parts are drawn from cached sprites: each kind of piece for each enemy type is rendered once, then stamped with drawImage at its
 // position, spin and size. A big blast leaves 1000+ pieces on the ground, and drawing each one from paths every frame cost 50-100ms a frame.
-const PSPR = new Map(), PRES = 10, CAM = { s: 1, e: 0, f: 0 }; let PFADE = 4;
+const PSPR = new Map(), PRES = 10, CAM = { s: 1, e: 0, f: 0 }, PFD = 1.2;
+// a resting piece's opacity: solid for its linger p.lv (set when it lands), then eased out over PFD
+const pAlpha = p => 1 - sm(cl((p.t - p.rest - p.lv) / PFD, 0, 1));
 function partSprite(p) { const key = p.kind + '|' + p.uk; let s = PSPR.get(key); if (!s) { s = document.createElement('canvas'); s.width = s.height = 12 * PRES; const g = s.getContext('2d'); g.translate(6 * PRES, 6 * PRES); g.scale(PRES, PRES); drawPart(g, { kind: p.kind, uk: p.uk, x: 0, y: 0, z: 0, rot: 0, sc: 1, t: 99 }); PSPR.set(key, s); } return s; }
 function drawPartFast(c, p) { if (p.kind === 'ash' && p.t < 2.5) return drawPart(c, p); // still glowing: draw it live
   const s = partSprite(p), k = p.sc / PRES, co = Math.cos(p.rot) * k, si = Math.sin(p.rot) * k, S = CAM.s;
@@ -2527,7 +2529,7 @@ const TT = {
   TRAP: { RANGE: 100, FLY: 0.45, R: 9, ARM: 20.8, BL: 8.25, SPIN: 11.25, UP: 0.35, H: 7.5, DMG: 160, GAP: 0.3, CD: 6, N: 2, NEXT: 0.5 },
   SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 30, BR: 110, TURN: 3, CONE: 0.873, DMG: 175, W: 9.625, Z: 8, R: 6.6, GUN: 1.3, MU: [3.8, 0.6], HZ: 5 },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
-  SHIP: { RANGE: 130, SHADOW: 1.0, DROP: 0.32, LIE: 1.4, FADE: 0.6, R: 34, DMG: 600, KB: 260, CD: 8, SLOW: 0.6, LEN: 72 },
+  SHIP: { RANGE: 130, SHADOW: 1.0, DROP: 0.32, LIE: 2.6, FADE: 0.8, R: 34, DMG: 600, KB: 260, CD: 6, DB: { N: 7, R: 12, DMG: 160, KB: 120, MIN: 38, MAX: 85 }, SLOW: 0.6, LEN: 72 },
   BOOM: { RANGE: 123.5, LOOP: 1.0, WID: 0.25, R: 16.8, DMG: 200, CD: 0, SPIN: 24, Z: 6, SZ: 1.82 },
   BIKE: { BV: 140, CD: 10, T: 7, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
 };
@@ -2758,9 +2760,12 @@ function timeStep(dt, t) {
       { const SH = TT.SHIP; if (K.scCd > 0) K.scCd -= dt;
         if (leapP && ready && !bsy && IN.leapT && wq0 === 1 && !(K.sc >= 1) && !(K.scCd > 0)) { const tg = leapTarget(K, IN.leapT); Object.assign(K, { sc: 1, scT: 0, scx: r1(tg[0]), scy: r1(tg[1]), sch: Math.round(Math.atan2((tg[1] - K.y) * 1.25, tg[0] - K.x) * 100) / 100, scN: (K.scN || 0) + 1 }); }
         if (K.sc >= 1) { K.scT += dt;
-          if (K.sc === 1 && K.scT >= SH.SHADOW) { K.sc = 2; K.scT = 0; K.scCd = SH.CD;
+          if (K.sc === 1 && K.scT >= SH.SHADOW) { K.sc = 2; K.scT = 0; K.scCd = SH.CD; K.wdH = 0;
             if (AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.scx, dy = (w.y - K.scy) * 1.25, d = Math.hypot(dx, dy), R = SH.R + UK[w.k].r; if (d > R) continue; const a = Math.atan2(dy / 1.25, dx), k = 1 - 0.4 * d / R; w.atk = -1; w.kx += Math.cos(a) * SH.KB * k; w.ky += Math.sin(a) * SH.KB * 0.6 * k; hurt(w, SH.DMG * k, ww => slamFx(ww, a)); } }
-          else if (K.sc === 2 && K.scT >= SH.LIE + SH.FADE) { K.sc = 0; K.scT = 0; } } }
+          else if (K.sc === 2 && K.scT >= SH.LIE + SH.FADE) { K.sc = 0; K.scT = 0; }
+          // the wreck's big pieces: each one that lands hurts whoever it comes down on
+          if (K.sc === 2 && AUTH()) { const D = shipDebris(K), DB = SH.DB; D.forEach((q, i) => { if (!q.big || K.scT < q.t0 + q.tl || (K.wdH & 1 << i)) return; K.wdH |= 1 << i;
+            for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - q.ex, dy = (w.y - q.ey) * 1.25, d = Math.hypot(dx, dy), R = DB.R + UK[w.k].r; if (d > R) continue; const a = Math.atan2(dy / 1.25, dx), k = 1 - 0.4 * d / R; w.atk = -1; w.kx += Math.cos(a) * DB.KB * k; w.ky += Math.sin(a) * DB.KB * 0.6 * k; hurt(w, DB.DMG * k, ww => slamFx(ww, a)); } }); } } }
       if (false) { const tg = leapTarget(K, IN.leapT), f = K.f || 1; Object.assign(K, { sb: 1, sbT: 0, sbsx: r1(K.x + f * 3.5), sbsy: r1(K.y), sbtx: r1(tg[0]), sbty: r1(tg[1]), sbx: K.x + f * 3.5, sby: K.y, sbN: (K.sbN || 0) + 1 }); if (K.cs >= 0 && K.csW === 1) K.cs = -1; }
       if (K.sb >= 1) { K.sbT += dt; const ox = K.sbx, oy = K.sby;
         // one even loop; the far half (s past 0.5) is the return pass, and the loop's end is pulled along with his hand so it comes back to him wherever he went
@@ -2822,7 +2827,9 @@ function timeStep(dt, t) {
     // toward him (turning its heading, never sliding sideways) at whatever pace gets it under him by the landing
     if (u >= 0.25 && (K.bjt || 0) < B.LAND) { const dx = K.x - K.bkx, dy = (K.y - K.bky) * 1.25, dd = Math.hypot(dx, dy), p0 = gDir(K.bh0 ?? K.hd), outA = ((K.bkx - K.bpx) * p0[0] + (K.bky - K.bpy) * p0[1] * 1.5625);
       if (outA > 0 && dd > 1.5) { const want = Math.atan2(dy, dx); K.hd = wrapA(K.hd + cl(wrapA(want - K.hd), -7 * dt, 7 * dt)); }
-      const g = gDir(K.hd), st = Math.min(B.BV * dt, dd); K.bkx += g[0] * st; K.bky += g[1] * st; }
+      const g = gDir(K.hd), st = Math.min(B.BV * dt, dd); K.bkx += g[0] * st; K.bky += g[1] * st;
+      // riderless on its way to him, it still rams through anyone in its path
+      if (outA > 0 && AUTH()) ttRunDown(t, K.bkx, K.bky, B.BV); }
     if ((K.bjt || 0) >= B.LAND) { K.bkx = K.x; K.bky = K.y; }
     if ((K.bjt || 0) >= B.LAND) K.z = 0;
     if ((K.bjt || 0) >= B.IN) { const d = gDir(K.hd); Object.assign(K, { bk: 1, bkT: 0, bv: 140, bvx: d[0] * 140, bvy: d[1] * 140, z: 0, vx: 0, vy: 0 }); } }
@@ -2866,9 +2873,9 @@ function ttSaberTouch(t) { const S = TT.SABER, P = ttPose(K, t), LB = S.LEN * (P
     if (!hit) continue; w.sbT = t; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; const ang = Math.atan2(w.y - K.y, w.x - K.x); w.kx += Math.cos(ang) * S.KB * 0.5; w.ky += Math.sin(ang) * S.KB * 0.3;
     hurt(w, K.cs >= 0 ? S.DMG : S.TDMG, ww => ttKillFx(ww, ang, 0)); } }
 // riding into enemies: hit and knocked aside, harder the faster he goes; kills are thrown whole
-function ttRunDown(t) { const B = TT.BIKE, d = gDir(K.hd), p0 = [K.x - d[0] * B.HALF, K.y - d[1] * B.HALF], p1 = [K.x + d[0] * B.HALF, K.y + d[1] * B.HALF], k = cl(K.bv / B.MAXV, 0, 1); if (K.bv < 40) return;
-  for (const w of walkers) { if (w.hp <= 0 || w.air) continue; const U = UK[w.k]; if (Math.abs(w.x - K.x) > 20) continue; if (ptSeg([w.x, w.y], p0, p1) > B.R + U.r) continue; if (w.bkH === K.bkId && t - (w.bkT || 0) < 0.5) continue; w.bkH = K.bkId; w.bkT = t;
-    const side = Math.sign(d[0] * (w.y - K.y) - d[1] * (w.x - K.x)) || 1, px = d[0] * 0.75 - d[1] * side * 0.65, py = d[1] * 0.75 + d[0] * side * 0.65, a = Math.atan2(py, px);
+function ttRunDown(t, X = K.x, Y = K.y, bv = K.bv) { const B = TT.BIKE, d = gDir(K.hd), p0 = [X - d[0] * B.HALF, Y - d[1] * B.HALF], p1 = [X + d[0] * B.HALF, Y + d[1] * B.HALF], k = cl(bv / B.MAXV, 0, 1); if (bv < 40) return;
+  for (const w of walkers) { if (w.hp <= 0 || w.air) continue; const U = UK[w.k]; if (Math.abs(w.x - X) > 20) continue; if (ptSeg([w.x, w.y], p0, p1) > B.R + U.r) continue; if (w.bkH === K.bkId && t - (w.bkT || 0) < 0.5) continue; w.bkH = K.bkId; w.bkT = t;
+    const side = Math.sign(d[0] * (w.y - Y) - d[1] * (w.x - X)) || 1, px = d[0] * 0.75 - d[1] * side * 0.65, py = d[1] * 0.75 + d[0] * side * 0.65, a = Math.atan2(py, px);
     w.atk = -1; w.kx += px * B.KB * k / Math.max(0.5, U.kb); w.ky += py * B.KB * k * 0.7 / Math.max(0.5, U.kb); hurt(w, B.DMG * (0.35 + 0.65 * k), ww => flingFx(ww, a, 1.1 + k * 1.2)); } }
 // ---------- kills: lightsaber (0, cut and seared), shotgun (1, blown apart), constricted (2, burst), saw (3, cut through at the waist) ----------
 const ttKillFx = (w, a, m) => { EV.push([w.id, 8, Math.round(a * 100) / 100, K.i, r1(w.x), r1(w.y), m]); ttKill(w, a, m); };
@@ -3206,7 +3213,8 @@ function ttAir(c, t) {
     // the ship: falls out of the sky over the last DROP s of the shadow, bounces once on landing, lies there, then sinks and fades
     if (kn.sc >= 1) { const SH = TT.SHIP; let z = null, a = 1, pc = 0.05; if (kn.sc === 1 && kn.scT > SH.SHADOW - SH.DROP) { const q = (kn.scT - (SH.SHADOW - SH.DROP)) / SH.DROP; z = 300 * (1 - q) * (1 - q); pc = 0.32 * sm(q); }
       else if (kn.sc === 2) { const u = kn.scT; z = u < 0.3 ? 3.5 * Math.sin(Math.PI * u / 0.3) * (1 - u / 0.3) : 0; pc = lerp(0.32, 0.05, cl(u / 0.22, 0, 1) ** 2); if (u > SH.LIE) { const q = cl((u - SH.LIE) / SH.FADE, 0, 1); a = 1 - q; z -= 5 * q; } }
-      if (z !== null) ttShip(c, kn.scx, kn.scy, z, kn.sch || 0, a, t, kn.col || COL, pc); }
+      if (z !== null) ttShip(c, kn.scx, kn.scy, z, kn.sch || 0, a, t, kn.col || COL, pc, kn.sc === 2 ? kn.scT : -1, shipRnd(kn));
+      if (kn.sc === 2) ttWreckFx(c, kn, t, a); }
     // the thrown saber: spinning end over end round its middle, a whirl of its colour and a short trail
     if (kn.wpn === 1 && kn.sb >= 1) { const BM = TT.BOOM, L = TT.SABER.LEN * BM.SZ, a = t * BM.SPIN, d = [Math.cos(a), Math.sin(a) * 0.55], cx = kn.sbx, cy = kn.sby - BM.Z, h = [cx - d[0] * L / 2, cy - d[1] * L / 2], prv = COL; COL = kn.col || COL;
       const tr = kn.sbTr || (kn.sbTr = []); tr.push([cx, cy]); if (tr.length > 8) tr.shift();
@@ -3304,7 +3312,10 @@ function ttTendrils(c, kn, t) { const A = TT.ALIEN, m0 = kn.mouth, byId = new Ma
 // skid marks under everything
 // a sky-dreadnought of his own (an original design: a riveted airship with a canvas envelope in brass ribs, a boat-hulled gondola with funnels and
 // turrets, fins and stern propellers), heading hd, height z above the ground, faded by a; drawn with the bike's ground frame
-function ttShip(c, x, y, z, hd, a, t, col, pc = 0) { if (a <= 0.01) return; const fw = [Math.cos(hd), Math.sin(hd) / 1.25], sd = [-Math.sin(hd), Math.cos(hd) / 1.25], P = (u, v, h) => [x + u * fw[0] + v * sd[0], y + u * fw[1] + v * sd[1] - h - z - u * pc - 30 * pc], near = sd[1] >= 0 ? 1 : -1;
+function ttShip(c, x, y, z, hd, a, t, col, pc = 0, wr = -1, R = Math.random) { if (a <= 0.01) return; const fw = [Math.cos(hd), Math.sin(hd) / 1.25], sd = [-Math.sin(hd), Math.cos(hd) / 1.25], near = sd[1] >= 0 ? 1 : -1;
+  // wrecked (wr = s since it hit): it buckles in the middle (both ends kick up), rolls away from the camera and digs in
+  const wk = wr >= 0, bk = wk ? 0.15 * (1 - (1 - cl(wr / 0.3, 0, 1)) ** 3) : 0, rl = wk ? 0.09 * sm(cl(wr / 0.5, 0, 1)) : 0, dg = wk ? 2.5 * sm(cl(wr / 0.25, 0, 1)) : 0;
+  const P = (u, v, h) => { const hh = h + Math.abs(u) * bk + v * near * rl - dg; return [x + u * fw[0] + v * sd[0], y + u * fw[1] + v * sd[1] - hh - z - u * pc - 30 * pc]; };
   c.save(); c.globalAlpha = a; c.lineJoin = 'round'; const poly = (pts, fill, st, lw) => { c.beginPath(); pts.forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); c.closePath(); if (fill) { c.fillStyle = fill; c.fill(); } if (st) { c.strokeStyle = st; c.lineWidth = lw || 0.5; c.stroke(); } };
   const BR = '#c8963e', BRD = '#7a5520', HULL = '#3b2a20', DECK = '#8a6440', CAN = '#5b5048', CAND = '#3e3530';
   // gondola hull: a long boat shape from stern (u -30) to a pointed bow (+36)
@@ -3316,6 +3327,9 @@ function ttShip(c, x, y, z, hd, a, t, col, pc = 0) { if (a <= 0.01) return; cons
   c.strokeStyle = BR; c.lineWidth = 0.7; c.beginPath(); US.forEach((u, i) => { const q = P(u, near * hw(u), 9); i ? c.lineTo(...q) : c.moveTo(...q); }); c.stroke();
   // portholes along the near side
   c.fillStyle = '#f2cf7a'; for (let u = -24; u <= 26; u += 6) { const q = P(u, near * hw(u) * 0.8, 6); c.beginPath(); c.arc(q[0], q[1], 0.7, 0, 7); c.fill(); }
+  // the hull split open across the middle
+  if (wk) { const g = sm(cl(wr / 0.2, 0, 1)); c.strokeStyle = '#120c08'; c.lineWidth = 0.9 * g; c.beginPath(); for (let i = 0; i <= 8; i++) { const v = (i / 8 - 0.5) * 2 * hw(0), q = P((i % 2 ? 1.6 : -1.4) * g, v, 9); i ? c.lineTo(...q) : c.moveTo(...q); } c.stroke();
+    c.beginPath(); [[0, 1, 9], [1.5, 0.85, 7], [-1, 0.7, 5], [0.8, 0.55, 3]].forEach(([u, k, h], i) => { const q = P(u * g, near * hw(0) * k, h); i ? c.lineTo(...q) : c.moveTo(...q); }); c.stroke(); }
   // bridge house, funnels, turrets
   const box = (u0, u1, v0, v1, h0, h1, top, side) => { poly([P(u0, v0, h1), P(u1, v0, h1), P(u1, v1, h1), P(u0, v1, h1)], top, BRD, 0.4); poly([P(u0, near > 0 ? v1 : v0, h1), P(u1, near > 0 ? v1 : v0, h1), P(u1, near > 0 ? v1 : v0, h0), P(u0, near > 0 ? v1 : v0, h0)], side, BRD, 0.4); };
   box(-14, 4, -4.5, 4.5, 9, 15, '#6e4a2c', '#4e3420'); box(-10, 0, -3, 3, 15, 19, '#7a5232', '#583a24');
@@ -3325,22 +3339,70 @@ function ttShip(c, x, y, z, hd, a, t, col, pc = 0) { if (a <= 0.01) return; cons
   // rigging up to the envelope
   c.strokeStyle = 'rgba(40,30,20,.7)'; c.lineWidth = 0.25; for (const u of [-24, -10, 6, 20]) for (const v of [-1, 1]) { const a0 = P(u, v * hw(u) * 0.9, 9), a1 = P(u * 0.9, v * 9, 30); c.beginPath(); c.moveTo(...a0); c.lineTo(...a1); c.stroke(); }
   // the envelope: a long ribbed cigar above, banded in his colour
-  const EU = []; for (let u = -44; u <= 44; u += 2) EU.push(u); const er = u => 13 * Math.sqrt(Math.max(0, 1 - (u / 45) ** 2)), ctr = u => P(u, 0, 40);
-  const top = EU.map(u => { const q = ctr(u); return [q[0], q[1] - er(u)]; }), bot = EU.map(u => { const q = ctr(u); return [q[0], q[1] + er(u) * 0.95]; });
+  const EU = []; for (let u = -44; u <= 44; u += 2) EU.push(u);
+  // wrecked: the bag burns away from the break outward (bf), and what's burned sags onto the gondola as a charred frame
+  const bf = wk ? 47 * sm(cl((wr - 0.08) / 1.6, 0, 1)) : -1, cu = u => wk ? sm(cl((bf - Math.abs(u)) / 18, 0, 1)) : 0, er = u => 13 * Math.sqrt(Math.max(0, 1 - (u / 45) ** 2)) * (1 - 0.3 * cu(u)), ctr = u => P(u, 0, 40 - 16 * cu(u));
   // fins at the tail (the far ones under the bag)
   const fin = (v, h) => poly([P(-36, 0, 40), P(-48, v, 40 + h), P(-52, v, 40 + h), P(-44, 0, 40)], '#4a3f38', BRD, 0.4); fin(-near * 12, 0); fin(0, 13);
-  poly([...top, ...bot.slice().reverse()], CAN, '#221c18', 0.6);
-  c.save(); c.beginPath(); top.forEach((q, i) => i ? c.lineTo(...q) : c.moveTo(...q)); bot.slice().reverse().forEach(q => c.lineTo(...q)); c.closePath(); c.clip();
-  c.fillStyle = 'rgba(255,255,255,.07)'; c.beginPath(); top.forEach((q, i) => i ? c.lineTo(q[0], q[1] + 1.5) : c.moveTo(q[0], q[1] + 1.5)); EU.slice().reverse().forEach(u => { const q = ctr(u); c.lineTo(q[0], q[1] - er(u) * 0.35); }); c.closePath(); c.fill();
-  c.fillStyle = CAND; c.beginPath(); EU.forEach((u, i) => { const q = ctr(u); i ? c.lineTo(q[0], q[1] + er(u) * 0.35) : c.moveTo(q[0], q[1] + er(u) * 0.35); }); bot.slice().reverse().forEach(q => c.lineTo(...q)); c.closePath(); c.fill();
-  c.fillStyle = col; for (const [u0, u1] of [[-30, -26], [26, 30]]) { c.beginPath(); for (let u = u0; u <= u1; u++) { const q = ctr(u); c.lineTo(q[0], q[1] - er(u)); } for (let u = u1; u >= u0; u--) { const q = ctr(u); c.lineTo(q[0], q[1] + er(u)); } c.closePath(); c.fill(); }
-  c.strokeStyle = BR; c.lineWidth = 0.55; for (let u = -40; u <= 40; u += 8) { const q = ctr(u); c.beginPath(); c.ellipse(q[0], q[1], 0.9 * er(u) * Math.abs(fw[0]) * 0.25 + 0.6, er(u), 0, 0, 7); c.stroke(); }
-  c.strokeStyle = BRD; c.lineWidth = 0.35; c.beginPath(); EU.forEach((u, i) => { const q = ctr(u); i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); }); c.stroke(); c.restore();
+  if (wk && bf > 0) { c.strokeStyle = '#1c1714'; c.lineWidth = 0.7; for (let u = -40; u <= 40; u += 8) { if (Math.abs(u) >= bf) continue; const q = ctr(u), rx = 0.9 * er(u) * Math.abs(fw[0]) * 0.25 + 0.6, a0 = R(u + 60) * 1.5; c.beginPath(); c.ellipse(q[0], q[1], rx, er(u), 0, a0, a0 + 3.6 + R(u + 90) * 2); c.stroke(); }
+    c.lineWidth = 0.45; for (const k of [-0.95, -0.45, 0.1, 0.7]) { c.beginPath(); let st = false; for (const u of EU) { if (Math.abs(u) > bf || R(u * 3 + k * 7) < 0.12) { st = false; continue; } const q = ctr(u), p2 = [q[0], q[1] + er(u) * k]; st ? c.lineTo(...p2) : c.moveTo(...p2); st = true; } c.stroke(); }
+    c.save(); for (let i = 0; i < 16; i++) { const u = (R(i + 300) - 0.5) * 2 * bf, q = ctr(u), fl = 0.5 + 0.5 * Math.sin(t * 9 + i * 2.3); c.fillStyle = `rgba(255,${110 + 70 * fl | 0},30,${0.4 + 0.5 * fl})`; c.beginPath(); c.arc(q[0], q[1] + (R(i + 340) - 0.5) * er(u) * 1.6, 0.6 + fl * 0.5, 0, 7); c.fill(); } c.restore(); }
+  for (const SEG of wk ? [EU.filter(u => u <= -bf), EU.filter(u => u >= bf)] : [EU]) { if (SEG.length < 2) continue; const lo = SEG[0], hi = SEG[SEG.length - 1];
+    const top = SEG.map(u => { const q = ctr(u); return [q[0], q[1] - er(u)]; }), bot = SEG.map(u => { const q = ctr(u); return [q[0], q[1] + er(u) * 0.95]; });
+    poly([...top, ...bot.slice().reverse()], CAN, '#221c18', 0.6);
+    c.save(); c.beginPath(); top.forEach((q, i) => i ? c.lineTo(...q) : c.moveTo(...q)); bot.slice().reverse().forEach(q => c.lineTo(...q)); c.closePath(); c.clip();
+    c.fillStyle = 'rgba(255,255,255,.07)'; c.beginPath(); top.forEach((q, i) => i ? c.lineTo(q[0], q[1] + 1.5) : c.moveTo(q[0], q[1] + 1.5)); SEG.slice().reverse().forEach(u => { const q = ctr(u); c.lineTo(q[0], q[1] - er(u) * 0.35); }); c.closePath(); c.fill();
+    c.fillStyle = CAND; c.beginPath(); SEG.forEach((u, i) => { const q = ctr(u); i ? c.lineTo(q[0], q[1] + er(u) * 0.35) : c.moveTo(q[0], q[1] + er(u) * 0.35); }); bot.slice().reverse().forEach(q => c.lineTo(...q)); c.closePath(); c.fill();
+    c.fillStyle = col; for (const [b0, b1] of [[-30, -26], [26, 30]]) { const u0 = Math.max(b0, lo), u1 = Math.min(b1, hi); if (u1 <= u0) continue; c.beginPath(); for (let u = u0; u <= u1; u++) { const q = ctr(u); c.lineTo(q[0], q[1] - er(u)); } for (let u = u1; u >= u0; u--) { const q = ctr(u); c.lineTo(q[0], q[1] + er(u)); } c.closePath(); c.fill(); }
+    c.strokeStyle = BR; c.lineWidth = 0.55; for (let u = -40; u <= 40; u += 8) { if (u < lo || u > hi) continue; const q = ctr(u); c.beginPath(); c.ellipse(q[0], q[1], 0.9 * er(u) * Math.abs(fw[0]) * 0.25 + 0.6, er(u), 0, 0, 7); c.stroke(); }
+    c.strokeStyle = BRD; c.lineWidth = 0.35; c.beginPath(); SEG.forEach((u, i) => { const q = ctr(u); i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); }); c.stroke(); c.restore(); }
   fin(near * 12, 0);
   // stern propellers, spinning
   for (const v of [-6, 6]) { const q = P(-33, v, 8); c.save(); c.translate(q[0], q[1]); c.rotate(t * 30); c.fillStyle = 'rgba(200,170,110,.55)'; c.beginPath(); c.ellipse(0, 0, 3.6, 0.7, 0, 0, 7); c.fill(); c.restore(); c.fillStyle = BR; c.beginPath(); c.arc(q[0], q[1], 0.7, 0, 7); c.fill(); }
   // a pennant in his colour off the top of the bag
-  const pt = ctr(-6), pq = [pt[0], pt[1] - er(-6)]; c.strokeStyle = '#2a2420'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(pq[0], pq[1]); c.lineTo(pq[0], pq[1] - 7); c.stroke(); c.fillStyle = col; c.beginPath(); c.moveTo(pq[0], pq[1] - 7); c.quadraticCurveTo(pq[0] - 3, pq[1] - 6 + Math.sin(t * 6), pq[0] - 6, pq[1] - 5.5 + Math.sin(t * 6 + 1)); c.lineTo(pq[0], pq[1] - 4.5); c.fill();
+  if (bf < 4) { const pt = ctr(-6), pq = [pt[0], pt[1] - er(-6)]; c.strokeStyle = '#2a2420'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(pq[0], pq[1]); c.lineTo(pq[0], pq[1] - 7); c.stroke(); c.fillStyle = col; c.beginPath(); c.moveTo(pq[0], pq[1] - 7); c.quadraticCurveTo(pq[0] - 3, pq[1] - 6 + Math.sin(t * 6), pq[0] - 6, pq[1] - 5.5 + Math.sin(t * 6 + 1)); c.lineTo(pq[0], pq[1] - 4.5); c.fill(); }
+  if (wk) ttWreckBurn(c, P, ctr, er, bf, wr, t, R);
+  c.restore(); }
+// where the wreck's explosions go off: [s after it hits, along the ship, height, size]; each big piece of debris is thrown out by one of them
+const SHIPX = [[0, 0, 7, 1.6], [0.18, -18, 30, 1.1], [0.42, 16, 32, 1.1], [0.7, -6, 11, 1.0], [0.95, 26, 10, 0.9], [1.3, -30, 34, 1.0], [1.7, 8, 36, 0.9]];
+const SHIPF = [[0, 0, 9, 3, 0.05], [-10, 3, 9, 2.2, 0.2], [12, -2, 9, 2.4, 0.35], [-20, 0, 24, 2, 0.5], [4, 0, 19, 2.2, 0.75], [-30, 0, 10, 1.8, 1.0]];
+// a few flame tongues standing on (x, y), s tall-ish
+function ttFlame(c, x, y, s, t, i) { c.fillStyle = 'rgba(255,115,30,.8)'; for (let k = -1; k <= 1; k++) { const w = s * 0.45, hg = s * (1.6 - Math.abs(k) * 0.5) * (0.8 + 0.3 * Math.sin(t * 17 + i + k * 2)), cx = x + k * w; c.beginPath(); c.moveTo(cx - w, y); c.quadraticCurveTo(cx - w * 0.6, y - hg * 0.6, cx + Math.sin(t * 11 + i + k) * w * 0.6, y - hg); c.quadraticCurveTo(cx + w * 0.6, y - hg * 0.5, cx + w, y); c.fill(); }
+  c.fillStyle = 'rgba(255,230,140,.85)'; c.beginPath(); c.moveTo(x - s * 0.4, y); c.quadraticCurveTo(x, y - s * 1.1 * (0.8 + 0.25 * Math.sin(t * 13 + i * 1.7)), x + s * 0.4, y); c.fill(); }
+// the wreck burning: smoke from every fire, fires on the hull, flames along the burning edge of the bag, explosions going off
+function ttWreckBurn(c, P, ctr, er, bf, wr, t, R) {
+  SHIPF.forEach(([u, v, h, s, t0], i) => { const q = P(u, v, h); for (let k = 0; k < 18; k++) { const age = wr - t0 - k * 0.1; if (age <= 0 || age > 1.7) continue; const r2 = R(i * 50 + k); c.fillStyle = `rgba(38,34,32,${0.38 * (1 - age / 1.7)})`; c.beginPath(); c.arc(q[0] + (r2 - 0.5) * 9 * age + 7 * age, q[1] - s - 22 * age, 1.4 + age * 5 * (0.7 + r2 * 0.6), 0, 7); c.fill(); } });
+  SHIPF.forEach(([u, v, h, s, t0], i) => { if (wr < t0) return; const q = P(u, v, h); ttFlame(c, q[0], q[1], s * sm(cl((wr - t0) / 0.3, 0, 1)), t, i * 3.1); });
+  if (bf > 0 && bf < 46) for (const sg of [-1, 1]) { const u = sg * bf, q = ctr(u); for (let k = 0; k < 5; k++) { const a = -1.3 + k * 0.65; ttFlame(c, q[0] + Math.sin(a) * 0.6, q[1] - Math.cos(a) * er(u), 2.2, t, k + sg * 5); } }
+  c.save(); c.globalCompositeOperation = 'lighter'; for (const [t0, u, h, s] of SHIPX) { const e = wr - t0; if (e < 0 || e > 0.55) continue; const k = e / 0.55, q = P(u, 0, h), r = 14 * s * (0.3 + 0.7 * (1 - (1 - k) ** 3)), al = (1 - k) ** 1.5, g = c.createRadialGradient(q[0], q[1], 0, q[0], q[1], r);
+    g.addColorStop(0, `rgba(255,250,220,${al})`); g.addColorStop(0.35, `rgba(255,190,70,${0.9 * al})`); g.addColorStop(0.7, `rgba(230,80,20,${0.6 * al})`); g.addColorStop(1, 'rgba(120,30,10,0)'); c.fillStyle = g; c.beginPath(); c.arc(q[0], q[1], r, 0, 7); c.fill(); } c.restore(); }
+const shipRnd = kn => { const s0 = kn.scx * 3.17 + kn.scy * 7.31 + (kn.scN || 0) * 1.7; return i => { const s = Math.sin(i * 12.9898 + s0) * 43758.5453; return s - Math.floor(s); }; };
+// the wreck's flying pieces: worked out the same on every screen from the landing spot, so the host knows where the big ones come down
+function shipDebris(kn) { if (kn.wDb && kn.wDb.n === kn.scN && kn.wDb.x === kn.scx) return kn.wDb.p; const DB = TT.SHIP.DB, R = shipRnd(kn), hd = kn.sch || 0, fw = [Math.cos(hd), Math.sin(hd) / 1.25], sd = [-Math.sin(hd), Math.cos(hd) / 1.25], G = 170, p = [];
+  for (let i = 0; i < 26; i++) { const big = i < DB.N, ex = SHIPX[i % SHIPX.length], u0 = big ? ex[1] : (R(i) - 0.5) * 70, v0 = (R(i + 40) - 0.5) * 10, h0 = big ? ex[2] : 6 + R(i + 80) * 30, t0 = big ? ex[0] : R(i + 500) * 0.25;
+    const a = big ? (i + R(i + 120) * 0.6) / DB.N * 6.283 : R(i + 120) * 6.283, d = big ? lerp(DB.MIN, DB.MAX, R(i + 160)) : 10 + R(i + 160) * 55, vz = big ? 60 + R(i + 200) * 40 : 30 + R(i + 200) * 70, tl = (vz + Math.sqrt(vz * vz + 2 * G * h0)) / G;
+    const sx = kn.scx + u0 * fw[0] + v0 * sd[0], sy = kn.scy + u0 * fw[1] + v0 * sd[1];
+    p.push({ big, sx, sy, ex: sx + Math.cos(a) * d, ey: sy + Math.sin(a) * d / 1.25, h0, vz, tl, t0, G, kind: big ? i % 6 : i % 3, sp: (R(i + 240) - 0.5) * 18, r0: R(i + 280) * 6.28 }); }
+  kn.wDb = { n: kn.scN, x: kn.scx, p }; return p; }
+// the debris: flying out spinning (big pieces burning), shadows under them, then lying where they fell; a big piece landing throws up dust and a ring
+function ttWreckFx(c, kn, t, al) { const D = shipDebris(kn), w = kn.scT, BR = '#c8963e', BRD = '#7a5520';
+  if (kn.wdN !== kn.scN) { kn.wdN = kn.scN; kn.wdL = 0; kn.wdX = 0; }
+  SHIPX.forEach(([t0], i) => { if (i && w >= t0 && !(kn.wdX & 1 << i)) { kn.wdX |= 1 << i; snd('boom', kn.scx, kn.scy); if (KN[ME] && Math.hypot(KN[ME].x - kn.scx, KN[ME].y - kn.scy) < 220) shake = Math.max(shake, 0.35); } });
+  c.save(); c.globalAlpha = al;
+  D.forEach((q, i) => { const e = w - q.t0; if (e < 0) return; const f = Math.min(e, q.tl), gx = lerp(q.sx, q.ex, f / q.tl), gy = lerp(q.sy, q.ey, f / q.tl), h = Math.max(0, q.h0 + q.vz * f - 0.5 * q.G * f * f), s = q.big ? 1 : 0.8;
+    if (q.big && e >= q.tl && !(kn.wdL & 1 << i)) { kn.wdL |= 1 << i; FX.push({ k: 'ring', x: q.ex, y: q.ey, t: 0, max: 0.5, s: TT.SHIP.DB.R / SLAM_R }); for (let k = 0; k < 16; k++) { const a = rr(0, 6.28), v = rr(20, 60); dust.push({ x: q.ex, y: q.ey, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1, 2.4), t: 0, max: rr(0.4, 0.9) }); }
+      snd('gslam', q.ex, q.ey); if (KN[ME] && Math.hypot(KN[ME].x - q.ex, KN[ME].y - q.ey) < 120) shake = Math.max(shake, 0.25); }
+    c.fillStyle = `rgba(0,0,0,${0.25 / (1 + h * 0.04)})`; c.beginPath(); c.ellipse(gx, gy, (q.big ? 5 : 1.6) / (1 + h * 0.02), (q.big ? 2 : 0.7) / (1 + h * 0.02), 0, 0, 7); c.fill();
+    c.save(); c.translate(gx, gy - h - (q.big ? 1.5 : 0.4)); c.rotate(q.r0 + q.sp * f); c.lineWidth = 0.4; c.strokeStyle = '#1e1510';
+    if (!q.big) { c.fillStyle = ['#8a6440', BR, '#5b5048'][q.kind]; c.fillRect(-1.4 * s, -0.4 * s, 2.8 * s, 0.8 * s); }
+    else if (q.kind === 0) { c.fillStyle = '#1d1a18'; c.fillRect(-1.8, -5, 3.6, 10); c.fillStyle = BR; c.fillRect(-2, -5, 4, 1.2); c.fillRect(-1.8, 0, 3.6, 0.7); }
+    else if (q.kind === 1) { c.strokeStyle = '#2a2420'; c.lineWidth = 0.9; c.beginPath(); c.moveTo(0, -0.4); c.lineTo(6, -0.8); c.stroke(); c.fillStyle = BR; c.beginPath(); c.ellipse(0, 0, 2.8, 1.8, 0, 0, 7); c.fill(); c.strokeStyle = BRD; c.lineWidth = 0.4; c.stroke(); }
+    else if (q.kind === 2) { c.fillStyle = 'rgba(200,170,110,.95)'; c.beginPath(); c.ellipse(0, 0, 4.2, 0.8, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(0, 0, 0.8, 4.2, 0, 0, 7); c.fill(); c.fillStyle = BR; c.beginPath(); c.arc(0, 0, 0.9, 0, 7); c.fill(); }
+    else if (q.kind === 3) { c.fillStyle = '#3b2a20'; c.beginPath(); [[-6, -2], [-2, -3.2], [5, -3], [6, 1], [2, 3], [-1, 1.8], [-5, 2.6]].forEach((p2, k) => k ? c.lineTo(...p2) : c.moveTo(...p2)); c.closePath(); c.fill(); c.stroke(); c.fillStyle = '#8a6440'; c.fillRect(-5, -2.6, 10, 1.2); c.fillStyle = '#f2cf7a'; c.beginPath(); c.arc(0.5, 0.6, 0.7, 0, 7); c.fill(); }
+    else if (q.kind === 4) { c.fillStyle = '#6e4a2c'; c.fillRect(-5, -2.5, 10, 5); c.strokeStyle = BRD; c.strokeRect(-5, -2.5, 10, 5); c.fillStyle = '#f2cf7a'; for (const x2 of [-3, 0, 3]) c.fillRect(x2 - 0.6, -0.6, 1.2, 1.2); }
+    else { c.fillStyle = '#5b5048'; c.beginPath(); c.moveTo(-5, 0); c.quadraticCurveTo(0, -6, 5, 0); c.lineTo(3, 1.5); c.quadraticCurveTo(0, -3, -3.5, 1.5); c.closePath(); c.fill(); c.strokeStyle = '#1c1714'; c.lineWidth = 0.8; c.beginPath(); c.arc(0, 2, 5, 3.5, 5.9); c.stroke(); }
+    c.restore();
+    if (q.big && e < q.tl + 1.4) { c.save(); c.globalAlpha = al * (1 - cl((e - q.tl) / 1.4, 0, 1)); ttFlame(c, gx, gy - h - 1, 2.2, t, i * 2.7); c.restore(); } });
   c.restore(); }
 // the ship call on the ground: its great shadow darkening over the spot, then its shadow under the ship
 function ttShipGround(c, kn) { const SH = TT.SHIP; if (!(kn.sc >= 1)) return; const fw = gDir(kn.sch || 0), ang = Math.atan2(fw[1], fw[0]), L = Math.hypot(fw[0], fw[1]);
@@ -3351,6 +3413,7 @@ function ttGround(c) { for (const kn of KN) if (kn.kind === 'time' && kn.on !== 
 // hit zones: the attack's cone (or the bike's contact strip)
 function ttZones(c) { const kn = KN[ME]; if (!kn || kn.kind !== 'time') return; c.save(); c.fillStyle = 'rgba(255,70,50,.18)';
   if (kn.sc === 1) { c.save(); c.translate(kn.scx, kn.scy); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.3)'; c.beginPath(); c.arc(0, 0, TT.SHIP.R, 0, 7); c.fill(); c.restore(); }
+  if (kn.sc === 2) for (const q of shipDebris(kn)) if (q.big && kn.scT < q.t0 + q.tl) { c.save(); c.translate(q.ex, q.ey); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.25)'; c.beginPath(); c.arc(0, 0, TT.SHIP.DB.R, 0, 7); c.fill(); c.restore(); }
   if (kn.wpn === 3 && (kn.hu === 1 || kn.hu === 2) && !kn.alq) { c.save(); c.translate(kn.hux, kn.huy); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.1)'; c.strokeStyle = 'rgba(255,120,100,.7)'; c.lineWidth = 0.5; c.setLineDash([2, 2]); c.beginPath(); c.arc(0, 0, TT.HURL.R, 0, 7); c.fill(); c.stroke(); c.restore(); }
   for (const q of TRAPS) if (q.t >= TT.TRAP.FLY && q.end === undefined) { const T2 = TT.TRAP; c.save(); c.translate(q.x, q.y); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.25)'; c.beginPath(); c.arc(0, 0, T2.ARM + T2.BL, 0, 7); c.arc(0, 0, Math.max(0, T2.ARM - T2.BL), 0, 7, true); c.fill(); c.restore(); }
   // each flying saw's ricochet cone: where its next bounce may go (70 degrees, BR out, pointing away from where it was fired), and a line to its current target
@@ -3528,15 +3591,17 @@ function worldStep(dt, t) {
   }
   // gibs, blood
   for (const p of parts) { p.t += dt; if (!p.rest) { p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt; p.vz -= 110 * dt; p.rot += p.spin * dt; if (p.kind !== 'ash' && Math.random() < dt * 30 && p.t < 0.8) blood.push({ x: p.x, y: p.y, z: p.z, vx: p.vx * 0.2 + rr(-3, 3), vy: rr(-2, 2), vz: rr(-2, 6), t: 0, drip: 1 }); if (p.z <= 0) { p.z = 0; if (p.vz < -18) { p.vz *= -0.3; p.vx *= 0.45; p.vy *= 0.45; p.spin *= 0.4; } else { p.rest = p.t; p.rot = p.kind === 'corpse' ? (Math.sin(p.rot) >= 0 ? 1 : -1) * Math.PI / 2 : Math.round(p.rot / (Math.PI / 2)) * (Math.PI / 2) + (p.kind === 'torso' || p.kind === 'legs' ? Math.PI / 2 : 0); splats.push({ x: p.x, y: p.y, r: rr(1.4, 2.6), t: 0, ash: p.kind === 'ash' ? 1 : 0 }); } } } }
-  // resting pieces linger 4s, but only 1.5s once a mass kill has left hundreds on the ground (each one costs a draw every frame)
-  PFADE = parts.length > 500 ? 1.5 : 4; parts = parts.filter(p => !p.rest || p.t - p.rest < PFADE);
+  // resting pieces lie solid for a while (shorter the more are about; each one costs a draw every frame), then fade out smoothly; the linger is fixed when it lands, so nothing already on the ground ever pops
+  for (const p of parts) if (p.rest && p.lv === undefined) p.lv = parts.length > 500 ? 0.6 : parts.length > 300 ? 1.6 : 3;
+  parts = parts.filter(p => !p.rest || p.t - p.rest < p.lv + PFD);
   for (const b of blood) { b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt; b.vz -= 100 * dt; if (b.z <= 0 && !b.done) { b.done = 1; if (Math.random() < 0.5) splats.push({ x: b.x, y: b.y, r: rr(0.4, 1.1), t: 0 }); } }
   blood = blood.filter(b => !b.done);
   splats.forEach(s2 => s2.t += dt); splats = splats.filter(s2 => s2.t < 5);
   // too many body parts: drop the oldest ones already lying on the ground first, so bodies still in the air keep flying
-  if (parts.length > PART_CAP) { let over = parts.length - PART_CAP; parts = parts.filter(p => !(over > 0 && p.rest && over--)); if (parts.length > PART_CAP) parts.splice(0, parts.length - PART_CAP); }
+  // too many: the oldest resting ones start fading now instead of vanishing; only far past the cap are any dropped outright
+  if (parts.length > PART_CAP) { let over = parts.length - PART_CAP; for (const p of parts) { if (over <= 0) break; if (p.rest && p.lv !== undefined && p.t - p.rest < p.lv) { p.lv = p.t - p.rest; over--; } else if (p.rest && p.t - p.rest >= p.lv) over--; } if (parts.length > PART_CAP * 1.5) parts.splice(0, parts.length - PART_CAP * 1.5); }
   if (blood.length > 1600) blood.splice(0, blood.length - 1600);
-  if (splats.length > 450) splats.splice(0, splats.length - 450);
+  if (splats.length > 450) { for (let i = 0; i < splats.length - 450; i++) splats[i].t = Math.max(splats[i].t, 4.2); if (splats.length > 800) splats.splice(0, splats.length - 800); }
   for (const f of FX) f.t += dt;
   FX = FX.filter(f => f.t < f.max); shake = Math.max(0, shake - dt);
   for (const p of dust) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 1 - dt * 5; p.vy *= 1 - dt * 5; } dust = dust.filter(p => p.t < p.max); if (dust.length > 260) dust.splice(0, dust.length - 260); // smoke/dust budget
@@ -3569,7 +3634,7 @@ function draw() {
   for (const sp of splats) { if (sp.x < VL || sp.x > VR) continue; x.globalAlpha = Math.max(0, 1 - sp.t / 5) * 0.85; x.fillStyle = sp.ash ? '#26201c' : '#6a1610'; x.beginPath(); x.ellipse(sp.x, sp.y, sp.r, sp.r * 0.5, 0, 0, 7); x.fill(); } x.globalAlpha = 1;
   for (const kn of LIVE()) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
   drawFxGround(x); drawGouges(x, t); ttGround(x); drawVolcFloor(x, t); drawBikePreview(x, t); drawLeapPreview(x, t); drawDashPreview(x, t); drawSweepPreview(x, t); drawCoalPreview(x);
-  for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = Math.max(0, 1 - (p.t - p.rest) / PFADE); drawPartFast(x, p); } x.globalAlpha = 1;
+  for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = pAlpha(p); drawPartFast(x, p); } x.globalAlpha = 1;
   const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(TRAPS.filter(q => q.t >= TT.TRAP.FLY).flatMap(q => { const G = trapGeo(q); return [[q.y, 6, q], [G.ey + 0.01, 7, q]]; })).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
   for (const [, k, o] of list) {
     if (k < 2) { K = o; COL = o.col; }
@@ -4003,7 +4068,9 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
+window.__shipDb = kn => shipDebris(kn);
 const KBUILD = '__BUILD__';
+if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
