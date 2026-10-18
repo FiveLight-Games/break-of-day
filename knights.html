@@ -3476,17 +3476,21 @@ const FIELD_H = H;
 function heliClamp(kn, s0, e0) { const H = TT.HELI, cap = (o, p, R) => { const dx = p[0] - o[0], dy = (p[1] - o[1]) * 1.25, d = Math.hypot(dx, dy); return d > R ? [o[0] + dx / d * R, o[1] + dy / d * R / 1.25] : p.slice(); };
   const s = cap([kn.x, kn.y], s0, H.AREA); s[1] = cl(s[1], 16, FIELD_H - 4); let dx = e0[0] - s[0], dy = (e0[1] - s[1]) * 1.25; if (Math.hypot(dx, dy) < 6) { dx = s[0] - kn.x; dy = (s[1] - kn.y) * 1.25; if (Math.hypot(dx, dy) < 1) { dx = kn.f || 1; dy = 0; } } const d = Math.hypot(dx, dy); return [s, [s[0] + dx / d * H.LMAX, s[1] + dy / d * H.LMAX / 1.25]]; }
 const heliG = (kn, u, v) => { const ca = Math.cos(kn.hla), sa = Math.sin(kn.hla); return [kn.hlx + u * ca - v * sa, kn.hly + (u * sa + v * ca) / 1.25]; };
-const heliU = s => -TT.HELI.PRE + TT.HELI.SPD * Math.max(0, s - TT.HELI.OPEN);
-const heliEnd = kn => TT.HELI.OPEN + (kn.hlL + TT.HELI.PRE + TT.HELI.POST) / TT.HELI.SPD;
-const heliTot = kn => heliEnd(kn) + 0.5;
+// the helicopter starts wholly inside the first portal (its nose, NOSE in front of its centre, right at the portal's plane) and is gone once its tail (TAIL behind) is through the second
+const HNOSE = 16, HTAIL = 32;
+const heliU = s => -TT.HELI.PRE - HNOSE + TT.HELI.SPD * Math.max(0, s - TT.HELI.OPEN);
+const heliEnd = kn => TT.HELI.OPEN + (kn.hlL + TT.HELI.PRE + TT.HELI.POST + HNOSE) / TT.HELI.SPD;
+const heliGone = kn => heliEnd(kn) + HTAIL / TT.HELI.SPD;
+const heliTot = kn => heliGone(kn) + 0.45;
 const heliNear = kn => Math.cos(kn.hla) >= 0 ? 1 : -1;
 // the gunner's rounds: [time, x, y, u, v], fired while the point just ahead of the helicopter is over the strip
 function heliShots(kn) { if (kn.hlS && kn.hlS.n === kn.hlN && kn.hlS.x === kn.hlx) return kn.hlS.p; const H = TT.HELI, R = shipRnd({ scx: kn.hlx, scy: kn.hly, scN: kn.hlN }), p = [];
-  const s0 = H.OPEN + (H.PRE - H.LEAD) / H.SPD, s1 = H.OPEN + (H.PRE + kn.hlL - H.LEAD) / H.SPD, n = Math.floor((s1 - s0) * H.RATE);
+  const s0 = H.OPEN + (H.PRE + HNOSE - H.LEAD) / H.SPD, s1 = H.OPEN + (H.PRE + HNOSE + kn.hlL - H.LEAD) / H.SPD, n = Math.floor((s1 - s0) * H.RATE);
   for (let i = 0; i < n; i++) { const tt = s0 + i / H.RATE, u = cl(heliU(tt) + H.LEAD + (R(i) - 0.5) * 8, 0, kn.hlL), v = (R(i + 500) - 0.5) * H.W, g = heliG(kn, u, v); p.push([tt, g[0], g[1], u, v]); }
   kn.hlS = { n: kn.hlN, x: kn.hlx, p }; return p; }
 // a vertical portal in the air, facing along the flight path
-function heliPortal(c, kn, x, y, k, t) { const fw = gDir(kn.hla), wide = 0.45 + 0.55 * Math.abs(fw[1]) / Math.hypot(fw[0], fw[1]); ttPortal(c, x, y, 22 * wide, 19, k, t, 0); }
+// the portal lies in the plane the helicopter is clipped against: its long axis along that plane's line on screen (the same line the clip uses), opening wider the more it faces the camera
+function heliPortal(c, kn, x, y, k, t) { const fw = gDir(kn.hla), L = Math.hypot(fw[0], fw[1]), n = [-fw[1] / L, fw[0] / L], face = Math.abs(fw[1]) / L; ttPortal(c, x, y, 25, 25 * Math.max(0.3, face), k, t, Math.atan2(n[1], n[0])); }
 // the helicopter (a Vietnam-era utility chopper): olive drab, rounded nose, open side door with two soldiers and a door gunner on the side gun, skids, tail boom, two-blade rotor
 function heliDraw(c, kn, gx, gy, z, t, aim, fire, col) { const ca = Math.cos(kn.hla), sa = Math.sin(kn.hla), fw = [ca, sa / 1.25], sd = [-sa, ca / 1.25], near = heliNear(kn), P = (u, v, h) => [gx + u * fw[0] + v * sd[0], gy + u * fw[1] + v * sd[1] - h - z + u * 0.07];
   const poly = (pts, fill, st, lw) => { c.beginPath(); pts.forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); c.closePath(); if (fill) { c.fillStyle = fill; c.fill(); } if (st) { c.strokeStyle = st; c.lineWidth = lw || 0.4; c.stroke(); } };
@@ -3542,15 +3546,15 @@ function heliDraw(c, kn, gx, gy, z, t, aim, fire, col) { const ca = Math.cos(kn.
   return tip; }
 // the whole strafe in the air: entry portal, helicopter (clipped by the portal it's passing through), rounds and tracers, exit portal
 function heliAir(c, kn, t) { const H = TT.HELI, s = kn.hl, near = heliNear(kn), fw = gDir(kn.hla), uIn = -H.PRE, uOut = kn.hlL + H.POST, vP = -near * H.OFF, ePos = heliG(kn, uIn, vP), xPos = heliG(kn, uOut, vP), tEnd = heliEnd(kn);
-  const kIn = s < H.OPEN ? sm(s / H.OPEN) : 1 - sm(cl((s - H.OPEN - 0.45) / 0.3, 0, 1)), kOut = s < tEnd - 0.45 ? sm(cl((s - (tEnd - 0.8)) / 0.35, 0, 1)) : 1 - sm(cl((s - tEnd - 0.15) / 0.3, 0, 1));
+  const tOutIn = H.OPEN + (HNOSE + HTAIL) / H.SPD, tNose = tEnd - HNOSE / H.SPD, tGone = heliGone(kn), kIn = s < H.OPEN ? sm(s / H.OPEN) : 1 - sm(cl((s - tOutIn - 0.05) / 0.3, 0, 1)), kOut = s < tGone ? sm(cl((s - (tNose - 0.45)) / 0.35, 0, 1)) : 1 - sm(cl((s - tGone - 0.05) / 0.3, 0, 1));
   const u = heliU(s), g = heliG(kn, u, vP), S = heliShots(kn); let last = null, fire = false; for (const q of S) { if (q[0] > s) break; last = q; } if (last && s - last[0] < 0.035) fire = true;
   // its shadow on the ground
   // (only the part of it that's out between the two portals casts a shadow, like the bike's: it grows in as it comes out and shrinks away as it goes in)
-  { const a0 = Math.max(u - 30, uIn), a1 = Math.min(u + 14, uOut), vis = a1 - a0; if (s > H.OPEN * 0.6 && vis > 0.5) { const mc = heliG(kn, (a0 + a1) / 2, vP), k = vis / 44; c.fillStyle = `rgba(0,0,0,${0.14 * Math.min(1, k * 1.6)})`; c.beginPath(); c.ellipse(mc[0], mc[1] + 2, Math.max(1, 15 * k) * Math.hypot(fw[0], fw[1]) + 0.8, 5 * Math.min(1, k * 2), Math.atan2(fw[1], fw[0]), 0, 7); c.fill(); } }
+  { const a0 = Math.max(u - HTAIL, uIn), a1 = Math.min(u + HNOSE, uOut), vis = a1 - a0; if (s > H.OPEN * 0.6 && vis > 0.5) { const mc = heliG(kn, (a0 + a1) / 2, vP), k = vis / (HNOSE + HTAIL); c.fillStyle = `rgba(0,0,0,${0.14 * Math.min(1, k * 1.6)})`; c.beginPath(); c.ellipse(mc[0], mc[1] + 2, Math.max(1, 15 * Math.min(1, k)) * Math.hypot(fw[0], fw[1]) + 0.8, 5 * Math.min(1, k * 2), Math.atan2(fw[1], fw[0]), 0, 7); c.fill(); } }
   if (kIn > 0) heliPortal(c, kn, ePos[0], ePos[1] - H.Z - 2, kIn, t);
   if (kOut > 0) heliPortal(c, kn, xPos[0], xPos[1] - H.Z - 2, kOut, t);
-  if (s > H.OPEN * 0.6 && s < tEnd + 0.15) { c.save(); const L2p = (px, py, dir) => { const n = [-fw[1], fw[0]], big = 900; c.moveTo(px + n[0] * big, py + n[1] * big); c.lineTo(px - n[0] * big, py - n[1] * big); c.lineTo(px - n[0] * big + dir * fw[0] * big, py - n[1] * big + dir * fw[1] * big); c.lineTo(px + n[0] * big + dir * fw[0] * big, py + n[1] * big + dir * fw[1] * big); c.closePath(); };
-    c.beginPath(); L2p(ePos[0], ePos[1] - H.Z, 1); c.clip(); c.beginPath(); L2p(xPos[0], xPos[1] - H.Z, -1); c.clip();
+  if (s > H.OPEN * 0.6 && s < tGone + 0.05) { c.save(); const L2p = (px, py, dir) => { const n = [-fw[1], fw[0]], big = 900; c.moveTo(px + n[0] * big, py + n[1] * big); c.lineTo(px - n[0] * big, py - n[1] * big); c.lineTo(px - n[0] * big + dir * fw[0] * big, py - n[1] * big + dir * fw[1] * big); c.lineTo(px + n[0] * big + dir * fw[0] * big, py + n[1] * big + dir * fw[1] * big); c.closePath(); };
+    c.beginPath(); L2p(ePos[0], ePos[1] - H.Z - 2, 1); c.clip(); c.beginPath(); L2p(xPos[0], xPos[1] - H.Z - 2, -1); c.clip();
     const aimP = last ? [last[1], last[2]] : null, tip = heliDraw(c, kn, g[0], g[1], H.Z, t, aimP, fire, kn.col || COL); c.restore();
     // tracers: every third round streaks from the muzzle to where it lands
     c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; for (let i = 0; i < S.length; i++) { const q = S[i], e = s - q[0]; if (e < 0) break; if (e > 0.07 || i % 3) continue; const k = e / 0.07; c.strokeStyle = `rgba(255,210,110,${0.9 * (1 - k)})`; c.lineWidth = 0.55; c.beginPath(); c.moveTo(lerp(tip[0], q[1], k * 0.6), lerp(tip[1], q[2], k * 0.6)); c.lineTo(lerp(tip[0], q[1], Math.min(1, k * 0.6 + 0.45)), lerp(tip[1], q[2], Math.min(1, k * 0.6 + 0.45))); c.stroke(); } c.restore(); } }
@@ -3560,8 +3564,8 @@ function heliFx(kn) { const S = heliShots(kn); if (kn.hlFN !== kn.hlN) { kn.hlFN
   heliAudio(kn); }
 // the recording plays from when the helicopter comes out of the first portal, fading in over 0.3s, and fades out as it goes into the second
 function heliAudio(kn) { const bufs = heliBuf(); if (!bufs || !AU.ctx || AU.ctx.state !== 'running') return; const H = TT.HELI, c = AU.ctx, now = c.currentTime;
-  if (kn.hlAu && kn.hlAu.n !== kn.hlN) kn.hlAu = null; if (kn.hlAu || kn.hl < H.OPEN || kn.hl > heliEnd(kn)) return;
-  const src = c.createBufferSource(), g = c.createGain(), vol = 0.54, left = heliEnd(kn) - kn.hl, tOut = now + Math.max(0.05, left - 0.25), tEnd = now + left + 0.2; const buf = bufs[Math.floor(Math.random() * bufs.length)]; src.buffer = buf; src.playbackRate.value = speed < 1 ? 0.62 : 1;
+  if (kn.hlAu && kn.hlAu.n !== kn.hlN) kn.hlAu = null; if (kn.hlAu || kn.hl < H.OPEN || kn.hl > heliGone(kn)) return;
+  const src = c.createBufferSource(), g = c.createGain(), vol = 0.54, left = heliGone(kn) - kn.hl, tOut = now + Math.max(0.05, left - 0.25), tEnd = now + left + 0.2; const buf = bufs[Math.floor(Math.random() * bufs.length)]; src.buffer = buf; src.playbackRate.value = speed < 1 ? 0.62 : 1;
   g.gain.setValueAtTime(0.0001, now); g.gain.linearRampToValueAtTime(vol, now + Math.min(0.3, left * 0.4)); g.gain.setValueAtTime(vol, Math.max(now + Math.min(0.3, left * 0.4), tOut)); g.gain.linearRampToValueAtTime(0.0001, tEnd);
   src.connect(g); g.connect(AU.out); src.start(now, Math.random() * Math.max(0, buf.duration - (left + 0.3))); src.stop(tEnd + 0.05); kn.hlAu = { n: kn.hlN, src }; }
 // ---- the stampede: the herd is worked out from the synced call (dnx/dny portal, dnf direction, dnN) the same way on every screen ----
@@ -4355,7 +4359,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '8f5306';
+const KBUILD = 'f6e9c3';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
