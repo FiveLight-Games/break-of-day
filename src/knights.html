@@ -2557,7 +2557,7 @@ const TT = {
   SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 30, BR: 110, TURN: 3, CONE: 0.873, DMG: 175, W: 9.625, Z: 8, R: 6.6, GUN: 1.3, MU: [3.8, 0.6], HZ: 5 },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
   DINO: { BACK: 170, OPEN: 0.6, RUN: 680, BAND: 70, EAT: 0.3, EATR: 40 },
-  HELI: { AREA: 210, CD: 8, LMIN: 70, LMAX: 190, W: 30, PRE: 130, POST: 130, SPD: 250, OPEN: 0.35, OFF: 26, Z: 34, RATE: 60, DMG: 140, HR: 7, KB: 30, LEAD: 24 },
+  HELI: { AREA: 210, CD: 8, LMIN: 70, LMAX: 190, W: 30, PRE: 130, POST: 130, SPD: 187.5, OPEN: 0.35, OFF: 26, Z: 34, RATE: 60, DMG: 140, HR: 7, KB: 30, LEAD: 24 },
   SHIP: { BLK: [40, 12], RANGE: 130, SHADOW: 1.0, DROP: 0.32, LIE: 2.6, FADE: 0.8, RA: 54, RB: 31, DMG: 600, KB: 260, CD: 6, DB: { N: 7, R: 12, DMG: 160, KB: 120, MIN: 38, MAX: 85 }, SLOW: 0.6, LEN: 72 },
   BOOM: { RANGE: 123.5, LOOP: 1.0, WID: 0.25, R: 16.8, DMG: 200, CD: 0, SPIN: 24, Z: 6, SZ: 1.82 },
   BIKE: { BV: 140, CD: 10, T: 7, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
@@ -3488,26 +3488,48 @@ function heliPortal(c, kn, x, y, k, t) { const fw = gDir(kn.hla), wide = 0.45 + 
 // the helicopter (a Vietnam-era utility chopper): olive drab, rounded nose, open side door with two soldiers and a door gunner on the side gun, skids, tail boom, two-blade rotor
 function heliDraw(c, kn, gx, gy, z, t, aim, fire, col) { const ca = Math.cos(kn.hla), sa = Math.sin(kn.hla), fw = [ca, sa / 1.25], sd = [-sa, ca / 1.25], near = heliNear(kn), P = (u, v, h) => [gx + u * fw[0] + v * sd[0], gy + u * fw[1] + v * sd[1] - h - z + u * 0.07];
   const poly = (pts, fill, st, lw) => { c.beginPath(); pts.forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); c.closePath(); if (fill) { c.fillStyle = fill; c.fill(); } if (st) { c.strokeStyle = st; c.lineWidth = lw || 0.4; c.stroke(); } };
-  const OD = '#5d6a3c', ODD = '#3f4a28', ODL = '#77864e', OUT = '#1d2414', prof = [[14, 0], [13.2, 2.6], [10.5, 4.6], [3, 5.2], [-6, 5], [-6, -4.4], [8, -4.6], [12.6, -3.3]];
+  const OD = '#4f5a2e', ODD = '#363f1f', ODL = '#66733e', OUT = '#171d0e', prof = [[14, 0], [13.2, 2.6], [10.5, 4.6], [3, 5.2], [-6, 5], [-6, -4.4], [8, -4.6], [12.6, -3.3]];
   // skids
   c.strokeStyle = '#2a2f20'; c.lineWidth = 0.7; c.lineCap = 'round'; for (const v of [-near * 4.4, near * 4.4]) { const a0 = P(-7, v, -7.6), a1 = P(9.5, v, -7.6), a2 = P(11, v, -6.6); c.beginPath(); c.moveTo(...a0); c.lineTo(...a1); c.lineTo(...a2); c.stroke(); for (const u of [-3, 6]) { const b0 = P(u, v, -7.6), b1 = P(u, v * 0.8, -4.4); c.beginPath(); c.moveTo(...b0); c.lineTo(...b1); c.stroke(); } }
   // tail boom and fin
   poly([P(-6, -near * 1.2, 3.8), P(-27, -near * 0.6, 4.6), P(-27, -near * 0.6, 3), P(-6, -near * 1.2, -0.5)], ODD, OUT, 0.35);
   poly([P(-6, near * 1.2, 3.8), P(-27, near * 0.6, 4.6), P(-27, near * 0.6, 3), P(-6, near * 1.2, -0.5)], OD, OUT, 0.35);
+  // a painted frame on a flat panel at side offset v: local X runs along the ship (flipped so lettering always reads left to right), Y down; m = which way X runs
+  const panel = (v, fn) => { const O = P(0, v, 0), U = P(1, v, 0), A = [U[0] - O[0], U[1] - O[1]], m = A[0] >= 0 ? 1 : -1; if (Math.abs(A[0]) < 0.25) return; c.save(); c.transform(A[0] * m, A[1] * m, 0, 1, O[0], O[1]); fn(m); c.restore(); };
+  // the stabilizer across the boom, then the boom's nose art: a name in hand-painted letters and a U.S. ARMY stencil
+  poly([P(-16, -4.6, 3.3), P(-18.5, -4.6, 3.5), P(-18.5, 4.6, 3.5), P(-16, 4.6, 3.3)], ODD, OUT, 0.3);
+  panel(near * 1.05, m => { c.textBaseline = 'middle'; c.font = 'italic 900 1.55px Georgia, serif'; c.textAlign = m > 0 ? 'right' : 'left'; c.lineWidth = 0.32; c.strokeStyle = '#1a1f10'; c.fillStyle = '#e9e1c4'; const x0 = m * -7.6; c.strokeText('Sweet Thunder', x0, -2.2); c.fillText('Sweet Thunder', x0, -2.2);
+    c.font = '800 0.85px monospace'; c.fillStyle = 'rgba(235,230,210,.85)'; c.textAlign = m > 0 ? 'right' : 'left'; c.fillText('U.S. ARMY', m * -19.5, -3.6); c.fillText('66-16034', m * -21.6, -2.6); });
   poly([P(-15, near * 1, 3.4), P(-19, near * 0.85, 3.6), P(-19, near * 0.85, 2.4), P(-15, near * 1, 2.1)], col);
   poly([P(-23, 0, 4.4), P(-28.5, 0, 11), P(-30, 0, 11), P(-27.5, 0, 3.2)], OD, OUT, 0.35);
+  panel(near * 0.05, m => { const X = m * -27.6, Y = -7.4; c.strokeStyle = 'rgba(240,236,220,.9)'; c.lineWidth = 0.28; c.beginPath(); c.arc(X, Y, 1.05, 0, 7); c.moveTo(X, Y - 1.05); c.lineTo(X, Y + 1.05); c.moveTo(X, Y); c.lineTo(X - 0.74, Y + 0.74); c.moveTo(X, Y); c.lineTo(X + 0.74, Y + 0.74); c.stroke(); });
   // the cabin is the side profile extruded across its width; only the faces turned toward the camera are drawn (the camera looks from the south and above:
   // a face shows when 1.25 x its southward normal + its upward normal > 0), so the nose, roof, windscreen and sides all read right at any heading
   const CW = 4.4, vis = (nu, nv, nh) => 1.25 * (nu * sa + nv * ca) + nh > 0, RIM = ['#8fb0b8', '#8fb0b8', ODL, ODL, ODD, '#2f3820', '#46522c', '#7a98a0'];
   for (let i = 0; i < prof.length; i++) { const [u0, h0] = prof[i], [u1, h1] = prof[(i + 1) % prof.length], nu = h1 - h0, nh = -(u1 - u0); if (!vis(nu, 0, nh)) continue; poly([P(u0, CW, h0), P(u1, CW, h1), P(u1, -CW, h1), P(u0, -CW, h0)], RIM[i], OUT, 0.35); }
   const sv = vis(0, 1, 0) ? 1 : -1; poly(prof.map(([u, h]) => P(u, sv * CW, h)), OD, OUT, 0.45);
   poly([P(13.6, sv * CW * 0.95, 1.2), P(12.9, sv * CW, 3), P(10.4, sv * CW, 4.4), P(8.6, sv * CW, 4.5), P(9.4, sv * CW, 0.6)], '#8fb0b8', OUT, 0.3);
+  // pilot's helmet in the side window, the black anti-glare panel over the nose, the engine housing on the roof with its exhaust
+  { const ph = P(10.6, sv * (CW - 1.2), 2.3); c.fillStyle = '#2b2f22'; c.beginPath(); c.arc(ph[0], ph[1], 0.95, 0, 7); c.fill(); c.fillStyle = 'rgba(255,255,255,.18)'; c.fillRect(ph[0] - 0.5, ph[1] - 0.7, 0.4, 0.3); }
+  if (vis(0.2, 0, 1)) poly([P(10.6, -CW * 0.8, 4.62), P(7.5, -CW * 0.85, 4.85), P(7.5, CW * 0.85, 4.85), P(10.6, CW * 0.8, 4.62)], '#15170f');
+  poly([P(-6, sv * 2.6, 5), P(2.5, sv * 2.6, 5.2), P(1.5, sv * 2.6, 7.3), P(-5.5, sv * 2.6, 7.3)], ODD, OUT, 0.3);
+  poly([P(-5.5, -2.6, 7.3), P(1.5, -2.6, 7.3), P(1.5, 2.6, 7.3), P(-5.5, 2.6, 7.3)], ODL, OUT, 0.3);
+  { const ex = P(-6.6, 0, 6.3); c.fillStyle = '#1a1a14'; c.beginPath(); c.ellipse(ex[0], ex[1], 1.1 * Math.abs(fw[0]) + 0.5, 1.1, 0, 0, 7); c.fill(); }
+  // soldier graffiti on the cabin side: a shark mouth on the nose, a grinning skull in a boonie hat with a flower in its band, chalk tally marks
+  panel(sv * (CW + 0.03), m => { const X = u => m * u;
+    c.fillStyle = '#9c1f1a'; c.strokeStyle = '#140808'; c.lineWidth = 0.18; c.beginPath(); c.moveTo(X(13.1), 1.0); c.quadraticCurveTo(X(10.4), 1.6, X(8.4), 2.5); c.quadraticCurveTo(X(10.6), 3.0, X(12.6), 3.3); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle = '#f3efe2'; for (let i = 0; i < 5; i++) { const a = X(12.5 - i * 0.85), b = X(12.5 - (i + 0.5) * 0.85), d = X(12.5 - (i + 1) * 0.85), y0 = 1.05 + i * 0.28; c.beginPath(); c.moveTo(a, y0); c.lineTo(b, y0 + 0.55); c.lineTo(d, y0 + 0.28); c.closePath(); c.fill(); const y1 = 3.25 - i * 0.16; c.beginPath(); c.moveTo(a, y1); c.lineTo(b, y1 - 0.5); c.lineTo(d, y1 - 0.1); c.closePath(); c.fill(); }
+    c.fillStyle = '#f3efe2'; c.beginPath(); c.arc(X(11.6), 0.25, 0.42, 0, 7); c.fill(); c.fillStyle = '#111'; c.beginPath(); c.arc(X(11.6) + m * 0.12, 0.25, 0.2, 0, 7); c.fill();
+    const sx = X(6.6), sy = 1.1; c.fillStyle = '#ece6d2'; c.strokeStyle = '#1a1a10'; c.lineWidth = 0.14; c.beginPath(); c.arc(sx, sy, 1.05, 0, 7); c.fill(); c.stroke(); c.fillRect(sx - 0.6, sy + 0.6, 1.2, 0.7); c.strokeRect(sx - 0.6, sy + 0.6, 1.2, 0.7);
+    c.fillStyle = '#111'; for (const e of [-0.4, 0.4]) { c.beginPath(); c.ellipse(sx + e, sy - 0.05, 0.3, 0.36, 0, 0, 7); c.fill(); } c.beginPath(); c.moveTo(sx, sy + 0.3); c.lineTo(sx - 0.14, sy + 0.55); c.lineTo(sx + 0.14, sy + 0.55); c.fill(); c.lineWidth = 0.08; for (let i = -2; i <= 2; i++) { c.beginPath(); c.moveTo(sx + i * 0.24, sy + 0.75); c.lineTo(sx + i * 0.24, sy + 1.25); c.stroke(); }
+    c.fillStyle = '#3f4a22'; c.beginPath(); c.ellipse(sx, sy - 0.75, 1.7, 0.35, 0, 0, 7); c.fill(); c.beginPath(); c.ellipse(sx, sy - 1.05, 0.95, 0.55, 0, Math.PI, 0); c.fill(); c.fillStyle = '#d23a2e'; c.beginPath(); c.arc(sx + m * 0.6, sy - 1.05, 0.25, 0, 7); c.fill(); c.fillStyle = '#f2d24a'; c.beginPath(); c.arc(sx + m * 0.6, sy - 1.05, 0.09, 0, 7); c.fill();
+    c.strokeStyle = 'rgba(235,235,225,.75)'; c.lineWidth = 0.12; for (let i = 0; i < 4; i++) { c.beginPath(); c.moveTo(X(5.4 + i * 0.35), 3.0); c.lineTo(X(5.4 + i * 0.35), 3.9); c.stroke(); } c.beginPath(); c.moveTo(X(5.2), 3.75); c.lineTo(X(6.7), 3.15); c.stroke(); });
   // the open door: dark cabin, two seated soldiers, the gunner leaning out on the mount
-  poly([P(-4.5, sv * (CW + 0.05), -3.8), P(6.5, sv * (CW + 0.05), -3.8), P(6.5, sv * (CW + 0.05), 3.9), P(-4.5, sv * (CW + 0.05), 3.9)], '#1b1f15');
-  const soldier = (u, v, h, sc) => { const b = P(u, v, h), hd = P(u, v, h + 3.3 * sc); c.fillStyle = '#4a5530'; c.beginPath(); c.ellipse(b[0], b[1] - 1.4 * sc, 1.25 * sc, 1.7 * sc, 0, 0, 7); c.fill(); c.fillStyle = '#c99b74'; c.beginPath(); c.arc(hd[0], hd[1] + 0.5 * sc, 0.75 * sc, 0, 7); c.fill(); c.fillStyle = '#556236'; c.beginPath(); c.ellipse(hd[0], hd[1] + 0.05 * sc, 1.05 * sc, 0.7 * sc, 0, Math.PI, 0); c.fill(); c.fillRect(hd[0] - 1.1 * sc, hd[1], 2.2 * sc, 0.25 * sc); };
-  soldier(-3, sv * (CW - 1), -2.2, 0.9); soldier(-0.2, sv * (CW - 1), -2.2, 0.9);
+  poly([P(-5, sv * (CW + 0.05), -3.8), P(4.6, sv * (CW + 0.05), -3.8), P(4.6, sv * (CW + 0.05), 3.9), P(-5, sv * (CW + 0.05), 3.9)], '#1b1f15');
+  const soldier = (u, v, h, sc) => { const b = P(u, v, h), hd = P(u, v, h + 3.3 * sc); c.fillStyle = '#4a5530'; c.beginPath(); c.ellipse(b[0], b[1] - 1.4 * sc, 1.25 * sc, 1.7 * sc, 0, 0, 7); c.fill(); c.fillStyle = '#c99b74'; c.beginPath(); c.arc(hd[0], hd[1] + 0.5 * sc, 0.75 * sc, 0, 7); c.fill(); c.fillStyle = '#556236'; c.beginPath(); c.ellipse(hd[0], hd[1] + 0.05 * sc, 1.05 * sc, 0.7 * sc, 0, Math.PI, 0); c.fill(); c.fillRect(hd[0] - 1.1 * sc, hd[1], 2.2 * sc, 0.25 * sc); c.fillStyle = '#3a4322'; c.beginPath(); c.arc(hd[0] - 0.35 * sc, hd[1] - 0.3 * sc, 0.22 * sc, 0, 7); c.arc(hd[0] + 0.4 * sc, hd[1] - 0.15 * sc, 0.18 * sc, 0, 7); c.fill(); c.fillStyle = '#2b2b22'; c.fillRect(hd[0] - 1.0 * sc, hd[1] - 0.12 * sc, 2.0 * sc, 0.14 * sc); };
+  soldier(-3.4, sv * (CW - 1), -2.2, 0.9); soldier(-0.8, sv * (CW - 1), -2.2, 0.9);
   // door gunner and his gun on its mount, swung toward where his rounds are landing
-  const gp = P(4.2, sv * (CW + 1), -0.6); soldier(3.4, sv * (CW + 0.3), -2.4, 1); const ad = aim ? [aim[0] - gp[0], aim[1] - gp[1]] : [fw[0], 1], al = Math.hypot(...ad) || 1, gd = [ad[0] / al, ad[1] / al], tip = [gp[0] + gd[0] * 5.2, gp[1] + gd[1] * 5.2];
+  const gp = P(3.6, sv * (CW + 1), -0.6); soldier(2.6, sv * (CW + 0.3), -2.4, 1); const ad = aim ? [aim[0] - gp[0], aim[1] - gp[1]] : [fw[0], 1], al = Math.hypot(...ad) || 1, gd = [ad[0] / al, ad[1] / al], tip = [gp[0] + gd[0] * 5.2, gp[1] + gd[1] * 5.2];
   c.strokeStyle = '#151515'; c.lineWidth = 0.75; c.beginPath(); c.moveTo(gp[0] - gd[0] * 1.2, gp[1] - gd[1] * 1.2); c.lineTo(...tip); c.stroke(); c.fillStyle = '#222'; c.fillRect(gp[0] - 0.7, gp[1] - 0.2, 1.4, 1.1);
   if (fire) { c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = 'rgba(255,220,120,.95)'; c.beginPath(); c.arc(tip[0] + gd[0] * 0.8, tip[1] + gd[1] * 0.8, 1.1 + Math.random() * 0.6, 0, 7); c.fill(); c.restore(); }
   // tail rotor (side disc) and main rotor (blur disc + two blades)
@@ -3536,7 +3558,7 @@ function heliFx(kn) { const S = heliShots(kn); if (kn.hlFN !== kn.hlN) { kn.hlFN
 // the recording plays from when the helicopter comes out of the first portal, fading in over 0.3s, and fades out as it goes into the second
 function heliAudio(kn) { const buf = heliBuf(); if (!buf || !AU.ctx || AU.ctx.state !== 'running') return; const H = TT.HELI, c = AU.ctx, now = c.currentTime;
   if (kn.hlAu && kn.hlAu.n !== kn.hlN) kn.hlAu = null; if (kn.hlAu || kn.hl < H.OPEN || kn.hl > heliEnd(kn)) return;
-  const src = c.createBufferSource(), g = c.createGain(), vol = 0.9, left = heliEnd(kn) - kn.hl, tOut = now + Math.max(0.05, left - 0.25), tEnd = now + left + 0.2; src.buffer = buf; src.playbackRate.value = speed < 1 ? 0.62 : 1;
+  const src = c.createBufferSource(), g = c.createGain(), vol = 0.54, left = heliEnd(kn) - kn.hl, tOut = now + Math.max(0.05, left - 0.25), tEnd = now + left + 0.2; src.buffer = buf; src.playbackRate.value = speed < 1 ? 0.62 : 1;
   g.gain.setValueAtTime(0.0001, now); g.gain.linearRampToValueAtTime(vol, now + Math.min(0.3, left * 0.4)); g.gain.setValueAtTime(vol, Math.max(now + Math.min(0.3, left * 0.4), tOut)); g.gain.linearRampToValueAtTime(0.0001, tEnd);
   src.connect(g); g.connect(AU.out); src.start(now, Math.min(0.15, buf.duration * 0.05)); src.stop(tEnd + 0.05); kn.hlAu = { n: kn.hlN, src }; }
 // ---- the stampede: the herd is worked out from the synced call (dnx/dny portal, dnf direction, dnN) the same way on every screen ----
