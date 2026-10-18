@@ -56,6 +56,7 @@ button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none
 body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !important}body.time #aoe,body.time #ult{display:none !important}body.time.ttab #aoe{display:block !important}#ttTest{display:none;position:fixed;left:8px;top:32vh;flex-direction:column;gap:6px;z-index:6}body.time #ttTest{display:flex}body.live #ttTest{display:none !important}body.editing #ttTest,body.volc #ttTest{display:none}#ttTest b{font:800 9px system-ui;color:#ffffff88;letter-spacing:1px;text-align:center}#ttTest button{background:#000a;color:#fff;border:1px solid #ffffff44;border-radius:8px;font:700 12px system-ui;padding:8px 10px;min-width:74px}#pst{display:none;right:10vw;border-color:#ffd34a99;background:#ffd34a1a}#pst .knob{background:#ffd34a66;border-color:#ffe28a}#pst small{color:#ffe28acc}#smash{display:none;position:fixed;left:22px;bottom:22px;width:140px;height:140px;border-radius:50%;padding:0;font:800 20px system-ui;letter-spacing:1px;background:#f0c41933;border:3px solid #ffd34a;color:#fff0b0;overflow:hidden;text-shadow:0 0 8px #ff9a00}#smash i{position:absolute;left:0;right:0;bottom:0;background:#ffd34a66;height:0}#smash span{position:relative}body.pen #pst,body.pen #smash{display:block}body.pen #lst,body.pen #rst,body.pen #dash,body.pen #aoe,body.pen #spin{display:none}body.priest #spin{background:#ffd34a26;border-color:#ffd34a;color:#ffe28a}body.priest #aoe.out{border-color:#fff3c4;box-shadow:0 0 12px #f0c419aa}@media (orientation:portrait){#smash{left:14px;bottom:18px;width:110px;height:110px;font-size:17px}#pst{right:8vw}}
 #bring{display:none;position:fixed;right:calc(10vw + 128px);bottom:150px;width:62px;height:62px;border-radius:50%;padding:0;font:800 10px/1.1 system-ui;background:#f0c4191a;border:2px solid #f0c41966;color:#f0c41999;opacity:.45;transition:opacity .2s,box-shadow .2s}body.priest #bring{display:block}#recall{display:none;position:fixed;width:64px;height:30px;border-radius:15px;padding:0;font:800 11px/1 system-ui;background:#b05cff33;border:2px solid #d9a6ff;color:#f3e3ff;z-index:5;touch-action:none}body.time.recall #recall{display:block}body.priest #aoe.dim,#dash.dim{opacity:.45;pointer-events:none;transition:none}#bring.ready{opacity:1;background:#f0c41940;border-color:#fff3c4;color:#fff8e0;box-shadow:0 0 12px #f0c419aa}body.pen #bring,body.volc #bring{display:none}@media (orientation:portrait){#bring{right:calc(8vw + 44px);bottom:228px;width:52px;height:52px}}
 #help{position:fixed;left:50%;transform:translateX(-50%);bottom:6px;font-size:11px;color:#fff9;text-align:center;pointer-events:none}
+#fps{display:none;position:fixed;left:8px;bottom:6px;z-index:40;font:12px monospace;color:#fff;background:#000a;padding:2px 6px;border-radius:6px;pointer-events:none}
 </style></head><body>
 <canvas id="c"></canvas>
 <div id="lobbyUI"><div class="card" id="lcard"></div></div>
@@ -68,7 +69,7 @@ body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !
 <div id="exitQ"><div><p>Exit to main menu?</p><div class="row"><button id="exitNo">Stay</button><button id="exitYes">Exit</button></div></div></div>
 <div id="top"><button id="setBtn" title="Menu">&#9881; Menu</button><button id="hordeBtn">&#9776; Horde</button><button id="charBtn" title="Change character">&#9823; Character</button><button id="reset">Reset</button><button id="slow">Slow-mo: off</button><div id="stats"></div></div>
 <div id="vol" title="Music volume"><span>&#9835;</span><div class="vtr"><div class="vfill"></div></div></div>
-<div id="setP" class="pnl"><div class="hrow"><b>Menu</b></div><div class="hrow"><a id="menuBtn" href="./">&#8962; Main Menu</a><button id="restartBtn" title="Back to the start screen (pick a character, host or join)">&#8635; Restart</button></div><div class="hrow"><button id="sound">Sound: on</button><button id="music">Music: on</button></div><div class="hrow"><button id="layBtn" title="Control layout">&#10021; Controls setup</button><button id="zones">Hit zones: off</button></div></div>
+<div id="setP" class="pnl"><div class="hrow"><b>Menu</b></div><div class="hrow"><a id="menuBtn" href="./">&#8962; Main Menu</a><button id="restartBtn" title="Back to the start screen (pick a character, host or join)">&#8635; Restart</button></div><div class="hrow"><button id="sound">Sound: on</button><button id="music">Music: on</button></div><div class="hrow"><button id="layBtn" title="Control layout">&#10021; Controls setup</button><button id="zones">Hit zones: off</button></div><div class="hrow"><button id="fpsBtn">FPS: off</button></div></div><div id="fps"></div>
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
 <div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
 <div id="vtap"></div><button id="spin"><i></i><span>SPIN</span></button>
@@ -82,7 +83,10 @@ body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 (() => {
-const cv = document.getElementById('c'), x = cv.getContext('2d'), DPR = Math.min(2, devicePixelRatio || 1);
+const cv = document.getElementById('c'), x = cv.getContext('2d');
+// render resolution: the canvas's backing pixels per CSS pixel. Capped so the canvas never has more than MAXPX pixels (big desktop screens
+// were drawing 2-4x a phone's pixels every frame), times QL, which drops on its own if frames run slow (see frame())
+let DPR = Math.min(2, devicePixelRatio || 1), QL = 1; const MAXPX = 2.1e6;
 let COL = '#3a7bd5', PLATE = 0, BROAD = 1;
 const rr = (a, b) => a + Math.random() * (b - a), ap = (v, g, r) => v < g ? Math.min(g, v + r) : Math.max(g, v - r);
 const sm = k => k * k * (3 - 2 * k), lerp = (a, b, k) => a + (b - a) * k, L2 = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k)], cl = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -2531,7 +2535,7 @@ const TT = {
   TRAP: { RANGE: 100, FLY: 0.45, R: 9, ARM: 20.8, BL: 8.25, SPIN: 11.25, UP: 0.35, H: 7.5, DMG: 160, GAP: 0.3, CD: 6, N: 2, NEXT: 0.5 },
   SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 30, BR: 110, TURN: 3, CONE: 0.873, DMG: 175, W: 9.625, Z: 8, R: 6.6, GUN: 1.3, MU: [3.8, 0.6], HZ: 5 },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
-  SHIP: { RANGE: 130, SHADOW: 1.0, DROP: 0.32, LIE: 2.6, FADE: 0.8, RA: 54, RB: 31, DMG: 600, KB: 260, CD: 6, DB: { N: 7, R: 12, DMG: 160, KB: 120, MIN: 38, MAX: 85 }, SLOW: 0.6, LEN: 72 },
+  SHIP: { BLK: [40, 12], RANGE: 130, SHADOW: 1.0, DROP: 0.32, LIE: 2.6, FADE: 0.8, RA: 54, RB: 31, DMG: 600, KB: 260, CD: 6, DB: { N: 7, R: 12, DMG: 160, KB: 120, MIN: 38, MAX: 85 }, SLOW: 0.6, LEN: 72 },
   BOOM: { RANGE: 123.5, LOOP: 1.0, WID: 0.25, R: 16.8, DMG: 200, CD: 0, SPIN: 24, Z: 6, SZ: 1.82 },
   BIKE: { BV: 140, CD: 10, T: 7, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
 };
@@ -2572,7 +2576,7 @@ const P2 = Math.PI * 2, TTSAB = [
 ];
 const ttSabGrow = kn => { if (!(kn.cs >= 0 && kn.csW === 1)) return 1; const u = cl(kn.cs / TT.SABER.T, 0, 1); return 1 + TT.SABER.GROW * (u < 0.5 ? sm(u / 0.5) : 1 - sm((u - 0.5) / 0.5)); };
 const ttSabV = n => (Math.imul(n | 0, 2654435761) >>> 0) % TTSAB.length;
-const ttRiding = kn => kn.bk === 1 || (kn.bk === 0 && (kn.bjt || 0) >= TT.BIKE.LAND) || (kn.bk === 2 && kn.bkT < 0.08);
+const ttRiding = kn => kn.bk === 1 || (kn.bk === 0 && (kn.bjt || 0) >= TT.BIKE.LAND) || (kn.bk === 2 && !kn.bkNo && kn.bkT < 0.08);
 // the bike's frame on screen: forward, side and (leaning) up vectors for heading hd and lean l
 function bikeFrame(x0, y0, hd, l) { const fw = [Math.cos(hd), Math.sin(hd) / 1.25], sd = [-Math.sin(hd), Math.cos(hd) / 1.25], up = [sd[0] * Math.sin(l), -Math.cos(l) + sd[1] * Math.sin(l)];
   return { fw, sd, up, near: sd[1] >= 0 ? 1 : -1, P: (u, v, z) => [x0 + u * fw[0] + v * sd[0] + z * up[0], y0 + u * fw[1] + v * sd[1] + z * up[1]] }; }
@@ -2626,7 +2630,7 @@ function ttPose(kn, t) {
     const stance = [0, 1].map(i => { const fr = i === front; return [fr ? f * (1.0 + stepA * 1.1) : -f * (0.9 + stW * 1.6), fr ? 0 : -0.25]; });
     feet = [0, 1].map(i => L2(stance[i], loco[i], mv));
     // jumping for the bike: knees tucked up under him
-    const air = kn.bk === 0 && (kn.bjt || 0) >= TT.BIKE.JUMP * 0.5 && (kn.bjt || 0) < TT.BIKE.LAND ? sm(cl(((kn.bjt || 0) - TT.BIKE.JUMP * 0.5) / 0.15, 0, 1)) : kn.bk === 2 && kn.bkT < TT.BIKE.HOP ? Math.sin(Math.PI * kn.bkT / TT.BIKE.HOP) : 0;
+    const air = kn.bk === 0 && (kn.bjt || 0) >= TT.BIKE.JUMP * 0.5 && (kn.bjt || 0) < TT.BIKE.LAND ? sm(cl(((kn.bjt || 0) - TT.BIKE.JUMP * 0.5) / 0.15, 0, 1)) : kn.bk === 2 && !kn.bkNo && kn.bkT < TT.BIKE.HOP ? Math.sin(Math.PI * kn.bkT / TT.BIKE.HOP) : 0;
     const crouch = kn.bk === 0 && (kn.bjt || 0) > 0 && kn.bjt < TT.BIKE.JUMP ? sm(kn.bjt / TT.BIKE.JUMP) : 0; cr += crouch * 1.6;
     if (air) feet = feet.map((p, i) => [lerp(p[0], (i === front ? 1.2 : -0.6) * f, air), lerp(p[1], -2.2, air)]);
     bob = mv * (Math.abs(Math.cos(gp)) * 0.5 - 0.28); pel = [f * (stepA * 0.5 * (1 - mv) + run * 0.3), -6.0 + cr * 0.95 + bob]; hips = [[pel[0] - 1.05, pel[1]], [pel[0] + 1.05, pel[1]]]; }
@@ -2813,9 +2817,12 @@ function timeStep(dt, t) {
   if (wq === 1 && !(K.sb >= 1) && AUTH()) ttSaberTouch(t);
   // ---- the bike ----
   if (K.bkCd > 0) K.bkCd -= dt;
-  if (dashP && ready && K.bk < 0 && !(K.bkCd > 0) && IN.dashD) K.bkQ = { a: gAng(IN.dashD[0], IN.dashD[1]), t: 0.6 };
+  // pressing bike again cancels: while riding he hops off as at the end of the ride; while it's still on its way the empty bike turns into a portal ahead of it and he lands from any jump
+  if (dashP && K.bk === 1) Object.assign(K, { bk: 2, bkT: 0, bkNo: 0, bh0: Math.round(K.hd * 1000) / 1000, bkx: K.x, bky: K.y, dvx: K.bvx, dvy: K.bvy, bpx: r1(K.x + K.bvx * 0.38), bpy: r1(K.y + K.bvy * 0.38) });
+  else if (dashP && K.bk === 0) { const g = gDir(K.hd || 0).map(v => v * TT.BIKE.BV); Object.assign(K, { bk: 2, bkT: 0, bkNo: 1, bz0: K.z || 0, bjt: 0, bh0: Math.round((K.hd || 0) * 1000) / 1000, bvx: g[0], bvy: g[1], dvx: K.vx || 0, dvy: K.vy || 0, bl: 0, bpx: r1(K.bkx + g[0] * 0.38), bpy: r1(K.bky + g[1] * 0.38) }); }
+  else if (dashP && ready && K.bk < 0 && !(K.bkCd > 0) && IN.dashD) K.bkQ = { a: gAng(IN.dashD[0], IN.dashD[1]), t: 0.6 };
   if (K.bkQ) { K.bkQ.t -= dt; if (K.bkQ.t <= 0) K.bkQ = null; else if (K.bk < 0) { const a = K.bkQ.a, d = gDir(a); K.bkQ = null;
-    Object.assign(K, { bk: 0, bkT: 0, bjt: 0, hd: a, bh0: Math.round(a * 1000) / 1000, bv: 0, yr: 0, bl: 0, bkId: (K.bkId || 0) + 1, bpx: r1(K.x - d[0] * B.DIST), bpy: r1(K.y - d[1] * B.DIST) }); K.bkx = K.bpx - d[0] * B.HALF * 1.6; K.bky = K.bpy - d[1] * B.HALF * 1.6; } }
+    Object.assign(K, { bk: 0, bkT: 0, bjt: 0, bkNo: 0, hd: a, bh0: Math.round(a * 1000) / 1000, bv: 0, yr: 0, bl: 0, bkId: (K.bkId || 0) + 1, bpx: r1(K.x - d[0] * B.DIST), bpy: r1(K.y - d[1] * B.DIST) }); K.bkx = K.bpx - d[0] * B.HALF * 1.6; K.bky = K.bpy - d[1] * B.HALF * 1.6; } }
   if (K.bk === 0) { K.bkT += dt; const u = K.bkT;
     // the bike keeps one steady speed (B.BV, the ride's starting speed), so it picks him up sooner or later depending on where he goes;
     // his crouch-and-jump runs on its own clock (bjt) timed against the bike's arrival: it waits until the time left matches what's left of the jump, then keeps pace
@@ -2830,8 +2837,11 @@ function timeStep(dt, t) {
     // the bike starts a full length back inside the portal (hidden behind its plane) and drives out straight through it, then steers like a bike
     // toward him (turning its heading, never sliding sideways) at whatever pace gets it under him by the landing
     if (u >= 0.25 && (K.bjt || 0) < B.LAND) { const dx = K.x - K.bkx, dy = (K.y - K.bky) * 1.25, dd = Math.hypot(dx, dy), p0 = gDir(K.bh0 ?? K.hd), outA = ((K.bkx - K.bpx) * p0[0] + (K.bky - K.bpy) * p0[1] * 1.5625);
-      if (outA > 0 && dd > 1.5) { const want = Math.atan2(dy, dx); K.hd = wrapA(K.hd + cl(wrapA(want - K.hd), -7 * dt, 7 * dt)); }
-      const g = gDir(K.hd), st = Math.min(B.BV * dt, dd); K.bkx += g[0] * st; K.bky += g[1] * st;
+      // once he's committed to the jump the bike makes sure it gets there: it speeds up to arrive as he lands, and turns harder the closer it is
+      // (never less than 1.6x its speed over the gap), so it can't circle round him
+      const tl = B.LAND - (K.bjt || 0), spd = (K.bjt || 0) > B.JUMP * 0.5 ? Math.min(B.BV * 3, Math.max(B.BV, dd / Math.max(tl, 0.04))) : B.BV;
+      if (outA > 0 && dd > 0.5) { const want = Math.atan2(dy, dx), tr = Math.max(7, 1.6 * spd / Math.max(dd, 1)); K.hd = wrapA(K.hd + cl(wrapA(want - K.hd), -tr * dt, tr * dt)); }
+      const g = gDir(K.hd), st = Math.min(spd * dt, dd); K.bkx += g[0] * st; K.bky += g[1] * st;
       // riderless on its way to him, it still rams through anyone in its path
       if (outA > 0 && AUTH()) ttRunDown(t, K.bkx, K.bky, B.BV); }
     if ((K.bjt || 0) >= B.LAND) { K.bkx = K.x; K.bky = K.y; }
@@ -2848,8 +2858,8 @@ function timeStep(dt, t) {
     K.bl = lerp(K.bl || 0, cl(K.yr * K.bv / 260, -0.5, 0.5), 1 - Math.exp(-dt * 6)); if (Math.cos(K.hd) > 0.2) K.f = 1; else if (Math.cos(K.hd) < -0.2) K.f = -1;
     K.spd = 0; K.vx = K.bvx; K.vy = K.bvy;
     if (AUTH()) ttRunDown(t);
-    if (K.bkT >= B.T) Object.assign(K, { bk: 2, bkT: 0, bh0: Math.round(K.hd * 1000) / 1000, bkx: K.x, bky: K.y, dvx: K.bvx, dvy: K.bvy, bpx: r1(K.x + K.bvx * 0.38), bpy: r1(K.y + K.bvy * 0.38) }); }
-  else if (K.bk === 2) { K.bkT += dt; const u = K.bkT, q = cl(u / B.HOP, 0, 1); K.z = q < 1 ? lerp(B.SEAT, 0, q) + 5 * Math.sin(Math.PI * q) : 0;
+    if (K.bkT >= B.T) Object.assign(K, { bk: 2, bkT: 0, bkNo: 0, bh0: Math.round(K.hd * 1000) / 1000, bkx: K.x, bky: K.y, dvx: K.bvx, dvy: K.bvy, bpx: r1(K.x + K.bvx * 0.38), bpy: r1(K.y + K.bvy * 0.38) }); }
+  else if (K.bk === 2) { K.bkT += dt; const u = K.bkT, q = cl(u / B.HOP, 0, 1); K.z = K.bkNo ? (K.bz0 || 0) * (1 - sm(q)) : q < 1 ? lerp(B.SEAT, 0, q) + 5 * Math.sin(Math.PI * q) : 0;
     const e = 1 - Math.exp(-dt * 5), mv2 = mvL > 0.12 ? [IN.mv[0] / mvL * Math.min(1, mvL) * RUN * TT.RUN, IN.mv[1] / mvL * Math.min(1, mvL) * RUN * TT.RUN] : [0, 0]; K.dvx = lerp(K.dvx, mv2[0], e); K.dvy = lerp(K.dvy, mv2[1], e); if (mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1; K.x += K.dvx * dt; K.y = cl(K.y + K.dvy * dt, 16, H - 4); const ac = 1 + K.bkT * 2.5; K.bkx += K.bvx * dt * ac; K.bky += K.bvy * dt * ac; K.spd = Math.hypot(K.dvx, K.dvy);
     if (u >= B.OFF) { K.bk = -1; K.bkT = 0; K.bkCd = B.CD; K.z = 0; K.bl = 0; } }
   // ---- walking (the Swordmaster's / Knight's feel) ----
@@ -3380,6 +3390,12 @@ function ttWreckBurn(c, P, ctr, er, bf, wr, t, R) {
   if (bf > 0 && bf < 46) for (const sg of [-1, 1]) { const u = sg * bf, q = ctr(u); for (let k = 0; k < 5; k++) { const a = -1.3 + k * 0.65; ttFlame(c, q[0] + Math.sin(a) * 0.6, q[1] - Math.cos(a) * er(u), 2.2, t, k + sg * 5); } }
   c.save(); c.globalCompositeOperation = 'lighter'; for (const [t0, u, h, s] of SHIPX) { const e = wr - t0; if (e < 0 || e > 0.55) continue; const k = e / 0.55, q = P(u, 0, h), r = 14 * s * (0.3 + 0.7 * (1 - (1 - k) ** 3)), al = (1 - k) ** 1.5, g = c.createRadialGradient(q[0], q[1], 0, q[0], q[1], r);
     g.addColorStop(0, `rgba(255,250,220,${al})`); g.addColorStop(0.35, `rgba(255,190,70,${0.9 * al})`); g.addColorStop(0.7, `rgba(230,80,20,${0.6 * al})`); g.addColorStop(1, 'rgba(120,30,10,0)'); c.fillStyle = g; c.beginPath(); c.arc(q[0], q[1], r, 0, 7); c.fill(); } c.restore(); }
+// fallen ships that block the ground: every Time Traveler's ship from the moment it lands until it's half faded
+const shipBlockers = () => KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.sc === 2 && kn.scT < TT.SHIP.LIE + TT.SHIP.FADE * 0.5);
+// push o (x, y; body radius r) out of every ship's footprint: an ellipse BLK[0] along its heading by BLK[1] across, in iso-corrected ground space
+function shipPush(o, r, SB) { for (const kn of SB) { const [A, B] = TT.SHIP.BLK, ch = Math.cos(kn.sch || 0), sh = Math.sin(kn.sch || 0), dx = o.x - kn.scx, dy = (o.y - kn.scy) * 1.25;
+  let al = dx * ch + dy * sh, ac = -dx * sh + dy * ch; const e = Math.hypot(al / (A + r), ac / (B + r)); if (e >= 1) continue;
+  if (e < 0.02) ac = B + r; else { const k = 1 / e; al *= k; ac *= k; } o.x = kn.scx + al * ch - ac * sh; o.y = kn.scy + (al * sh + ac * ch) / 1.25; } }
 const shipRnd = kn => { const s0 = kn.scx * 3.17 + kn.scy * 7.31 + (kn.scN || 0) * 1.7; return i => { const s = Math.sin(i * 12.9898 + s0) * 43758.5453; return s - Math.floor(s); }; };
 // the wreck's flying pieces: worked out the same on every screen from the landing spot, so the host knows where the big ones come down
 function shipDebris(kn) { if (kn.wDb && kn.wDb.n === kn.scN && kn.wDb.x === kn.scx) return kn.wDb.p; const DB = TT.SHIP.DB, R = shipRnd(kn), hd = kn.sch || 0, fw = [Math.cos(hd), Math.sin(hd) / 1.25], sd = [-Math.sin(hd), Math.cos(hd) / 1.25], G = 170, p = [];
@@ -3445,7 +3461,8 @@ const cleaveFx = (w, dir) => { EV.push([w.id, 0, dir, K.i, Math.round(w.x * 10) 
 const spinFx = w => { EV.push([w.id, 1, 0, K.i, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10]); spinKill(w); };
 function step(dt, t) {
   worldStep(dt, t);
-  for (const kn of KN) { if (kn.on === 0) continue; if (kn.in.col && kn.in.col !== kn.col && /^#[0-9a-f]{6}$/i.test(kn.in.col)) kn.col = kn.in.col; if ((kn.in.chN || 0) !== (kn.chSeen || 0)) { kn.chSeen = kn.in.chN || 0; switchChar(kn, kn.in.ch || 'knight'); } K = kn; if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else if (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) priestStep(dt, t); else if (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) swordStep(dt, t); else if (kn.kind === 'time' || (kn.in && kn.in.ch === 'time')) timeStep(dt, t); else knightStep(dt, t); }
+  for (const kn of KN) { if (kn.on === 0) continue; if (kn.in.col && kn.in.col !== kn.col && /^#[0-9a-f]{6}$/i.test(kn.in.col)) kn.col = kn.in.col; if ((kn.in.chN || 0) !== (kn.chSeen || 0)) { kn.chSeen = kn.in.chN || 0; switchChar(kn, kn.in.ch || 'knight'); } K = kn; if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else if (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) priestStep(dt, t); else if (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) swordStep(dt, t); else if (kn.kind === 'time' || (kn.in && kn.in.ch === 'time')) timeStep(dt, t); else knightStep(dt, t);
+    { const SB = shipBlockers(); if (SB.length && (kn.z || 0) < 8 && !(kn.vPh >= 0)) shipPush(kn, 3 * (kn.sz || 1), SB); } }
   K = KN[ME];
   volcFx(dt, t); wpFx(dt, t); ttFx(dt, t);
   if (K.hits > lastHits) { hurtT = 0.12; } lastHits = K.hits; hurtT = Math.max(0, hurtT - dt);
@@ -3591,6 +3608,8 @@ function worldStep(dt, t) {
       for (const B of L) { if (B === A || B.id < A.id || (A.hook != null) !== (B.hook != null) || A.air || B.air || A.gr > 0 || B.gr > 0) continue; const dx = B.x - A.x, dy = (B.y - A.y) * 1.3, d = Math.hypot(dx, dy), R2 = (UK[A.k].r + UK[B.k].r) * CROWD; if (d < R2 && d > 0.01) { const p = (R2 - d) * 0.5 * Math.min(1, dt * 12), nx = dx / d, ny = dy / d; A.x -= nx * p; A.y -= ny * p / 1.3; B.x += nx * p; B.y += ny * p / 1.3; } } } } }
   // a Warpriest's flail head is solid: nobody walks through it; anyone chained to it stays pinned to it
   for (const kn of LIVE()) if (kn.kind === 'priest' && (kn.hz || 0) < 3 && kn.ab !== 'sweep') for (const w of walkers) { if (w.bT > 0) continue; const dx = w.x - kn.hx, dy = (w.y - kn.hy) * 1.3, d = Math.hypot(dx, dy), R = WP.HR + UK[w.k].r * 0.9; if (d < R && d > 0.01) { w.x += dx / d * (R - d); w.y += dy / d * (R - d) / 1.3; } }
+  // a fallen ship is solid ground nobody walks through (anyone thrown high enough flies over it)
+  { const SB = shipBlockers(); if (SB.length) for (const w of walkers) if (!(w.air && (w.z || 0) > 6) && !(w.gr > 0)) shipPush(w, UK[w.k].r, SB); }
   for (const w of walkers) { if (w.bT > 0) { const P = KN[w.bnd]; if (P) { w.x = P.hx + w.box; w.y = P.hy + w.boy; } } w.y = cl(w.y, 12, H - 4); }
   } else { // guest: walkers glide to the host's positions; their club swings tick locally
     for (const w of walkers) { w.hit = Math.max(0, w.hit - dt); if (w.atk >= 0) w.atk = Math.min(UK[w.k].atkT, w.atk + dt); const k = Math.min(1, dt * 14); w.x += (w.tx - w.x) * k; w.y += (w.ty - w.y) * k; }
@@ -3623,7 +3642,7 @@ const ZMIN = 0.45 / 1.3; let ZOOM = ZMIN; // starts fully zoomed out
 const CROWD = 1.25; // enemies keep this much further apart from each other than their body radii
 let ultZoom = 1; const viewScale = () => Math.min(cv.height / 85, cv.width / 75) * ZOOM * (window.__zoom || 1) * ultZoom;
 // size the canvas to its real on-screen box (on iPhones 100vh is taller than innerHeight, which stretched the picture and threw taps off)
-function resize() { const r = cv.getBoundingClientRect(); cv.width = Math.round((r.width || innerWidth) * DPR); cv.height = Math.round((r.height || innerHeight) * DPR); }
+function resize() { const r = cv.getBoundingClientRect(), w = r.width || innerWidth, h = r.height || innerHeight; DPR = Math.min(2, devicePixelRatio || 1, Math.sqrt(MAXPX / (w * h))) * QL; cv.width = Math.round(w * DPR); cv.height = Math.round(h * DPR); }
 // screen (CSS px) <-> world, through the canvas's actual box
 const w2s = (wx, wy) => { const r = cv.getBoundingClientRect(), sc = viewScale() * r.width / cv.width; return [r.left + r.width / 2 + (wx - camX) * sc, r.top + r.height / 2 + (wy - camY) * sc]; };
 const s2w = (sx, sy) => { const r = cv.getBoundingClientRect(), sc = viewScale() * r.width / cv.width; return [camX + (sx - r.left - r.width / 2) / sc, camY + (sy - r.top - r.height / 2) / sc]; };
@@ -3697,16 +3716,30 @@ function draw() {
     const early = K.ab === 'slam' && K.abT >= WP.SL.GOEARLY && gd(K.x, K.y, K.sx, K.sy) > WP.DRAG + 2, hOut = K.hOut > 0 || K.hRet >= 0 || early; const abBusy = !!K.penRet || K.ab === 'sweep' || K.ab === 'reel' || (K.ab === 'slam' && !early) || (!hOut && (K.slCd > 0 || K.slWait)); AOE.classList.toggle('out', hOut && !abBusy); AOE.classList.toggle('dim', abBusy); DASHE.classList.toggle('dim', !!K.penRet); if (K.penRet) cancelSweepAim(); BRB.classList.toggle('ready', K.hOut > 0); const al = hOut ? 'go to' : 'slam'; if (AOEL.textContent !== al) AOEL.textContent = al; SMI.style.height = (K.pPh === 1 ? 100 * cl(Math.hypot(K.hvx || 0, K.hvy || 0) / WP.PEN.MAXV, 0, 1) : 0) + '%'; } else if (!FV) { DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); } else { DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); } }
   if ((K.kind || 'knight') !== CHAR_UI) { charUI(K.kind || 'knight'); applyLayout(); } // switching character in game puts that character's control layout on
   if (K.kind === 'time') AOEI.style.height = (K.wpn === 4 ? ((K.trQ ?? TT.TRAP.N) < TT.TRAP.N ? cl((K.trCd || 0) / TT.TRAP.CD, 0, 1) : 0) : K.wpn === 3 ? (K.hu === 1 || K.hu === 3 ? 1 : cl((K.huCd || 0) / Math.max(0.01, TT.HURL.CD), 0, 1)) : K.wpn === 1 ? (K.sc === 1 ? 1 : cl((K.scCd || 0) / TT.SHIP.CD, 0, 1)) : 0) * 100 + '%';
+  // anything a press would call off reads 'cancel': the portal while he holds a weapon, the bike while it's coming or he's riding
+  if (K.kind === 'time') { const pl = K.wpS === 2 ? 'CANCEL' : 'PORTAL', bl = K.bk === 0 || K.bk === 1 ? 'cancel' : 'bike'; if (SPNL.textContent !== pl) SPNL.textContent = pl; if (DSHL.textContent !== bl) DSHL.textContent = bl; }
   if (K.kind === 'fire') AOEI.style.height = (K.coT >= 0 ? 100 : cl((K.coCd || 0) / CO.CD, 0, 1) * 100) + '%';
   // breath charge fills the breath stick's ring with orange from the bottom
   { const rs = document.getElementById('rst'); rs.style.background = K.kind === 'fire' ? `linear-gradient(to top, ${K.lava ? '#f5c518cc' : '#f0a04a88'} ${100 * cl((K.lava ? (K.lvW > 0 ? K.lvW / LAVA.T : 1) : (K.brC ?? FIRE.BR_T) / FIRE.BR_T), 0, 1)}%, #ffffff14 0)` : ''; }
   if (K.kind === 'fire') BSTI.style.height = (100 * (1 - cl((K.brC ?? FIRE.BR_T) / FIRE.BR_T, 0, 1))) + '%';
   if (K.kind === 'priest') { DASHI.style.height = (K.ab === 'sweep' ? 100 : cl((K.swCd || 0) / WP.SW.CD, 0, 1) * 100) + '%'; AOEI.style.height = (K.hOut > 0 ? 0 : K.ab === 'slam' ? 100 : cl((K.slCd || 0) / WP.SL.CD, 0, 1) * 100) + '%'; } else if (K.kind === 'time') DASHI.style.height = (K.bk === 1 ? 100 * (1 - K.bkT / TT.BIKE.T) : K.bk >= 0 ? 100 : cl((K.bkCd || 0) / TT.BIKE.CD, 0, 1) * 100) + '%'; else if (K.kind === 'fire') DASHI.style.height = (K.plT >= 0 ? 100 * (1 - K.plT / PL.T) : cl((K.plCd || 0) / PL.CD, 0, 1) * 100) + '%'; else DASHI.style.height = (K.ab === 'dash' ? 100 : cl((K.dashCd || 0) / DASH_CD, 0, 1) * 100) + '%'; if (K.kind !== 'fire' && K.kind !== 'priest' && K.kind !== 'time') AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
 }
+// frame pacing: high-refresh screens (120-240Hz) would step and draw 2-4x as often as a phone; frames closer than 10.5ms are skipped (~90fps at most).
+// QL: if frames average over 24ms (under ~42fps) for a second the resolution steps down (to 55% at least); after 10s of smooth frames it tries a step back up,
+// and stops trying if that drops it again within 4s. FPS readout from the menu (localStorage kn_fps).
+const FP = { lastF: 0, acc: 0, n: 0, work: 0, t0: 0, lastDrop: -1e9, lastUp: -1e9, noUp: false, fps: 0, ms: 0 }, FPSE = document.getElementById('fps'); let SHOWFPS = false; try { SHOWFPS = localStorage.getItem('kn_fps') === '1'; } catch (e) { }
 function frame(ms) {
-  const dt = Math.min(0.05, (ms - last) / 1000) * speed; last = ms; t += dt; step(dt, t); sndWatch(); draw();
   if (!window.__still) requestAnimationFrame(frame);
+  if (FP.lastF && ms - FP.lastF < 10.5) return;
+  const iv = ms - FP.lastF; FP.lastF = ms; const w0 = performance.now();
+  const dt = Math.min(0.05, (ms - last) / 1000) * speed; last = ms; t += dt; step(dt, t); sndWatch(); draw();
+  FP.work += performance.now() - w0; if (iv > 0 && iv < 150) { FP.acc += iv; FP.n++; }
+  if (ms - FP.t0 > 1000) { const n = FP.n, avg = n ? FP.acc / n : 16; FP.fps = n ? Math.round(1000 / avg) : 0; FP.ms = n ? FP.work / n : 0; FP.t0 = ms; FP.acc = FP.n = FP.work = 0;
+    if (n >= 10 && avg > 24 && QL > 0.56) { QL = Math.max(0.55, QL * 0.85); if (ms - FP.lastUp < 4000) FP.noUp = true; FP.lastDrop = ms; resize(); }
+    else if (n >= 10 && avg < 19 && QL < 1 && !FP.noUp && ms - FP.lastDrop > 10000 && ms - FP.lastUp > 10000) { QL = Math.min(1, QL / 0.85); FP.lastUp = ms; resize(); }
+    if (SHOWFPS) FPSE.textContent = `${FP.fps} fps · ${FP.ms.toFixed(1)} ms · ${cv.width}x${cv.height}${QL < 1 ? ' · ' + Math.round(QL * 100) + '%' : ''}`; }
 }
+const SPNL = document.querySelector('#spin span'), DSHL = document.querySelector('#dash small');
 const ST = document.getElementById('stats'), SPI = document.querySelector('#spin i');
 const HZE = document.getElementById('horde'), KG = HZE.querySelector('.kgrid');
 const SETP = document.getElementById('setP');
@@ -3754,6 +3787,7 @@ document.getElementById('reset').onclick = doReset;
   document.getElementById('exitNo').onclick = () => Q.classList.remove('open');
   Q.addEventListener('click', e => { if (e.target === Q) Q.classList.remove('open'); });
   document.getElementById('exitYes').onclick = () => { location.href = MB2.getAttribute('href'); }; }
+{ const fb = document.getElementById('fpsBtn'), fu = () => { fb.textContent = 'FPS: ' + (SHOWFPS ? 'on' : 'off'); FPSE.style.display = SHOWFPS ? 'block' : 'none'; }; fu(); fb.onclick = e => { SHOWFPS = !SHOWFPS; try { localStorage.setItem('kn_fps', SHOWFPS ? '1' : '0'); } catch (er) { } fu(); e.currentTarget.blur(); }; }
 let ZONES = false; document.getElementById('zones').onclick = e => { ZONES = !ZONES; e.target.textContent = 'Hit zones: ' + (ZONES ? 'on' : 'off'); };
 const SLB = document.getElementById('slow');
 function slowLabel() { SLB.textContent = 'Slow-mo: ' + (speed === 1 ? 'off' : 'on'); SLB.style.borderColor = speed === 1 ? '' : '#f0c419'; SLB.style.color = speed === 1 ? '' : '#f0c419'; }
@@ -3814,7 +3848,7 @@ const dashUpd = e => { if (isPriest() && KN[ME]) return dialUpd(e); const r = DA
     SWP = an; }
   DASHAIM = d > 8 ? (PRI ? [dx / (R * 0.7), dy / (R * 0.7), SWA] : [dx, dy]) : null; if (KN[ME] && KN[ME].kind === 'fire') { stickPl = [Math.round(dx / (R * 0.7) * 100) / 100, Math.round(dy / (R * 0.7) * 100) / 100]; syncIn(); DASHAIM = null; } DASHD.style.transform = `translate(${dashO[0] - r.left - R + dx}px,${dashO[1] - r.top - R + dy}px)`; };
 // plume (the Firebreather's) is a fixed stick whose centre is the circle's centre; the knight's dash stick floats
-DASHE.addEventListener('pointerdown', e => { dashId = e.pointerId; SWW = 0; SWP = null; DASHE.setPointerCapture(dashId); const r0 = DASHE.getBoundingClientRect(); dashO = KN[ME] && (KN[ME].kind === 'fire' || KN[ME].kind === 'priest') ? [r0.left + r0.width / 2, r0.top + r0.height / 2] : [e.clientX, e.clientY]; dashUpd(e); e.preventDefault(); });
+DASHE.addEventListener('pointerdown', e => { if (KN[ME] && KN[ME].kind === 'time' && (KN[ME].bk === 0 || KN[ME].bk === 1)) { doDash([KN[ME].f || 1, 0]); e.preventDefault(); return; } dashId = e.pointerId; SWW = 0; SWP = null; DASHE.setPointerCapture(dashId); const r0 = DASHE.getBoundingClientRect(); dashO = KN[ME] && (KN[ME].kind === 'fire' || KN[ME].kind === 'priest') ? [r0.left + r0.width / 2, r0.top + r0.height / 2] : [e.clientX, e.clientY]; dashUpd(e); e.preventDefault(); });
 DASHE.addEventListener('pointermove', e => { if (e.pointerId === dashId) dashUpd(e); });
 // when the head starts home on its own, a sweep being aimed on the stick is called off (the finger has to come off and go back on)
 function cancelSweepAim() { if (dashId === null) return; dashId = null; DASHAIM = null; SWP = null; DASHD.style.transition = 'transform .12s'; DASHD.style.transform = ''; setTimeout(() => DASHD.style.transition = '', 130); }
@@ -3887,7 +3921,7 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
 const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, twV: n.twV || 0, la: n.la || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
@@ -4074,7 +4108,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-window.__shipDb = kn => shipDebris(kn);
+window.__shipDb = kn => shipDebris(kn); window.__TT = TT;
 const KBUILD = '__BUILD__';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
