@@ -4043,7 +4043,7 @@ function ttShipGround(c, kn) { const SH = TT.SHIP; if (!(kn.sc >= 1)) return; co
 // and the craft smashes into the car: both blow up, and he lands, rolls and is straight back in the fight.
 // phases (synced): cr 0 arrival (crT from 0), 1 driving (T), 2 finale (FIN); the car's position cxp/cyp, heading crh, speed cv, velocity cvx/cvy
 TT.CAR = { SC: 1.4, OPEN: 0.35, ASPD: 312, BACK: 70, T: 11, MAXV: 219, ACC: 288, BRAKE: 300, COAST: 80, GRIP: 4.5, LH: 14.8, WH: 4.9, DMG: 300, KB: 280,
-  SOPEN: 0.5, SSPD: 225, SACC: 315, STURN: 4, SDIST: 170, SZ: 46, SSC: 1.2, SLH: 12, EJD: 60, EJT: 0.5, ROLL: 0.55, BLAST: { R: 80, DMG: 850, KB: 420 } };
+  SOPEN: 0.5, SSPD: 202.5, SACC: 283.5, STURN: 4, SDIST: 170, SZ: 46, SSC: 1.2, SLH: 12, EJD: 60, EJT: 0.5, ROLL: 0.55, BLAST: { R: 80, DMG: 850, KB: 420 } };
 // ---- a tiny flat-shaded mesh renderer for the projected 3D vehicles ----
 // faces are in local space (u forward, v to the right, h up) with an outward normal n; they're turned by the heading hd (ground space) and
 // an optional pitch, culled when they face away from the camera (it looks from the south and above, like the helicopter's shell), shaded
@@ -4262,7 +4262,9 @@ function dgAir(c, kn, t) { if (!kn.dg) return; const uC = kn.uC || 0;
 // every screen: dust from their feet, stomps, a roar when a rex comes through
 function dgFx(kn, dt) { if (!kn.dg) return; const uC = kn.uC || 0, seen = kn.dgSeen || (kn.dgSeen = new Set());
   for (const g of kn.dg) { const M = dgMembers(g); if (!seen.has(g[0])) { seen.add(g[0]); snd('portal', g[2], g[3]); if (M.some(q => q.k === 2)) snd('trex', g[2], g[3]); }
-    const f = Math.cos(g[4]) >= 0 ? 1 : -1; for (const q of M) { const [x, y, d] = dgAt(g, q, uC); if (d < 0 || d > 2 * g[6]) continue; if (Math.random() < dt * (q.k === 0 ? 5 : 12)) dust.push({ x: x - f * 4, y: y + rr(-1, 1), vx: -f * rr(10, 30), vy: rr(-8, -2), r: rr(1.2, 2.6) * (q.k ? 1.3 : 1), t: 0, max: rr(0.4, 0.8) }); if (q.k && Math.random() < dt * 3) snd('stomp', x, y); } }
+    const f = Math.cos(g[4]) >= 0 ? 1 : -1; for (const q of M) { const [x, y, d] = dgAt(g, q, uC); if (d < 0 || d > 2 * g[6]) continue; if (Math.random() < dt * (q.k === 0 ? 5 : 12)) dust.push({ x: x - f * 4, y: y + rr(-1, 1), vx: -f * rr(10, 30), vy: rr(-8, -2), r: rr(1.2, 2.6) * (q.k ? 1.3 : 1), t: 0, max: rr(0.4, 0.8) }); if (q.k && Math.random() < dt * 3) snd('stomp', x, y);
+      // the ground shakes with them: bigger ones shake it harder, the closer they run past the camera the more
+      const dc = Math.hypot(x - camX, (y - camY) * 1.25), sk = [0.06, 0.18, 0.4][q.k] * q.sc * (1 - dc / 170); if (sk > 0) shake = Math.max(shake, sk); } }
   if (seen.size > 200) kn.dgSeen = new Set([...seen].slice(-50)); }
 // test render: the car (and craft) at a heading, as an image
 window.__carPic = (hd, ship) => { const cv = document.createElement('canvas'); cv.width = 400; cv.height = 300; const c = cv.getContext('2d'); c.fillStyle = '#4e8a3a'; c.fillRect(0, 0, 400, 300); c.setTransform(7, 0, 0, 7, 200, 190);
