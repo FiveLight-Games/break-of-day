@@ -2509,7 +2509,7 @@ const TT = {
   TRAP: { RANGE: 100, FLY: 0.45, R: 9, ARM: 20.8, BL: 8.25, SPIN: 11.25, UP: 0.35, H: 7.5, DMG: 160, GAP: 0.3, CD: 6, N: 2, NEXT: 0.5 },
   SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 30, BR: 110, TURN: 3, CONE: 0.873, DMG: 175, W: 9.625, Z: 8, R: 6.6, GUN: 1.3, MU: [3.8, 0.6], HZ: 5 },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
-  BOOM: { RANGE: 95, OUT: 0.42, CURVE: 16, SPD: 230, R: 12, DMG: 200, CD: 3, SPIN: 24, Z: 6 },
+  BOOM: { RANGE: 123.5, OUT: 0.475, CURVE: 16, SPD: 264.5, R: 16.8, DMG: 200, CD: 0, SPIN: 24, Z: 6, SZ: 1.82 },
   BIKE: { BV: 140, CD: 10, T: 7, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
 };
 const TTC = { SKIN: '#e8bb98', SKIND: '#c08f6c', HAIR: '#6b4a33', HAIRL: '#8a6446', TROU: '#3a3842', TROUD: '#2c2a33', SHOE: '#16131a', SPAT: '#e9e3d3', VEST: '#2e2a35', VESTL: '#433d4c', SHIRT: '#f4f1ea', GLOVE: '#efe9dc', GLOVED: '#cfc6b2',
@@ -3159,12 +3159,12 @@ function trapOK(kn, x, y) { const TR = TT.TRAP, RR = TR.ARM + TR.BL, mine = TRAP
 function ttAir(c, t) {
   for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue;
     // the thrown saber: spinning end over end round its middle, a whirl of its colour and a short trail
-    if (kn.wpn === 1 && kn.sb >= 1) { const BM = TT.BOOM, L = TT.SABER.LEN * 1.3, a = t * BM.SPIN, d = [Math.cos(a), Math.sin(a) * 0.55], cx = kn.sbx, cy = kn.sby - BM.Z, h = [cx - d[0] * L / 2, cy - d[1] * L / 2], prv = COL; COL = kn.col || COL;
+    if (kn.wpn === 1 && kn.sb >= 1) { const BM = TT.BOOM, L = TT.SABER.LEN * BM.SZ, a = t * BM.SPIN, d = [Math.cos(a), Math.sin(a) * 0.55], cx = kn.sbx, cy = kn.sby - BM.Z, h = [cx - d[0] * L / 2, cy - d[1] * L / 2], prv = COL; COL = kn.col || COL;
       const tr = kn.sbTr || (kn.sbTr = []); tr.push([cx, cy]); if (tr.length > 8) tr.shift();
       c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(kn.sbx, kn.sby + 0.3, L * 0.45, L * 0.18, 0, 0, 7); c.fill();
       c.save(); c.globalCompositeOperation = 'lighter'; const g = shade(COL, 0.35); for (let i = 1; i < tr.length; i++) { c.strokeStyle = g; c.globalAlpha = 0.12 * i / tr.length; c.lineWidth = L * 0.9; c.lineCap = 'round'; c.beginPath(); c.moveTo(...tr[i - 1]); c.lineTo(...tr[i]); c.stroke(); }
       c.globalAlpha = 0.35; c.strokeStyle = g; c.lineWidth = 0.6; c.beginPath(); c.ellipse(cx, cy, L / 2 + 0.5, (L / 2 + 0.5) * 0.55, 0, a + 0.4, a + 2.6); c.stroke(); c.beginPath(); c.ellipse(cx, cy, L / 2 + 0.5, (L / 2 + 0.5) * 0.55, 0, a + 3.54, a + 5.74); c.stroke(); c.restore();
-      ttSaber(c, h, Math.atan2(d[1], d[0]), t, 1.3); COL = prv; }
+      ttSaber(c, h, Math.atan2(d[1], d[0]), t, BM.SZ); COL = prv; }
     else if (kn.sbTr) kn.sbTr = null;
     // the weapon portal above his head
     const pk = kn.wpS === 1 ? (kn.wpT < 0.25 ? sm(kn.wpT / 0.25) : kn.wpT < 0.55 ? 1 : 1 - sm((kn.wpT - 0.55) / 0.2)) : kn.wpS === 3 ? (kn.wpT < 0.25 ? sm(kn.wpT / 0.25) : kn.wpT < 0.68 ? 1 : 1 - sm((kn.wpT - 0.68) / 0.22)) : 0;
@@ -3525,7 +3525,7 @@ function draw() {
     if (WPV) { dialIdle(K); if (K.hRet >= 0 && !(K.hRetSeen >= 0)) cancelSweepAim(); K.hRetSeen = K.hRet; DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); // while a slam's head is in the air the button is only ever Go to (lit once that's allowed), never another slam
     const early = K.ab === 'slam' && K.abT >= WP.SL.GOEARLY && gd(K.x, K.y, K.sx, K.sy) > WP.DRAG + 2, hOut = K.hOut > 0 || K.hRet >= 0 || early; const abBusy = !!K.penRet || K.ab === 'sweep' || K.ab === 'reel' || (K.ab === 'slam' && !early) || (!hOut && (K.slCd > 0 || K.slWait)); AOE.classList.toggle('out', hOut && !abBusy); AOE.classList.toggle('dim', abBusy); DASHE.classList.toggle('dim', !!K.penRet); if (K.penRet) cancelSweepAim(); BRB.classList.toggle('ready', K.hOut > 0); const al = hOut ? 'go to' : 'slam'; if (AOEL.textContent !== al) AOEL.textContent = al; SMI.style.height = (K.pPh === 1 ? 100 * cl(Math.hypot(K.hvx || 0, K.hvy || 0) / WP.PEN.MAXV, 0, 1) : 0) + '%'; } else if (!FV) { DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); } else { DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); } }
   if ((K.kind || 'knight') !== CHAR_UI) { charUI(K.kind || 'knight'); applyLayout(); } // switching character in game puts that character's control layout on
-  if (K.kind === 'time') AOEI.style.height = (K.wpn === 4 ? ((K.trQ ?? TT.TRAP.N) < TT.TRAP.N ? cl((K.trCd || 0) / TT.TRAP.CD, 0, 1) : 0) : K.wpn === 3 ? (K.hu === 1 || K.hu === 3 ? 1 : cl((K.huCd || 0) / Math.max(0.01, TT.HURL.CD), 0, 1)) : K.wpn === 1 ? (K.sb >= 1 ? 1 : cl((K.sbCd || 0) / TT.BOOM.CD, 0, 1)) : 0) * 100 + '%';
+  if (K.kind === 'time') AOEI.style.height = (K.wpn === 4 ? ((K.trQ ?? TT.TRAP.N) < TT.TRAP.N ? cl((K.trCd || 0) / TT.TRAP.CD, 0, 1) : 0) : K.wpn === 3 ? (K.hu === 1 || K.hu === 3 ? 1 : cl((K.huCd || 0) / Math.max(0.01, TT.HURL.CD), 0, 1)) : K.wpn === 1 ? (K.sb >= 1 ? 1 : cl((K.sbCd || 0) / Math.max(0.01, TT.BOOM.CD), 0, 1)) : 0) * 100 + '%';
   if (K.kind === 'fire') AOEI.style.height = (K.coT >= 0 ? 100 : cl((K.coCd || 0) / CO.CD, 0, 1) * 100) + '%';
   // breath charge fills the breath stick's ring with orange from the bottom
   { const rs = document.getElementById('rst'); rs.style.background = K.kind === 'fire' ? `linear-gradient(to top, ${K.lava ? '#f5c518cc' : '#f0a04a88'} ${100 * cl((K.lava ? (K.lvW > 0 ? K.lvW / LAVA.T : 1) : (K.brC ?? FIRE.BR_T) / FIRE.BR_T), 0, 1)}%, #ffffff14 0)` : ''; }
@@ -3903,7 +3903,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'dab938';
+const KBUILD = 'aa5a2d';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
