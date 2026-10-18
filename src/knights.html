@@ -688,7 +688,6 @@ function leg(c, hip, knee, foot, f, far, kneelBack) {
   c.lineJoin = 'round'; c.strokeStyle = shade(bD, dk - 0.1); c.lineWidth = 0.4; boot(); c.stroke(); c.fillStyle = shade(bM, dk); c.fill();
   c.strokeStyle = shade(bL, dk); c.lineWidth = 0.18; c.beginPath(); c.moveTo(ank[0] + d * 0.35, ank[1] + 0.3); c.lineTo(X(0.4), ay - 0.1); c.quadraticCurveTo(X(0.95), ay + 0.05, X(1.2), g - 0.45); c.stroke();
   c.strokeStyle = shade(bD, dk - 0.25); c.lineWidth = 0.2; c.beginPath(); c.moveTo(X(-0.5), g - 0.07); c.lineTo(X(1.0), g - 0.07); c.stroke();
-  c.fillStyle = shade(pl ? GOLD : LEAL, dk - 0.1); c.fillRect(ank[0] - 0.75, ank[1] - 0.2, 1.5, 0.45);
   c.fillStyle = shade(STEELL, dk - 0.05); c.beginPath(); c.arc(knee[0], knee[1], 0.72, 0, 7); c.fill();
   c.fillStyle = shade(STEELD, dk); c.beginPath(); c.arc(knee[0] + 0.15, knee[1] + 0.2, 0.32, 0, 7); c.fill();
 }

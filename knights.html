@@ -688,7 +688,6 @@ function leg(c, hip, knee, foot, f, far, kneelBack) {
   c.lineJoin = 'round'; c.strokeStyle = shade(bD, dk - 0.1); c.lineWidth = 0.4; boot(); c.stroke(); c.fillStyle = shade(bM, dk); c.fill();
   c.strokeStyle = shade(bL, dk); c.lineWidth = 0.18; c.beginPath(); c.moveTo(ank[0] + d * 0.35, ank[1] + 0.3); c.lineTo(X(0.4), ay - 0.1); c.quadraticCurveTo(X(0.95), ay + 0.05, X(1.2), g - 0.45); c.stroke();
   c.strokeStyle = shade(bD, dk - 0.25); c.lineWidth = 0.2; c.beginPath(); c.moveTo(X(-0.5), g - 0.07); c.lineTo(X(1.0), g - 0.07); c.stroke();
-  c.fillStyle = shade(pl ? GOLD : LEAL, dk - 0.1); c.fillRect(ank[0] - 0.75, ank[1] - 0.2, 1.5, 0.45);
   c.fillStyle = shade(STEELL, dk - 0.05); c.beginPath(); c.arc(knee[0], knee[1], 0.72, 0, 7); c.fill();
   c.fillStyle = shade(STEELD, dk); c.beginPath(); c.arc(knee[0] + 0.15, knee[1] + 0.2, 0.32, 0, 7); c.fill();
 }
@@ -5235,7 +5234,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '7a5bb4';
+const KBUILD = '914732';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
