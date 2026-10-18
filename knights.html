@@ -53,7 +53,7 @@ body.editing #bring,body.editing #lst,body.editing #rst,body.editing #dash,body.
 .pnl .kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px}.pnl label{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0}.pnl input{width:18px;height:18px;accent-color:#f0c419}
 @media (orientation:portrait){.pnl{top:92px}.pnl .kgrid{grid-template-columns:repeat(2,1fr)}}
 button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none}
-body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !important}body.time #aoe{display:none !important}body.time.ttab #aoe{display:block !important}#ttTest{display:none;position:fixed;left:8px;top:32vh;flex-direction:column;gap:6px;z-index:6}body.time #ttTest{display:flex}body.live #ttTest{display:none !important}body.editing #ttTest,body.volc #ttTest{display:none}#ttTest b{font:800 9px system-ui;color:#ffffff88;letter-spacing:1px;text-align:center}#ttTest button{background:#000a;color:#fff;border:1px solid #ffffff44;border-radius:8px;font:700 12px system-ui;padding:8px 10px;min-width:74px}#pst{display:none;right:10vw;border-color:#ffd34a99;background:#ffd34a1a}#pst .knob{background:#ffd34a66;border-color:#ffe28a}#pst small{color:#ffe28acc}#smash{display:none;position:fixed;left:22px;bottom:22px;width:140px;height:140px;border-radius:50%;padding:0;font:800 20px system-ui;letter-spacing:1px;background:#f0c41933;border:3px solid #ffd34a;color:#fff0b0;overflow:hidden;text-shadow:0 0 8px #ff9a00}#smash i{position:absolute;left:0;right:0;bottom:0;background:#ffd34a66;height:0}#smash span{position:relative}body.pen #pst,body.pen #smash{display:block}body.pen #lst,body.pen #rst,body.pen #dash,body.pen #aoe,body.pen #spin{display:none}body.priest #spin{background:#ffd34a26;border-color:#ffd34a;color:#ffe28a}body.priest #aoe.out{border-color:#fff3c4;box-shadow:0 0 12px #f0c419aa}@media (orientation:portrait){#smash{left:14px;bottom:18px;width:110px;height:110px;font-size:17px}#pst{right:8vw}}
+body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !important}body.drive #rst,body.drive #dash,body.drive #aoe,body.drive #spin,body.drive #ult,body.drive #ttTest,body.drive #bring{display:none !important}body.time #aoe{display:none !important}body.time.ttab #aoe{display:block !important}#ttTest{display:none;position:fixed;left:8px;top:32vh;flex-direction:column;gap:6px;z-index:6}body.time #ttTest{display:flex}body.live #ttTest{display:none !important}body.editing #ttTest,body.volc #ttTest{display:none}#ttTest b{font:800 9px system-ui;color:#ffffff88;letter-spacing:1px;text-align:center}#ttTest button{background:#000a;color:#fff;border:1px solid #ffffff44;border-radius:8px;font:700 12px system-ui;padding:8px 10px;min-width:74px}#pst{display:none;right:10vw;border-color:#ffd34a99;background:#ffd34a1a}#pst .knob{background:#ffd34a66;border-color:#ffe28a}#pst small{color:#ffe28acc}#smash{display:none;position:fixed;left:22px;bottom:22px;width:140px;height:140px;border-radius:50%;padding:0;font:800 20px system-ui;letter-spacing:1px;background:#f0c41933;border:3px solid #ffd34a;color:#fff0b0;overflow:hidden;text-shadow:0 0 8px #ff9a00}#smash i{position:absolute;left:0;right:0;bottom:0;background:#ffd34a66;height:0}#smash span{position:relative}body.pen #pst,body.pen #smash{display:block}body.pen #lst,body.pen #rst,body.pen #dash,body.pen #aoe,body.pen #spin{display:none}body.priest #spin{background:#ffd34a26;border-color:#ffd34a;color:#ffe28a}body.priest #aoe.out{border-color:#fff3c4;box-shadow:0 0 12px #f0c419aa}@media (orientation:portrait){#smash{left:14px;bottom:18px;width:110px;height:110px;font-size:17px}#pst{right:8vw}}
 #bring{display:none;position:fixed;right:calc(10vw + 128px);bottom:150px;width:62px;height:62px;border-radius:50%;padding:0;font:800 10px/1.1 system-ui;background:#f0c4191a;border:2px solid #f0c41966;color:#f0c41999;opacity:.45;transition:opacity .2s,box-shadow .2s}body.priest #bring{display:block}#recall{display:none;position:fixed;width:64px;height:30px;border-radius:15px;padding:0;font:800 11px/1 system-ui;background:#b05cff33;border:2px solid #d9a6ff;color:#f3e3ff;z-index:5;touch-action:none}body.time.recall #recall{display:block}body.priest #aoe.dim,#dash.dim{opacity:.45;pointer-events:none;transition:none}#bring.ready{opacity:1;background:#f0c41940;border-color:#fff3c4;color:#fff8e0;box-shadow:0 0 12px #f0c419aa}body.pen #bring,body.volc #bring{display:none}@media (orientation:portrait){#bring{right:calc(8vw + 44px);bottom:228px;width:52px;height:52px}}
 #help{position:fixed;left:50%;transform:translateX(-50%);bottom:6px;font-size:11px;color:#fff9;text-align:center;pointer-events:none}
 #fps{display:none;position:fixed;left:8px;bottom:6px;z-index:40;font:12px monospace;color:#fff;background:#000a;padding:2px 6px;border-radius:6px;pointer-events:none}
@@ -1331,6 +1331,7 @@ function drawPartFast(c, p) { if (p.kind === 'ash' && p.t < 2.5) return drawPart
   const s = partSprite(p), k = p.sc / PRES, co = Math.cos(p.rot) * k, si = Math.sin(p.rot) * k, S = CAM.s;
   c.setTransform(S * co, S * si, -S * si, S * co, S * p.x + CAM.e, S * (p.y - p.z) + CAM.f); c.drawImage(s, -6 * PRES, -6 * PRES); c.setTransform(S, 0, 0, S, CAM.e, CAM.f); }
 function drawPart(c, p) {
+  if (p.uk && p.uk.startsWith('tt|') && p.kind.startsWith('tt')) return ttPart(c, p);
   const U = UK[p.uk] || UK.foot, BL = '#7a1a12';
   c.save(); c.translate(p.x, p.y - p.z); c.rotate(p.rot); c.scale(p.sc, p.sc);
   if (p.kind === 'head') { c.fillStyle = U.skin; c.beginPath(); c.arc(0, 0, 1.9, 0, 7); c.fill(); if (U.helm) { c.fillStyle = U.helm; c.beginPath(); c.arc(0, -0.6, 2, Math.PI, 0); c.fill(); } else { c.fillStyle = U.hair; c.beginPath(); c.arc(0, -0.5, 1.7, Math.PI * 1.05, Math.PI * 1.95); c.fill(); } c.fillStyle = BL; c.beginPath(); c.ellipse(0, 1.7, 1.1, 0.45, 0, 0, 7); c.fill(); }
@@ -1344,6 +1345,7 @@ function drawPart(c, p) {
   else if (p.kind === 'plate') { c.fillStyle = '#7a7f88'; c.beginPath(); c.moveTo(-1.4, -1); c.lineTo(1.3, -1.1); c.lineTo(1.5, 0.9); c.lineTo(-1.2, 1.1); c.closePath(); c.fill(); c.fillStyle = '#a0a6b0'; c.fillRect(-1.2, -0.95, 2.4, 0.4); c.fillStyle = '#3c4048'; for (const [px, py] of [[-0.9, 0.6], [0.9, 0.6]]) { c.beginPath(); c.arc(px, py, 0.2, 0, 7); c.fill(); } }
   else if (p.kind === 'bolt') { c.fillStyle = '#4a4f58'; c.beginPath(); c.arc(0, 0, 0.55, 0, 7); c.fill(); c.fillStyle = '#8a8f98'; c.beginPath(); c.arc(-0.15, -0.15, 0.22, 0, 7); c.fill(); }
   else if (p.kind === 'plank') { c.fillStyle = Math.abs(p.x * 7) % 2 < 1 ? '#6a4a2a' : '#8a2e26'; c.fillRect(-2.4, -0.45, 4.8, 0.9); c.strokeStyle = 'rgba(0,0,0,.3)'; c.lineWidth = 0.12; c.beginPath(); c.moveTo(-2.2, 0); c.lineTo(2.2, 0.05); c.stroke(); }
+  else if (p.kind === 'tire') { c.fillStyle = '#16171a'; c.beginPath(); c.arc(0, 0, 2.1, 0, 7); c.fill(); c.fillStyle = '#8e959d'; c.beginPath(); c.arc(0, 0, 1.2, 0, 7); c.fill(); c.fillStyle = '#3c4148'; c.beginPath(); c.arc(0, 0, 0.9, 0, 7); c.fill(); }
   else if (p.kind === 'wheel') { c.fillStyle = '#4a3218'; c.beginPath(); c.arc(0, 0, 2.1, 0, 7); c.fill(); c.fillStyle = '#6a4a2a'; c.beginPath(); c.arc(0, 0, 1.65, 0, 7); c.fill(); c.strokeStyle = '#4a3218'; c.lineWidth = 0.3; c.beginPath(); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; c.moveTo(0, 0); c.lineTo(Math.cos(a) * 1.65, Math.sin(a) * 1.65); } c.stroke(); c.fillStyle = '#8a8f98'; c.beginPath(); c.arc(0, 0, 0.42, 0, 7); c.fill(); }
   else if (p.kind === 'corpse') { c.translate(0, 4.5); walkerLive(c, { k: p.uk, x: 0, y: 0, hp: 1, max: 1, ph: 0, atk: -1, hit: 0, tk: 0, id: 0 }, 0, 1, -1, false); }
   else if (p.kind === 'wolfhead') { c.fillStyle = U.fur; c.beginPath(); c.ellipse(0, 0, 1.6, 1.25, 0, 0, 7); c.fill(); c.beginPath(); c.moveTo(0.8, -0.5); c.lineTo(3, 0.1); c.lineTo(0.9, 0.5); c.fill(); c.fillStyle = U.furD; c.beginPath(); c.moveTo(-0.6, -0.9); c.lineTo(-0.2, -2.3); c.lineTo(0.4, -1); c.fill(); c.fillStyle = BL; c.beginPath(); c.ellipse(-1.4, 0.2, 0.5, 0.9, 0, 0, 7); c.fill(); }
@@ -3103,9 +3105,11 @@ function timeStep(dt, t) {
   if (K.kind !== 'time') makeTime(K);
   const IN = K.in, mvL = Math.hypot(IN.mv[0], IN.mv[1]), mine = AUTH() || K.i === ME, B = TT.BIKE;
   const lvP = (IN.lvN || 0) !== (K.lvSeen || 0); K.lvSeen = IN.lvN || 0; const dashP = (IN.dashN || 0) !== (K.dashSeen || 0); K.dashSeen = IN.dashN || 0; const leapP = (IN.leapN || 0) !== (K.leapSeen || 0); K.leapSeen = IN.leapN || 0; const ultP = (IN.ultN || 0) !== (K.ultSeen ?? (IN.ultN || 0)); K.ultSeen = IN.ultN || 0;
-  // PREHISTORIC STAMPEDE (ult): a huge portal tears open behind him and a herd of dinosaurs charges across the field the way he faces, into a second portal far ahead
-  if (ultP && K.st === 'fight' && !(K.dn >= 0) && ultReady(K)) { const f = K.f || 1; Object.assign(K, { dn: 0, dnf: f, dnx: r1(K.x - f * TT.DINO.BACK), dny: r1(K.y), dnN: (K.dnN || 0) + 1 }); K.dnHit = null; }
-  if (K.dn >= 0) { K.dn += dt; if (AUTH()) dinoHits(dt, t); if (K.dn >= dinoTot(K)) { K.dn = -1; K.ultBase = K.kills; } }
+  // TIME RIDE (ult): a car comes out of a portal and runs him over; the player drives it while stampedes cross the field (see carStep);
+  // the rest of him (weapon, bike) is frozen until he's back
+  if (ultP && K.st === 'fight' && !(K.cr >= 0) && !K.ulOn && ultReady(K) && !(K.bk >= 0) && (K.wpS === 0 || K.wpS === 2)) carStart();
+  if (K.dn >= 0) { K.dn += dt; if (AUTH()) dinoHits(dt, t); if (K.dn >= dinoTot(K)) { K.dn = -1; if (K.ulOn && !(K.cr >= 0)) { K.ulOn = 0; K.ultBase = K.kills; } } }
+  if (K.cr >= 0) { carStep(dt, t, IN, mvL); return; }
   if (K.st === 'kneel') { K.vx = K.vy = 0; K.spd = 0; if (mine && (mvL > 0.2 || IN.aim || lvP || dashP)) { K.st = 'pull'; K.u = 0; } return; }
   if (K.st === 'pull') { K.u += dt; if (K.u >= 0.5) K.st = 'fight'; }
   const ready = K.st === 'fight';
@@ -3279,7 +3283,7 @@ let SAWS = [], TTFX = [], SKID = [], TRAPS = [];
 // a saw trap's arm length (swings out, folds back) and angle (spinning up) at its age: the same on every screen
 const trapOut = q => q.end !== undefined ? (q.t - q.end) / 0.4 : 0, trapArm = q => { const TR = TT.TRAP, k = q.t - TR.FLY, out = trapOut(q); return TR.ARM * smt(cl((k - TR.UP * 0.5) / TR.UP, 0, 1)) * (1 - smt(Math.min(1, out))); }, trapAng = q => { const TR = TT.TRAP; return (q.a0 || 0) + TR.SPIN * Math.max(0, q.t - TR.FLY - TR.UP * 0.5) ** 1.15; };
 function ttFx(dt, t) {
-  for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue; if (kn.hl >= 0) heliFx(kn); if (kn.dn >= 0) { dinoFx(kn, dt); if (kn.dnSN !== kn.dnN) { kn.dnSN = kn.dnN; snd('rumble', kn.dnx, kn.dny); snd('trex', kn.dnx, kn.dny); } }
+  for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue; if (kn.hl >= 0) heliFx(kn); if (kn.cr >= 0) carFx(kn, dt); if (kn.dn >= 0) { dinoFx(kn, dt); if (kn.dnSN !== kn.dnN) { kn.dnSN = kn.dnN; snd('rumble', kn.dnx, kn.dny); snd('trex', kn.dnx, kn.dny); } }
     // guests: the host's tossed-alien state (grabs; for other players its whole tentacle clock too)
     if (!AUTH() && kn.a2s && kn.a2s !== kn.a2sSeen) { kn.a2sSeen = kn.a2s; const P = ttA2(kn); if (kn === KN[ME]) { P.tc = kn.a2s.tc; P.alG = kn.a2s.alG; } else Object.assign(P, kn.a2s); }
     if (kn.A2) { const P = ttA2Sync(kn); if (kn.wpn === 3 && (P.al || (P.alV || 0) > 0.01)) ttTentLines(P, dt, t); else if (P.tcS) P.tcS = null; P.alV = ap(P.alV || 0, P.al && kn.wpn === 3 ? 1 : 0, dt / (P.al ? TT.ALIEN.OPEN : 0.4)); P.alCv = Math.abs((P.alCv ?? 0) + dt - (P.alC || 0)) > 0.15 ? P.alC || 0 : (P.alCv ?? 0) + dt; }
@@ -3606,6 +3610,7 @@ function ttAir(c, t) {
     // the ship: falls out of the sky over the last DROP s of the shadow, bounces once on landing, lies there, then sinks and fades
     if (kn.hl >= 0) heliAir(c, kn, t);
     if (kn.dn >= 0) dinoAir(c, kn, t);
+    if (kn.cr >= 0) carAir(c, kn, t);
     if (kn.sc >= 1) { const SH = TT.SHIP; let z = null, a = 1, pc = 0.05; if (kn.sc === 1 && kn.scT > SH.SHADOW - SH.DROP) { const q = (kn.scT - (SH.SHADOW - SH.DROP)) / SH.DROP; z = 300 * (1 - q) * (1 - q); pc = 0.32 * sm(q); }
       else if (kn.sc === 2) { const u = kn.scT; z = u < 0.3 ? 3.5 * Math.sin(Math.PI * u / 0.3) * (1 - u / 0.3) : 0; pc = lerp(0.32, 0.05, cl(u / 0.22, 0, 1) ** 2); if (u > SH.LIE) { const q = cl((u - SH.LIE) / SH.FADE, 0, 1); a = 1 - q; z -= 5 * q; } }
       if (z !== null) ttShip(c, kn.scx, kn.scy, z, kn.sch || 0, a, t, kn.col || COL, pc, kn.sc === 2 ? kn.scT : -1, shipRnd(kn));
@@ -3629,7 +3634,7 @@ function ttAir(c, t) {
       if (kn.wpS === 3 && kn.wpT > 0.68) { } else { c.save(); c.translate(kn.hux, kn.huy - kn.huz - lq * 20); c.scale(sc, sc); const mo = ttAlienArt(c, [0, 0], a, open, t, open > 0.02 ? 'back' : 'all'), m = c.getTransform(), S = CAM.s;
       const W = q => [(m.a * q[0] + m.c * q[1] + m.e - CAM.e) / S, (m.b * q[0] + m.d * q[1] + m.f - CAM.f) / S], c0 = W(mo.mc), e0 = W([mo.mc[0] + mo.ax[0] * mo.ry, mo.mc[1] + mo.ax[1] * mo.ry]);
       A2.mouth = c0; A2.mouthAx = [e0[0] - c0[0], e0[1] - c0[1]]; A2.alM = { m: [m.a / S, m.b / S, m.c / S, m.d / S, (m.e - CAM.e) / S, (m.f - CAM.f) / S], h: [0, 0], a, open }; c.restore(); } }
-    for (const o of [kn, kn.A2]) if (o && (o.alV || 0) > 0.01 && kn.wpn === 3 && o.mouth) { ttTendrils(c, o, t); const M = o.alM; if (M && M.open > 0.02) { c.save(); c.transform(...M.m); ttAlienArt(c, M.h, M.a, M.open, t, 'front'); c.restore(); } } }
+    for (const o of [kn, kn.A2]) if (o && (o.alV || 0) > 0.01 && kn.wpn === 3 && o.mouth && !(o === kn && carGone(kn))) { ttTendrils(c, o, t); const M = o.alM; if (M && M.open > 0.02) { c.save(); c.transform(...M.m); ttAlienArt(c, M.h, M.a, M.open, t, 'front'); c.restore(); } } }
 
   // saw traps in flight: a little canister tumbling on its arc (landed ones are drawn in the depth list: tower and blade)
   for (const q of TRAPS) { const TR = TT.TRAP; if (q.t < TR.FLY) { const u = q.t / TR.FLY, x = lerp(q.sx, q.x, u), y = lerp(q.sy, q.y, u), z = lerp(q.sz, 0, u) + 16 * Math.sin(Math.PI * u);
@@ -3977,6 +3982,228 @@ function ttShipGround(c, kn) { const SH = TT.SHIP; if (!(kn.sc >= 1)) return; co
   if (kn.sc === 1) { c.strokeStyle = `rgba(160,205,255,${0.35 + 0.4 * k})`; c.lineWidth = 0.6; c.setLineDash([3, 2]); shipEll(c, kn.scx, kn.scy, kn.sch || 0); c.stroke(); c.setLineDash([]); }
   // the impact's shockwave runs out along the blast's ellipse
   if (kn.sc === 2 && kn.scT < 0.6) { const q = kn.scT / 0.6, g = 0.55 + 0.6 * (1 - (1 - q) ** 2); c.strokeStyle = `rgba(255,235,200,${0.8 * (1 - q)})`; c.lineWidth = 2.2 * (1 - q) + 0.4; shipEll(c, kn.scx, kn.scy, kn.sch || 0, SH.RA * g, SH.RB * g); c.stroke(); } }
+// ---------------- TIME RIDE (the Time Traveler's ult; DRAFT) ----------------
+// a gray 70s fastback ('Thunder', an original design) bursts out of a portal and runs him down; the player drives it (drifting, running
+// enemies down) while stampedes keep crossing the field; then a portal opens in the sky and he dives out of it in a spacecraft, bails out,
+// and the craft smashes into the car: both blow up, and he lands, rolls and is straight back in the fight.
+// phases (synced): cr 0 arrival (crT from 0), 1 driving (T), 2 finale (FIN); the car's position cxp/cyp, heading crh, speed cv, velocity cvx/cvy
+TT.CAR = { SC: 1.4, OPEN: 0.35, ASPD: 250, BACK: 70, ARR: 1.0, T: 11, MAXV: 175, ACC: 230, BRAKE: 260, COAST: 70, GRIP: 4.5, LH: 14.8, WH: 4.9,
+  DMG: 300, KB: 280, FIN: 2.6, SOPEN: 0.5, SHIT: 1.6, EJ: 1.3, LAND: 1.8, ROLL: 0.55, SDIST: 170, SZ: 46, SSC: 1.2, SLH: 12,
+  BLAST: { R: 80, DMG: 850, KB: 420 } };
+// ---- a tiny flat-shaded mesh renderer for the projected 3D vehicles ----
+// faces are in local space (u forward, v to the right, h up) with an outward normal n; they're turned by the heading hd (ground space) and
+// an optional pitch, culled when they face away from the camera (it looks from the south and above, like the helicopter's shell), shaded
+// by their normal, and painted far to near. A face can carry decals (flat polygons drawn on it) or its own draw function.
+const MVW = [0, 1.25, 1], MLT = (() => { const l = [-0.45, 0.35, 0.82], n = Math.hypot(...l); return l.map(v => v / n); })();
+function meshDraw(c, faces, gx, gy, z, hd, S, pitch = 0) {
+  const ca = Math.cos(hd), sa = Math.sin(hd), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const W = (u, v, h) => { const u2 = u * cp - h * sp, h2 = u * sp + h * cp; return [u2 * ca - v * sa, u2 * sa + v * ca, h2]; };
+  const Sc = p => [gx + p[0] * S, gy + p[1] * S / 1.25 - p[2] * S - z];
+  const out = [];
+  for (const f of faces) { const n = W(...f.n); if (!f.two && n[1] * MVW[1] + n[2] * MVW[2] <= 0) continue;
+    const pw = f.pts.map(p => W(...p)); let cy = 0, ch = 0; for (const p of pw) { cy += p[1]; ch += p[2]; } out.push({ f, pw, n, d: (cy * 1.25 + ch) / pw.length + (f.dz || 0) }); }
+  out.sort((a, b) => a.d - b.d);
+  const path = pts => { c.beginPath(); pts.forEach((p, i) => { const q = Sc(p); i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); }); c.closePath(); };
+  for (const o of out) { const { f, pw, n } = o;
+    if (f.draw) { f.draw(c, Sc, W, n); continue; }
+    let col = f.col; if (!f.flat) { const l = n[0] * MLT[0] + n[1] * MLT[1] + n[2] * MLT[2]; col = shade(f.col, cl((l - 0.45) * 0.5, -0.4, 0.28)); }
+    path(pw); c.fillStyle = col; c.fill(); if (f.st) { c.strokeStyle = f.st; c.lineWidth = f.lw || 0.12; c.lineJoin = 'round'; c.stroke(); }
+    if (f.dec) for (const d of f.dec) { path(d.pts.map(p => W(...p))); c.fillStyle = d.col; c.fill(); } }
+  return { Sc, W };
+}
+// boxes for the mesh: axis-aligned (u0..u1, v0..v1, h0..h1), or oriented (centre, three half-axis vectors); no bottom face
+function meshBox(F, u0, u1, v0, v1, h0, h1, col, top) {
+  F.push({ pts: [[u1, v0, h0], [u1, v1, h0], [u1, v1, h1], [u1, v0, h1]], n: [1, 0, 0], col, st: '#1d2024' }, { pts: [[u0, v0, h0], [u0, v1, h0], [u0, v1, h1], [u0, v0, h1]], n: [-1, 0, 0], col, st: '#1d2024' },
+    { pts: [[u0, v1, h0], [u1, v1, h0], [u1, v1, h1], [u0, v1, h1]], n: [0, 1, 0], col, st: '#1d2024' }, { pts: [[u0, v0, h0], [u1, v0, h0], [u1, v0, h1], [u0, v0, h1]], n: [0, -1, 0], col, st: '#1d2024' },
+    { pts: [[u0, v0, h1], [u1, v0, h1], [u1, v1, h1], [u0, v1, h1]], n: [0, 0, 1], col, st: '#1d2024', dec: top || null }); }
+function meshOBox(F, C0, A, B, Cv, col, endDec) { const P = (a, b, cc) => [C0[0] + A[0] * a + B[0] * b + Cv[0] * cc, C0[1] + A[1] * a + B[1] * b + Cv[1] * cc, C0[2] + A[2] * a + B[2] * b + Cv[2] * cc];
+  const un = v => { const l = Math.hypot(...v) || 1; return v.map(x => x / l); };
+  for (const [ax, o1, o2, s] of [[A, B, Cv, 1], [A, B, Cv, -1], [B, A, Cv, 1], [B, A, Cv, -1], [Cv, A, B, 1], [Cv, A, B, -1]]) {
+    const pt = (i, j) => ax === A ? P(s, i, j) : ax === B ? P(i, s, j) : P(i, j, s);
+    const pts = ax === A ? [pt(-1, -1), pt(1, -1), pt(1, 1), pt(-1, 1)] : ax === B ? [P(-1, s, -1), P(1, s, -1), P(1, s, 1), P(-1, s, 1)] : [P(-1, -1, s), P(1, -1, s), P(1, 1, s), P(-1, 1, s)];
+    const n = un(ax).map(x => x * s), dec = ax === A && s === 1 && endDec ? endDec(P) : null; F.push({ pts, n, col, st: '#16191c', dec }); } }
+// ---- Thunder: a gray 1970s fastback, two square jets angled up off the tail and a second engine standing on the rear deck ----
+let THUNDER = null;
+function thunderMesh() { if (THUNDER) return THUNDER; const F = [], W = 4.8, GRAY = '#80878e', DARK = '#2a2d31', GLASS = '#2b3944', CREAM = '#efe8cf';
+  // the body's top contour, front bumper round to the rear bumper (u forward, h up)
+  const BODY = [[14.7, 1.5], [14.9, 3.1], [14.4, 4.4], [13.5, 5.0], [3.6, 5.6], [-9.7, 5.7], [-13.6, 5.45], [-14.5, 4.4], [-14.4, 1.5]];
+  const nrm = (a, b, cu, ch) => { let nu = b[1] - a[1], nh = -(b[0] - a[0]); const mu = (a[0] + b[0]) / 2 - cu, mh = (a[1] + b[1]) / 2 - ch; if (nu * mu + nh * mh < 0) { nu = -nu; nh = -nh; } const L = Math.hypot(nu, nh) || 1; return [nu / L, nh / L]; };
+  // a point on body edge i at height h and side position v, just proud of the surface
+  const onE = (i, h, v) => { const [a, b] = [BODY[i], BODY[i + 1]], k = (h - a[1]) / (b[1] - a[1] || 1e-6), [nu, nh] = nrm(a, b, 0, 3.4); return [lerp(a[0], b[0], k) + nu * 0.05, v, h + nh * 0.05]; };
+  const rect = (i, v0, v1, h0, h1, col) => ({ col, pts: [onE(i, h0, v0), onE(i, h0, v1), onE(i, h1, v1), onE(i, h1, v0)] });
+  const BDEC = { 0: [rect(0, -W + 0.1, W - 0.1, 1.75, 2.65, DARK)],
+    1: [rect(1, -2.5, 2.5, 3.25, 4.15, '#16181b'), rect(1, 2.8, 4.3, 3.35, 4.05, CREAM), rect(1, -4.3, -2.8, 3.35, 4.05, CREAM), rect(1, 3.4, 4.3, 3.2, 3.35, '#e8a040'), rect(1, -4.3, -3.4, 3.2, 3.35, '#e8a040')],
+    6: [rect(6, 1.0, 4.4, 4.6, 5.15, '#b3241c'), rect(6, -4.4, -1.0, 4.6, 5.15, '#b3241c'), rect(6, -1.0, 1.0, 4.6, 5.15, '#1f2124')],
+    7: [rect(7, -W + 0.1, W - 0.1, 1.75, 2.6, DARK), rect(7, -1.1, 1.1, 2.85, 3.7, '#c9c4b0')] };
+  for (let i = 0; i < BODY.length - 1; i++) { const [nu, nh] = nrm(BODY[i], BODY[i + 1], 0, 3.4); F.push({ pts: [[BODY[i][0], -W, BODY[i][1]], [BODY[i + 1][0], -W, BODY[i + 1][1]], [BODY[i + 1][0], W, BODY[i + 1][1]], [BODY[i][0], W, BODY[i][1]]], n: [nu, 0, nh], col: GRAY, st: '#3b4046', dec: BDEC[i] || null }); }
+  // the sides, with the wheel arches cut out (rear arch round u -8.3, front round 8.3)
+  const arch = (uc, from, to) => { const p = []; for (let j = 0; j <= 10; j++) { const a = lerp(from, to, j / 10); p.push([uc + 2.8 * Math.cos(a), 2.2 + 2.8 * Math.sin(a)]); } return p; };
+  const SIDE = [...BODY, [-11.1, 1.5], ...arch(-8.3, Math.PI, 0), [5.5, 1.5], ...arch(8.3, Math.PI, 0), [11.1, 1.5]];
+  for (const s of [-1, 1]) { const V = s * (W + 0.03), L = (pts, col) => ({ col, pts: pts.map(([u, h]) => [u, V, h]) });
+    F.push({ pts: SIDE.map(([u, h]) => [u, s * W, h]), n: [0, s, 0], col: GRAY, st: '#3b4046', dec: [L([[-5.5, 1.5], [5.5, 1.5], [5.5, 2.0], [-5.5, 2.0]], DARK), L([[-13.6, 4.2], [13.6, 4.2], [13.6, 4.32], [-13.6, 4.32]], '#9aa1a8'),
+      L([[3.3, 1.6], [3.42, 1.6], [3.55, 5.5], [3.43, 5.5]], '#33373c'), L([[-3.0, 1.6], [-2.88, 1.6], [-2.88, 5.55], [-3.0, 5.55]], '#33373c'), L([[-2.1, 4.55], [-0.9, 4.55], [-0.9, 4.8], [-2.1, 4.8]], '#2c3035'),
+      L([[13.0, 3.45], [13.8, 3.45], [13.8, 3.85], [13.0, 3.85]], '#e8a040'), L([[-13.9, 3.6], [-13.1, 3.6], [-13.1, 4.0], [-13.9, 4.0]], '#b3241c')] });
+    // wheel wells: dark, set in from the side
+    for (const uc of [-8.3, 8.3]) F.push({ pts: [[uc - 2.8, s * (W - 0.6), 1.5], ...arch(uc, Math.PI, 0).map(([u, h]) => [u, s * (W - 0.6), h]), [uc + 2.8, s * (W - 0.6), 1.5]], n: [0, s, 0], col: '#121315', flat: 1 }); }
+  // the greenhouse: windscreen, roof, sloped rear glass, narrowing to the roof; side windows with a B-pillar
+  const GH = [[3.6, 5.6], [0.7, 8.4], [-4.9, 8.45], [-9.7, 5.7]], wv = h => 4.45 - (h - 5.6) * 0.27;
+  for (let i = 0; i < 3; i++) { const [a, b] = [GH[i], GH[i + 1]], [nu, nh] = nrm(a, b, -3, 6.4); F.push({ pts: [[a[0], -wv(a[1]), a[1]], [b[0], -wv(b[1]), b[1]], [b[0], wv(b[1]), b[1]], [a[0], wv(a[1]), a[1]]], n: [nu, 0, nh], col: i === 1 ? GRAY : GLASS, st: '#22272c', dz: 0.4,
+    dec: i === 0 ? [{ col: '#4d6573', pts: [[2.9, -1.6, 6.3], [2.6, -0.9, 6.6], [1.2, 1.6, 7.95], [1.5, 0.9, 7.65]] }] : i === 2 ? [{ col: '#3f5462', pts: [[-6.2, -2.4, 7.3], [-5.9, -1.6, 7.5], [-8.3, 2.0, 6.25], [-8.6, 1.3, 6.1]] }] : null }); }
+  for (const s of [-1, 1]) { const P = ([u, h], o = 0) => [u, s * (wv(h) + o), h];
+    F.push({ pts: GH.map(q => P(q)), n: [0, s * 0.96, 0.28], col: GRAY, st: '#22272c', dz: 0.4, dec: [{ col: GLASS, pts: [[3.0, 5.85], [0.95, 8.1], [-2.15, 8.1], [-2.15, 5.85]].map(q => P(q, 0.03)) }, { col: GLASS, pts: [[-2.65, 5.85], [-2.65, 8.12], [-4.75, 8.15], [-8.8, 5.85]].map(q => P(q, 0.03)) }] });
+    meshBox(F, 2.6, 3.4, s > 0 ? W : -W - 0.7, s > 0 ? W + 0.7 : -W, 5.75, 6.35, '#5f666d'); }
+  // bumpers
+  meshBox(F, 14.6, 15.3, -4.95, 4.95, 1.55, 2.55, '#3a3e43'); meshBox(F, -15.0, -14.3, -4.95, 4.95, 1.55, 2.55, '#3a3e43');
+  // the second engine on the rear deck: block, two valve covers, intake
+  const M = '#5d636b', ML = '#7e858d';
+  meshBox(F, -13.2, -10.0, -2.4, 2.4, 5.6, 7.3, M); meshBox(F, -13.05, -10.15, 0.35, 2.2, 7.3, 8.0, ML); meshBox(F, -13.05, -10.15, -2.2, -0.35, 7.3, 8.0, ML);
+  meshBox(F, -12.2, -11.0, -0.85, 0.85, 7.3, 9.3, M, [{ col: '#16181b', pts: [[-12.05, -0.7, 9.32], [-11.15, -0.7, 9.32], [-11.15, 0.7, 9.32], [-12.05, 0.7, 9.32]] }]);
+  // two square jets angled ~29 degrees up off the tail, an open square nozzle on each
+  const ax = [-0.874, 0, 0.486], up = [0.486, 0, 0.874];
+  for (const s of [-1, 1]) { const C0 = [-14.6, s * 3.5, 7.0], A = ax.map(x => x * 2.1), B = [0, 0.95, 0], Cv = up.map(x => x * 0.95);
+    meshBox(F, -13.4, -12.2, s * 2.7 - 0.5, s * 2.7 + 0.5, 5.6, 6.6, '#3c4148');
+    meshOBox(F, C0, A, B, Cv, '#4a5058', P => [{ col: '#101214', pts: [P(1.02, -0.72, -0.72), P(1.02, 0.72, -0.72), P(1.02, 0.72, 0.72), P(1.02, -0.72, 0.72)] }]); }
+  THUNDER = F; return F; }
+// a wheel: a tyre of a few stacked discs across its width, the rim and spinning spokes on the side facing out (front wheels steer)
+function carWheel(c, Sc, W, u, s, st, spin) { const R = 2.3, o = Sc(W(0, 0, 0)), du = Sc(W(Math.cos(st), Math.sin(st), 0)), dh = Sc(W(0, 0, 1)), eu = [(du[0] - o[0]) * R, (du[1] - o[1]) * R], eh = [(dh[0] - o[0]) * R, (dh[1] - o[1]) * R];
+  const out = W(0, s, 0)[1] > 0, offs = out ? [-0.95, -0.5, 0] : [0, -0.5, -0.95];
+  const disc = (dv, f) => { const ctr = Sc(W(u + Math.sin(st) * 0, s * (5.0 + dv), 2.3)); c.save(); c.transform(eu[0], eu[1], eh[0], eh[1], ctr[0], ctr[1]); f(); c.restore(); };
+  for (const dv of offs) disc(dv, () => { c.fillStyle = '#16171a'; c.beginPath(); c.arc(0, 0, 1, 0, 7); c.fill(); });
+  disc(out ? 0.02 : -0.97, () => { c.fillStyle = '#26282c'; c.beginPath(); c.arc(0, 0, 0.82, 0, 7); c.fill(); if (!out) return; c.fillStyle = '#8e959d'; c.beginPath(); c.arc(0, 0, 0.6, 0, 7); c.fill(); c.fillStyle = '#3c4148'; c.beginPath(); c.arc(0, 0, 0.5, 0, 7); c.fill();
+    c.strokeStyle = '#aab1b8'; c.lineWidth = 0.1; c.beginPath(); for (let i = 0; i < 5; i++) { const a = spin + i * 1.2566; c.moveTo(Math.cos(a) * 0.13, Math.sin(a) * 0.13); c.lineTo(Math.cos(a) * 0.5, Math.sin(a) * 0.5); } c.stroke(); c.fillStyle = '#c3c9cf'; c.beginPath(); c.arc(0, 0, 0.13, 0, 7); c.fill(); }); }
+function thunderDraw(c, x, y, z, hd, S, spin, steer) {
+  const faces = thunderMesh().concat([[8.3, 1, 1], [8.3, -1, 1], [-8.3, 1, 0], [-8.3, -1, 0]].map(([u, s, fr]) => ({ pts: [[u, s * 5.0, 2.3]], n: [0, s, 0], two: 1, draw: (c2, Sc, W) => carWheel(c2, Sc, W, u, s, fr ? steer : 0, spin) })));
+  return meshDraw(c, faces, x, y, z, hd, S); }
+// ---- the spacecraft: an original single-seat dart, white hull with stripes in his colour, delta wings, twin engine pods, his top hat in the canopy ----
+let CSHIP = null;
+function shipMesh(col) { if (CSHIP && CSHIP.col === col) return CSHIP.F; const F = [], HULL = '#e3e7ea', PAN = '#9aa3ab', DK = '#3a4048', GL = '#3d6f8f';
+  const PR = [[13, 0.3], [7, 1.9], [-8, 2.3], [-10.6, 1.6], [-10.6, -0.4], [-6, -1.0], [7, -0.8], [13, 0.3]], wid = u => u > 7 ? lerp(0.35, 1.7, (13 - u) / 6) : u > -8 ? lerp(1.7, 2.3, (7 - u) / 15) : 2.2;
+  for (let i = 0; i < PR.length - 1; i++) { const [a, b] = [PR[i], PR[i + 1]]; let nu = b[1] - a[1], nh = -(b[0] - a[0]); const mu = (a[0] + b[0]) / 2 - 1, mh = (a[1] + b[1]) / 2 - 0.6; if (nu * mu + nh * mh < 0) { nu = -nu; nh = -nh; } const L = Math.hypot(nu, nh) || 1;
+    F.push({ pts: [[a[0], -wid(a[0]), a[1]], [b[0], -wid(b[0]), b[1]], [b[0], wid(b[0]), b[1]], [a[0], wid(a[0]), a[1]]], n: [nu / L, 0, nh / L], col: i >= 4 ? PAN : HULL, st: '#59616a' }); }
+  for (const s of [-1, 1]) { const V = (u, h, o = 0) => [u, s * (wid(u) + o), h];
+    F.push({ pts: PR.slice(0, -1).map(([u, h]) => V(u, h)), n: [0, s, 0], col: HULL, st: '#59616a', dec: [{ col, pts: [V(10, 0.55, 0.04), V(-9.5, 0.8, 0.04), V(-9.5, 1.4, 0.04), V(10, 0.95, 0.04)] }, { col: '#22262b', pts: [V(-2, -0.2, 0.04), V(-5, -0.25, 0.04), V(-5, 0.3, 0.04), V(-2, 0.3, 0.04)] }] });
+    // delta wing, its leading edge striped, and a fin at the tip
+    F.push({ pts: [[5, s * 1.5, 0.2], [-6.5, s * 11.5, -0.4], [-9.2, s * 11.5, -0.4], [-8.6, s * 2.0, 0.2]], n: [0, 0, 1], two: 1, col: HULL, st: '#59616a', dec: [{ col, pts: [[4.2, s * 1.9, 0.22], [-6.3, s * 10.8, -0.36], [-6.9, s * 10.8, -0.36], [2.6, s * 1.9, 0.22]] }] });
+    F.push({ pts: [[-6.5, s * 11.5, -0.4], [-9.2, s * 11.5, -0.4], [-9.8, s * 11.5, 2.3], [-8.1, s * 11.5, 2.3]], n: [0, s, 0], two: 1, col: PAN, st: '#59616a' });
+    // engine pod with a glowing nozzle
+    meshBox(F, -11.6, -4.6, s > 0 ? 2.0 : -3.6, s > 0 ? 3.6 : -2.0, -0.6, 1.0, DK);
+    F[F.length - 4].dec = [{ col: '#9be8ff', pts: [[-11.62, s * 2.2, -0.4], [-11.62, s * 3.4, -0.4], [-11.62, s * 3.4, 0.8], [-11.62, s * 2.2, 0.8]] }]; }
+  F.push({ pts: [[-4.5, 0, 2.2], [-10.6, 0, 1.9], [-12.2, 0, 6.3], [-9.6, 0, 6.3]], n: [0, 1, 0], two: 1, col, st: '#2a2e33' });
+  // canopy: glass, with his top hat showing through
+  F.push({ pts: [[8.2, -0.95, 1.75], [8.2, 0.95, 1.75], [5.4, 0.9, 3.2], [5.4, -0.9, 3.2]], n: [0.46, 0, 0.89], col: GL, st: '#1f2f3a' }, { pts: [[5.4, -0.9, 3.2], [5.4, 0.9, 3.2], [2.0, 0.9, 3.2], [2.0, -0.9, 3.2]], n: [0, 0, 1], col: GL, st: '#1f2f3a', dec: [{ col: '#15161a', pts: [[4.6, -0.55, 3.22], [4.6, 0.55, 3.22], [3.4, 0.55, 3.22], [3.4, -0.55, 3.22]] }] },
+    { pts: [[2.0, -0.9, 3.2], [2.0, 0.9, 3.2], [0.4, 1.1, 2.1], [0.4, -1.1, 2.1]], n: [-0.57, 0, 0.82], col: GL, st: '#1f2f3a' });
+  for (const s of [-1, 1]) F.push({ pts: [[8.2, s * 0.95, 1.75], [5.4, s * 0.9, 3.2], [2.0, s * 0.9, 3.2], [0.4, s * 1.1, 2.1], [0.4, s * 1.2, 1.95], [8.2, s * 1.05, 1.6]], n: [0, s, 0.3], col: GL, st: '#1f2f3a', dec: [{ col: '#15161a', pts: [[4.8, s * 0.95, 2.4], [3.3, s * 0.95, 2.4], [3.4, s * 0.95, 3.1], [4.7, s * 0.95, 3.1]] }] });
+  CSHIP = { col, F }; return F; }
+function shipDraw(c, x, y, z, hd, pitch, t, col) { const R = meshDraw(c, shipMesh(col), x, y, z, hd, TT.CAR.SSC, pitch);
+  c.save(); c.globalCompositeOperation = 'lighter'; for (const s of [-1, 1]) { const p = R.Sc(R.W(-11.8, s * 2.8, 0.2)), q = R.Sc(R.W(-15.5, s * 2.8, 0.2)), f = 0.8 + 0.2 * Math.sin(t * 40 + s);
+    for (const [k, r, a] of [[0, 2.6, 0.5], [0.45, 1.9, 0.35], [0.85, 1.2, 0.25]]) { c.fillStyle = `rgba(150,230,255,${a * f})`; c.beginPath(); c.arc(lerp(p[0], q[0], k), lerp(p[1], q[1], k), r * f, 0, 7); c.fill(); } } c.restore(); }
+// ---- the ride itself (stepped for his knight in timeStep) ----
+const carGone = kn => kn.cr === 0 ? kn.crT >= kn.cHit : kn.cr === 1 ? true : kn.cr === 2 ? kn.crT < TT.CAR.EJ : false;
+function carStart() { const C = TT.CAR, f = K.f || 1, cx0 = r1(K.x - f * C.BACK * 0.85), cy0 = r1(cl(K.y - C.BACK * 0.45, 20, H - 10)), hd = gAng(K.x - cx0, K.y - cy0), D = Math.hypot(K.x - cx0, (K.y - cy0) * 1.25), d = gDir(hd);
+  Object.assign(K, { cr: 0, crT: 0, crN: (K.crN || 0) + 1, ulOn: 1, cx0, cy0, ctx: r1(K.x), cty: r1(K.y), cph: Math.round(hd * 1000) / 1000, crh: hd, cv: C.ASPD, cHit: Math.round((C.OPEN + D / C.ASPD) * 1000) / 1000, cyr: 0, cdn: 0, ctu: 0, z: 0, al: 0,
+    cxp: cx0 - d[0] * C.LH * C.SC, cyp: cy0 - d[1] * C.LH * C.SC, cvx: d[0] * C.ASPD, cvy: d[1] * C.ASPD }); carHerd(); }
+// a stampede across the field near the car, alternating direction and lane
+function carHerd() { const f = ((K.cdn || 0) % 2 ? -1 : 1) * (K.f || 1); Object.assign(K, { dn: 0, dnf: f, dnx: r1(K.x - f * TT.DINO.BACK), dny: r1(cl(K.y + [0, 50, -50][(K.cdn || 0) % 3], 30, H - 20)), dnN: (K.dnN || 0) + 1, cdn: (K.cdn || 0) + 1 }); K.dnHit = null; }
+function carEnd() { K.cr = -1; K.ctu = 0; K.z = 0; if (!(K.dn >= 0)) { K.ulOn = 0; K.ultBase = K.kills; } }
+// the spacecraft's flight from the sky portal (csx, csy, SZ) to the parked car: [x, y (ground), z, heading, pitch]
+function shipAt(kn, u) { const C = TT.CAR, q = cl((u - C.SOPEN) / (C.SHIT - C.SOPEN), 0, 1), dx = kn.ckx - kn.csx, dy = (kn.cky - kn.csy) * 1.25, dz = 4 - C.SZ, D = Math.hypot(dx, dy, dz) || 1, L = C.SLH * C.SSC, s = D * q - L;
+  return [kn.csx + dx / D * s, kn.csy + dy / D * s / 1.25, C.SZ + dz / D * s, Math.atan2(dy, dx), Math.atan2(dz, Math.hypot(dx, dy))]; }
+// the car runs down anyone it touches (host): dismembered, flung along and out to the side; a big one slows it down
+function carHits(t, x, y, hd, v) { const C = TT.CAR, d = gDir(hd), Lh = C.LH * C.SC, Wh = C.WH * C.SC, p0 = [x - d[0] * Lh * 0.8, y - d[1] * Lh * 0.8], p1 = [x + d[0] * Lh, y + d[1] * Lh], k = cl(v / C.MAXV, 0, 1.4); if (v < 25) return;
+  for (const w of walkers) { if (w.hp <= 0 || w.air) continue; if (Math.abs(w.x - x) > Lh + 16) continue; const U = UK[w.k]; if (ptSeg([w.x, w.y], p0, p1) > Wh * 0.8 + U.r) continue; if (w.cHn === K.crN && t - (w.cHt || 0) < 0.45) continue; w.cHn = K.crN; w.cHt = t;
+    const side = Math.sign(d[0] * (w.y - y) - d[1] * (w.x - x)) || 1, px = d[0] * 0.8 - d[1] * side * 0.6, py = d[1] * 0.8 + d[0] * side * 0.6, a = Math.atan2(py, px);
+    w.atk = -1; w.kx += px * C.KB * k; w.ky += py * C.KB * k * 0.7; hurt(w, C.DMG * (0.4 + 0.6 * k), ww => slamFx(ww, a)); if (U.heavy && w.hp > 0) K.cv *= 0.7; } }
+function carBlast(x, y) { const B = TT.CAR.BLAST; for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - x, dy = (w.y - y) * 1.25, d = Math.hypot(dx, dy); if (d > B.R + UK[w.k].r) continue; const a = Math.atan2(w.y - y, w.x - x), k = 1 - 0.5 * Math.min(1, d / B.R);
+  w.atk = -1; w.kx += Math.cos(a) * B.KB * k; w.ky += Math.sin(a) * B.KB * k * 0.6; hurt(w, B.DMG * k, ww => slamFx(ww, a)); } }
+function carStep(dt, t, IN, mvL) { const C = TT.CAR, t0 = K.crT; K.crT += dt; K.spd = 0;
+  const left = K.cr === 0 ? C.ARR - K.crT + C.T + C.FIN : K.cr === 1 ? C.T - K.crT + C.FIN : C.FIN - K.crT; if (!(K.dn >= 0) && left > 2.4) carHerd();
+  if (K.cr === 0) { // out of the portal and straight at him; after the hit it eases off a little and he's driving it
+    if (K.crT >= C.OPEN) { if (K.crT >= K.cHit) K.cv = Math.max(165, K.cv - 120 * dt); const d = gDir(K.crh); K.cvx = d[0] * K.cv; K.cvy = d[1] * K.cv; K.cxp += K.cvx * dt; K.cyp = cl(K.cyp + K.cvy * dt, 16, H - 4); if (AUTH()) carHits(t, K.cxp, K.cyp, K.crh, K.cv); }
+    if (K.crT >= K.cHit) { K.x = K.cxp; K.y = K.cyp; K.vx = K.cvx; K.vy = K.cvy; }
+    if (K.crT >= C.ARR) { K.cr = 1; K.crT = 0; } return; }
+  if (K.cr === 1) { K.cxp = K.x; K.cyp = K.y;
+    const m = mvL > 0.15 ? Math.min(1, mvL) : 0, want = m ? gAng(IN.mv[0], IN.mv[1]) : K.crh, diff = wrapA(want - K.crh);
+    // steering: proportional, capped by a turning radius that grows with speed (a little turn even when slow)
+    const Rt = 15 + K.cv * 0.12, maxYaw = Math.max(m ? 1.2 : 0, K.cv / Rt), yaw = cl(diff * 4.5, -maxYaw, maxYaw); K.cyr = lerp(K.cyr || 0, yaw, 1 - Math.exp(-dt * 7)); K.crh = wrapA(K.crh + K.cyr * dt);
+    // throttle with the stick, easing off for a sharp turn; coasts to a stop with no stick
+    const tgt = m ? C.MAXV * (0.55 + 0.45 * m) * (1 - 0.35 * cl((Math.abs(diff) - 0.8) / 1.6, 0, 1)) : 0; K.cv = K.cv < tgt ? Math.min(tgt, K.cv + C.ACC * dt) : Math.max(tgt, K.cv - (m ? C.BRAKE : C.COAST) * dt);
+    // grip: the velocity follows the heading, but less while it's turning hard, so the back steps out into a drift
+    const hv = gDir(K.crh).map(v => v * K.cv), g = 1 - Math.exp(-dt * C.GRIP * (1 - 0.72 * cl(Math.abs(K.cyr) / 2.2, 0, 1))); K.cvx = lerp(K.cvx, hv[0], g); K.cvy = lerp(K.cvy, hv[1], g);
+    K.cxp += K.cvx * dt; K.cyp += K.cvy * dt; if (K.cyp < 16 || K.cyp > H - 4) { K.cyp = cl(K.cyp, 16, H - 4); K.cvy *= -0.3; K.crh = Math.atan2(-Math.sin(K.crh) * 0.6, Math.cos(K.crh)); }
+    if (Math.cos(K.crh) > 0.2) K.f = 1; else if (Math.cos(K.crh) < -0.2) K.f = -1;
+    K.x = K.cxp; K.y = K.cyp; K.vx = K.cvx; K.vy = K.cvy; if (AUTH()) carHits(t, K.cxp, K.cyp, K.crh, Math.hypot(K.cvx, K.cvy * 1.25));
+    if (K.crT >= C.T) { // time's up: the car skids to a stop; the sky portal and his landing spot are fixed now so every screen agrees
+      const f = K.cvx >= 0 ? 1 : -1, ckx = K.cxp + K.cvx * 0.25, cky = cl(K.cyp + K.cvy * 0.25, 16, H - 4);
+      Object.assign(K, { cr: 2, crT: 0, cfx: r1(K.cxp), cfy: r1(K.cyp), cfvx: r1(K.cvx), cfvy: r1(K.cvy), ckx: r1(ckx), cky: r1(cky), csx: r1(ckx - f * C.SDIST), csy: r1(cl(cky - 55, 16, H - 30)), clx: r1(ckx - f * 34), cly: r1(cl(cky + 24, 20, H - 6)) }); }
+    return; }
+  // finale: the car stops; the craft dives out of the sky portal, he bails out, it hits the car; he lands and rolls
+  const u = K.crT, q = Math.min(u, 0.5); K.cxp = K.cfx + K.cfvx * (q - q * q); K.cyp = K.cfy + K.cfvy * (q - q * q); K.cv = Math.max(0, K.cv * (1 - dt * 4)); K.cvx *= 1 - Math.min(1, dt * 4); K.cvy *= 1 - Math.min(1, dt * 4);
+  if (t0 < C.SHIT && u >= C.SHIT && AUTH()) carBlast(K.ckx, K.cky);
+  const E = shipAt(K, C.EJ), fr = K.clx >= E[0] ? 1 : -1;
+  if (u < C.EJ) { K.x = K.cxp; K.y = K.cyp; K.z = 0; }
+  else if (u < C.LAND) { const k = (u - C.EJ) / (C.LAND - C.EJ); K.x = lerp(E[0], K.clx, k); K.y = lerp(E[1], K.cly, k); K.z = lerp(E[2] + 2, 0, k) + 10 * Math.sin(Math.PI * k); K.ctu = fr * 2 * Math.PI * sm(k); K.f = fr; }
+  else { const k = cl((u - C.LAND) / C.ROLL, 0, 1); K.x = K.clx + fr * 14 * (1 - (1 - k) ** 2); K.y = K.cly; K.z = 0; K.ctu = fr * 2 * Math.PI * (1 + sm(k)); K.f = fr; }
+  K.vx = K.vy = 0; if (u >= C.LAND + C.ROLL + 0.1) carEnd(); }
+// test render: the car (and craft) at a heading, as an image
+window.__carPic = (hd, ship) => { const cv = document.createElement('canvas'); cv.width = 400; cv.height = 300; const c = cv.getContext('2d'); c.fillStyle = '#4e8a3a'; c.fillRect(0, 0, 400, 300); c.setTransform(7, 0, 0, 7, 200, 190);
+  if (ship) shipDraw(c, 0, 0, 8, hd, -0.25, 0.3, '#3a7bd5'); else { c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(0, 0.6, 18, 5, 0, 0, 7); c.fill(); thunderDraw(c, 0, 0, 0, hd, 1.25, 0.5, 0.3); } return cv.toDataURL(); };
+// ---- his remains (drawn into the part sprite cache like any body part; uk 'tt|<colour>') ----
+function ttPart(c, p) { const col = p.uk.slice(3), BL = '#7a1a12'; c.save(); c.translate(p.x, p.y - p.z); c.rotate(p.rot); c.scale(p.sc, p.sc);
+  if (p.kind === 'tthat') { c.fillStyle = '#1c1c22'; c.fillRect(-1.5, -3.2, 3, 3.1); c.fillRect(-2.4, -0.3, 4.8, 0.7); c.fillStyle = col; c.fillRect(-1.5, -1.25, 3, 0.65); }
+  else if (p.kind === 'tthead') { c.fillStyle = '#e8c39a'; c.beginPath(); c.arc(0, 0, 1.75, 0, 7); c.fill(); c.fillStyle = '#6b4a2e'; c.beginPath(); c.ellipse(-1.35, 0.5, 0.55, 1.0, 0.2, 0, 7); c.ellipse(1.35, 0.5, 0.55, 1.0, -0.2, 0, 7); c.fill(); c.beginPath(); c.ellipse(-0.55, 0.75, 0.75, 0.28, 0.25, 0, 7); c.ellipse(0.55, 0.75, 0.75, 0.28, -0.25, 0, 7); c.fill();
+    c.fillStyle = '#7a5a3e'; c.beginPath(); c.arc(0, -0.55, 1.6, Math.PI * 1.05, Math.PI * 1.95); c.fill(); c.fillStyle = '#222'; c.fillRect(-0.75, -0.25, 0.3, 0.3); c.fillRect(0.45, -0.25, 0.3, 0.3); c.fillStyle = BL; c.beginPath(); c.ellipse(0, 1.75, 0.95, 0.4, 0, 0, 7); c.fill(); }
+  else if (p.kind === 'tttorso') { c.fillStyle = col; c.beginPath(); c.ellipse(0, 0, 2.5, 3.1, 0, 0, 7); c.fill(); c.fillStyle = '#3a2f2a'; c.fillRect(-0.9, -2.6, 1.8, 4.6); c.fillStyle = '#c9a43a'; for (let i = 0; i < 3; i++) c.fillRect(-0.15, -1.6 + i * 1.1, 0.3, 0.3); c.fillStyle = '#f2efe6'; c.beginPath(); c.moveTo(-0.7, -2.8); c.lineTo(0.7, -2.8); c.lineTo(0, -1.6); c.fill();
+    c.fillStyle = '#c95f4a'; c.beginPath(); c.ellipse(0, -2.9, 1.3, 0.5, 0, 0, 7); c.fill(); c.fillStyle = BL; c.beginPath(); c.ellipse(0, -2.9, 0.8, 0.3, 0, 0, 7); c.fill(); }
+  else if (p.kind === 'ttarm') { c.strokeStyle = col; c.lineWidth = 1.15; c.lineCap = 'round'; c.beginPath(); c.moveTo(0, -1.7); c.lineTo(0, 1.0); c.stroke(); c.fillStyle = '#f4f2ea'; c.beginPath(); c.arc(0, 1.55, 0.62, 0, 7); c.fill(); c.fillStyle = BL; c.beginPath(); c.arc(0, -1.9, 0.5, 0, 7); c.fill(); }
+  else if (p.kind === 'ttlegs') { c.strokeStyle = '#4a4a52'; c.lineWidth = 1.2; c.lineCap = 'round'; c.beginPath(); c.moveTo(-0.8, -1.8); c.lineTo(-1.0, 1.6); c.moveTo(0.8, -1.8); c.lineTo(1.1, 1.6); c.stroke(); c.fillStyle = '#f0ede2'; c.fillRect(-1.6, 1.2, 1.2, 0.6); c.fillRect(0.5, 1.2, 1.2, 0.6); c.fillStyle = '#141414'; c.fillRect(-1.8, 1.8, 1.4, 0.5); c.fillRect(0.4, 1.8, 1.4, 0.5);
+    c.fillStyle = '#3a3a42'; c.beginPath(); c.ellipse(0, -2, 1.6, 0.8, 0, 0, 7); c.fill(); c.fillStyle = BL; c.beginPath(); c.ellipse(0, -2.2, 1.0, 0.4, 0, 0, 7); c.fill(); }
+  else if (p.kind === 'ttcane') { c.strokeStyle = '#2a1a10'; c.lineWidth = 0.45; c.lineCap = 'round'; c.beginPath(); c.moveTo(-2.7, 0); c.lineTo(2.5, 0); c.stroke(); c.fillStyle = '#c9ced4'; c.beginPath(); c.arc(2.7, 0, 0.5, 0, 7); c.fill(); }
+  c.restore(); }
+// every screen: the run-over (his pieces fly), engine, skids, the sky portal, the blast, his landing
+function ttGibs(kn) { const x = kn.ctx, y = kn.cty, d = gDir(kn.cph), uk = 'tt|' + (kn.col || COL), L = Math.hypot(d[0], d[1]) || 1, ca = d[0] / L, sa = d[1] / L;
+  const P2 = (kind, sp, vz, z, sc = 1.3) => parts.push({ kind, uk, sc, x: x + rr(-1.5, 1.5), y: y + rr(-1, 1), z, vx: ca * sp + rr(-25, 25), vy: sa * sp * 0.8 + rr(-15, 15), vz, rot: rr(0, 6.28), spin: rr(-16, 16), t: 0, rest: 0, side: 1 });
+  P2('tthat', rr(90, 130), rr(45, 60), 22); P2('tthead', rr(110, 150), rr(30, 45), 17); P2('tttorso', rr(120, 160), rr(18, 28), 11); P2('ttarm', rr(90, 140), rr(25, 40), 12); P2('ttarm', rr(100, 150), rr(20, 35), 12); P2('ttlegs', rr(80, 120), rr(14, 22), 4); P2('ttcane', rr(60, 120), rr(30, 50), 10);
+  for (let i = 0; i < 5; i++) P2('gut', rr(60, 150), rr(10, 30), 9, rr(0.9, 1.2));
+  spray(x, y, 12, Math.sign(ca) || 1, 50, 1.8); for (let i = 0; i < 12; i++) splats.push({ x: x + ca * rr(0, 30) + rr(-4, 4), y: y + sa * rr(0, 30) + rr(-3, 3), r: rr(0.8, 2), t: 0 });
+  snd('gore', x, y, 1); snd('gslam', x, y); if (Math.abs(x - camX) < 160) shake = Math.max(shake, 0.4); }
+function carBoomFx(kn) { const x = kn.ckx, y = kn.cky;
+  FX.push({ k: 'ring', x, y, t: 0, max: 0.8, s: TT.CAR.BLAST.R / (SLAM_R * 1.25) }, { k: 'crater', x, y, t: 0, max: 9, seed: Math.random() * 1e4, s: 2.6 }, { k: 'vflash', x, y, t: 0, max: 0.6 }, { k: 'vpuff', x, y: y - 4, t: 0, max: 2.4, big: 1 });
+  for (let i = 0; i < 80; i++) { const a = rr(3.3, 6.1); sparks.push({ x: x + rr(-6, 6), y: y - 4, vx: Math.cos(a) * rr(20, 130), vy: Math.sin(a) * rr(30, 120), t: 0, max: rr(0.5, 1.3) }); }
+  for (let i = 0; i < 70; i++) { const a = rr(0, 6.28), v = rr(30, 120); dust.push({ x: x + Math.cos(a) * 5, y: y + Math.sin(a) * 2.5, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1.4, 3), t: 0, max: rr(0.6, 1.4) }); }
+  const B = (kind, n, sc) => { for (let i = 0; i < n; i++) { const a = rr(0, 6.28), v = rr(40, 130); parts.push({ kind, uk: 'golem', sc, x: x + rr(-6, 6), y: y + rr(-3, 3), z: rr(4, 10), vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: rr(25, 60), rot: rr(0, 6.28), spin: rr(-14, 14), t: 0, rest: 0, side: 1 }); } };
+  B('plate', 9, 1.6); B('bolt', 6, 1.2); B('tire', 4, 1.2);
+  snd('boom', x, y); snd('gslam', x, y); if (Math.abs(x - camX) < 200) shake = Math.max(shake, 0.9); }
+function carFx(kn, dt) { const C = TT.CAR, S = kn.cFx && kn.cFx.n === kn.crN ? kn.cFx : (kn.cFx = { n: kn.crN });
+  if (kn.cr === 0 && !S.go) { S.go = 1; snd('portal', kn.cx0, kn.cy0); snd('rumble', kn.cx0, kn.cy0); }
+  if (kn.cr === 0 && kn.crT >= kn.cHit && !S.hit) { S.hit = 1; ttGibs(kn); }
+  const v = Math.hypot(kn.cvx || 0, (kn.cvy || 0) * 1.25); kn.cSpin = (kn.cSpin || 0) + dt * v / (2.3 * C.SC);
+  const moving = kn.cr === 1 || (kn.cr === 0 && kn.crT > C.OPEN) || (kn.cr === 2 && kn.crT < 0.5);
+  if (moving) { snd('engine', kn.cxp, kn.cyp, cl(v / C.MAXV, 0, 1));
+    // skid marks under both back wheels while it slides
+    const hv = gDir(kn.crh), vl = Math.hypot(kn.cvx, kn.cvy) || 1, slip = Math.abs(hv[0] * kn.cvy - hv[1] * kn.cvx) / vl, sd = [-hv[1], hv[0]], rb = 8.3 * C.SC, rw = 4.6 * C.SC;
+    if ((slip > 0.15 || kn.cr === 2) && vl > 40) { const L = S.sk || []; const now = [-1, 1].map(s => [kn.cxp - hv[0] * rb + sd[0] * s * rw, kn.cyp - hv[1] * rb + sd[1] * s * rw * 0.8]);
+      now.forEach((p, i) => { if (L[i] && Math.hypot(p[0] - L[i][0], p[1] - L[i][1]) < 12) SKID.push({ x0: L[i][0], y0: L[i][1], x1: p[0], y1: p[1], t: 0, a: Math.min(1, slip * 2 + (kn.cr === 2 ? 0.6 : 0)) }); if (Math.random() < dt * 25) dust.push({ x: p[0], y: p[1], vx: -kn.cvx * 0.1 + rr(-6, 6), vy: -kn.cvy * 0.1 + rr(-3, 3), r: rr(1.2, 2.4), t: 0, max: rr(0.5, 0.9) }); }); S.sk = now; } else S.sk = null; }
+  if (kn.cr === 2) { if (!S.sp && kn.crT >= C.SOPEN - 0.45) { S.sp = 1; snd('portal', kn.csx, kn.csy); } if (!S.wh && kn.crT >= C.SOPEN) { S.wh = 1; snd('plume', kn.csx, kn.csy); }
+    if (!S.ej && kn.crT >= C.EJ) { S.ej = 1; snd('jump', kn.x, kn.y); } if (!S.bl && kn.crT >= C.SHIT) { S.bl = 1; carBoomFx(kn); }
+    if (!S.ld && kn.crT >= C.LAND) { S.ld = 1; snd('slam', kn.clx, kn.cly); for (let i = 0; i < 14; i++) { const a = rr(0, 6.28); dust.push({ x: kn.clx + Math.cos(a) * 2, y: kn.cly + Math.sin(a), vx: Math.cos(a) * rr(10, 34), vy: Math.sin(a) * rr(5, 14), r: rr(1, 2), t: 0, max: rr(0.4, 0.8) }); } } } }
+// portals for the car (on the ground, behind its path) and the craft (in the sky)
+const carPortalK = kn => { const C = TT.CAR, u = kn.crT, tail = C.OPEN + 2 * C.LH * C.SC / C.ASPD; return kn.cr !== 0 ? 0 : u < C.OPEN ? sm(u / C.OPEN) : u < tail ? 1 : 1 - sm(cl((u - tail) / 0.3, 0, 1)); };
+const shipPortalK = kn => { const C = TT.CAR, u = kn.crT, D = Math.hypot(kn.ckx - kn.csx, (kn.cky - kn.csy) * 1.25, 4 - C.SZ), tail = C.SOPEN + 2 * C.SLH * C.SSC / D * (C.SHIT - C.SOPEN); return kn.cr !== 2 ? 0 : u < C.SOPEN - 0.45 ? 0 : u < C.SOPEN ? sm((u - C.SOPEN + 0.45) / 0.45) : u < tail ? 1 : 1 - sm(cl((u - tail) / 0.3, 0, 1)); };
+// the car in the depth list (kind 10), clipped to the open side of its portal while it's coming out
+function carDrawP(c, kn, t) { const C = TT.CAR, S = C.SC; if (kn.cr < 0 || (kn.cr === 0 && kn.crT < C.OPEN - 0.05) || (kn.cr === 2 && kn.crT >= C.SHIT)) { if (kn.cr === 0) carPortal(c, kn, t); return; }
+  const d = gDir(kn.cr === 0 ? kn.cph : kn.crh), fwd = d[1] / (Math.hypot(d[0], d[1]) || 1) > -0.05, pk = carPortalK(kn);
+  if (pk > 0 && fwd) carPortal(c, kn, t);
+  c.fillStyle = 'rgba(0,0,0,.3)'; c.save(); c.translate(kn.cxp, kn.cyp + 0.6); c.rotate(Math.atan2(d[1], d[0])); c.beginPath(); c.ellipse(0, 0, C.LH * S * 1.02, C.WH * S * 0.75, 0, 0, 7); c.restore(); c.fill();
+  c.save(); if (pk > 0) { const px = kn.cx0, py = kn.cy0 - 4 * S, nx = -d[1], ny = d[0], big = 500; c.beginPath(); c.moveTo(px + nx * big, py + ny * big); c.lineTo(px - nx * big, py - ny * big); c.lineTo(px - nx * big + d[0] * big, py - ny * big + d[1] * big); c.lineTo(px + nx * big + d[0] * big, py + ny * big + d[1] * big); c.closePath(); c.clip(); }
+  thunderDraw(c, kn.cxp, kn.cyp, 0, kn.cr === 0 ? kn.cph : kn.crh, S, kn.cSpin || 0, cl((kn.cyr || 0) * 0.3, -0.45, 0.45)); c.restore();
+  if (pk > 0 && !fwd) carPortal(c, kn, t); }
+function carPortal(c, kn, t) { const k = carPortalK(kn); if (k <= 0) return; const d = gDir(kn.cph), wide = 0.55 + 0.45 * Math.abs(d[1]) / Math.hypot(d[0], d[1]); ttPortal(c, kn.cx0, kn.cy0 - 5 * TT.CAR.SC, 17 * wide, 10 * TT.CAR.SC, k, t, 0); }
+// in the air (ttAir): the sky portal and the craft diving out of it, clipped to the portal's open side
+function carAir(c, kn, t) { const C = TT.CAR; if (kn.cr !== 2) return; const pk = shipPortalK(kn), u = kn.crT;
+  const s0 = [kn.csx, kn.csy - C.SZ], D2 = [kn.ckx - kn.csx, kn.cky - 4 - (kn.csy - C.SZ)], dl = Math.hypot(...D2) || 1, d = [D2[0] / dl, D2[1] / dl], rot = Math.atan2(d[1], d[0]);
+  if (pk > 0) ttPortal(c, s0[0], s0[1], 6, 16, pk, t, rot);
+  if (u >= C.SOPEN && u < C.SHIT) { const [x, y, z, hd, pc] = shipAt(kn, u); c.save(); if (pk > 0) { const nx = -d[1], ny = d[0], big = 500; c.beginPath(); c.moveTo(s0[0] + nx * big, s0[1] + ny * big); c.lineTo(s0[0] - nx * big, s0[1] - ny * big); c.lineTo(s0[0] - nx * big + d[0] * big, s0[1] - ny * big + d[1] * big); c.lineTo(s0[0] + nx * big + d[0] * big, s0[1] + ny * big + d[1] * big); c.closePath(); c.clip(); }
+    c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.ellipse(x, y + 0.5, 12, 3.5, 0, 0, 7); c.fill(); shipDraw(c, x, y, z, hd, pc, t, kn.col || COL); c.restore(); } }
 function ttGround(c) { for (const kn of KN) if (kn.kind === 'time' && kn.on !== 0) { ttShipGround(c, kn); if (kn.hl >= 0) heliGround(c, kn); } c.lineCap = 'round'; for (const s of SKID) { c.strokeStyle = `rgba(25,20,18,${0.35 * s.a * (1 - s.t / 2.5)})`; c.lineWidth = 0.9; c.beginPath(); c.moveTo(s.x0, s.y0); c.lineTo(s.x1, s.y1); c.stroke(); } }
 // hit zones: the attack's cone (or the bike's contact strip)
 function ttZones(c) { const kn = KN[ME]; if (!kn || kn.kind !== 'time') return; c.save(); c.fillStyle = 'rgba(255,70,50,.18)';
@@ -4147,7 +4374,7 @@ function worldStep(dt, t) {
     if (w.atk < 0) { let bd = 1e9; KN.forEach((kn, i) => { if (kn.on === 0) return; const dd = Math.hypot(kn.x - w.x, kn.y - w.y); if (dd < bd) { bd = dd; w.tk = i; } }); }
     const T2 = (KN[w.tk] && KN[w.tk].on !== 0 ? KN[w.tk] : LIVE()[0]) || KN[0], dx = T2.x - w.x, dy = (T2.y - w.y), d = Math.hypot(dx, dy * 1.3) || 1;
     const U = UK[w.k], reach = 4.4 + U.r + ((T2.sz || 1) - 1) * 3.5 + (T2.kind === 'priest' ? 1.6 : 0);
-    if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5 && !((T2.z || 0) > 4)) { T2.hits += (w.k === 'sapper' ? 3 : U.hw || 1) * (T2.kind !== 'fire' && T2.ultPh >= 0 ? 1 - GIANT_DR : 1); if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
+    if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5 && !((T2.z || 0) > 4) && !(T2.cr >= 0)) { T2.hits += (w.k === 'sapper' ? 3 : U.hw || 1) * (T2.kind !== 'fire' && T2.ultPh >= 0 ? 1 - GIANT_DR : 1); if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
     else if (d > reach) { const sp = w.sp * (w.pSl > 0 ? WP.PEN.ASLOW : w.sl > 0 ? WP.SLOWK : 1); w.x += dx / d * sp * dt; w.y += dy / d * sp * dt; }
     else if (w.cd <= 0 && T2.st !== 'kneel') w.atk = 0;
     w.x += w.kx * UK[w.k].kb * dt; w.y += w.ky * UK[w.k].kb * dt; w.kx *= 1 - dt * 6; w.ky *= 1 - dt * 6;
@@ -4204,7 +4431,7 @@ function draw() {
   // while any Firebreather is on his volcano everyone pulls back far enough to see a full-range shot across the screen
   // (drawing a strafe pulls his camera back 30%, and it stays back until his helicopter is gone: HDRAW / hl)
   const volcOn = !!(KN[ME] && KN[ME].kind === 'fire' && KN[ME].vPh >= 0), hw1 = cv.width / 2 / (viewScale() / ultZoom);
-  const penOn = KN[ME] && KN[ME].kind === 'priest' && KN[ME].pPh >= 0, uzT = (volcOn ? Math.min(0.775, hw1 / (V.MAXD + 20)) : penOn ? 0.7 : 1 / (1 + (((KN[ME] && KN[ME].sz) || 1) - 1) * 0.33)) * (HDRAW || (KN[ME] && KN[ME].kind === 'time' && KN[ME].hl >= 0) ? 0.7 : 1); ultZoom = lerp(ultZoom, uzT, volcOn || penOn ? 0.035 : 0.06); ZBUSY = Math.abs(ultZoom - uzT) > uzT * 0.01; // pull the camera back while he's a giant
+  const penOn = KN[ME] && KN[ME].kind === 'priest' && KN[ME].pPh >= 0, uzT = (volcOn ? Math.min(0.775, hw1 / (V.MAXD + 20)) : penOn ? 0.7 : 1 / (1 + (((KN[ME] && KN[ME].sz) || 1) - 1) * 0.33)) * (HDRAW || (KN[ME] && KN[ME].kind === 'time' && KN[ME].hl >= 0) ? 0.7 : 1) * (KN[ME] && KN[ME].kind === 'time' && KN[ME].cr >= 0 ? 0.8 : 1); ultZoom = lerp(ultZoom, uzT, volcOn || penOn ? 0.035 : 0.06); ZBUSY = Math.abs(ultZoom - uzT) > uzT * 0.01; // pull the camera back while he's a giant
   const sc = viewScale(), pc = K.kind === 'priest' && K.pPh >= 0 ? 0.5 : 0; camX = lerp(camX, pc ? lerp(K.x, K.hx, pc) : K.x, 0.12); camY = lerp(camY, pc ? lerp(K.y - 6 * (K.sz || 1) - (K.z || 0) * 0.5, K.hy - 6, pc) : K.y - 6 * (K.sz || 1) - (K.z || 0) * 0.5, 0.12); const shx = shake ? rr(-1, 1) * shake * 5 : 0, shy = shake ? rr(-1, 1) * shake * 5 : 0;
   x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#000'; x.fillRect(0, 0, cv.width, cv.height);
   x.setTransform(sc, 0, 0, sc, cv.width / 2 - (camX + shx) * sc, cv.height / 2 - (camY + shy) * sc); CAM.s = sc; CAM.e = cv.width / 2 - (camX + shx) * sc; CAM.f = cv.height / 2 - (camY + shy) * sc; sprFrame(sc); { const hw = cv.width / 2 / sc + 10, x0 = Math.floor((camX - hw) / W), x1 = Math.floor((camX + hw) / W); const hh = cv.height / 2 / sc + 10, y0 = Math.floor((camY - hh) / H), y1 = Math.floor((camY + hh) / H); for (let gi = x0; gi <= x1; gi++) for (let gj = y0; gj <= y1; gj++) x.drawImage(gj === 0 ? ground : grassT, gi * W, gj * H, W + 0.5, H + 0.5); }
@@ -4213,17 +4440,18 @@ function draw() {
   for (const kn of LIVE()) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
   drawFxGround(x); drawGouges(x, t); ttGround(x); drawVolcFloor(x, t); drawBikePreview(x, t); drawLeapPreview(x, t); drawHeliDraw(x, t); drawDashPreview(x, t); drawSweepPreview(x, t); drawCoalPreview(x);
   for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = pAlpha(p); drawPartFast(x, p); } x.globalAlpha = 1;
-  const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(TRAPS.filter(q => q.t >= TT.TRAP.FLY).flatMap(q => { const G = trapGeo(q); return [[q.y, 6, q], [G.ey + 0.01, 7, q]]; })).concat(dinoList()).concat(HDEAD.filter(inV).map(q => [q.y - 0.3, 9, q])).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
+  const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(TRAPS.filter(q => q.t >= TT.TRAP.FLY).flatMap(q => { const G = trapGeo(q); return [[q.y, 6, q], [G.ey + 0.01, 7, q]]; })).concat(dinoList()).concat(KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.cr >= 0).map(kn => [kn.cyp, 10, kn])).concat(HDEAD.filter(inV).map(q => [q.y - 0.3, 9, q])).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
   for (const [, k, o] of list) {
     if (k < 2) { K = o; COL = o.col; }
     if (k === 4) { COL = o.col; drawFlail(x, o, t); K = KN[ME]; continue; }
     if (k === 0 && (K.kind === 'priest' || K.kind === 'sword' || K.kind === 'time')) continue;
     if (k === 0 && K.kind === 'fire') { const pt = pitOf(K); x.save(); x.translate(pt[0], pt[1]); FBX.firePit(x, 5, t, FBX.pal(5)); x.restore(); continue; }
     if (k === 0) { x.save(); x.translate(K.T.x, K.T.y); boulder(x, t, !(K.st === 'kneel' || (K.st === 'pull' && !K.hold) || (K.st === 'sheathe' && !K.hold)), K.slotGlow); if (!K.hold) { x.translate(STONE.x, STONE.y); x.scale(KS, KS); x.beginPath(); x.rect(-20, -30, 40, 30 - 4.3 / KS); x.clip(); sword(x, [0, -4.3 / KS - 1.3 - 1.1], Math.PI / 2, 10.5); } x.restore(); }
-    else if (k === 1) { if (K.kind === 'fire') drawFire(x, t); else if (K.kind === 'priest') drawPriest(x, t); else if (K.kind === 'sword') drawSword(x, t); else if (K.kind === 'time') drawTime(x, t); else drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; if (K.i !== ME) x.fillText((NET && NET.names && NET.names[K.i]) || pName(K.i), K.x, K.y - (K.kind === 'priest' ? 23 + (K.z || 0) : K.kind === 'time' ? 22 + (K.z || 0) : 17 * (K.sz || 1))); } }
+    else if (k === 1) { if (K.kind === 'fire') drawFire(x, t); else if (K.kind === 'priest') drawPriest(x, t); else if (K.kind === 'sword') drawSword(x, t); else if (K.kind === 'time') { if (!carGone(K)) { if (K.ctu) { const cy0 = K.y - (K.z || 0) - 9; x.save(); x.translate(K.x, cy0); x.rotate(K.ctu); x.translate(-K.x, -cy0); drawTime(x, t); x.restore(); } else drawTime(x, t); } } else drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; if (K.i !== ME) x.fillText((NET && NET.names && NET.names[K.i]) || pName(K.i), K.x, K.y - (K.kind === 'priest' ? 23 + (K.z || 0) : K.kind === 'time' ? 22 + (K.z || 0) : 17 * (K.sz || 1))); } }
     else if (k === 5) { drawSawP(x, o, t); continue; }
     else if (k === 8) { drawDinoP(x, o, t); continue; }
     else if (k === 9) { drawHeavyDead(x, o); continue; }
+    else if (k === 10) { carDrawP(x, o, t); continue; }
     else if (k === 6 || k === 7) { drawTrapP(x, o, t, k === 6 ? 'tower' : 'blade'); continue; }
     else if (k === 2) walker(x, o, t);
     else { x.fillStyle = 'rgba(0,0,0,.2)'; x.beginPath(); x.ellipse(o.x, o.y + 0.5, 1.6, 0.6, 0, 0, 7); x.fill(); drawPartFast(x, o); }
@@ -4262,9 +4490,9 @@ function draw() {
   if (K.kind === 'time') { const ab = K.wpS === 2 && K.wpn >= 1 && K.wpn <= 4; document.body.classList.toggle('ttab', ab); if (ab) { const TQ = K.trQ ?? TT.TRAP.N, lb = K.wpn === 3 ? (K.hu >= 1 ? 'move\nalien' : 'toss') : K.wpn === 1 ? 'ship' : K.wpn === 2 ? (HDRAW ? 'cancel' : 'strafe') : `trap\n${TQ} charge${TQ === 1 ? '' : 's'}`, sm2 = AOE.querySelector('small'); if (sm2 && sm2.textContent !== lb) sm2.textContent = lb; AOE.classList.toggle('dim', K.wpn === 3 ? K.hu === 1 || K.hu === 3 || K.huCd > 0 : K.wpn === 1 ? K.sc >= 1 || K.scCd > 0 : K.wpn === 2 ? K.hl >= 0 || K.hlCd > 0 : TQ <= 0); } }
   else if (document.body.classList.contains('ttab')) { document.body.classList.remove('ttab'); const sm2 = AOE.querySelector('small'); if (sm2) sm2.textContent = 'leap'; }
   const cdk = K.kind === 'time' ? (K.wpS === 2 ? (K.bk >= 0 && K.wpT >= TT.PORT.HOLD ? 0.04 : cl(1 - K.wpT / TT.PORT.HOLD, 0, 1)) : K.wpS ? 1 : cl((K.wpCd || 0) / TT.PORT.CD, 0, 1)) : K.kind === 'priest' ? (K.hoT > 0 ? 1 : cl((K.hoCd || 0) / WP.HO.CD, 0, 1)) : K.kind === 'fire' ? (K.lava ? 1 : cl((K.lvCd || 0) / LAVA.CD, 0, 1)) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
-  { const FV = K.kind === 'fire', WPV = K.kind === 'priest', TV = K.kind === 'time', live = FV ? K.vPh >= 0 : WPV ? K.pPh >= 0 : TV ? K.dn >= 0 : K.ultPh >= 0, pr = cl((K.kills - (K.ultBase || 0)) / ultNeed(K), 0, 1);
-    document.body.classList.toggle('volc', FV && live); const vOpen = K.vPh === 1 || (K.vPh === 0 && K.vT >= V.RISE - 1); VTAP.classList.toggle('on', FV && vOpen && K.vSh < V.SHOTS && !(K.vBel >= 0)); if (FV && vOpen) { const tx = `Tap the screen to erupt · ${V.SHOTS - K.vSh} left`; if (VTAP.textContent !== tx) VTAP.textContent = tx; }
-    if (FV) ULI.style.height = (live ? (K.vPh === 1 ? 1 - K.vT / V.T : K.vPh === 0 ? 1 : 0) : pr) * 100 + '%'; else if (WPV) ULI.style.height = (live ? (K.pPh === 1 ? 1 - K.pT / WP.PEN.T : K.pPh === 0 ? 1 : 0) : pr) * 100 + '%'; else if (TV) ULI.style.height = (live ? 1 - cl(K.dn / dinoTot(K), 0, 1) : pr) * 100 + '%'; else ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live);
+  { const FV = K.kind === 'fire', WPV = K.kind === 'priest', TV = K.kind === 'time', live = FV ? K.vPh >= 0 : WPV ? K.pPh >= 0 : TV ? (K.cr >= 0 || !!K.ulOn) : K.ultPh >= 0, pr = cl((K.kills - (K.ultBase || 0)) / ultNeed(K), 0, 1);
+    document.body.classList.toggle('volc', FV && live); document.body.classList.toggle('drive', TV && K.cr >= 0); const vOpen = K.vPh === 1 || (K.vPh === 0 && K.vT >= V.RISE - 1); VTAP.classList.toggle('on', FV && vOpen && K.vSh < V.SHOTS && !(K.vBel >= 0)); if (FV && vOpen) { const tx = `Tap the screen to erupt · ${V.SHOTS - K.vSh} left`; if (VTAP.textContent !== tx) VTAP.textContent = tx; }
+    if (FV) ULI.style.height = (live ? (K.vPh === 1 ? 1 - K.vT / V.T : K.vPh === 0 ? 1 : 0) : pr) * 100 + '%'; else if (WPV) ULI.style.height = (live ? (K.pPh === 1 ? 1 - K.pT / WP.PEN.T : K.pPh === 0 ? 1 : 0) : pr) * 100 + '%'; else if (TV) ULI.style.height = (live ? (K.cr >= 0 ? 1 - cl((K.cr === 0 ? K.crT : K.cr === 1 ? TT.CAR.ARR + K.crT : TT.CAR.ARR + TT.CAR.T + K.crT) / (TT.CAR.ARR + TT.CAR.T + TT.CAR.FIN), 0, 1) : 0) : pr) * 100 + '%'; else ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live);
     const lab = live ? (TV ? '' : FV ? (K.vPh === 1 ? Math.ceil(V.T - K.vT) + 's' : '') : WPV ? (K.pPh === 1 ? Math.ceil(WP.PEN.T - K.pT) + 's' : '') : K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (K.kills - (K.ultBase || 0)) + '/' + ultNeed(K); if (ULS.textContent !== lab) ULS.textContent = lab;
     document.body.classList.toggle('pen', WPV && live); if (WPV && live && !PENPOS) penPos(); if (!(WPV && live)) PENPOS = 0;
     if (WPV) { dialIdle(K); if (K.hRet >= 0 && !(K.hRetSeen >= 0)) cancelSweepAim(); K.hRetSeen = K.hRet; DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); // while a slam's head is in the air the button is only ever Go to (lit once that's allowed), never another slam
@@ -4485,7 +4713,7 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plE', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'a2T', 'a2s', 'wpM', 'hl', 'hla', 'hlL', 'hlx', 'hly', 'hlN', 'hlCd', 'dn', 'dnf', 'dnx', 'dny', 'dnN', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plE', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'a2T', 'a2s', 'wpM', 'hl', 'hla', 'hlL', 'hlx', 'hly', 'hlN', 'hlCd', 'dn', 'dnf', 'dnx', 'dny', 'dnN', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc', 'cr', 'crT', 'crN', 'crh', 'cv', 'cvx', 'cvy', 'cyr', 'cxp', 'cyp', 'cx0', 'cy0', 'ctx', 'cty', 'cph', 'cHit', 'ulOn', 'cdn', 'ctu', 'cfx', 'cfy', 'cfvx', 'cfvy', 'ckx', 'cky', 'csx', 'csy', 'clx', 'cly'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
 const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, hdN: n.hdN || 0, hdP: n.hdP || null, twV: n.twV || 0, la: n.la || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
@@ -4673,7 +4901,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = 'c46553';
+const KBUILD = 'fdd66b';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
