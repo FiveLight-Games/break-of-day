@@ -2511,7 +2511,7 @@ function tpLeg(c, hip, knee, foot, f, far, kneelBack) {
   const A = far ? TPD : TPA, D = shade(TPD, -0.2); c.lineCap = 'round';
   c.strokeStyle = D; c.lineWidth = 2.5; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.lineTo(...foot); c.stroke();
   c.strokeStyle = A; c.lineWidth = 2.05; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke(); c.lineWidth = 1.9; c.beginPath(); c.moveTo(...knee); c.lineTo(foot[0], foot[1] - 0.5); c.stroke();
-  const toe = kneelBack ? -f : f; c.fillStyle = TPD; c.beginPath(); c.ellipse(foot[0] + toe * 0.55, foot[1] - 0.35, 1.45, 0.62, 0, 0, 7); c.fill(); c.fillStyle = GOLDD; c.fillRect(foot[0] - 1.0, foot[1] - 1.05, 2.0, 0.28);
+  const toe = kneelBack ? -f : f; c.fillStyle = TPD; c.beginPath(); c.ellipse(foot[0] + toe * 0.55, foot[1] + 0.63, 1.5, 0.66, 0, 0, 7); c.fill(); c.fillStyle = GOLDD; c.fillRect(foot[0] - 1.05, foot[1] - 0.15, 2.1, 0.28);
   c.fillStyle = far ? shade(TPD, 0.1) : TPA; c.beginPath(); c.ellipse(knee[0] + f * 0.15, knee[1], 1.15, 0.95, 0, 0, 7); c.fill();
   c.strokeStyle = GOLD; c.lineWidth = 0.25; c.beginPath(); c.ellipse(knee[0] + f * 0.15, knee[1], 1.15, 0.95, 0, Math.PI, 0); c.stroke(); tpCross(c, knee[0] + f * 0.15, knee[1] - 0.05, 0.4, GOLD);
 }
@@ -5175,7 +5175,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = 'd11e9b';
+const KBUILD = 'b5122c';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
