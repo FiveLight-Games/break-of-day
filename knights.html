@@ -2659,9 +2659,10 @@ function ttStart(IN, t) { const a = gAng(IN.aim[0], IN.aim[1]), wq = K.wpS === 2
 // line (round the twelve) reaches for the nearest enemy in the cone no other tentacle has, grabs it, and either lifts and throws it
 // (mode 0) or coils round it and squeezes until it bursts (mode 1). tc[j] = [walker id, mode, start time on the alC clock, done flag]
 // where the alien's tentacles come from: him (a cone along his aim), or the creature itself once tossed (all the way round it)
-// the saber's loop: an ellipse from his hand out to the aimed spot and back, symmetric about the aim line (`WID` x its length across),
+// the saber's loop: an ellipse from his hand out to the aimed spot and back, symmetric about the aim line (`WID` x its length across, but never
+// more than 0.85x the cut radius either side, so the out and back passes overlap and nothing inside the loop goes unhit),
 // swinging out on one side and home on the other; theta runs evenly in time, so it slows at the far tip as it turns and is fastest along the sides
-function boomPt(sx, sy, tx, ty, s) { const gx = tx - sx, gy = (ty - sy) * 1.25, L = Math.hypot(gx, gy) || 1, ux = gx / L, uy = gy / L, a = L / 2, b = L * TT.BOOM.WID, th = s * Math.PI * 2, al = a * (1 - Math.cos(th)), pp = b * Math.sin(th);
+function boomPt(sx, sy, tx, ty, s) { const gx = tx - sx, gy = (ty - sy) * 1.25, L = Math.hypot(gx, gy) || 1, ux = gx / L, uy = gy / L, a = L / 2, b = Math.min(L * TT.BOOM.WID, TT.BOOM.R * 0.85), th = s * Math.PI * 2, al = a * (1 - Math.cos(th)), pp = b * Math.sin(th);
   return [sx + ux * al - uy * pp, sy + (uy * al + ux * pp) / 1.25]; }
 // his weapon is away from his hand (the alien tossed out, the saber thrown): he has the cane meanwhile
 const ttAway = kn => (kn.wpn === 3 && kn.hu >= 1) || (kn.wpn === 1 && kn.sb >= 1);
@@ -3917,7 +3918,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-const KBUILD = 'c88dfd';
+const KBUILD = 'b8d7dd';
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
 checkVersion(); setInterval(checkVersion, 60000); document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
