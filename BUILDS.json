@@ -75,5 +75,6 @@
   {"v": "0.74", "build": "bd2878", "commit": "8630308", "date": "2026-10-18", "notes": "Knight's ult no longer zooms the camera out"},
   {"v": "0.75", "build": "d89594", "commit": "b9c1275", "date": "2026-10-18", "notes": "Ults cost 3x the kills; Time Traveler is a regular character, ride shortened, weapons last 14s; Warpriest holy fire and slam toned down; Firebreather's volcano blasts enemies away as it sinks"},
   {"v": "0.76", "build": "932824", "commit": "9167aa3", "date": "2026-10-18", "notes": "Multiplayer fixes: other players see a Time Traveler in the right place; rejoining gets your own character back"},
-  {"v": "0.77", "build": "74a29c", "commit": "", "date": "2026-10-18", "notes": "Multiplayer: much less lag for players joining a game (no more snapping back), smaller network updates"}
+  {"v": "0.77", "build": "74a29c", "commit": "6a27f2d", "date": "2026-10-18", "notes": "Multiplayer: much less lag for players joining a game (no more snapping back), smaller network updates"},
+  {"v": "0.78", "build": "98921a", "commit": "", "date": "2026-10-18", "notes": "Full screen button (top bar next to Reset, and on the start screen)"}
 ]
