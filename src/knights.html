@@ -3195,7 +3195,7 @@ function njLeg(c, hip, knee, foot, f, far) { const C = NJC, dk = far ? -0.16 : 0
   const shape = () => { c.beginPath(); c.moveTo(...P(hip, n1, -1.25, u1, -0.4)); c.quadraticCurveTo(...P(L2(hip, knee, 0.6), n1, -1.1), ...P(knee, nk, -0.78)); c.quadraticCurveTo(...P(L2(knee, ank, 0.35), n2, -0.74), ...P(ank, n2, -0.66));
     c.quadraticCurveTo(X(-0.8), g - 0.1, X(-0.45), g); c.lineTo(X(0.9), g); c.quadraticCurveTo(X(1.34), g, X(1.3), g - 0.38); c.quadraticCurveTo(X(1.15), ank[1] + 0.25, ...P(ank, n2, 0.6));
     c.lineTo(...P(knee, n2, 0.8, u2, 0.6)); c.quadraticCurveTo(...P(knee, nk, 1.12), ...P(knee, n1, 1.0, u1, -0.6)); c.lineTo(...P(hip, n1, 1.25, u1, -0.4)); c.closePath(); };
-  c.lineJoin = 'round'; c.lineCap = 'round'; shape(); c.fillStyle = shade(C.GI, dk); c.fill();
+  c.lineJoin = 'round'; c.lineCap = 'round'; shape(); c.fillStyle = shade(C.GI, dk); c.fill(); if (NJOLM) return;
   c.save(); shape(); c.clip();
   // a lit fold down the front of the thigh
   c.strokeStyle = shade(C.GIL, dk - 0.05); c.lineWidth = 0.22; c.beginPath(); c.moveTo(...P(hip, n1, 0.55, u1, 0.2)); c.quadraticCurveTo(...P(L2(hip, knee, 0.55), n1, 0.75), ...P(knee, nk, 0.7, u1, -0.5)); c.stroke();
@@ -3205,7 +3205,7 @@ function njLeg(c, hip, knee, foot, f, far) { const C = NJC, dk = far ? -0.16 : 0
   // the tabi below the ankle, its split toe
   c.fillStyle = shade(C.TABI, dk); c.beginPath(); c.moveTo(...P(ank, n2, 2, u2, -0.25)); c.lineTo(...P(ank, n2, -2, u2, -0.25)); c.lineTo(X(-3), g + 3); c.lineTo(X(3), g + 3); c.closePath(); c.fill();
   c.strokeStyle = shade(C.GIL, dk - 0.1); c.lineWidth = 0.14; c.beginPath(); c.moveTo(X(0.95), ank[1] + 0.35); c.lineTo(X(1.0), g - 0.05); c.stroke();
-  c.restore(); shape(); c.strokeStyle = shade(C.GID, dk - 0.2); c.lineWidth = 0.38; c.stroke(); }
+  c.restore(); if (!NJFLAT) { shape(); c.strokeStyle = shade(C.GID, dk - 0.2); c.lineWidth = 0.38; c.stroke(); } }
 // the elbow always folds the natural way: down and back (away from where he faces), never bent backwards; it only swaps sides once
 // the other side is clearly better and then swings across (eased bend sign + eased upper-arm angle, like the Warpriest's), so it never jumps
 function njElbow(s, h, f, st, dt) { const e1 = ik(s, h, 2.5, 2.5, 1), e2 = ik(s, h, 2.5, 2.5, -1), sc = e => (e[1] - s[1]) - (e[0] - s[0]) * f * 0.8, want = sc(e1) >= sc(e2) ? 1 : -1;
@@ -3214,14 +3214,16 @@ function njElbow(s, h, f, st, dt) { const e1 = ik(s, h, 2.5, 2.5, 1), e2 = ik(s,
   const e = ik(s, h, 2.5, 2.5, st.s), ta = Math.atan2(e[1] - s[1], e[0] - s[0]); if (st.a === undefined || !dt) st.a = ta; else { let da = ta - st.a; da -= Math.round(da / (2 * Math.PI)) * 2 * Math.PI; st.a += da * (1 - Math.exp(-dt * 22)); }
   return [s[0] + Math.cos(st.a) * 2.5, s[1] + Math.sin(st.a) * 2.5]; }
 function njArm(c, s, h, f, far, st, dt) { const C = NJC, el = njElbow(s, h, f, st, dt), dk = far ? -0.16 : 0, wr = L2(el, h, 0.85); c.lineCap = 'round'; c.lineJoin = 'round';
-  c.strokeStyle = shade(C.GID, dk); c.lineWidth = 1.5; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.lineTo(...wr); c.stroke();
-  c.strokeStyle = shade(C.GI, dk); c.lineWidth = 1.2; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke();
+  if (!NJFLAT) { c.strokeStyle = shade(C.GID, dk); c.lineWidth = 1.5; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.lineTo(...wr); c.stroke(); }
+  c.strokeStyle = shade(C.GI, dk); c.lineWidth = NJFLAT ? 1.45 : 1.2; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke();
+  if (NJOLM) { c.lineWidth = 1.2; c.beginPath(); c.moveTo(...el); c.lineTo(...wr); c.stroke(); c.beginPath(); c.ellipse(h[0], h[1], 0.62, 0.55, 0, 0, 7); c.fill(); return; }
   // a lit edge along the sleeve, then the wrapped forearm with its bands
   c.strokeStyle = shade(C.GIL, dk); c.lineWidth = 0.22; const nn = [-(el[1] - s[1]), el[0] - s[0]], nl = Math.hypot(...nn) || 1; c.beginPath(); c.moveTo(s[0] - nn[0] / nl * 0.4, s[1] - nn[1] / nl * 0.4 - 0.1); c.lineTo(el[0] - nn[0] / nl * 0.4, el[1] - nn[1] / nl * 0.4 - 0.1); c.stroke();
-  c.strokeStyle = shade(C.WRAP, dk - 0.05); c.lineWidth = 1.0; c.beginPath(); c.moveTo(...L2(el, h, 0.2)); c.lineTo(...wr); c.stroke();
+  c.strokeStyle = shade(C.WRAP, dk - 0.05); c.lineWidth = NJFLAT ? 1.2 : 1.0; c.beginPath(); c.moveTo(...L2(el, h, 0.2)); c.lineTo(...wr); c.stroke();
   c.strokeStyle = shade(C.WRAPD, dk); c.lineWidth = 0.12; for (const q of [0.38, 0.56, 0.74]) { const p = L2(el, h, q), dd = [h[0] - el[0], h[1] - el[1]], dl = Math.hypot(...dd) || 1, n2 = [-dd[1] / dl * 0.5, dd[0] / dl * 0.5]; c.beginPath(); c.moveTo(p[0] - n2[0], p[1] - n2[1]); c.lineTo(p[0] + n2[0] + dd[0] / dl * 0.15, p[1] + n2[1] + dd[1] / dl * 0.15); c.stroke(); }
   c.fillStyle = shade(C.TABI, dk + 0.04); c.beginPath(); c.ellipse(h[0], h[1], 0.62, 0.55, 0, 0, 7); c.fill(); c.fillStyle = shade(C.GIL, dk - 0.1); c.beginPath(); c.arc(h[0] - 0.18, h[1] - 0.2, 0.18, 0, 7); c.fill(); }
 function njBlade(c, h, a, near) { const C = NJC, d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]], len = NJ.LEN, P = (u, v) => [h[0] + d[0] * u + n[0] * v, h[1] + d[1] * u + n[1] * v];
+  if (NJOLM) { c.lineCap = 'butt'; c.lineWidth = 0.62; c.beginPath(); c.moveTo(...P(-1.9, 0)); c.lineTo(...P(0.3, 0)); c.stroke(); c.beginPath(); c.moveTo(...P(0.4, -0.75)); c.lineTo(...P(0.75, -0.75)); c.lineTo(...P(0.75, 0.75)); c.lineTo(...P(0.4, 0.75)); c.closePath(); c.fill(); c.beginPath(); c.moveTo(...P(0.75, 0.28)); c.lineTo(...P(len - 0.9, 0.24)); c.lineTo(...P(len, -0.1)); c.lineTo(...P(len - 0.6, -0.26)); c.lineTo(...P(0.75, -0.24)); c.closePath(); c.fill(); return; }
   c.lineCap = 'butt'; c.strokeStyle = C.GRIP; c.lineWidth = 0.62; c.beginPath(); c.moveTo(...P(-1.9, 0)); c.lineTo(...P(0.3, 0)); c.stroke();
   c.fillStyle = shade(COL, -0.1); for (let u = -1.6; u < 0.2; u += 0.45) { c.beginPath(); c.moveTo(...P(u, 0)); c.lineTo(...P(u + 0.18, 0.2)); c.lineTo(...P(u + 0.36, 0)); c.lineTo(...P(u + 0.18, -0.2)); c.closePath(); c.fill(); }
   c.fillStyle = '#2b2b30'; c.beginPath(); c.moveTo(...P(0.4, -0.75)); c.lineTo(...P(0.75, -0.75)); c.lineTo(...P(0.75, 0.75)); c.lineTo(...P(0.4, 0.75)); c.closePath(); c.fill();
@@ -3239,9 +3241,10 @@ function njTorso(c, P, f, t) { const C = NJC, hip = P.pel, [Ls, Rs] = P.sh, mx =
   for (let i = 0; i < 2; i++) { const h0 = P.hips[i], k0 = P.knees[i], d = [k0[0] - h0[0], k0[1] - h0[1]], dl = Math.hypot(...d) || 1, u = [d[0] / dl, d[1] / dl], n = [-u[1], u[0]], e = L2(h0, k0, 0.42), sd = i ? 1 : -1, w0 = [hip[0] + sd * (hw + 0.15), hip[1] - 0.3], w1 = [hip[0] + sd * 0.1, hip[1] - 0.3];
     const a1 = [e[0] + n[0] * 1.45, e[1] + n[1] * 1.45], a2 = [e[0] - n[0] * 1.45, e[1] - n[1] * 1.45], ends = (a1[0] - e[0]) * sd > 0 ? [a1, a2] : [a2, a1];
     c.fillStyle = i === (f > 0 ? 1 : 0) ? C.GI : shade(C.GI, -0.12); c.strokeStyle = C.GID; c.lineWidth = 0.32; c.lineJoin = 'round';
-    c.beginPath(); c.moveTo(...w0); c.lineTo(...ends[0]); c.quadraticCurveTo(e[0] + u[0] * 0.7, e[1] + u[1] * 0.7, ...ends[1]); c.lineTo(...w1); c.closePath(); c.fill(); c.stroke();
+    c.beginPath(); c.moveTo(...w0); c.lineTo(...ends[0]); c.quadraticCurveTo(e[0] + u[0] * 0.7, e[1] + u[1] * 0.7, ...ends[1]); c.lineTo(...w1); c.closePath(); c.fill(); if (!NJFLAT) c.stroke();
     c.strokeStyle = C.GIL; c.lineWidth = 0.16; c.beginPath(); c.moveTo(...L2(w0, w1, 0.5)); c.lineTo(...L2(ends[0], ends[1], 0.5)); c.stroke(); }
   c.fillStyle = C.GI; c.beginPath(); c.moveTo(hl[0], hl[1]); c.lineTo(Ls[0] + 0.15, Ls[1] + 0.3); c.quadraticCurveTo(mx, my - 0.5, Rs[0] - 0.15, Rs[1] + 0.3); c.lineTo(hr[0], hr[1]); c.closePath(); c.fill();
+  if (NJOLM) { const wy = lerp(my, hip[1], 0.82), wx = lerp(mx, hip[0], 0.82), fl = cl((K.spd || 0) / RUN, 0, 1); c.lineWidth = 0.4; c.lineCap = 'round'; c.beginPath(); c.moveTo(wx - f * 1.2, wy + 0.1); c.quadraticCurveTo(wx - f * (1.8 + fl), wy + 1.0, wx - f * (1.8 + fl * 2.4) + Math.sin(t * 6) * 0.2, wy + 2.0 - fl * 0.8); c.stroke(); return; }
   // crossed collar
   { const a = [mx - 0.95, my - 0.15], b = [mx + 0.95, my - 0.15], q = [lerp(mx, hip[0], 0.62) + f * 0.25, lerp(my, hip[1], 0.62)];
     c.fillStyle = C.GID; c.beginPath(); c.moveTo(...a); c.lineTo(...q); c.lineTo(...b); c.closePath(); c.fill();
@@ -3262,6 +3265,7 @@ function njTorso(c, P, f, t) { const C = NJC, hip = P.pel, [Ls, Rs] = P.sh, mx =
 function njHead(c, P, f, t) { const C = NJC, [hx, hy] = P.head, blink = (t % 5.1) < 0.12; c.save(); c.translate(hx, hy); c.rotate(f * (P.lean || 0) * 0.3);
   // hood: a dark egg with a lit crown, the chin of the mask pushed a little forward on the facing side
   c.fillStyle = C.GI; c.beginPath(); c.ellipse(0, 0, 1.45, 1.66, 0, 0, 7); c.fill(); c.beginPath(); c.moveTo(f * 0.9, 0.2); c.quadraticCurveTo(f * 1.62, 0.25, f * 1.45, 0.9); c.quadraticCurveTo(f * 1.1, 1.4, f * 0.3, 1.55); c.fill();
+  if (NJOLM) { c.restore(); return; }
   c.fillStyle = C.GIL; c.beginPath(); c.ellipse(-f * 0.25, -1.05, 0.9, 0.42, -f * 0.3, 0, 7); c.fill();
   // the open band across the eyes (3/4 view: both eyes, the far one smaller)
   c.fillStyle = C.SKIN; c.beginPath(); c.moveTo(-f * 0.05, -0.62); c.quadraticCurveTo(f * 0.8, -0.84, f * 1.52, -0.5); c.lineTo(f * 1.56, -0.02); c.quadraticCurveTo(f * 0.8, 0.02, -f * 0.05, -0.05); c.closePath(); c.fill();
@@ -3287,7 +3291,21 @@ function drawNinja(c, t, ghost) { const G = ghost ? null : njGl(K); if (!G) retu
   if (NJME.width !== px * 3 || NJME.height !== px) { NJME.width = px * 3; NJME.height = px; } const q = NJME.getContext('2d'); q.setTransform(1, 0, 0, 1, 0, 0); q.globalCompositeOperation = 'source-over'; q.clearRect(0, 0, px * 3, px);
   q.setTransform(px / box, 0, 0, px / box, px / 2 - cx * px / box, px / 2 - cy * px / box); drawNinja0(q, t, ghost); njTints(q, NJME, px);
   const T0 = Math.floor(t / 0.05); njGlitch(c, NJME, px, cx, cy, box, G[0] * 0.9, G[1], n => njRnd(K.i * 7.3 + 1, T0, n), K.col, null); }
-function drawNinja0(c, t, ghost) {
+// he's drawn as one piece: the body is drawn twice, first as a solid dark silhouette grown by OW all round (every fill also stroked,
+// every stroke widened, through njOl, a stand-in for the context), then in colour with no outlines of its own (NJFLAT), so the only
+// outline is round the whole figure and no line ever shows where one part meets another
+let NJFLAT = false, NJOLM = false; const NJOL = '#0c0e14';
+const NJOLP = new WeakMap();
+function njOl(c, ow) { let e = NJOLP.get(c); if (e) { e.W = 2 * ow; e.ow = ow; return e.p; } e = { W: 2 * ow, ow, b: {} }; const S = e;
+  const fns = { fill: (...a) => { c.fillStyle = NJOL; c.fill(...a); const lw = c.lineWidth; c.strokeStyle = NJOL; c.lineWidth = S.W; c.lineJoin = 'round'; if (a[0] instanceof Path2D) c.stroke(a[0]); else c.stroke(); c.lineWidth = lw; },
+    stroke: (...a) => { const lw = c.lineWidth, cap = c.lineCap; c.strokeStyle = NJOL; c.lineWidth = lw + S.W; if (cap === 'butt') c.lineCap = 'square'; c.stroke(...a); c.lineWidth = lw; c.lineCap = cap; },
+    fillRect: (x, y, w, h) => { c.fillStyle = NJOL; c.fillRect(x - S.ow, y - S.ow, w + S.W, h + S.W); } };
+  e.p = new Proxy(c, { get: (t, k) => { const f = fns[k]; if (f) return f; const v = t[k]; if (typeof v !== 'function') return v; return S.b[k] || (S.b[k] = v.bind(t)); }, set: (t, k, v) => { if (k !== 'fillStyle' && k !== 'strokeStyle') t[k] = v; return true; } });
+  NJOLP.set(c, e); return e.p; }
+function drawNinja0(c, t, ghost) { if (window.__njRaw) return drawNinjaBody(c, t, ghost); const z = K.z || 0;
+  if (!ghost) { const zs = Math.max(0.35, 1 - z / 50), px0 = K.njP ? K.njP.pel[0] : 0; c.fillStyle = `rgba(0,0,0,${0.28 * zs})`; c.beginPath(); c.ellipse(K.x + px0 * 0.4 * KS, K.y + 0.4 * KS, 4.6 * zs * KS, 1.5 * zs * KS, 0, 0, 7); c.fill(); }
+  NJFLAT = true; try { c.save(); NJOLM = true; drawNinjaBody(njOl(c, 0.19), t, ghost); NJOLM = false; c.restore(); drawNinjaBody(c, t, ghost); } finally { NJFLAT = false; NJOLM = false; } }
+function drawNinjaBody(c, t, ghost) {
   const dt = Math.min(0.1, Math.max(0, t - (K.njT ?? t))); K.njT = t;
   // the pose eases toward where he should be every frame, so nothing ever jumps
   const T = njPose(K, t), keys = ['pel', 'C', 'head', 'hA', 'hB'];
@@ -3295,7 +3313,6 @@ function drawNinja0(c, t, ghost) {
   for (const k of keys) P[k] = L2(P[k], T[k], e); for (const k of ['sh', 'hips', 'feet', 'knees']) P[k] = P[k].map((p, i) => L2(p, T[k][i], e));
   { let tg = T.aB; tg += Math.PI * 2 * Math.round((P.aB - tg) / (Math.PI * 2)); P.aB = lerp(P.aB, tg, e); } for (const k of ['lean', 'tw', 'cr']) P[k] = lerp(P[k], T[k], e);
   const f = P.f, z = K.z || 0; c.save(); c.translate(K.x, K.y); c.scale(KS, KS);
-  if (!ghost) { const zs = Math.max(0.35, 1 - z / 50); c.fillStyle = `rgba(0,0,0,${0.28 * zs})`; c.beginPath(); c.ellipse(P.pel[0] * 0.4, 0.4, 4.6 * zs, 1.5 * zs, 0, 0, 7); c.fill(); }
   c.translate(0, -z / KS);
   // flips turn him round his middle
   const fr = njFlip(K) + (K.gh ? K.gh.rot : 0); if (K.gh) { const m = c.getTransform(), px = P.pel[0], py = P.pel[1] - 2; K.gh.pv = [m.a * px + m.c * py + m.e, m.b * px + m.d * py + m.f]; } if (fr) { const cx = P.pel[0], cy = P.pel[1] - 2; c.translate(cx, cy); c.rotate(fr); c.translate(-cx, -cy); }
@@ -3305,10 +3322,9 @@ function drawNinja0(c, t, ghost) {
   K.njEA = K.njEA || {}; K.njEB = K.njEB || {}; const armA = () => njArm(c, sA, P.hA, f, false, ghost ? null : K.njEA, dt), armB = () => njArm(c, sB, P.hB, f, true, ghost ? null : K.njEB, dt), blade = () => njBlade(c, P.hB, P.aB, true);
   njBack(c, P, f, t);
   if (backB) blade();
-  if (aBehind) armA();
-  njLeg(c, P.hips[near], P.knees[near], P.feet[near], f, true); njLeg(c, P.hips[far], P.knees[far], P.feet[far], f, false);
+  // back limbs behind front limbs: back leg, back (A) arm, front leg, then the body over them
+  njLeg(c, P.hips[near], P.knees[near], P.feet[near], f, true); armA(); njLeg(c, P.hips[far], P.knees[far], P.feet[far], f, false);
   njTorso(c, P, f, t);
-  if (!aBehind) armA();
   njHead(c, P, f, t);
   armB(); if (!backB) blade(); c.fillStyle = NJC.TABI; c.beginPath(); c.arc(P.hB[0], P.hB[1], 0.6, 0, 7); c.fill();
   // test hook: where each part sits on the canvas (window.__njLab)
