@@ -4936,7 +4936,8 @@ window.__spr = () => SPR.size; window.__step = d => { t += d; step(d, t); }; win
 const SB_URL = 'https://ucdwqexhkglvhilurqti.supabase.co', SB_KEY = 'sb_publishable_E9Iaftt5o7nK4Ph5FeoONw_QSfj7KeE';
 let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
-const myPid = Math.random().toString(36).slice(2, 10);
+// the same id every time this device joins, so a player who drops and rejoins gets his own seat (and knight) back instead of a new one
+const myPid = (() => { let id = null; try { id = localStorage.getItem('kn_pid'); } catch (e) { } if (!id) { id = Math.random().toString(36).slice(2, 10); try { localStorage.setItem('kn_pid', id); } catch (e) { } } return id; })();
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
 const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plE', 'plD', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'a2T', 'a2s', 'wpM', 'hl', 'hla', 'hlL', 'hlx', 'hly', 'hlN', 'hlCd', 'dn', 'dnf', 'dnx', 'dny', 'dnN', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc', 'cr', 'crT', 'crN', 'crh', 'cv', 'cvx', 'cvy', 'cyr', 'cxp', 'cyp', 'cx0', 'cy0', 'ctx', 'cty', 'cph', 'cHit', 'ulOn', 'cdn', 'ctu', 'cfx', 'cfy', 'cfvx', 'cfvy', 'ckx', 'cky', 'csx', 'csy', 'clx', 'cly', 'uC', 'dg', 'dgN', 'cHitN', 'chd', 'cHT', 'spx', 'spy', 'spz', 'sdx', 'sdy', 'sdz', 'sd0x', 'sd0y', 'sd0z', 'spv', 'sTr', 'cEj', 'cBl', 'ex0', 'ey0', 'ez0', 'cBk'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
@@ -4975,7 +4976,7 @@ function charPic(kind, w = 96, h = 120) { const col = MYCOL || KCOLS[0], key = k
     if (kind === 'fire') drawFire(g, 1.2); else if (kind === 'priest') drawPriest(g, 1.2); else if (kind === 'time') drawTime(g, 1.2); else drawKnight(g, 1.2);
   } catch (e) { console.warn('charPic', kind, e); } K = k0; return CPIC[key] = cv.toDataURL(); }
 window.__charPic = charPic; window.__ttPic = (st, u, spd, tt = 1.2) => { const cv = document.createElement('canvas'); cv.width = 260; cv.height = 320; const g = cv.getContext('2d'), k0 = K; g.fillStyle = '#556'; g.fillRect(0, 0, 260, 320);
-  const kn = mkKnight(0); Object.assign(kn, { col: MYCOL || KCOLS[0], x: 0, y: 0, f: 1 }); makeTime(kn); Object.assign(kn, { st, u, spd, x: 0, y: 0, f: 1, gp: 1 }); K = kn; g.translate(130, 290); g.scale(12, 12); for (let i = 0; i < 40; i++) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = "#556"; g.fillRect(0, 0, 260, 320); g.restore(); drawTime(g, tt); } K = k0; return cv.toDataURL(); }; window.__join = c => join(c);
+  const kn = mkKnight(0); Object.assign(kn, { col: MYCOL || KCOLS[0], x: 0, y: 0, f: 1 }); makeTime(kn); Object.assign(kn, { st, u, spd, x: 0, y: 0, f: 1, gp: 1 }); K = kn; g.translate(130, 290); g.scale(12, 12); for (let i = 0; i < 40; i++) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = "#556"; g.fillRect(0, 0, 260, 320); g.restore(); drawTime(g, tt); } K = k0; return cv.toDataURL(); }; window.__join = c => join(c); window.__NETS = () => NET && { seats: NET.seats, me: ME };
 function lobby(screen, extra) {
   LUI.style.display = 'flex'; browse(screen === 'home');
   const back = '<a href="./">← Back to Hold the Line</a>';
@@ -5046,7 +5047,7 @@ function applySnap(S) {
   if (S.sp !== speed) { speed = S.sp; slowLabel(); }
   if (S.hz && (S.hz[0] !== HZ.rate || S.hz[1].join() !== HZ.kinds.join())) { HZ.rate = S.hz[0]; HZ.kinds = S.hz[1]; hordeUI(); }
   while (KN.length < S.k.length) KN.push(mkKnight(KN.length)); NP = KN.length;
-  S.k.forEach((p, i) => { const kn = KN[i]; if (!kn) return; const v = {}; KF.forEach((k, j) => v[k] = p.v[j]); if (p.T) { kn.T.x = p.T[0]; kn.T.y = p.T[1]; }
+  S.k.forEach((p, i) => { const kn = KN[i]; if (!kn) return; const v = {}; KF.forEach((k, j) => v[k] = p.v[j] === null ? undefined : p.v[j]); if (p.T) { kn.T.x = p.T[0]; kn.T.y = p.T[1]; }
     if (i === ME) { // my own knight is predicted locally: only pull its position back toward the host's, and take the score
       const d = Math.hypot(v.x - kn.x, v.y - kn.y); if (d > 12) { kn.x = v.x; kn.y = v.y; } else { kn.x += (v.x - kn.x) * 0.2; kn.y += (v.y - kn.y) * 0.2; }
       kn.hits = v.hits; kn.kills = v.kills; if (kn.kind === 'time') { kn.tc = v.tc; kn.alG = v.alG; if (v.ttSd) kn.ttSd = v.ttSd; if (v.wpM) kn.wpM = v.wpM; if (v.a2s) kn.a2s = v.a2s; if (v.dg) { kn.dg = v.dg; kn.dgN = v.dgN; } } if (kn.st === 'kneel' && v.st !== 'kneel') Object.assign(kn, { st: v.st, u: v.u, hold: v.hold });
@@ -5138,7 +5139,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = 'd89594';
+const KBUILD = '932824';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
