@@ -3004,7 +3004,8 @@ const NJ = { RUN: 1.3, ATK: 0.8, T: [0.3, 0.3, 0.4], DMG: 70, KB: 22, LEN: 9.6, 
   ULT: { PLAN: 2, SLOW: 0.3, SEG: 72, HW: 11, JR: 17, HITS: 30, DASH: 5, HDMG: 120, SWR: 2, SWRR: 14, SWDMG: 55, STRIKE: 1.6, END: 0.45, GZ: 22 } };
 // action keys (chest-relative, facing right, y down): [u, crouch, lean, twist, A hand x, y, B hand x, y, B blade angle, step]
 const NJG = [0, 1.6, 0.2, 0.15, 2.5, 0.7, 0.5, 2.5, 2.75, 0];
-const NJRUN = [0, 0.75, 0.5, 0.1, -1.2, 2.2, -1.4, 2.4, 2.95, 0];
+// the ninja run: leaning hard into it, both arms swept straight back behind him, the blade trailing back and a little up
+const NJRUN = [0, 0.9, 0.78, 0.05, -1.4, 3.2, -4.0, 4.7, 3.05, 0];
 const NJCUTS = [
   // 1: rising diagonal from low behind to high in front
   [NJG, [0.25, 1.4, 0.3, 0.6, 1.4, 1.8, -1.0, 3.0, 2.5, 0.3], [0.5, 0.9, -0.1, -0.6, 0.8, 1.0, 2.6, -2.2, -1.0, 1.2], [0.7, 0.8, -0.15, -0.7, 0.6, 1.2, 2.0, -2.8, -1.6, 1.3], [1, ...NJG.slice(1)]],
@@ -3036,7 +3037,7 @@ function njPose(kn, t) {
   let feet = [0, 1].map(i => L2(stance[i], loco[i], mv));
   const bob = mv * (Math.abs(Math.cos(gp)) * 0.55 - 0.3), pel = [f * (stepA * 0.5 * (1 - mv) + run * 0.4), -6.0 + cr * 1.15 + bob];
   if (tuck > 0) feet = feet.map((p, i) => L2(p, [pel[0] + (i ? 0.9 : -0.9), pel[1] + 2.2], tuck));
-  lean += run * 0.3 * (cutting ? 0.4 : 1); tw += Math.sin(gp) * 0.25 * mv;
+  lean += run * 0.12 * (cutting ? 0.4 : 1); tw += Math.sin(gp) * 0.25 * mv;
   const L = f * lean, C = add(add(pel, rot([0, -4.1], L)), [f * tw * 0.55, 0]);
   const w = 1.75 * (1 - 0.22 * tw), sd = [Math.cos(L * 0.8), Math.sin(L * 0.8)];
   const sh = [[C[0] - sd[0] * w, C[1] - sd[1] * w + f * tw * 0.18], [C[0] + sd[0] * w, C[1] + sd[1] * w - f * tw * 0.18]];
@@ -3156,7 +3157,14 @@ function njLeg(c, hip, knee, foot, f, far) { const C = NJC, dk = far ? -0.16 : 0
   c.restore();
   c.strokeStyle = shade(C.GIL, dk); c.lineWidth = 0.14; c.beginPath(); c.moveTo(X(0.95), ank[1] + 0.2); c.lineTo(X(1.0), g - 0.05); c.stroke();
   c.fillStyle = shade(C.GI, dk); c.beginPath(); c.arc(knee[0], knee[1], 0.95, 0, 7); c.fill(); }
-function njArm(c, s, h, f, far, free) { const C = NJC, e1 = ik(s, h, 2.5, 2.5, 1), e2 = ik(s, h, 2.5, 2.5, -1), el = e1[1] >= e2[1] ? e1 : e2, dk = far ? -0.16 : 0, wr = L2(el, h, 0.85); c.lineCap = 'round'; c.lineJoin = 'round';
+// the elbow always folds the natural way: down and back (away from where he faces), never bent backwards; it only swaps sides once
+// the other side is clearly better and then swings across (eased bend sign + eased upper-arm angle, like the Warpriest's), so it never jumps
+function njElbow(s, h, f, st, dt) { const e1 = ik(s, h, 2.5, 2.5, 1), e2 = ik(s, h, 2.5, 2.5, -1), sc = e => (e[1] - s[1]) - (e[0] - s[0]) * f * 0.8, want = sc(e1) >= sc(e2) ? 1 : -1;
+  if (!st) return want > 0 ? e1 : e2; if (st.t === undefined) { st.t = want; st.s = want; }
+  if (want !== st.t && Math.abs(sc(e1) - sc(e2)) > 0.6) st.t = want; st.s += (st.t - st.s) * (1 - Math.exp(-dt * 14));
+  const e = ik(s, h, 2.5, 2.5, st.s), ta = Math.atan2(e[1] - s[1], e[0] - s[0]); if (st.a === undefined || !dt) st.a = ta; else { let da = ta - st.a; da -= Math.round(da / (2 * Math.PI)) * 2 * Math.PI; st.a += da * (1 - Math.exp(-dt * 22)); }
+  return [s[0] + Math.cos(st.a) * 2.5, s[1] + Math.sin(st.a) * 2.5]; }
+function njArm(c, s, h, f, far, st, dt) { const C = NJC, el = njElbow(s, h, f, st, dt), dk = far ? -0.16 : 0, wr = L2(el, h, 0.85); c.lineCap = 'round'; c.lineJoin = 'round';
   c.strokeStyle = shade(C.GID, dk); c.lineWidth = 1.5; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.lineTo(...wr); c.stroke();
   c.strokeStyle = shade(C.GI, dk); c.lineWidth = 1.2; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke();
   // a lit edge along the sleeve, then the wrapped forearm with its bands
@@ -3225,8 +3233,8 @@ function drawNinja(c, t, ghost) {
   const fr = njFlip(K); if (fr) { const cx = P.pel[0], cy = P.pel[1] - 2; c.translate(cx, cy); c.rotate(fr); c.translate(-cx, -cy); }
   // ---- depth, the Knight's A/B method: A (facing-side shoulder, the free hand) behind the body when it drops low; B (the ninjato) last ----
   const far = f > 0 ? 0 : 1, near = 1 - far, sA = P.sh[near], sB = P.sh[far];
-  const rB = [(P.hB[0] - P.C[0]) * f, P.hB[1] - P.C[1]], backB = Math.cos(P.aB) * f < -0.3 && rB[0] < 0.5, aBehind = (P.hA[1] - P.C[1]) > 3.6;
-  const armA = () => njArm(c, sA, P.hA, f, false, true), armB = () => njArm(c, sB, P.hB, f, true), blade = () => njBlade(c, P.hB, P.aB, true);
+  const rB = [(P.hB[0] - P.C[0]) * f, P.hB[1] - P.C[1]], backB = Math.cos(P.aB) * f < -0.3 && rB[0] < 0.5, aBehind = (P.hA[1] - P.C[1]) > 3.6 || (P.hA[0] - P.C[0]) * f < -1.2;
+  K.njEA = K.njEA || {}; K.njEB = K.njEB || {}; const armA = () => njArm(c, sA, P.hA, f, false, ghost ? null : K.njEA, dt), armB = () => njArm(c, sB, P.hB, f, true, ghost ? null : K.njEB, dt), blade = () => njBlade(c, P.hB, P.aB, true);
   njBack(c, P, f, t);
   if (backB) blade();
   if (aBehind) armA();
@@ -3236,7 +3244,7 @@ function drawNinja(c, t, ghost) {
   njHead(c, P, f, t);
   armB(); if (!backB) blade(); c.fillStyle = NJC.TABI; c.beginPath(); c.arc(P.hB[0], P.hB[1], 0.6, 0, 7); c.fill();
   // test hook: where each part sits on the canvas (window.__njLab)
-  if (window.__njLab && !ghost) { const m = c.getTransform(), T2 = v => { const q = m.transformPoint(new DOMPoint(v[0], v[1])); return [q.x, q.y]; }, ell = (s0, h0) => { const e1 = ik(s0, h0, 2.5, 2.5, 1), e2 = ik(s0, h0, 2.5, 2.5, -1); return e1[1] >= e2[1] ? e1 : e2; }, eA = ell(sA, P.hA), eB = ell(sB, P.hB), d = [Math.cos(P.aB), Math.sin(P.aB)];
+  if (window.__njLab && !ghost) { const m = c.getTransform(), T2 = v => { const q = m.transformPoint(new DOMPoint(v[0], v[1])); return [q.x, q.y]; }, ell = (s0, h0) => njElbow(s0, h0, f, null, 0), eA = ell(sA, P.hA), eB = ell(sB, P.hB), d = [Math.cos(P.aB), Math.sin(P.aB)];
     window.__njLabPts = { 'A upper arm (free arm)': T2(L2(sA, eA, 0.5)), 'A forearm (wrapped)': T2(L2(eA, P.hA, 0.55)), 'A hand': T2(P.hA), 'B upper arm (sword arm)': T2(L2(sB, eB, 0.5)), 'B forearm (wrapped)': T2(L2(eB, P.hB, 0.55)), 'B hand': T2(P.hB), 'ninjato blade': T2([P.hB[0] + d[0] * 6, P.hB[1] + d[1] * 6]), 'ninjato grip': T2([P.hB[0] - d[0] * 1.1, P.hB[1] - d[1] * 1.1]),
       'back leg thigh': T2(L2(P.hips[near], P.knees[near], 0.5)), 'back leg shin wrap': T2(L2(P.knees[near], P.feet[near], 0.45)), 'back leg tabi (foot)': T2([P.feet[near][0] + f * 0.4, P.feet[near][1] + 0.1]), 'front leg thigh': T2(L2(P.hips[far], P.knees[far], 0.5)), 'front leg shin wrap': T2(L2(P.knees[far], P.feet[far], 0.45)), 'front leg tabi (foot)': T2([P.feet[far][0] + f * 0.4, P.feet[far][1] + 0.1]),
       'sheath (on back)': T2([P.C[0] - f * 1.7 + (f * 4.0) * 0.08, P.C[1] - 3.3 + 6.5 * 0.08]), 'sash knot tail': (() => { const mx = (P.sh[0][0] + P.sh[1][0]) / 2, my = (P.sh[0][1] + P.sh[1][1]) / 2; return T2([lerp(mx, P.pel[0], 0.82) - f * 1.75, lerp(my, P.pel[1], 0.82) + 1.4]); })(), 'ninjato tip': T2([P.hB[0] + d[0] * (NJ.LEN - 0.3), P.hB[1] + d[1] * (NJ.LEN - 0.3)]), 'headband tails': T2([P.head[0] - f * 3.0, P.head[1] - 0.1]), 'hip skirt flap': T2([P.pel[0] - f * 1.6, P.pel[1] + 0.9]) }; }
