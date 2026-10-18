@@ -4786,7 +4786,7 @@ document.getElementById('clear').onclick = doClear;
 document.getElementById('reset').onclick = doReset;
 // full screen (Fullscreen API; webkit prefix for older Safari); the buttons hide where it isn't supported (iPhone Safari)
 const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement, fsOK = () => !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
-function fsToggle() { const d = document.documentElement; try { if (fsEl()) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else { const r = (d.requestFullscreen || d.webkitRequestFullscreen).call(d, { navigationUI: 'hide' }); if (r && r.then) r.then(() => { try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => { }); } catch (e) { } }).catch(() => { }); } } catch (e) { } }
+function fsToggle() { const d = document.documentElement; try { if (fsEl()) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else { const r = (d.requestFullscreen || d.webkitRequestFullscreen).call(d, { navigationUI: 'hide' }); if (r && r.catch) r.catch(() => { }); } } catch (e) { } }
 function fsLabel() { document.querySelectorAll('.fsBtn').forEach(b => { b.style.display = fsOK() ? '' : 'none'; b.innerHTML = b.classList.contains('fsIco') ? (fsEl() ? '&#x2715;' : '&#x26F6;') : fsEl() ? '&#x2715; Exit full screen' : '&#x26F6; Full screen'; }); }
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('.fsBtn'); if (b) { e.preventDefault(); fsToggle(); b.blur(); } });
 ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { fsLabel(); setTimeout(resize, 120); })); fsLabel();
@@ -5160,7 +5160,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '98921a';
+const KBUILD = '4d61eb';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }

@@ -4786,7 +4786,7 @@ document.getElementById('clear').onclick = doClear;
 document.getElementById('reset').onclick = doReset;
 // full screen (Fullscreen API; webkit prefix for older Safari); the buttons hide where it isn't supported (iPhone Safari)
 const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement, fsOK = () => !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);
-function fsToggle() { const d = document.documentElement; try { if (fsEl()) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else { const r = (d.requestFullscreen || d.webkitRequestFullscreen).call(d, { navigationUI: 'hide' }); if (r && r.then) r.then(() => { try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => { }); } catch (e) { } }).catch(() => { }); } } catch (e) { } }
+function fsToggle() { const d = document.documentElement; try { if (fsEl()) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else { const r = (d.requestFullscreen || d.webkitRequestFullscreen).call(d, { navigationUI: 'hide' }); if (r && r.catch) r.catch(() => { }); } } catch (e) { } }
 function fsLabel() { document.querySelectorAll('.fsBtn').forEach(b => { b.style.display = fsOK() ? '' : 'none'; b.innerHTML = b.classList.contains('fsIco') ? (fsEl() ? '&#x2715;' : '&#x26F6;') : fsEl() ? '&#x2715; Exit full screen' : '&#x26F6; Full screen'; }); }
 document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('.fsBtn'); if (b) { e.preventDefault(); fsToggle(); b.blur(); } });
 ['fullscreenchange', 'webkitfullscreenchange'].forEach(ev => document.addEventListener(ev, () => { fsLabel(); setTimeout(resize, 120); })); fsLabel();
