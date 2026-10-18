@@ -2584,9 +2584,10 @@ function ttPose(kn, t) {
   if (atk && (W0 === 0 || W0 === 1)) { const keys = W0 === 1 ? TTSAB[ttSabV(kn.csN || 0)] : TTCUT[(kn.csN || 0) % 2], T = W0 === 1 ? TT.SABER.T : TT.CANE.T; A = kfnS(cl(kn.cs / T, 0, 1), keys).map((x, j) => j === 1 ? x * 0.6 : j === 9 ? x * 0.6 : x); }
   // weapons held (not swinging): a fencer's ready stance with the saber; guns at low ready; the creature held out on his palm
   if (!atk && wq === 1) { A[4] = -1.1; A[5] = 3.3; A[6] = 2.0; A[7] = 3.0; A[8] = -1.0; }
-  // calling the ship: saber in a reverse grip, held at his chest with the blade pointing away from the aim; the other hand reaches toward the spot; knees bent
-  const stc = !atk && wq === 1 && ttStance(kn); if (stc) { const v = ttStanceAim(kn), al = Math.atan2(v[1] / 1.25, v[0] * f), c0 = Math.cos(al), s0 = Math.sin(al);
-    A[1] += 0.6; A[2] += 0.12; A[4] = 0.6 + c0 * 3.4; A[5] = 0.6 + s0 * 2.6; A[6] = 0.2 + c0 * 1.2; A[7] = 1.6 + s0 * 0.8; A[8] = al + Math.PI + 0.35; }
+  // calling the ship: facing the spot, feet planted wide, both arms raised up toward it (saber in a reverse grip, blade pointing away); as the ship comes down he hauls both arms down and leans back
+  const stc = !atk && wq === 1 && ttStance(kn); let stW = 0; if (stc) { const v = ttStanceAim(kn), al = Math.atan2(v[1] / 1.25, v[0] * f), c0 = Math.cos(al), s0 = Math.sin(al), k = kn.sc === 1 ? sm(cl(kn.scT / TT.SHIP.SHADOW, 0, 1)) : 0; stW = 1;
+    A[1] += 1.1 + 0.4 * k; A[2] += 0.1 - 0.32 * k; A[3] = cl(c0 * 0.15 - s0 * 0.2, -0.4, 0.4); A[9] = 2.1;
+    A[4] = lerp(1.0 + c0 * 1.8, 2.6 + c0 * 2.0, k); A[5] = lerp(-9.5 + s0 * 1.2, 1.4 + s0 * 0.8, k); A[6] = lerp(-0.6 + c0 * 1.6, 1.8 + c0 * 1.6, k); A[7] = lerp(-9.0 + s0 * 1.2, 1.8 + s0 * 0.8, k); A[8] = al + Math.PI + 0.35 + 0.5 * k; }
   let [, cr, lean, tw, ax, ay, bx, by, ca, stepA] = A, bBack = false, bL = 1;
   if (atk && W0 === 1) { const v = (kn.csN || 0) % 4, dir = v % 2 ? -1 : 1, tilt = [0.2, 0.2, 0.85, -0.6][v], u = cl(kn.cs / TT.SABER.T, 0, 1);
     const ph = u < 0.12 ? -0.12 * sm(u / 0.12) : u < 0.72 ? -0.12 + 1.12 * smt((u - 0.12) / 0.6) : 1, phi = dir * (-1.8 + 3.6 * ph), cp = Math.cos(phi), sp = Math.sin(phi);
@@ -2618,7 +2619,7 @@ function ttPose(kn, t) {
     Fr.gA = toRig(Fr.P(4.0, -nv * 2.8, 7.4)); Fr.gB = toRig(Fr.P(4.0, nv * 2.8, 7.4)); }
   else { const stride = lerp(2.0, 3.4, run);
     const loco = [0, 1].map(i => { const ph = gp + i * Math.PI; return [(i ? 0.85 : -0.85) + f * Math.sin(ph) * stride * mv, -Math.max(0, Math.cos(ph)) * lerp(1.0, 1.7, run) * mv]; });
-    const stance = [0, 1].map(i => { const fr = i === front; return [fr ? f * (1.0 + stepA * 1.1) : -f * 0.9, fr ? 0 : -0.25]; });
+    const stance = [0, 1].map(i => { const fr = i === front; return [fr ? f * (1.0 + stepA * 1.1) : -f * (0.9 + stW * 1.6), fr ? 0 : -0.25]; });
     feet = [0, 1].map(i => L2(stance[i], loco[i], mv));
     // jumping for the bike: knees tucked up under him
     const air = kn.bk === 0 && (kn.bjt || 0) >= TT.BIKE.JUMP * 0.5 && (kn.bjt || 0) < TT.BIKE.LAND ? sm(cl(((kn.bjt || 0) - TT.BIKE.JUMP * 0.5) / 0.15, 0, 1)) : kn.bk === 2 && kn.bkT < TT.BIKE.HOP ? Math.sin(Math.PI * kn.bkT / TT.BIKE.HOP) : 0;
@@ -3203,9 +3204,9 @@ function trapOK(kn, x, y) { const TR = TT.TRAP, RR = TR.ARM + TR.BL, mine = TRAP
 function ttAir(c, t) {
   for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue;
     // the ship: falls out of the sky over the last DROP s of the shadow, bounces once on landing, lies there, then sinks and fades
-    if (kn.sc >= 1) { const SH = TT.SHIP; let z = null, a = 1; if (kn.sc === 1 && kn.scT > SH.SHADOW - SH.DROP) { const q = (kn.scT - (SH.SHADOW - SH.DROP)) / SH.DROP; z = 300 * (1 - q) * (1 - q); }
-      else if (kn.sc === 2) { const u = kn.scT; z = u < 0.3 ? 3.5 * Math.sin(Math.PI * u / 0.3) * (1 - u / 0.3) : 0; if (u > SH.LIE) { const q = cl((u - SH.LIE) / SH.FADE, 0, 1); a = 1 - q; z -= 5 * q; } }
-      if (z !== null) ttShip(c, kn.scx, kn.scy, z, kn.sch || 0, a, t, kn.col || COL); }
+    if (kn.sc >= 1) { const SH = TT.SHIP; let z = null, a = 1, pc = 0.05; if (kn.sc === 1 && kn.scT > SH.SHADOW - SH.DROP) { const q = (kn.scT - (SH.SHADOW - SH.DROP)) / SH.DROP; z = 300 * (1 - q) * (1 - q); pc = 0.32 * sm(q); }
+      else if (kn.sc === 2) { const u = kn.scT; z = u < 0.3 ? 3.5 * Math.sin(Math.PI * u / 0.3) * (1 - u / 0.3) : 0; pc = lerp(0.32, 0.05, cl(u / 0.22, 0, 1) ** 2); if (u > SH.LIE) { const q = cl((u - SH.LIE) / SH.FADE, 0, 1); a = 1 - q; z -= 5 * q; } }
+      if (z !== null) ttShip(c, kn.scx, kn.scy, z, kn.sch || 0, a, t, kn.col || COL, pc); }
     // the thrown saber: spinning end over end round its middle, a whirl of its colour and a short trail
     if (kn.wpn === 1 && kn.sb >= 1) { const BM = TT.BOOM, L = TT.SABER.LEN * BM.SZ, a = t * BM.SPIN, d = [Math.cos(a), Math.sin(a) * 0.55], cx = kn.sbx, cy = kn.sby - BM.Z, h = [cx - d[0] * L / 2, cy - d[1] * L / 2], prv = COL; COL = kn.col || COL;
       const tr = kn.sbTr || (kn.sbTr = []); tr.push([cx, cy]); if (tr.length > 8) tr.shift();
@@ -3303,7 +3304,7 @@ function ttTendrils(c, kn, t) { const A = TT.ALIEN, m0 = kn.mouth, byId = new Ma
 // skid marks under everything
 // a sky-dreadnought of his own (an original design: a riveted airship with a canvas envelope in brass ribs, a boat-hulled gondola with funnels and
 // turrets, fins and stern propellers), heading hd, height z above the ground, faded by a; drawn with the bike's ground frame
-function ttShip(c, x, y, z, hd, a, t, col) { if (a <= 0.01) return; const fw = [Math.cos(hd), Math.sin(hd) / 1.25], sd = [-Math.sin(hd), Math.cos(hd) / 1.25], P = (u, v, h) => [x + u * fw[0] + v * sd[0], y + u * fw[1] + v * sd[1] - h - z], near = sd[1] >= 0 ? 1 : -1;
+function ttShip(c, x, y, z, hd, a, t, col, pc = 0) { if (a <= 0.01) return; const fw = [Math.cos(hd), Math.sin(hd) / 1.25], sd = [-Math.sin(hd), Math.cos(hd) / 1.25], P = (u, v, h) => [x + u * fw[0] + v * sd[0], y + u * fw[1] + v * sd[1] - h - z - u * pc - 30 * pc], near = sd[1] >= 0 ? 1 : -1;
   c.save(); c.globalAlpha = a; c.lineJoin = 'round'; const poly = (pts, fill, st, lw) => { c.beginPath(); pts.forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); c.closePath(); if (fill) { c.fillStyle = fill; c.fill(); } if (st) { c.strokeStyle = st; c.lineWidth = lw || 0.5; c.stroke(); } };
   const BR = '#c8963e', BRD = '#7a5520', HULL = '#3b2a20', DECK = '#8a6440', CAN = '#5b5048', CAND = '#3e3530';
   // gondola hull: a long boat shape from stern (u -30) to a pointed bow (+36)
