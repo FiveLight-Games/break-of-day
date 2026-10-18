@@ -78,5 +78,6 @@
   {"v": "0.77", "build": "74a29c", "commit": "6a27f2d", "date": "2026-10-18", "notes": "Multiplayer: much less lag for players joining a game (no more snapping back), smaller network updates"},
   {"v": "0.78", "build": "98921a", "commit": "16cfc5d", "date": "2026-10-18", "notes": "Full screen button (top bar next to Reset, and on the start screen)"},
   {"v": "0.79", "build": "4d61eb", "commit": "393ab11", "date": "2026-10-18", "notes": "Full screen keeps your phone's orientation"},
-  {"v": "0.80", "build": "d11e9b", "commit": "", "date": "2026-10-18", "notes": "Warpriest: longer sweep cooldown after a slam, smoother censer arm"}
+  {"v": "0.80", "build": "d11e9b", "commit": "10b16b9", "date": "2026-10-18", "notes": "Warpriest: longer sweep cooldown after a slam, smoother censer arm"},
+  {"v": "0.81", "build": "9a3fa9", "commit": "", "date": "2026-10-18", "notes": "New leg and boot art for the Knight and Warpriest"}
 ]
