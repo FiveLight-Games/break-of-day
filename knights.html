@@ -4641,7 +4641,7 @@ function draw() {
   // while any Firebreather is on his volcano everyone pulls back far enough to see a full-range shot across the screen
   // (drawing a strafe pulls his camera back 30%, and it stays back until his helicopter is gone: HDRAW / hl)
   const volcOn = !!(KN[ME] && KN[ME].kind === 'fire' && KN[ME].vPh >= 0), hw1 = cv.width / 2 / (viewScale() / ultZoom);
-  const penOn = KN[ME] && KN[ME].kind === 'priest' && KN[ME].pPh >= 0, uzT = (volcOn ? Math.min(0.775, hw1 / (V.MAXD + 20)) : penOn ? 0.7 : 1 / (1 + (((KN[ME] && KN[ME].sz) || 1) - 1) * 0.33)) * (HDRAW || (KN[ME] && KN[ME].kind === 'time' && KN[ME].hl >= 0) ? 0.7 : 1) * (KN[ME] && KN[ME].kind === 'time' && KN[ME].cr >= 0 ? 0.8 : 1); ultZoom = lerp(ultZoom, uzT, volcOn || penOn ? 0.035 : 0.06); ZBUSY = Math.abs(ultZoom - uzT) > uzT * 0.01; // pull the camera back while he's a giant
+  const penOn = KN[ME] && KN[ME].kind === 'priest' && KN[ME].pPh >= 0, uzT = (volcOn ? Math.min(0.775, hw1 / (V.MAXD + 20)) : penOn ? 0.7 : 1) * (HDRAW || (KN[ME] && KN[ME].kind === 'time' && KN[ME].hl >= 0) ? 0.7 : 1) * (KN[ME] && KN[ME].kind === 'time' && KN[ME].cr >= 0 ? 0.8 : 1); ultZoom = lerp(ultZoom, uzT, volcOn || penOn ? 0.035 : 0.06); ZBUSY = Math.abs(ultZoom - uzT) > uzT * 0.01; // pull the camera back while he's a giant
   const sc = viewScale(), pc = K.kind === 'priest' && K.pPh >= 0 ? 0.5 : 0; let ctX = pc ? lerp(K.x, K.hx, pc) : K.x, ctY = pc ? lerp(K.y - 6 * (K.sz || 1) - (K.z || 0) * 0.5, K.hy - 6, pc) : K.y - 6 * (K.sz || 1) - (K.z || 0) * 0.5;
   // Time Ride finale: the camera swings toward the spacecraft from the moment its portal starts opening until it hits
   if (K.kind === 'time' && K.cr === 2 && !(K.cBl >= 0)) { const k = 0.55 * sm(cl((K.crT - TT.CAR.SOPEN + 0.6) / 0.6, 0, 1)), sx = K.crT >= TT.CAR.SOPEN ? K.spx : K.csx, sy = K.crT >= TT.CAR.SOPEN ? K.spy - K.spz : K.csy - TT.CAR.SZ; ctX = lerp(ctX, sx, k); ctY = lerp(ctY, sy, k); }
@@ -5130,7 +5130,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '5737a1';
+const KBUILD = 'bd2878';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
