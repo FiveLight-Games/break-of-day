@@ -27,7 +27,7 @@ body.fire #dash{left:calc(50% - 48px);right:auto;top:auto;bottom:22px;width:96px
 @media (orientation:portrait){.stick{width:110px;height:110px;bottom:18px}.stick .knob{width:46px;height:46px;margin:-23px 0 0 -23px}#lst{left:14px}#rst{right:8vw}#spin{right:12px;bottom:150px;width:64px;height:64px}#top button{padding:6px 9px;font-size:12px}#stats{font-size:11px}}
 #lobbyUI{position:fixed;inset:0;background:radial-gradient(circle at 50% 30%,#2a2620,#0d0c0a);display:flex;align-items:center;justify-content:center;z-index:10;padding:16px;box-sizing:border-box}
 #lobbyUI .card{background:#1a1713;border:1px solid #3a332a;border-radius:16px;padding:20px;max-width:360px;width:100%;display:flex;flex-direction:column;gap:10px;text-align:center}
-#lobbyUI #lChars{display:flex;align-items:center;gap:12px;text-align:left;padding:6px 14px}#lobbyUI #lChars img{width:48px;height:60px;object-fit:contain}#lobbyUI #lChars span{display:flex;flex-direction:column;font-size:17px}#lobbyUI #lChars small{font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:.08em}#lcard{position:relative}#charP .watch{padding:2px 6px;opacity:.55;background:none;border-color:transparent}#charP .watch.on{opacity:1}#lobbyUI #lWatch{position:fixed;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));z-index:5;width:20px;height:20px;padding:0;display:flex;align-items:center;justify-content:center;background:none;border:1px solid transparent;border-radius:50%;opacity:.55}#lobbyUI #lWatch:hover{opacity:.9}#lobbyUI #lWatch.on{opacity:1;border-color:#f0c419;background:#2a2416}#lobbyUI .cgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}#lobbyUI .cgrid button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px 8px}#lobbyUI .cgrid img{width:72px;height:90px;object-fit:contain}#lobbyUI .cgrid .on{border-color:#f0c419;color:#f0c419;background:#2a2416}#lobbyUI .chars{display:flex;gap:6px}#lobbyUI .chars button{flex:1}#lobbyUI .chars .on{border-color:#f0c419;color:#f0c419;background:#2a2416}
+#lobbyUI #lChars{display:flex;align-items:center;gap:12px;text-align:left;padding:6px 14px}#lobbyUI #lChars img{width:48px;height:60px;object-fit:contain}#lobbyUI #lChars span{display:flex;flex-direction:column;font-size:17px}#lobbyUI #lChars small{font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:.08em}#lcard{position:relative}#charP .watch{padding:2px 6px;opacity:.55;background:none;border-color:transparent}#charP .watch.on{opacity:1}#lobbyUI #lWatch{position:fixed;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));z-index:5;width:20px;height:20px;padding:0;display:flex;align-items:center;justify-content:center;background:none;border:1px solid transparent;border-radius:50%;opacity:.55}#lobbyUI #lWatch:hover{opacity:.9}#lobbyUI #lWatch.on{opacity:1;border-color:#f0c419;background:#2a2416}#lobbyUI .cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}@media (max-height:520px){.cgrid img{width:54px !important;height:66px !important}.cgrid button{padding:3px 4px 5px !important}}#lobbyUI .cgrid button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px 8px}#lobbyUI .cgrid img{width:72px;height:90px;object-fit:contain}#lobbyUI .cgrid .on{border-color:#f0c419;color:#f0c419;background:#2a2416}#lobbyUI .chars{display:flex;gap:6px}#lobbyUI .chars button{flex:1}#lobbyUI .chars .on{border-color:#f0c419;color:#f0c419;background:#2a2416}
 #lobbyUI h1{margin:0;font:800 26px system-ui;color:#f0c419}#lobbyUI p{margin:0;color:#a59c88;font-size:13px}
 #lobbyUI .games{display:flex;flex-direction:column;gap:6px;max-height:34vh;overflow:auto}#lobbyUI .games button{display:flex;justify-content:space-between;align-items:center;text-align:left;padding:10px 12px}#lobbyUI .games small{color:#a59c88}#lobbyUI .gh{display:flex;justify-content:space-between;color:#a59c88;font-size:12px;margin-top:4px}#lobbyUI .big{font-size:16px;padding:12px}#lobbyUI .pri{background:#f0c419;color:#1a1713;border-color:#f0c419}
 #lobbyUI input{background:#0d0c0a;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:12px;font:800 22px system-ui;text-align:center;letter-spacing:6px;text-transform:uppercase}
@@ -53,7 +53,7 @@ body.editing #bring,body.editing #lst,body.editing #rst,body.editing #dash,body.
 .pnl .kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px}.pnl label{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0}.pnl input{width:18px;height:18px;accent-color:#f0c419}
 @media (orientation:portrait){.pnl{top:92px}.pnl .kgrid{grid-template-columns:repeat(2,1fr)}}
 button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none}
-body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !important}body.drive #rst,body.drive #dash,body.drive #aoe,body.drive #spin,body.drive #ult,body.drive #ttTest,body.drive #bring{display:none !important}body.time #aoe{display:none !important}body.time.ttab #aoe{display:block !important}#ttTest{display:none;position:fixed;left:8px;top:32vh;flex-direction:column;gap:6px;z-index:6}body.time #ttTest{display:flex}body.live #ttTest{display:none !important}body.editing #ttTest,body.volc #ttTest{display:none}#ttTest b{font:800 9px system-ui;color:#ffffff88;letter-spacing:1px;text-align:center}#ttTest button{background:#000a;color:#fff;border:1px solid #ffffff44;border-radius:8px;font:700 12px system-ui;padding:8px 10px;min-width:74px}#pst{display:none;right:10vw;border-color:#ffd34a99;background:#ffd34a1a}#pst .knob{background:#ffd34a66;border-color:#ffe28a}#pst small{color:#ffe28acc}#smash{display:none;position:fixed;left:22px;bottom:22px;width:140px;height:140px;border-radius:50%;padding:0;font:800 20px system-ui;letter-spacing:1px;background:#f0c41933;border:3px solid #ffd34a;color:#fff0b0;overflow:hidden;text-shadow:0 0 8px #ff9a00}#smash i{position:absolute;left:0;right:0;bottom:0;background:#ffd34a66;height:0}#smash span{position:relative}body.pen #pst,body.pen #smash{display:block}body.pen #lst,body.pen #rst,body.pen #dash,body.pen #aoe,body.pen #spin{display:none}body.priest #spin{background:#ffd34a26;border-color:#ffd34a;color:#ffe28a}body.priest #aoe.out{border-color:#fff3c4;box-shadow:0 0 12px #f0c419aa}@media (orientation:portrait){#smash{left:14px;bottom:18px;width:110px;height:110px;font-size:17px}#pst{right:8vw}}
+body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !important}body.ninja #dash,body.ninja #spin{display:none !important}body.njult #lst,body.njult #rst,body.njult #dash,body.njult #aoe,body.njult #spin,body.njult #ult{opacity:0 !important;pointer-events:none !important}body.njult #help{opacity:0}#njtap{position:fixed;left:0;right:0;bottom:34px;text-align:center;font:800 17px system-ui;color:#e8f0ff;text-shadow:0 0 10px #4a7cff,0 2px 3px #000;opacity:0;transition:opacity .35s;pointer-events:none;letter-spacing:.5px}#njtap.on{opacity:1}body.drive #rst,body.drive #dash,body.drive #aoe,body.drive #spin,body.drive #ult,body.drive #ttTest,body.drive #bring{display:none !important}body.time #aoe{display:none !important}body.time.ttab #aoe{display:block !important}#ttTest{display:none;position:fixed;left:8px;top:32vh;flex-direction:column;gap:6px;z-index:6}body.time #ttTest{display:flex}body.live #ttTest{display:none !important}body.editing #ttTest,body.volc #ttTest{display:none}#ttTest b{font:800 9px system-ui;color:#ffffff88;letter-spacing:1px;text-align:center}#ttTest button{background:#000a;color:#fff;border:1px solid #ffffff44;border-radius:8px;font:700 12px system-ui;padding:8px 10px;min-width:74px}#pst{display:none;right:10vw;border-color:#ffd34a99;background:#ffd34a1a}#pst .knob{background:#ffd34a66;border-color:#ffe28a}#pst small{color:#ffe28acc}#smash{display:none;position:fixed;left:22px;bottom:22px;width:140px;height:140px;border-radius:50%;padding:0;font:800 20px system-ui;letter-spacing:1px;background:#f0c41933;border:3px solid #ffd34a;color:#fff0b0;overflow:hidden;text-shadow:0 0 8px #ff9a00}#smash i{position:absolute;left:0;right:0;bottom:0;background:#ffd34a66;height:0}#smash span{position:relative}body.pen #pst,body.pen #smash{display:block}body.pen #lst,body.pen #rst,body.pen #dash,body.pen #aoe,body.pen #spin{display:none}body.priest #spin{background:#ffd34a26;border-color:#ffd34a;color:#ffe28a}body.priest #aoe.out{border-color:#fff3c4;box-shadow:0 0 12px #f0c419aa}@media (orientation:portrait){#smash{left:14px;bottom:18px;width:110px;height:110px;font-size:17px}#pst{right:8vw}}
 #bring{display:none;position:fixed;right:calc(10vw + 128px);bottom:150px;width:62px;height:62px;border-radius:50%;padding:0;font:800 10px/1.1 system-ui;background:#f0c4191a;border:2px solid #f0c41966;color:#f0c41999;opacity:.45;transition:opacity .2s,box-shadow .2s}body.priest #bring{display:block}#recall{display:none;position:fixed;width:64px;height:30px;border-radius:15px;padding:0;font:800 11px/1 system-ui;background:#b05cff33;border:2px solid #d9a6ff;color:#f3e3ff;z-index:5;touch-action:none}body.time.recall #recall{display:block}body.priest #aoe.dim,#dash.dim{opacity:.45;pointer-events:none;transition:none}#bring.ready{opacity:1;background:#f0c41940;border-color:#fff3c4;color:#fff8e0;box-shadow:0 0 12px #f0c419aa}body.pen #bring,body.volc #bring{display:none}@media (orientation:portrait){#bring{right:calc(8vw + 44px);bottom:228px;width:52px;height:52px}}
 #help{position:fixed;left:50%;transform:translateX(-50%);bottom:6px;font-size:11px;color:#fff9;text-align:center;pointer-events:none}
 #fps{display:none;position:fixed;left:8px;bottom:6px;z-index:40;font:12px monospace;color:#fff;background:#000a;padding:2px 6px;border-radius:6px;pointer-events:none}
@@ -62,7 +62,7 @@ body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !
 <div id="lobbyUI"><div class="card" id="lcard"></div></div>
 <div id="note"></div>
 
-<div id="charP" class="pnl"><div class="hrow"><b>Character</b><button data-c="knight">Knight</button><button data-c="fire">Firebreather</button><button data-c="priest">Warpriest</button><button data-c="time">Time Traveler</button></div><div class="hrow" id="colRow"><b>Colour</b></div></div>
+<div id="charP" class="pnl"><div class="hrow"><b>Character</b><button data-c="knight">Knight</button><button data-c="fire">Firebreather</button><button data-c="priest">Warpriest</button><button data-c="time">Time Traveler</button><button data-c="ninja">Ninja</button></div><div class="hrow" id="colRow"><b>Colour</b></div></div>
 <div id="horde" class="pnl"><div class="hrow"><b>Horde</b><button data-r="off" class="on">Off</button><button data-r="few">A few</button><button data-r="dozens">Dozens</button><button data-r="hundreds">Hundreds</button><button data-r="max">Swarm</button><button data-r="thou">Thousands</button><button data-r="apoc">Apocalypse</button></div>
 <div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button><button data-n="50">+50</button></div><div class="hrow"><span>Test</span><button id="fillUlt">Fill ult</button><button id="clear">Clear all enemies</button></div></div>
 <div id="layEd"><b id="layTitle">Control layout</b><span id="layHint">Drag a button's middle to move it, its rim to resize it.</span><div class="lrow"><span id="layName">Move stick</span><input type="range" id="laySize" min="44" max="230" step="1"><span id="laySizeV" class="lnum"></span></div><span id="layWarn"></span><div class="lrow"><button id="layReset">Reset</button><button id="layDone" class="pri2">Done</button></div></div>
@@ -72,7 +72,7 @@ body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !
 <div id="setP" class="pnl"><div class="hrow"><b>Menu</b></div><div class="hrow"><a id="menuBtn" href="./">&#8962; Main Menu</a><button id="restartBtn" title="Back to the start screen (pick a character, host or join)">&#8635; Restart</button></div><div class="hrow"><button id="sound">Sound: on</button><button id="music">Music: on</button></div><div class="hrow"><button id="layBtn" title="Control layout">&#10021; Controls setup</button><button id="zones">Hit zones: off</button></div><div class="hrow"><button id="fpsBtn">FPS: off</button></div></div><div id="fps"></div>
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
 <div class="stick" id="rst"><div class="knob"></div><small>swing</small></div>
-<div id="vtap"></div><div id="hdtap">Drag across the field to draw the strafe</div><button id="spin"><i></i><span>SPIN</span></button>
+<div id="vtap"></div><div id="njtap">Drag the joints to aim the strike</div><div id="hdtap">Drag across the field to draw the strafe</div><button id="spin"><i></i><span>SPIN</span></button>
 <div class="stick" id="pst"><div class="knob"></div><small>flail</small></div><button id="smash"><i></i><span>SMASH</span></button>
 <div class="stick" id="bst"><div class="knob"></div><small>breath</small><i></i></div>
 <button id="bring">BRING IN</button><button id="recall">RECALL</button><div id="ttTest"><b>TEST</b><button data-tw="1">Saber</button><button data-tw="2">Shotgun</button><button data-tw="3">Alien</button><button data-tw="4">Saw gun</button></div>
@@ -184,11 +184,11 @@ function switchChar(kn, ch) {
   const keep = { i: kn.i, on: kn.on, col: kn.col, x: kn.x, y: kn.y, f: kn.f || 1, kills: kn.kills || 0, hits: kn.hits || 0, ultBase: kn.ultBase || 0, in: kn.in, chSeen: kn.chSeen, drT: kn.drT };
   for (const k of Object.keys(kn)) delete kn[k];
   Object.assign(kn, mkKnight(keep.i), keep, { T: { x: keep.x - HOME.x, y: keep.y - HOME.y }, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, dashSeen: keep.in.dashN || 0, leapSeen: keep.in.leapN || 0, ultSeen: keep.in.ultN || 0 });
-  const k0 = K; K = kn; if (ch === 'fire') makeFire(kn); else if (ch === 'priest') makePriest(kn); else if (ch === 'sword') makeSword(kn); else if (ch === 'time') makeTime(kn); K = k0;
+  const k0 = K; K = kn; if (ch === 'fire') makeFire(kn); else if (ch === 'priest') makePriest(kn); else if (ch === 'sword') makeSword(kn); else if (ch === 'time') makeTime(kn); else if (ch === 'ninja') makeNinja(kn); K = k0;
   for (let i = 0; i < 24; i++) { const a = rr(0, 6.28); sparks.push({ x: kn.x + rr(-3, 3), y: kn.y - rr(0, 14), vx: Math.cos(a) * rr(10, 40), vy: -rr(10, 50), t: 0, max: rr(0.4, 0.9) }); }
 }
 function setup() {
-  KN = []; for (let i = 0; i < NP; i++) KN.push(mkKnight(i)); K = KN[ME]; K.in.ch = CHAR; if (MYCOL) K.in.col = K.col = MYCOL; if (CHAR === 'fire') makeFire(K); else if (CHAR === 'priest') makePriest(K, true); else if (CHAR === 'sword') makeSword(K); else if (CHAR === 'time') makeTime(K); GOUGE = []; SAWS = []; TTFX = []; SKID = [];
+  KN = []; for (let i = 0; i < NP; i++) KN.push(mkKnight(i)); K = KN[ME]; K.in.ch = CHAR; if (MYCOL) K.in.col = K.col = MYCOL; if (CHAR === 'fire') makeFire(K); else if (CHAR === 'priest') makePriest(K, true); else if (CHAR === 'sword') makeSword(K); else if (CHAR === 'time') makeTime(K); else if (CHAR === 'ninja') makeNinja(K); GOUGE = []; SAWS = []; TTFX = []; SKID = [];
   // the host keeps empty seats empty after a reset
   if (NET && NET.mode === 'host') { const held = new Set(Object.values(NET.seats)); KN.forEach((kn, i) => { if (i && !held.has(i)) kn.on = 0; }); }
   walkers = []; HDEAD = []; WRECKS = []; parts = []; blood = []; splats = []; dust = []; sparks = []; camX = K.x; camY = K.y - 6;
@@ -281,7 +281,7 @@ function startDash(v) {
   const l = Math.hypot(v[0], v[1]) || 1, d = [v[0] / l, v[1] / l]; Object.assign(K, { dvx: d[0], dvy: d[1], slice: [], ab: 'dash', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: K.x + d[0] * DASH_D, ay1: cl(K.y + d[1] * DASH_D * 0.8, 16, H - 4), dashCd: DASH_CD + DT_PREP + DT_GO + DT_REC });
   if (Math.abs(d[0]) > 0.2) K.f = d[0] > 0 ? 1 : -1;
 }
-function leapTarget(kn, v) { if (kn.kind === 'priest') return slamTarget(kn, v); if (kn.kind === 'time') { const R = kn.wpn === 4 ? TT.TRAP.RANGE : kn.wpn === 1 ? TT.SHIP.RANGE : kn.wpn === 2 ? TT.HELI.LMAX + 16 : TT.HURL.RANGE, out = kn.wpn === 3 && kn.hu === 2, bx = out ? kn.hux : kn.x, by = out ? kn.huy : kn.y; return [bx + v[0] * R, cl(by + v[1] * R * 0.8, 16, H - 4)]; } const R = LEAP_R * (kn.ultPh >= 0 ? ULT_LEAP : 1); return [kn.x + v[0] * R, cl(kn.y + v[1] * R * 0.8, 16, H - 4)]; }
+function leapTarget(kn, v) { if (kn.kind === 'priest') return slamTarget(kn, v); if (kn.kind === 'ninja') { const l = Math.hypot(v[0], v[1]), d = l > 0.05 ? [v[0] / l, v[1] / l] : [kn.f || 1, 0]; return [kn.x + d[0] * NJ.LEAP.D, cl(kn.y + d[1] * NJ.LEAP.D * 0.8, 16, H - 4)]; } if (kn.kind === 'time') { const R = kn.wpn === 4 ? TT.TRAP.RANGE : kn.wpn === 1 ? TT.SHIP.RANGE : kn.wpn === 2 ? TT.HELI.LMAX + 16 : TT.HURL.RANGE, out = kn.wpn === 3 && kn.hu === 2, bx = out ? kn.hux : kn.x, by = out ? kn.huy : kn.y; return [bx + v[0] * R, cl(by + v[1] * R * 0.8, 16, H - 4)]; } const R = LEAP_R * (kn.ultPh >= 0 ? ULT_LEAP : 1); return [kn.x + v[0] * R, cl(kn.y + v[1] * R * 0.8, 16, H - 4)]; }
 function startLeap(v) {
   const tg = leapTarget(K, v), dx = tg[0] - K.x, dy = tg[1] - K.y, d = Math.hypot(dx, dy), back = Math.min(LAND_IN * (K.sz || 1), d * 0.6), lx = tg[0] - (d ? dx / d : 0) * back, ly = tg[1] - (d ? dy / d : 0) * back * 0.6;
   if (K.ultPh >= 0) { K.ultLeapt = 1; FX.push({ k: 'charge', i: K.i, t: 0, max: ULT_CR }); }
@@ -443,6 +443,15 @@ function drawDashPreview(c, t) {
 }
 function drawLeapPreview(c, t) {
   const kn = KN[ME]; if (!LEAPAIM || !kn || kn.st === 'kneel') return; if (kn.kind === 'time' && !(kn.wpS === 2 && (kn.wpn === 3 ? (kn.hu === -1 || kn.hu === 2) && !(kn.huCd > 0) : kn.wpn === 1 ? !(kn.sc >= 1) && !(kn.scCd > 0) : kn.wpn === 2 ? !(kn.hl >= 0) && !(kn.hlCd > 0) : kn.wpn === 4 && (kn.trQ ?? TT.TRAP.N) > 0))) return;
+  // the ninja's leap: always the same length; the landing circle he'll swirl in and the circle under the apex the shuriken go into
+  if (kn.kind === 'ninja') { if ((kn.nQ ?? NJ.LEAP.N) <= 0) return; const L = NJ.LEAP, [tx, ty] = leapTarget(kn, LEAPAIM), ax = (kn.x + tx) / 2, ay = (kn.y + ty) / 2, pul = 0.5 + 0.5 * Math.sin(t * 8); c.save();
+    c.strokeStyle = 'rgba(255,255,255,.16)'; c.lineWidth = 0.4; c.setLineDash([1.5, 1.5]); c.beginPath(); c.ellipse(kn.x, kn.y, L.D, L.D * 0.8, 0, 0, 7); c.stroke();
+    const circ = (x0, y0, R, rgb) => { const g = c.createRadialGradient(x0, y0, 0, x0, y0, R); g.addColorStop(0, `rgba(${rgb},${0.3 + 0.1 * pul})`); g.addColorStop(0.8, `rgba(${rgb},.15)`); g.addColorStop(1, `rgba(${rgb},0)`); c.save(); c.translate(x0, y0); c.scale(1, 0.8); c.setLineDash([]); c.fillStyle = g; c.beginPath(); c.arc(0, 0, R, 0, 7); c.fill(); c.strokeStyle = `rgba(${rgb},${0.7 + 0.3 * pul})`; c.lineWidth = 0.7; c.beginPath(); c.arc(0, 0, R, 0, 7); c.stroke(); c.restore(); };
+    circ(ax, ay, L.AR, '170,200,255'); circ(tx, ty, L.R, '255,220,120');
+    // little shuriken marks round the apex circle, turning
+    for (let i = 0; i < 4; i++) { const a = t * 2 + i * Math.PI / 2; njShuriken(c, ax + Math.cos(a) * L.AR * 0.55, ay + Math.sin(a) * L.AR * 0.44, t * 6, 0.55); }
+    c.strokeStyle = 'rgba(255,240,190,.85)'; c.lineWidth = 0.6; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 8; c.beginPath(); c.moveTo(kn.x, kn.y - 6); c.quadraticCurveTo(ax, ay - L.H * 2, tx, ty); c.stroke();
+    c.setLineDash([0.6, 1.4]); c.strokeStyle = 'rgba(200,220,255,.6)'; c.beginPath(); c.moveTo(ax, ay - L.H); c.lineTo(ax, ay); c.stroke(); c.restore(); return; }
   // a Warpriest with his flail out: the pull along the chain
   if (kn.kind === 'priest' && !(kn.hOut > 0 || kn.hRet >= 0) && (kn.ab || kn.slCd > 0 || kn.slWait)) return;
   if (kn.kind === 'priest' && kn.hOut > 0) { c.save(); c.strokeStyle = 'rgba(255,240,190,.85)'; c.lineWidth = 0.7; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 14; c.beginPath(); c.moveTo(kn.x, kn.y - 6); c.lineTo(kn.hx, kn.hy - 3); c.stroke(); c.restore(); return; }
@@ -1455,6 +1464,7 @@ function snd(k, wx, wy, big) {
     case 'fire': noise(t, 0.2, 0.2 * v, 'bandpass', 380 * j, 700 * j, 0.9, 0.04); for (let i = 0; i < 3; i++) noise(t + Math.random() * 0.12, 0.025, 0.07 * v, 'bandpass', 900 + Math.random() * 2400, 0, 4); break;
     case 'chain': for (let i = 0; i < 3; i++) tone('square', 1700 + Math.random() * 1600, 1100, t + i * 0.028 + Math.random() * 0.02, 0.001, 0.03, 0.018 * v); noise(t, 0.09, 0.06 * v, 'bandpass', 2600, 1500, 2); noise(t, 0.12, 0.08 * v, 'lowpass', 400, 200, 0.7); break;
     case 'censer': noise(t, 0.26, 0.3 * v, 'bandpass', 320 * j, 1500 * j, 1.2, 0.07); ring(t + 0.05, 1500 * j, 0.25, 0.025 * v); break;
+    case 'shur': noise(t, 0.07, 0.12 * v, 'bandpass', 3800 * j, 6500 * j, 2.5, 0.005); break;
     case 'cane': noise(t, 0.1, 0.24 * v, 'bandpass', 900 * j, 3200 * j, 1.4, 0.02); break;
     case 'saber': tone('sawtooth', 95 * j, 150 * j, t, 0.05, 0.35, 0.06 * v); tone('sine', 190 * j, 300 * j, t, 0.05, 0.3, 0.09 * v); noise(t, 0.25, 0.12 * v, 'bandpass', 700, 2400, 2, 0.05); break;
     case 'shot': tone('sine', 120, 35, t, 0.003, 0.35, 0.9 * v); noise(t, 0.4, 0.7 * v, 'lowpass', 3500, 300, 0.7); noise(t, 0.05, 0.4 * v, 'highpass', 3000, 2000, 0.7); break;
@@ -1484,6 +1494,12 @@ function sndWatch() {
       if (kn.wpS !== S.wp) { if (kn.wpS === 1 || kn.wpS === 3) snd('portal', kn.x, kn.y); S.wp = kn.wpS; }
       if (kn.bk === 1) snd('engine', kn.x, kn.y, cl(kn.bv / TT.BIKE.MAXV, 0, 1));
       if (kn.hits > S.hits) snd('ouch', kn.x, kn.y); S.hits = kn.hits; continue; }
+    if (kn.kind === 'ninja') { const S = kn.snd && kn.snd.nj ? kn.snd : (kn.snd = { nj: 1, cut: kn.cutN, on: kn.cut >= 0, l: kn.nlN, w: kn.nw >= 0, p: kn.nPh, sh: NJSH.length, gh: NJGH.length }); if (kn.st !== 'kneel' && !S.lit) { S.lit = 1; snd('pull', kn.x, kn.y); musGo(); }
+      const on = kn.cut >= 0; if (on && (!S.on || (kn.cutN || 0) !== S.cut)) snd('swing', kn.x, kn.y); S.on = on; S.cut = kn.cutN || 0;
+      if ((kn.nlN || 0) !== S.l) { S.l = kn.nlN || 0; snd('jump', kn.x, kn.y); } if (kn.nl >= 0 && Math.random() < 0.35) snd('shur', kn.x, kn.y);
+      const w = kn.nw >= 0; if (w && !S.w) snd('spin', kn.x, kn.y); S.w = w;
+      if (kn.nPh !== S.p) { if (kn.nPh === 1) snd('ult', kn.x, kn.y); if (kn.nPh === 2) snd('dash', kn.x, kn.y); S.p = kn.nPh; } if (kn.nPh === 2 && Math.random() < 0.5) snd('cane', kn.x + rr(-40, 40), kn.y);
+      if (kn.hits > (S.hits ?? kn.hits)) snd('ouch', kn.x, kn.y); S.hits = kn.hits; continue; }
     if (kn.kind === 'sword') { const S = kn.snd && kn.snd.sm ? kn.snd : (kn.snd = { sm: 1, cut: kn.cutN, on: kn.cut >= 0 }); if (kn.st !== 'kneel' && !S.lit) { S.lit = 1; snd('pull', kn.x, kn.y); musGo(); } const on = kn.cut >= 0; if (on && (!S.on || (kn.cutN || 0) !== S.cut)) snd('swing', kn.x, kn.y); S.on = on; S.cut = kn.cutN || 0; if (kn.hits > (S.hits ?? kn.hits)) snd('ouch', kn.x, kn.y); S.hits = kn.hits; continue; }
     if (kn.kind === 'priest') { const S = kn.snd && kn.snd.wp ? kn.snd : (kn.snd = { wp: 1, hits: kn.hits, cen: kn.cenN, ab: kn.abId, pp: kn.pPh });
       if (kn.st === 'pull' && !S.lit) { S.lit = 1; snd('pull', kn.x, kn.y); musGo(); }
@@ -2977,6 +2993,300 @@ function drawSword(c, t) {
   if (window.__labelArms && K.smTags) for (const [m, txt, col] of K.smTags) { c.save(); c.translate(m[0], m[1]); c.fillStyle = col; c.strokeStyle = '#fff'; c.lineWidth = 0.18; c.beginPath(); c.arc(0, 0, 0.62, 0, 7); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.font = '700 0.85px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 0, 0.05); c.restore(); }
   c.restore();
 }
+// ======================= Ninja (kind 'ninja') =======================
+// Built on the Knight's rig and view: three-quarter toward the camera, facing f; A = the free hand on his facing-side shoulder (throws
+// the shuriken), B = the ninjato hand nearest the camera, drawn last. Wide, low squat when idle; the fastest runner of them all.
+// Leap (leap circle / Q): always the same length; flips through the air throwing a stream of shuriken into a circle under the apex,
+// lands with a full circle of the ninjato. 3 charges. Ult (R): the whole game in slow motion for 2s while he lays out a three-segment
+// strip; then afterimages dash down through it.
+const NJ = { RUN: 1.3, ATK: 0.8, T: [0.3, 0.3, 0.4], DMG: 70, KB: 22, LEN: 9.6, FAST: 6, GAP: 0.25,
+  LEAP: { D: 130, T: 0.95, H: 34, R: 22, AR: 26, DMG: 220, KB: 120, TICK: 0.1, SDMG: 32, N: 3, CD: 5, SW: 0.42, CHAIN: 0.4 },
+  ULT: { PLAN: 2, SLOW: 0.3, SEG: 72, HW: 11, JR: 17, HITS: 30, DASH: 5, HDMG: 120, SWR: 2, SWRR: 14, SWDMG: 55, STRIKE: 1.6, END: 0.45, GZ: 22 } };
+// action keys (chest-relative, facing right, y down): [u, crouch, lean, twist, A hand x, y, B hand x, y, B blade angle, step]
+const NJG = [0, 1.6, 0.2, 0.15, 2.5, 0.7, 0.5, 2.5, 2.75, 0];
+const NJRUN = [0, 0.75, 0.5, 0.1, -1.2, 2.2, -1.4, 2.4, 2.95, 0];
+const NJCUTS = [
+  // 1: rising diagonal from low behind to high in front
+  [NJG, [0.25, 1.4, 0.3, 0.6, 1.4, 1.8, -1.0, 3.0, 2.5, 0.3], [0.5, 0.9, -0.1, -0.6, 0.8, 1.0, 2.6, -2.2, -1.0, 1.2], [0.7, 0.8, -0.15, -0.7, 0.6, 1.2, 2.0, -2.8, -1.6, 1.3], [1, ...NJG.slice(1)]],
+  // 2: flat cut across his front
+  [NJG, [0.25, 1.0, -0.1, -0.8, 1.6, 2.2, -1.0, -0.6, -2.7, 0.3], [0.5, 1.3, 0.35, 0.8, 0.8, 2.4, 3.2, 0.4, 0.15, 1.4], [0.7, 1.4, 0.4, 0.9, 0.6, 2.6, 2.0, 2.6, 1.9, 1.4], [1, ...NJG.slice(1)]],
+  // 3: overhead, driven down in front of him
+  [NJG, [0.28, 0.6, -0.25, 0.1, 1.0, 0.6, 0.2, -3.4, -1.9, 0.4], [0.55, 1.9, 0.6, 0.3, 1.6, 2.6, 2.8, 2.4, 1.1, 1.6], [0.75, 2.0, 0.65, 0.35, 1.4, 2.8, 2.2, 3.2, 1.6, 1.6], [1, ...NJG.slice(1)]],
+];
+const njLeapU = kn => kn.nl >= 0 ? cl(kn.nl / NJ.LEAP.T, 0, 1) : -1;
+// flips: two forward flips across the flight, eased in and out, so he leaves and lands upright
+const njFlip = kn => { const u = njLeapU(kn); if (u < 0) return 0; const q = cl((u - 0.1) / 0.72, 0, 1); return (kn.f || 1) * Math.PI * 4 * (q * q * (3 - 2 * q)); };
+function njPose(kn, t) {
+  const f = kn.f || 1, mv = cl((kn.spd || 0) / 10, 0, 1), run = cl((kn.spd || 0) / (RUN * NJ.RUN), 0, 1), gp = kn.gp || 0, br = Math.sin(t * 2.4);
+  let A = NJG.map((v, j) => j === 5 || j === 7 ? v + br * 0.1 : j === 1 ? v + br * 0.06 : v);
+  const cutting = kn.cut >= 0, v = (kn.cutN || 0) % 3, ul = njLeapU(kn), sw = kn.nw >= 0 ? cl(kn.nw / NJ.LEAP.SW, 0, 1) : -1, ultP = kn.nPh >= 1;
+  if (!cutting) A = A.map((x, j) => j ? lerp(x, NJRUN[j], run) : 0); else A = kfnS(cl(kn.cut / NJ.T[v], 0, 1), NJCUTS[v]);
+  let [, cr, lean, tw, ax, ay, bx, by, ba, stepA] = A;
+  if (cutting && kn.cutTl) { const u = kn.cut / NJ.T[v], w = (u < 0.35 ? sm(u / 0.35) : u < 0.7 ? 1 : 1 - sm((u - 0.7) / 0.3)) * kn.cutTl, r = rot([bx, by + 0.6], w); bx = r[0]; by = r[1] - 0.6; ba += w; lean += w * 0.4; }
+  // the landing circle: the blade rides round him once, pointing out, low and wide
+  if (sw >= 0) { const ph = (f > 0 ? 0 : Math.PI) + f * Math.PI * 2 * sm(sw), k = Math.sin(Math.PI * Math.min(1, sw * 1.15)); bx = lerp(bx, Math.cos(ph) * 3.2 * f, k); by = lerp(by, 1.6 + Math.sin(ph) * 1.3, k); ba = lerp(ba, f > 0 ? ph : Math.PI - ph, k); cr = lerp(cr, 2.0, k); ax = lerp(ax, -1.6, k); ay = lerp(ay, 1.4, k); tw += f * Math.sin(ph) * 0.4 * k; }
+  // the ult: crouched low, a hand sign held at his chest, the blade down along his side
+  if (ultP) { const k = kn.nPh === 1 ? 1 : cl(1 - (kn.nT || 0) / NJ.ULT.STRIKE, 0, 1); cr = lerp(cr, 2.2, k); ax = lerp(ax, 0.6, k); ay = lerp(ay, 0.4, k); bx = lerp(bx, 0.1, k); by = lerp(by, 0.9, k); ba = lerp(ba, 1.7, k); lean = lerp(lean, 0.1, k); tw = lerp(tw, 0, k); }
+  // in the air: tucked for the flips; the free hand flicks out with each throw
+  let tuck = 0; if (ul >= 0) { tuck = Math.sin(Math.PI * cl((ul - 0.03) / 0.9, 0, 1)); const fl = Math.abs(Math.sin((kn.nl || 0) / NJ.LEAP.TICK * Math.PI)); ax = lerp(ax, 3.0, 0.5 + 0.5 * fl); ay = lerp(ay, 0.4, 0.5 + 0.5 * fl); bx = lerp(bx, -1.2, tuck); by = lerp(by, 1.6, tuck); ba = lerp(ba, 2.9, tuck); cr = lerp(cr, 0.2, tuck); }
+  // ---- legs: a wide squat, knees out; the Knight's gait when running ----
+  const front = f > 0 ? 1 : 0, stride = lerp(2.2, 4.0, run), wide = 2.5 * (1 - mv * 0.7);
+  const loco = [0, 1].map(i => { const ph = gp + i * Math.PI; return [(i ? 0.9 : -0.9) + f * Math.sin(ph) * stride * mv, -Math.max(0, Math.cos(ph)) * lerp(1.0, 2.0, run) * mv]; });
+  const stance = [0, 1].map(i => { const fr = i === front; return [fr ? f * (wide + stepA * 0.9) : -f * wide, 0]; });
+  let feet = [0, 1].map(i => L2(stance[i], loco[i], mv));
+  const bob = mv * (Math.abs(Math.cos(gp)) * 0.55 - 0.3), pel = [f * (stepA * 0.5 * (1 - mv) + run * 0.4), -6.0 + cr * 1.15 + bob];
+  if (tuck > 0) feet = feet.map((p, i) => L2(p, [pel[0] + (i ? 0.9 : -0.9), pel[1] + 2.2], tuck));
+  lean += run * 0.3 * (cutting ? 0.4 : 1); tw += Math.sin(gp) * 0.25 * mv;
+  const L = f * lean, C = add(add(pel, rot([0, -4.1], L)), [f * tw * 0.55, 0]);
+  const w = 1.75 * (1 - 0.22 * tw), sd = [Math.cos(L * 0.8), Math.sin(L * 0.8)];
+  const sh = [[C[0] - sd[0] * w, C[1] - sd[1] * w + f * tw * 0.18], [C[0] + sd[0] * w, C[1] + sd[1] * w - f * tw * 0.18]];
+  const head = add(C, rot([f * (0.4 + Math.max(0, tw) * 0.2), -2.15], L * 0.55));
+  const hand = (hx, hy) => add(C, rot([f * hx, hy], L * 0.6)), ang = a => f > 0 ? a + L * 0.5 : Math.PI - a + L * 0.5;
+  const hips = [[pel[0] - 1.0, pel[1]], [pel[0] + 1.0, pel[1]]];
+  // knees out to their own side in the squat, forward when running
+  const knees = hips.map((h, i) => { const k1 = ik(h, feet[i], 3.0, 3.0, 1), k2 = ik(h, feet[i], 3.0, 3.0, -1), fw = f > 0 ? k2 : k1, side = feet[i][0] - pel[0] || (i ? 1 : -1), out = (k1[0] - pel[0]) * Math.sign(side) > (k2[0] - pel[0]) * Math.sign(side) ? k1 : k2; return L2(out, fw, cl(mv * 1.6 + tuck, 0, 1)); });
+  return { f, pel, hips, feet, knees, C, sh, head, lean, tw, cr, hA: hand(ax, ay), hB: hand(bx, by), aB: ang(ba), run, tuck };
+}
+function makeNinja(kn) { Object.assign(kn, { kind: 'ninja', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, kn: 0, hold: 1, cut: -1, cutN: 0, cutA: 0, cutTl: 0, cutE: -9, njP: null, nl: -1, nw: -1, nQ: NJ.LEAP.N, nCd: 0, nlN: 0, nlk: 0, nx0: 0, ny0: 0, nx1: 0, ny1: 0, nPh: -1, nT: 0, nUN: 0, nSd: 1, njJ: null, nSp0: 1, nqL: null, nqU: 0, dashSeen: kn.in.dashN || 0, leapSeen: kn.in.leapN || 0, ultSeen: kn.in.ultN || 0, lvSeen: kn.in.lvN || 0 }); }
+const njWorld = (kn, v) => [kn.x + v[0] * KS, kn.y - (kn.z || 0) + v[1] * KS];
+function njSweep(t) { const P = njPose(K, t), d = [Math.cos(P.aB), Math.sin(P.aB)], h = P.hB, seg = [njWorld(K, [h[0] + d[0] * 0.8, h[1] + d[1] * 0.8]), njWorld(K, [h[0] + d[0] * (NJ.LEN + 0.4), h[1] + d[1] * (NJ.LEN + 0.4)])], id = K.i * 1e6 + (K.cutN || 0), pv = K.njBp, prev = pv && pv.id === id ? pv.s : null, dt = Math.max(1e-3, t - ((pv && pv.t) ?? t)), ad = [Math.cos(K.cutA), Math.sin(K.cutA)]; K.njBp = { id, s: seg, t };
+  if (!prev || !AUTH()) return; const la = Math.hypot(seg[1][0] - seg[0][0], seg[1][1] - seg[0][1]) || 1; if (Math.hypot(seg[1][0] - prev[1][0], seg[1][1] - prev[1][1]) / dt < NJ.FAST * la) return;
+  if (!K.swZ || K.swZ.id !== 'nj' + id) K.swZ = { id: 'nj' + id, q: [] }; K.swZ.q.push([prev[0], prev[1], seg[1], seg[0]]);
+  for (const wk of walkers) { if (wk.hp <= 0 || wk.njC === id) continue; const U = UK[wk.k], hh = 9 * U.sc; let hit = false;
+    for (const j of [0.15, 0.5, 0.85]) { const p = [wk.x, wk.y - hh * j]; if (inTri(p, prev[0], prev[1], seg[1]) || inTri(p, prev[0], seg[1], seg[0]) || ptSeg(p, seg[0], seg[1]) < U.r * 0.9) { hit = true; break; } }
+    if (!hit) continue; wk.njC = id; wk.atk = -1; wk.kx += ad[0] * NJ.KB; wk.ky += ad[1] * NJ.KB * 0.55; hurt(wk, NJ.DMG, ww => cleaveFx(ww, ww.x >= K.x ? 1 : -1)); } }
+// ---- the ult strip: P0 is the ninja, then three joints; each segment is a band of half-width HW plus a big circle at its far joint ----
+const njGP = (p, q) => Math.hypot(p[0] - q[0], (p[1] - q[1]) * 1.25);
+function njDefJ(kn) { const f = kn.f || 1, S = NJ.ULT.SEG; return [kn.x + f * S, kn.y, kn.x + f * S * 2, kn.y, kn.x + f * S * 3, kn.y]; }
+// drag joint j (1-3) toward T: the chain stays joined, each segment keeps its length and the first stays fixed to him (FABRIK, ground space)
+function njDrag(kn, J, j, T) { const S = NJ.ULT.SEG, P = [[kn.x, kn.y * 1.25], [J[0], J[1] * 1.25], [J[2], J[3] * 1.25], [J[4], J[5] * 1.25]], tg = [T[0], cl(T[1], 16, H - 4) * 1.25];
+  const toward = (a, b) => { const dx = a[0] - b[0], dy = a[1] - b[1], d = Math.hypot(dx, dy) || 1; return [b[0] + dx / d * S, b[1] + dy / d * S]; };
+  for (let it = 0; it < 6; it++) { P[j] = tg.slice(); for (let i = j - 1; i >= 1; i--) P[i] = toward(P[i], P[i + 1]); for (let i = 1; i <= j; i++) P[i] = toward(P[i], P[i - 1]); }
+  for (let i = j + 1; i <= 3; i++) P[i] = toward(P[i], P[i - 1]);
+  return [P[1][0], P[1][1] / 1.25, P[2][0], P[2][1] / 1.25, P[3][0], P[3][1] / 1.25].map(v => Math.round(v * 10) / 10); }
+const njPts = (kn, J) => [[kn.x, kn.y], [J[0], J[1]], [J[2], J[3]], [J[4], J[5]]];
+// inside segment s (0-2): within HW of the band, or inside the big circle at its far joint
+function njInSeg(P, s, w) { const r = UK[w.k].r, a = [P[s][0], P[s][1] * 1.25], b = [P[s + 1][0], P[s + 1][1] * 1.25], p = [w.x, w.y * 1.25]; return ptSeg(p, a, b) < NJ.ULT.HW + r || Math.hypot(p[0] - b[0], p[1] - b[1]) < NJ.ULT.JR + r; }
+const njRnd = (sd, a, b) => { const x = Math.sin(sd * 12.9898 + a * 78.233 + b * 37.719) * 43758.5453; return x - Math.floor(x); };
+// the strike, worked out the same on every screen from the joints and the seed: per segment 30 dashing strikes by 5 afterimages, and 2 swirlers
+function njEvents(kn) { const U = NJ.ULT, P = kn.njPts, ev = [];
+  for (let s = 0; s < 3; s++) { const A = P[s], B = P[s + 1], dx = B[0] - A[0], dy = (B[1] - A[1]) * 1.25, L = Math.hypot(dx, dy) || 1, n = [-dy / L, dx / L], at = (u, o) => [A[0] + (B[0] - A[0]) * u + n[0] * o, A[1] + (B[1] - A[1]) * u + n[1] * o / 1.25];
+    for (let i = 0; i < U.HITS; i++) { const ts = 0.06 + i * 0.044 + s * 0.013, p = at(0.08 + 0.92 * njRnd(kn.nSd, s, i), (njRnd(kn.nSd, s + 7, i) - 0.5) * U.HW * 1.6); ev.push({ k: 'd', s, i, d: i % U.DASH, t: ts, x: p[0], y: p[1] }); }
+    for (let j = 0; j < U.SWR; j++) for (let c = 0; ; c++) { const ts = 0.05 + j * 0.21 + c * 0.42; if (ts > U.STRIKE - 0.3) break; const p = at(njRnd(kn.nSd, s + 20, j * 10 + c), (njRnd(kn.nSd, s + 30, j * 10 + c) - 0.5) * U.HW * 2.8); ev.push({ k: 's', s, j, c, t: ts, x: p[0], y: p[1] }); } }
+  return ev.sort((a, b) => a.t - b.t); }
+const NJGH = [], NJSH = [];
+function njEvent(kn, e) { const U = NJ.ULT, P = kn.njPts;
+  if (e.k === 'd') { // pick the enemy: round-robin over everyone inside this segment (by id), so the 30 hits are shared among them
+    const inS = walkers.filter(w => w.hp > 0 && njInSeg(P, e.s, w)).sort((a, b) => a.id - b.id), tg = inS.length ? inS[e.i % inS.length] : null;
+    const g = { kn, k: 'd', t: 0, x0: e.x, y0: e.y, z0: U.GZ, tx: tg ? tg.x : e.x, ty: tg ? tg.y : e.y, tid: tg ? tg.id : -1, f: tg ? (tg.x >= e.x ? 1 : -1) : (kn.f || 1), hit: 0 }; NJGH.push(g); if (NJGH.length > 120) NJGH.shift(); }
+  else { NJGH.push({ kn, k: 's', t: 0, x0: e.x, y0: e.y, z0: 0, tx: e.x, ty: e.y, f: njRnd(kn.nSd, e.j, e.c) > 0.5 ? 1 : -1, hit: 0 }); } }
+// each frame: the ghosts dash, strike and fade; the host deals their damage at the moment of the strike
+function njGhostStep(dt) { for (let i = NJGH.length - 1; i >= 0; i--) { const g = NJGH[i]; g.t += dt;
+    if (g.k === 'd') { if (g.tid >= 0 && g.t < 0.12) { const w = walkers.find(q => q.id === g.tid); if (w) { g.tx = w.x; g.ty = w.y; } }
+      if (!g.hit && g.t >= 0.12) { g.hit = 1; for (let n = 0; n < 5; n++) sparks.push({ x: g.tx + rr(-2, 2), y: g.ty - rr(3, 8), vx: rr(-30, 30), vy: -rr(10, 40), t: 0, max: rr(0.15, 0.3) });
+        if (AUTH() && g.tid >= 0) { const w = walkers.find(q => q.id === g.tid && q.hp > 0); if (w) { const k0 = K; K = g.kn; w.atk = -1; w.kx += g.f * 8; hurt(w, NJ.ULT.HDMG, ww => cleaveFx(ww, g.f)); K = k0; } } } }
+    else if (!g.hit && g.t >= 0.2) { g.hit = 1; if (AUTH()) { const k0 = K; K = g.kn; for (const w of walkers) { if (w.hp <= 0) continue; const d = Math.hypot(w.x - g.x0, (w.y - g.y0) * 1.25); if (d < NJ.ULT.SWRR + UK[w.k].r) { const a = Math.atan2(w.y - g.y0, w.x - g.x0); w.kx += Math.cos(a) * 30; w.ky += Math.sin(a) * 30; hurt(w, NJ.ULT.SWDMG, ww => cleaveFx(ww, ww.x >= g.x0 ? 1 : -1)); } } K = k0; } }
+    if (g.t > (g.k === 'd' ? 0.42 : 0.42)) NJGH.splice(i, 1); }
+  for (let i = NJSH.length - 1; i >= 0; i--) { const s = NJSH[i]; s.t += dt; if (s.t >= s.max) { for (let n = 0; n < 2; n++) sparks.push({ x: s.tx, y: s.ty - 1, vx: rr(-20, 20), vy: -rr(5, 25), t: 0, max: 0.18 }); NJSH.splice(i, 1); } } }
+function njStartLeap(v) { const l = Math.hypot(v[0], v[1]), d = l > 0.05 ? [v[0] / l, v[1] / l] : [K.f || 1, 0], L = NJ.LEAP;
+  Object.assign(K, { nl: 0, nw: -1, cut: -1, nx0: K.x, ny0: K.y, nx1: K.x + d[0] * L.D, ny1: cl(K.y + d[1] * L.D * 0.8, 16, H - 4), nlN: (K.nlN || 0) + 1, nlk: 0, nQ: K.nQ - 1 }); if (!(K.nCd > 0)) K.nCd = L.CD; if (Math.abs(d[0]) > 0.15) K.f = d[0] > 0 ? 1 : -1; }
+function njStartUlt() { const U = NJ.ULT; Object.assign(K, { nPh: 1, nT: 0, nUN: (K.nUN || 0) + 1, cut: -1, vx: 0, vy: 0, nqU: 0 }); K.njJ = njDefJ(K);
+  if (K.i === ME) { K.in.nj = K.njJ.slice(); K.in.njN = K.nUN; markIn(); }
+  if (AUTH()) { K.nSp0 = speed; speed = U.SLOW; slowLabel(); } }
+function ninjaStep(dt, t) {
+  if (K.kind !== 'ninja') makeNinja(K);
+  const IN = K.in, mvL = Math.hypot(IN.mv[0], IN.mv[1]), mine = AUTH() || K.i === ME, L = NJ.LEAP, U = NJ.ULT;
+  const leapP = (IN.leapN || 0) !== (K.leapSeen || 0); K.leapSeen = IN.leapN || 0; const ultP = (IN.ultN || 0) !== (K.ultSeen || 0); K.ultSeen = IN.ultN || 0; K.dashSeen = IN.dashN || 0; K.lvSeen = IN.lvN || 0;
+  // charges come back one at a time
+  if (K.nQ < L.N) { K.nCd -= dt; if (K.nCd <= 0) { K.nQ++; K.nCd = K.nQ < L.N ? L.CD : 0; } } else K.nCd = 0;
+  if (K.st === 'kneel') { K.vx = K.vy = 0; K.spd = 0; if (mine && (mvL > 0.2 || IN.aim || leapP)) { K.st = 'pull'; K.u = 0; } return; }
+  if (K.st === 'pull') { K.u += dt; if (K.u >= 0.25) K.st = 'fight'; }
+  // presses buffer, so moves chain: a leap pressed mid-flight goes as soon as he lands; the ult waits for a landing too
+  if (mine && leapP) K.nqL = { v: IN.leapT ? IN.leapT.slice() : [K.f || 1, 0], t: t + (K.nl >= 0 ? NJ.LEAP.T - K.nl : 0) };
+  if (mine && ultP && ultReady(K)) K.nqU = t + (K.nl >= 0 ? NJ.LEAP.T - K.nl : 0);
+  if (K.nqL && t - K.nqL.t > 0.6) K.nqL = null; if (K.nqU && t - K.nqU > 0.6) K.nqU = 0;
+  const free = !(K.nl >= 0) && !(K.nPh >= 1) && (!(K.nw >= 0) || K.nw >= L.SW * L.CHAIN);
+  if (K.nqU && free && ultReady(K) && K.st === 'fight') { K.nw = -1; njStartUlt(); }
+  else if (K.nqL && free && K.nQ > 0 && K.st === 'fight') { const v = K.nqL.v; K.nqL = null; njStartLeap(v); }
+  // ---- the ult ----
+  if (K.nPh === 1) { K.nT += dt / Math.max(0.05, speed); K.vx = K.vy = 0; K.spd = lerp(K.spd || 0, 0, Math.min(1, dt * 12));
+    if (K.i === ME) K.njJ = IN.nj && IN.njN === K.nUN ? IN.nj : K.njJ; else if (AUTH() && IN.nj && IN.njN === K.nUN) K.njJ = IN.nj.slice();
+    if (K.nT >= U.PLAN && AUTH()) { if (speed === U.SLOW) { speed = K.nSp0 === U.SLOW ? U.SLOW : 1; slowLabel(); } Object.assign(K, { nPh: 2, nT: 0, nSd: 1 + Math.floor(Math.random() * 9999), njF: (K.njJ || njDefJ(K)).slice() }); } }
+  else if (K.nPh === 2) { K.nT += dt; K.vx = K.vy = 0; K.spd = lerp(K.spd || 0, 0, Math.min(1, dt * 12));
+    if (K.nEvSd !== K.nSd + ':' + (K.njF || []).join()) { K.njPts = njPts(K, K.njF || njDefJ(K)); K.nEv = njEvents(K); K.nEvI = 0; K.nEvSd = K.nSd + ':' + (K.njF || []).join(); }
+    while (K.nEvI < K.nEv.length && K.nEv[K.nEvI].t <= K.nT) njEvent(K, K.nEv[K.nEvI++]);
+    if (K.nT >= U.STRIKE + U.END && AUTH()) { K.nPh = -1; K.ultBase = K.kills; } }
+  // ---- the leap: always the same length, an arc with two flips; shuriken into the apex circle every TICK ----
+  if (K.nl >= 0) { K.nl += dt; const u = cl(K.nl / L.T, 0, 1); K.x = lerp(K.nx0, K.nx1, u); K.y = lerp(K.ny0, K.ny1, u); K.z = 4 * L.H * u * (1 - u); K.vx = (K.nx1 - K.nx0) / L.T; K.vy = (K.ny1 - K.ny0) / L.T;
+    const ax = (K.nx0 + K.nx1) / 2, ay = (K.ny0 + K.ny1) / 2, k = Math.floor(K.nl / L.TICK);
+    while ((K.nlk || 0) < k && K.nlk * L.TICK < L.T) { K.nlk++;
+      for (let n = 0; n < 2; n++) { const a = rr(0, 6.28), r = Math.sqrt(Math.random()) * L.AR; NJSH.push({ x: K.x, y: K.y, z: (K.z || 0) + 6, tx: ax + Math.cos(a) * r, ty: ay + Math.sin(a) * r * 0.8, t: 0, max: 0.12 + Math.random() * 0.04, sp: rr(20, 30) }); }
+      if (AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; if (Math.hypot(w.x - ax, (w.y - ay) * 1.25) < L.AR + UK[w.k].r) { w.hit = 0.1; hurt(w, L.SDMG, ww => cleaveFx(ww, ww.x >= ax ? 1 : -1)); } } }
+    if (K.nl >= L.T) { Object.assign(K, { nl: -1, z: 0, x: K.nx1, y: K.ny1, nw: 0, vx: K.vx * 0.15, vy: K.vy * 0.15 });
+      FX.push({ k: 'njsw', x: K.x, y: K.y, f: K.f || 1, t: 0, max: 0.5 }); for (let n = 0; n < 10; n++) dust.push({ x: K.x + rr(-6, 6), y: K.y + rr(-2, 2), vx: rr(-25, 25), vy: rr(-6, 6), r: rr(0.8, 1.5), t: 0, max: 0.5 });
+      if (AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; const d = Math.hypot(w.x - K.x, (w.y - K.y) * 1.25); if (d < L.R + UK[w.k].r) { const a = Math.atan2(w.y - K.y, w.x - K.x); w.atk = -1; w.kx += Math.cos(a) * L.KB; w.ky += Math.sin(a) * L.KB * 0.6; hurt(w, L.DMG, ww => cleaveFx(ww, ww.x >= K.x ? 1 : -1)); } } }
+    K.spd = lerp(K.spd || 0, 0, Math.min(1, dt * 6)); return; }
+  if (K.nw >= 0) { K.nw += dt; if (K.nw >= L.SW) K.nw = -1; }
+  if (K.nPh >= 1) return;
+  // the combo: cut after cut while the stick is held (also out of the landing circle once it's mostly done)
+  if (!(K.cut >= 0) && IN.aim && K.st === 'fight' && !(K.nw >= 0 && K.nw < L.SW * 0.55)) { const a = Math.atan2(IN.aim[1], IN.aim[0]); if (t - (K.cutE || -9) > NJ.GAP) K.cutN = (K.cutN || 0) + (3 - (K.cutN || 0) % 3) % 3; K.cut = 0; K.cutA = a; K.nw = -1;
+    if (Math.abs(Math.cos(a)) > 0.2) K.f = Math.cos(a) >= 0 ? 1 : -1; K.cutTl = cl(Math.atan2(Math.sin(a), Math.abs(Math.cos(a))), -1.2, 1.2) * 0.85; }
+  if (K.cut >= 0) { K.cut += dt; njSweep(t); const v = (K.cutN || 0) % 3; if (K.cut >= NJ.T[v]) { K.cut = -1; K.cutE = t; K.cutN = (K.cutN || 0) + 1; } }
+  const v2 = RUN * NJ.RUN * (K.cut >= 0 ? NJ.ATK : 1) * (K.nw >= 0 ? 0.35 : 1);
+  if (mvL > 0.12) { const k = Math.min(1, mvL), e = 1 - Math.exp(-dt * 14); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e); } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
+  const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy);
+  K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.45;
+  if (!(K.cut >= 0) && mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1;
+  if (K.st !== 'pull') K.st = 'fight';
+}
+// ---- art (Knight-rig units, scaled by KS) ----
+const NJC = { GI: '#2a3040', GIL: '#46506a', GID: '#181b24', WRAP: '#8f897e', WRAPD: '#615c55', SKIN: '#e2b48c', SKIND: '#b8865f', TABI: '#1b1d25', STEEL: '#e3e8ee', STEELD: '#8d97a2', GRIP: '#151515' };
+// leg: thigh in the gi, then the wrapped shin running straight on into the split-toed tabi as one shape (one fill, one outline)
+function njLeg(c, hip, knee, foot, f, far) { const C = NJC, dk = far ? -0.16 : 0; c.lineCap = 'round'; c.lineJoin = 'round';
+  c.strokeStyle = shade(C.GID, dk); c.lineWidth = 2.3; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke(); c.strokeStyle = shade(C.GI, dk); c.lineWidth = 1.9; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke();
+  const ank = [foot[0], foot[1] - 0.5], ux0 = ank[0] - knee[0], uy0 = ank[1] - knee[1], ul = Math.hypot(ux0, uy0) || 1; let nx = -uy0 / ul, ny = ux0 / ul; if (nx * f < 0) { nx = -nx; ny = -ny; }
+  const g = foot[1] + 0.3, X = v => foot[0] + f * v, kb = [knee[0] - nx * 0.8, knee[1] - ny * 0.8], kf = [knee[0] + nx * 0.8, knee[1] + ny * 0.8], ab = [ank[0] - nx * 0.68, ank[1] - ny * 0.68], af = [ank[0] + nx * 0.62, ank[1] + ny * 0.62];
+  const shape = () => { c.beginPath(); c.moveTo(...kb); c.lineTo(...ab); c.quadraticCurveTo(X(-0.78), g - 0.1, X(-0.45), g); c.lineTo(X(0.9), g); c.quadraticCurveTo(X(1.32), g, X(1.28), g - 0.38); c.quadraticCurveTo(X(1.15), ank[1] + 0.25, ...af); c.lineTo(...kf); c.closePath(); };
+  c.strokeStyle = shade(C.GID, dk - 0.2); c.lineWidth = 0.38; shape(); c.stroke(); c.fillStyle = shade(C.WRAP, dk); c.fill();
+  c.save(); shape(); c.clip();
+  // wrap bands across the shin
+  c.strokeStyle = shade(C.WRAPD, dk); c.lineWidth = 0.16; for (let q = 0.18; q < 0.95; q += 0.17) { const p = L2(knee, ank, q); c.beginPath(); c.moveTo(p[0] - nx * 1.2 - ny * 0.25, p[1] - ny * 1.2 + nx * 0.25); c.lineTo(p[0] + nx * 1.2 + ny * 0.25, p[1] + ny * 1.2 - nx * 0.25); c.stroke(); }
+  // the tabi below the ankle
+  c.fillStyle = shade(C.TABI, dk); c.beginPath(); c.moveTo(ab[0] - nx * 2, ab[1] - ny * 2 - 0.1); c.lineTo(af[0] + nx * 2, af[1] + ny * 2 - 0.1); c.lineTo(X(3), g + 2); c.lineTo(X(-3), g + 2); c.closePath(); c.fill();
+  c.restore();
+  c.strokeStyle = shade(C.GIL, dk); c.lineWidth = 0.14; c.beginPath(); c.moveTo(X(0.95), ank[1] + 0.2); c.lineTo(X(1.0), g - 0.05); c.stroke();
+  c.fillStyle = shade(C.GI, dk); c.beginPath(); c.arc(knee[0], knee[1], 0.95, 0, 7); c.fill(); }
+function njArm(c, s, h, f, far, free) { const C = NJC, e1 = ik(s, h, 2.5, 2.5, 1), e2 = ik(s, h, 2.5, 2.5, -1), el = e1[1] >= e2[1] ? e1 : e2, dk = far ? -0.16 : 0, wr = L2(el, h, 0.85); c.lineCap = 'round'; c.lineJoin = 'round';
+  c.strokeStyle = shade(C.GID, dk); c.lineWidth = 1.5; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.lineTo(...wr); c.stroke();
+  c.strokeStyle = shade(C.GI, dk); c.lineWidth = 1.2; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke();
+  // a lit edge along the sleeve, then the wrapped forearm with its bands
+  c.strokeStyle = shade(C.GIL, dk); c.lineWidth = 0.22; const nn = [-(el[1] - s[1]), el[0] - s[0]], nl = Math.hypot(...nn) || 1; c.beginPath(); c.moveTo(s[0] - nn[0] / nl * 0.4, s[1] - nn[1] / nl * 0.4 - 0.1); c.lineTo(el[0] - nn[0] / nl * 0.4, el[1] - nn[1] / nl * 0.4 - 0.1); c.stroke();
+  c.strokeStyle = shade(C.WRAP, dk - 0.05); c.lineWidth = 1.0; c.beginPath(); c.moveTo(...L2(el, h, 0.2)); c.lineTo(...wr); c.stroke();
+  c.strokeStyle = shade(C.WRAPD, dk); c.lineWidth = 0.12; for (const q of [0.38, 0.56, 0.74]) { const p = L2(el, h, q), dd = [h[0] - el[0], h[1] - el[1]], dl = Math.hypot(...dd) || 1, n2 = [-dd[1] / dl * 0.5, dd[0] / dl * 0.5]; c.beginPath(); c.moveTo(p[0] - n2[0], p[1] - n2[1]); c.lineTo(p[0] + n2[0] + dd[0] / dl * 0.15, p[1] + n2[1] + dd[1] / dl * 0.15); c.stroke(); }
+  c.fillStyle = shade(C.TABI, dk + 0.04); c.beginPath(); c.ellipse(h[0], h[1], 0.62, 0.55, 0, 0, 7); c.fill(); c.fillStyle = shade(C.GIL, dk - 0.1); c.beginPath(); c.arc(h[0] - 0.18, h[1] - 0.2, 0.18, 0, 7); c.fill(); }
+function njBlade(c, h, a, near) { const C = NJC, d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]], len = NJ.LEN, P = (u, v) => [h[0] + d[0] * u + n[0] * v, h[1] + d[1] * u + n[1] * v];
+  c.lineCap = 'butt'; c.strokeStyle = C.GRIP; c.lineWidth = 0.62; c.beginPath(); c.moveTo(...P(-1.9, 0)); c.lineTo(...P(0.3, 0)); c.stroke();
+  c.fillStyle = shade(COL, -0.1); for (let u = -1.6; u < 0.2; u += 0.45) { c.beginPath(); c.moveTo(...P(u, 0)); c.lineTo(...P(u + 0.18, 0.2)); c.lineTo(...P(u + 0.36, 0)); c.lineTo(...P(u + 0.18, -0.2)); c.closePath(); c.fill(); }
+  c.fillStyle = '#2b2b30'; c.beginPath(); c.moveTo(...P(0.4, -0.75)); c.lineTo(...P(0.75, -0.75)); c.lineTo(...P(0.75, 0.75)); c.lineTo(...P(0.4, 0.75)); c.closePath(); c.fill();
+  c.fillStyle = C.STEELD; c.beginPath(); c.moveTo(...P(0.75, 0.28)); c.lineTo(...P(len - 0.9, 0.24)); c.lineTo(...P(len, -0.1)); c.lineTo(...P(len - 0.6, -0.26)); c.lineTo(...P(0.75, -0.24)); c.closePath(); c.fill();
+  c.strokeStyle = near ? '#ffffff' : C.STEEL; c.lineWidth = 0.18; c.beginPath(); c.moveTo(...P(0.8, 0.2)); c.lineTo(...P(len - 0.9, 0.17)); c.lineTo(...P(len - 0.05, -0.08)); c.stroke(); }
+// the sheath across his back and the headband's long tails: drawn before the body
+function njBack(c, P, f, t) { const C = NJC, fl = cl((K.spd || 0) / RUN, 0, 1), C2 = P.C, h = P.head;
+  // the empty sheath slung across his back: mouth up behind the far shoulder, tip out past the near hip
+  { const m = [C2[0] - f * 1.7, C2[1] - 3.3], e = [C2[0] + f * 2.3, C2[1] + 3.2]; c.lineCap = 'round'; c.strokeStyle = C.GID; c.lineWidth = 1.0; c.beginPath(); c.moveTo(...m); c.lineTo(...e); c.stroke(); c.strokeStyle = '#3b3038'; c.lineWidth = 0.62; c.stroke();
+    c.strokeStyle = GOLDD; c.lineWidth = 0.75; c.lineCap = 'butt'; c.beginPath(); c.moveTo(...m); c.lineTo(...L2(m, e, 0.06)); c.stroke(); c.strokeStyle = shade(COL, -0.2); c.lineWidth = 0.7; c.beginPath(); c.moveTo(...L2(m, e, 0.3)); c.lineTo(...L2(m, e, 0.36)); c.stroke(); }
+  c.strokeStyle = COL; c.lineWidth = 0.42; const k = [h[0] - f * 1.25, h[1] - 0.7];
+  for (const [dx, dy, ph] of [[2.6, 0.9, 0], [2.1, 1.8, 1.3]]) { c.beginPath(); c.moveTo(...k); c.quadraticCurveTo(k[0] - f * (dx * 0.6 + fl * 1.2), k[1] + dy * 0.3 + Math.sin(t * 7 + ph) * 0.2, k[0] - f * (dx + fl * 3) + Math.sin(t * 5 + ph) * 0.3, k[1] + dy - fl * 0.8 + Math.sin(t * 6 + ph) * 0.25); c.stroke(); } }
+function njTorso(c, P, f, t) { const C = NJC, hip = P.pel, [Ls, Rs] = P.sh, mx = (Ls[0] + Rs[0]) / 2, my = (Ls[1] + Rs[1]) / 2, hw = 1.65 * (1 - 0.1 * Math.abs(P.tw)), hl = [hip[0] - hw, hip[1]], hr = [hip[0] + hw, hip[1]];
+  // short skirt flaps over the hips, then the jacket
+  c.fillStyle = C.GID; c.beginPath(); c.moveTo(hl[0] - 0.2, hl[1] - 0.4); c.lineTo(hr[0] + 0.2, hr[1] - 0.4); c.lineTo(hr[0] + 0.7, hr[1] + 1.6); c.lineTo(hip[0] + 0.2, hip[1] + 1.2); c.lineTo(hl[0] - 0.7, hl[1] + 1.6); c.closePath(); c.fill();
+  c.fillStyle = C.GI; c.beginPath(); c.moveTo(hl[0], hl[1]); c.lineTo(Ls[0] + 0.15, Ls[1] + 0.3); c.quadraticCurveTo(mx, my - 0.5, Rs[0] - 0.15, Rs[1] + 0.3); c.lineTo(hr[0], hr[1]); c.closePath(); c.fill();
+  // crossed collar
+  { const a = [mx - 0.95, my - 0.15], b = [mx + 0.95, my - 0.15], q = [lerp(mx, hip[0], 0.62) + f * 0.25, lerp(my, hip[1], 0.62)];
+    c.fillStyle = C.GID; c.beginPath(); c.moveTo(...a); c.lineTo(...q); c.lineTo(...b); c.closePath(); c.fill();
+    c.strokeStyle = C.GIL; c.lineWidth = 0.42; c.lineCap = 'round'; c.beginPath(); c.moveTo(...a); c.lineTo(q[0] + f * 0.1, q[1]); c.moveTo(...b); c.lineTo(lerp(b[0], q[0], 0.75), lerp(b[1], q[1], 0.75)); c.stroke();
+    // a lit panel down the side of the chest turned to the light
+    c.fillStyle = 'rgba(120,140,190,.12)'; const ls = f > 0 ? Rs : Ls, lh = f > 0 ? hr : hl; c.beginPath(); c.moveTo(ls[0] - f * 0.2, ls[1] + 0.4); c.lineTo(lerp(ls[0], mx, 0.35), ls[1] + 0.5); c.lineTo(lerp(lh[0], hip[0], 0.35), lh[1] - 0.4); c.lineTo(lh[0] - f * 0.1, lh[1] - 0.4); c.closePath(); c.fill(); }
+  // side away from the light
+  c.fillStyle = 'rgba(0,0,0,.18)'; const sx = f > 0 ? [Ls, hl] : [Rs, hr]; c.beginPath(); c.moveTo(sx[0][0] + f * 0.4, sx[0][1] + 0.6); c.lineTo(lerp(sx[0][0], mx, 0.4), my + 0.4); c.lineTo(lerp(sx[1][0], hip[0], 0.4), hip[1] - 0.3); c.lineTo(sx[1][0] + f * 0.3, sx[1][1] - 0.3); c.closePath(); c.fill();
+  // sash in his colour, its knot tails flying behind
+  const wy = lerp(my, hip[1], 0.82), wx = lerp(mx, hip[0], 0.82), fl = cl((K.spd || 0) / RUN, 0, 1); c.fillStyle = COL; c.beginPath(); c.moveTo(wx - hw - 0.1, wy - 0.4); c.lineTo(wx + hw + 0.1, wy - 0.4); c.lineTo(wx + hw, wy + 0.4); c.lineTo(wx - hw, wy + 0.4); c.closePath(); c.fill();
+  c.strokeStyle = shade(COL, -0.2); c.lineWidth = 0.4; c.lineCap = 'round'; c.beginPath(); c.moveTo(wx - f * 1.2, wy); c.quadraticCurveTo(wx - f * (1.8 + fl), wy + 1.0, wx - f * (1.8 + fl * 2.4) + Math.sin(t * 6) * 0.2, wy + 2.0 - fl * 0.8); c.stroke(); }
+function njHead(c, P, f, t) { const C = NJC, [hx, hy] = P.head, blink = (t % 5.1) < 0.12; c.save(); c.translate(hx, hy); c.rotate(f * (P.lean || 0) * 0.3);
+  // hood: a dark egg with a lit crown, the chin of the mask pushed a little forward on the facing side
+  c.fillStyle = C.GI; c.beginPath(); c.ellipse(0, 0, 1.45, 1.66, 0, 0, 7); c.fill(); c.beginPath(); c.moveTo(f * 0.9, 0.2); c.quadraticCurveTo(f * 1.62, 0.25, f * 1.45, 0.9); c.quadraticCurveTo(f * 1.1, 1.4, f * 0.3, 1.55); c.fill();
+  c.fillStyle = C.GIL; c.beginPath(); c.ellipse(-f * 0.25, -1.05, 0.9, 0.42, -f * 0.3, 0, 7); c.fill();
+  // the open band across the eyes (3/4 view: both eyes, the far one smaller)
+  c.fillStyle = C.SKIN; c.beginPath(); c.moveTo(-f * 0.05, -0.62); c.quadraticCurveTo(f * 0.8, -0.84, f * 1.52, -0.5); c.lineTo(f * 1.56, -0.02); c.quadraticCurveTo(f * 0.8, 0.02, -f * 0.05, -0.05); c.closePath(); c.fill();
+  c.fillStyle = C.SKIND; c.beginPath(); c.moveTo(-f * 0.05, -0.62); c.lineTo(f * 0.2, -0.6); c.lineTo(f * 0.2, -0.05); c.lineTo(-f * 0.05, -0.05); c.closePath(); c.fill();
+  if (blink) { c.strokeStyle = '#2a1a10'; c.lineWidth = 0.14; c.beginPath(); c.moveTo(f * 0.36, -0.3); c.lineTo(f * 0.66, -0.3); c.moveTo(f * 0.92, -0.32); c.lineTo(f * 1.32, -0.33); c.stroke(); }
+  else { for (const [ex, rx] of [[0.52, 0.17], [1.12, 0.24]]) { c.fillStyle = '#f4efe6'; c.beginPath(); c.ellipse(f * ex, -0.31, rx, 0.13, 0, 0, 7); c.fill(); c.fillStyle = '#16151a'; c.beginPath(); c.arc(f * (ex + rx * 0.35), -0.3, 0.1, 0, 7); c.fill(); } }
+  // brows: low and angled in toward the nose
+  c.strokeStyle = '#151318'; c.lineWidth = 0.15; c.lineCap = 'round'; c.beginPath(); c.moveTo(f * 0.3, -0.55); c.lineTo(f * 0.7, -0.47); c.moveTo(f * 0.88, -0.48); c.lineTo(f * 1.38, -0.58); c.stroke();
+  // the mask over nose and mouth: a fold line and the bridge of the nose under it
+  c.strokeStyle = C.GIL; c.lineWidth = 0.16; c.beginPath(); c.moveTo(f * 0.1, 0.1); c.quadraticCurveTo(f * 0.85, 0.25, f * 1.55, 0.05); c.stroke(); c.beginPath(); c.moveTo(f * 0.5, 0.75); c.quadraticCurveTo(f * 1.0, 0.85, f * 1.4, 0.6); c.stroke();
+  // headband in his colour round the hood, the knot tucked at the back (its tails are drawn behind him)
+  c.fillStyle = COL; c.beginPath(); c.moveTo(-f * 1.46, -0.92); c.quadraticCurveTo(0, -1.42, f * 1.42, -0.96); c.lineTo(f * 1.44, -0.64); c.quadraticCurveTo(0, -1.08, -f * 1.48, -0.58); c.closePath(); c.fill();
+  c.fillStyle = shade(COL, 0.25); c.beginPath(); c.ellipse(f * 0.4, -1.1, 0.5, 0.08, -f * 0.05, 0, 7); c.fill();
+  c.fillStyle = shade(COL, -0.15); c.beginPath(); c.ellipse(-f * 1.3, -0.75, 0.3, 0.24, 0, 0, 7); c.fill();
+  c.restore(); }
+function njShuriken(c, x, y, a, s) { c.save(); c.translate(x, y); c.rotate(a); c.scale(s, s); c.fillStyle = '#cfd6de'; c.beginPath(); for (let i = 0; i < 4; i++) { const b = i * Math.PI / 2; c.lineTo(Math.cos(b) * 1.6, Math.sin(b) * 1.6); c.lineTo(Math.cos(b + Math.PI / 4) * 0.45, Math.sin(b + Math.PI / 4) * 0.45); } c.closePath(); c.fill(); c.fillStyle = '#4a4f57'; c.beginPath(); c.arc(0, 0, 0.3, 0, 7); c.fill(); c.restore(); }
+function drawNinja(c, t, ghost) {
+  const dt = Math.min(0.1, Math.max(0, t - (K.njT ?? t))); K.njT = t;
+  // the pose eases toward where he should be every frame, so nothing ever jumps
+  const T = njPose(K, t), keys = ['pel', 'C', 'head', 'hA', 'hB'];
+  if (!K.njP || K.njP.f !== T.f) K.njP = JSON.parse(JSON.stringify(T)); const P = K.njP, e = ghost ? 1 : 1 - Math.exp(-dt * (K.cut >= 0 || K.nw >= 0 || K.nl >= 0 ? 32 : 18));
+  for (const k of keys) P[k] = L2(P[k], T[k], e); for (const k of ['sh', 'hips', 'feet', 'knees']) P[k] = P[k].map((p, i) => L2(p, T[k][i], e));
+  { let tg = T.aB; tg += Math.PI * 2 * Math.round((P.aB - tg) / (Math.PI * 2)); P.aB = lerp(P.aB, tg, e); } for (const k of ['lean', 'tw', 'cr']) P[k] = lerp(P[k], T[k], e);
+  const f = P.f, z = K.z || 0; c.save(); c.translate(K.x, K.y); c.scale(KS, KS);
+  if (!ghost) { const zs = Math.max(0.35, 1 - z / 50); c.fillStyle = `rgba(0,0,0,${0.28 * zs})`; c.beginPath(); c.ellipse(P.pel[0] * 0.4, 0.4, 4.6 * zs, 1.5 * zs, 0, 0, 7); c.fill(); }
+  c.translate(0, -z / KS);
+  // flips turn him round his middle
+  const fr = njFlip(K); if (fr) { const cx = P.pel[0], cy = P.pel[1] - 2; c.translate(cx, cy); c.rotate(fr); c.translate(-cx, -cy); }
+  // ---- depth, the Knight's A/B method: A (facing-side shoulder, the free hand) behind the body when it drops low; B (the ninjato) last ----
+  const far = f > 0 ? 0 : 1, near = 1 - far, sA = P.sh[near], sB = P.sh[far];
+  const rB = [(P.hB[0] - P.C[0]) * f, P.hB[1] - P.C[1]], backB = Math.cos(P.aB) * f < -0.3 && rB[0] < 0.5, aBehind = (P.hA[1] - P.C[1]) > 3.6;
+  const armA = () => njArm(c, sA, P.hA, f, false, true), armB = () => njArm(c, sB, P.hB, f, true), blade = () => njBlade(c, P.hB, P.aB, true);
+  njBack(c, P, f, t);
+  if (backB) blade();
+  if (aBehind) armA();
+  njLeg(c, P.hips[near], P.knees[near], P.feet[near], f, true); njLeg(c, P.hips[far], P.knees[far], P.feet[far], f, false);
+  njTorso(c, P, f, t);
+  if (!aBehind) armA();
+  njHead(c, P, f, t);
+  armB(); if (!backB) blade(); c.fillStyle = NJC.TABI; c.beginPath(); c.arc(P.hB[0], P.hB[1], 0.6, 0, 7); c.fill();
+  c.restore();
+}
+// ghosts: a translucent copy of him in his colour's light, dashing down onto their target and dissolving
+function njGhostDraw(c, g, t) { const kn = g.kn, k0 = K, c0 = COL; let al, x, y, z, st = {};
+  if (g.k === 'd') { const u = cl(g.t / 0.12, 0, 1), q = u * u; x = lerp(g.x0, g.tx - g.f * 4, q); y = lerp(g.y0, g.ty, q); z = g.z0 * (1 - q); al = (g.t < 0.05 ? g.t / 0.05 : g.t > 0.24 ? Math.max(0, 1 - (g.t - 0.24) / 0.18) : 1) * 0.7; st = { cut: g.t < 0.12 ? 0.05 : Math.min(0.38, 0.12 + (g.t - 0.12) * 1.6), cutN: 2 }; }
+  else { x = g.x0; y = g.y0; z = 0; al = (g.t < 0.08 ? g.t / 0.08 : g.t > 0.3 ? Math.max(0, 1 - (g.t - 0.3) / 0.12) : 1) * 0.65; st = { cut: -1, nw: cl((g.t - 0.04) / 0.34, 0, 1) * NJ.LEAP.SW * 0.999 }; }
+  if (al <= 0.01) return;
+  const fake = { ...kn, x, y, z, f: g.f, spd: 0, nl: -1, nw: -1, nPh: -1, cutTl: 0, njP: null, njT: t, ...st }; K = fake; COL = kn.col;
+  c.save(); c.globalAlpha = al * 0.55; c.globalCompositeOperation = 'lighter'; const gr = c.createRadialGradient(x, y - z - 6, 0, x, y - z - 6, 12); gr.addColorStop(0, shade(kn.col, 0.3)); gr.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = gr; c.beginPath(); c.arc(x, y - z - 6, 12, 0, 7); c.fill(); c.restore();
+  if (g.k === 'd' && g.t < 0.14) { c.save(); c.globalAlpha = al * 0.5; c.strokeStyle = shade(kn.col, 0.4); c.lineWidth = 2.2; c.lineCap = 'round'; c.beginPath(); c.moveTo(g.x0, g.y0 - g.z0 - 6); c.lineTo(x, y - z - 6); c.stroke(); c.restore(); }
+  c.save(); c.globalAlpha = al; drawNinja(c, t, true); c.restore();
+  if (g.k === 's' && g.t > 0.08 && g.t < 0.38) { const u = cl((g.t - 0.08) / 0.3, 0, 1); c.save(); c.globalAlpha = al * (1 - u) * 0.8; c.strokeStyle = shade(kn.col, 0.5); c.lineWidth = 1.2; c.beginPath(); c.ellipse(x, y - 3, NJ.ULT.SWRR, NJ.ULT.SWRR * 0.8, 0, 0, 7 * u); c.stroke(); c.restore(); }
+  K = k0; COL = c0; }
+// the strip he lays out during the ult (only on his own screen): three bands with a big circle at each joint, the joints as handles
+function njStrip(c, kn, J, al, t, live) { const U = NJ.ULT, P = njPts(kn, J), cols = ['#ffd27a', '#ff9f6a', '#ff6a8a'];
+  c.save(); for (let s = 0; s < 3; s++) { const A = P[s], B = P[s + 1], dx = B[0] - A[0], dy = (B[1] - A[1]) * 1.25, L = Math.hypot(dx, dy) || 1, n = [-dy / L * U.HW, dx / L * U.HW / 1.25];
+    c.globalAlpha = al * 0.28; c.fillStyle = cols[s]; c.beginPath(); c.moveTo(A[0] + n[0], A[1] + n[1]); c.lineTo(B[0] + n[0], B[1] + n[1]); c.lineTo(B[0] - n[0], B[1] - n[1]); c.lineTo(A[0] - n[0], A[1] - n[1]); c.closePath(); c.fill();
+    c.globalAlpha = al * 0.85; c.strokeStyle = cols[s]; c.lineWidth = 0.6; c.setLineDash([2.2, 1.6]); c.lineDashOffset = -t * 10; c.stroke(); c.setLineDash([]);
+    c.globalAlpha = al * 0.2; c.beginPath(); c.ellipse(B[0], B[1], U.JR, U.JR * 0.8, 0, 0, 7); c.fill(); c.globalAlpha = al * 0.8; c.lineWidth = 0.6; c.stroke(); }
+  if (live) for (let j = 1; j <= 3; j++) { const p = P[j], pul = 0.5 + 0.5 * Math.sin(t * 9 + j); c.globalAlpha = al; c.fillStyle = '#fff6e0'; c.beginPath(); c.arc(p[0], p[1], 2.4 + pul * 0.5, 0, 7); c.fill(); c.strokeStyle = cols[j - 1]; c.lineWidth = 0.7; c.stroke(); c.fillStyle = '#2a2016'; c.font = '700 2.6px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(j), p[0], p[1] + 0.1); }
+  c.restore(); }
+function njGround(c, t) { for (const kn of LIVE()) { if (kn.kind !== 'ninja') continue;
+    if (kn.nPh === 2 && kn.njF) njStrip(c, kn, kn.njF, Math.max(0, 1 - (kn.nT || 0) / (NJ.ULT.STRIKE + NJ.ULT.END)) * 0.6, t, false);
+    // in flight: the apex circle the shuriken are going into and the landing circle
+    if (kn.nl >= 0) { const L = NJ.LEAP, ax = (kn.nx0 + kn.nx1) / 2, ay = (kn.ny0 + kn.ny1) / 2; c.save(); c.globalAlpha = 0.5; c.strokeStyle = '#cfe0ff'; c.lineWidth = 0.6; c.setLineDash([2, 1.5]); c.beginPath(); c.ellipse(ax, ay, L.AR, L.AR * 0.8, 0, 0, 7); c.stroke(); c.strokeStyle = '#ffe2a0'; c.beginPath(); c.ellipse(kn.nx1, kn.ny1, L.R, L.R * 0.8, 0, 0, 7); c.stroke(); c.restore(); } } }
+// the strip is drawn over the slow-motion overlay, so it stays in full colour on his screen
+function njTop(c, t) { const kn = njMine(); if (kn) njStrip(c, kn, kn.njJ || njDefJ(kn), 1, t, true); }
+function njAir(c, t) { for (const s of NJSH) { const u = cl(s.t / s.max, 0, 1), x = lerp(s.x, s.tx, u), y = lerp(s.y, s.ty, u), z = s.z * (1 - u); njShuriken(c, x, y - z, s.t * s.sp, 0.8); }
+  for (const g of NJGH) njGhostDraw(c, g, t);
+  for (const f of FX) if (f.k === 'njsw') { const u = cl(f.t / f.max, 0, 1), R = NJ.LEAP.R * (0.75 + 0.25 * u); c.save(); c.globalAlpha = (1 - u) * 0.85; c.strokeStyle = '#f4f8ff'; c.lineWidth = 1.6 * (1 - u) + 0.3; c.lineCap = 'round'; c.beginPath(); const a0 = f.f > 0 ? 0 : Math.PI, sp = f.f * Math.PI * 2 * Math.min(1, u * 1.6); c.ellipse(f.x, f.y - 3, R, R * 0.8, 0, Math.min(a0, a0 + sp), Math.max(a0, a0 + sp)); c.stroke(); c.restore(); } }
+// slow motion, seen by everyone: the colour drains, the edges darken and ink streaks drift across while a ninja lays out his strike
+function njOverlay(c) { const on = LIVE().some(kn => kn.kind === 'ninja' && kn.nPh === 1); NJO.v = lerp(NJO.v, on ? 1 : 0, on ? 0.12 : 0.08); const a = NJO.v; if (a < 0.01) return;
+  const w = cv.width, h = cv.height; c.save(); c.setTransform(1, 0, 0, 1, 0, 0);
+  c.globalCompositeOperation = 'saturation'; c.globalAlpha = 0.75 * a; c.fillStyle = '#808080'; c.fillRect(0, 0, w, h);
+  c.globalCompositeOperation = 'source-over'; c.globalAlpha = 0.16 * a; c.fillStyle = '#18243a'; c.fillRect(0, 0, w, h);
+  c.globalAlpha = a; const g = c.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.max(w, h) * 0.75); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(5,8,16,.7)'); c.fillStyle = g; c.fillRect(0, 0, w, h);
+  c.globalAlpha = 0.22 * a; c.strokeStyle = '#dfe8ff'; c.lineWidth = Math.max(1, h / 500); const T = performance.now() / 1000; for (let i = 0; i < 14; i++) { const y = ((i * 0.071 + T * 0.03 * (1 + i % 3)) % 1) * h, x0 = ((i * 0.37 + T * 0.12) % 1.4 - 0.2) * w; c.beginPath(); c.moveTo(x0, y); c.lineTo(x0 + w * (0.12 + (i % 4) * 0.05), y); c.stroke(); }
+  c.restore(); }
+const NJO = { v: 0 };
+// joints: on his own screen a touch near a joint grabs it, dragging moves it and the chain follows
+let NJD = null; const njMine = () => { const kn = KN[ME]; return kn && kn.kind === 'ninja' && kn.nPh === 1 ? kn : null; };
+addEventListener('pointerdown', e => { const kn = njMine(); if (!kn || e.target !== cv || NJD) return; const p = s2w(e.clientX, e.clientY), J = kn.njJ || njDefJ(kn); let best = -1, bd = 1e9; for (let j = 1; j <= 3; j++) { const d = njGP(p, [J[j * 2 - 2], J[j * 2 - 1]]); if (d < bd) { bd = d; best = j; } }
+  e.stopPropagation(); e.preventDefault(); if (bd > 40) return; NJD = { id: e.pointerId, j: best }; }, true);
+addEventListener('pointermove', e => { if (!NJD || e.pointerId !== NJD.id) return; e.stopPropagation(); const kn = njMine(); if (!kn) { NJD = null; return; } const J = njDrag(kn, kn.njJ || njDefJ(kn), NJD.j, s2w(e.clientX, e.clientY)); kn.njJ = J; kn.in.nj = J; kn.in.njN = kn.nUN; markIn(); }, true);
+addEventListener('pointerup', e => { if (NJD && e.pointerId === NJD.id) { NJD = null; e.stopPropagation(); } }, true);
+addEventListener('pointercancel', e => { if (NJD && e.pointerId === NJD.id) NJD = null; }, true);
+// a strafe's recording keeps going in slow motion: once the ninja's slow motion starts, the heli audio loops (slowed) until the heli is gone
+function njHeliAudio() { if (!AU.ctx) return; const slow = LIVE().some(kn => kn.kind === 'ninja' && kn.nPh === 1), now = AU.ctx.currentTime;
+  for (const kn of KN) { const A = kn.hlAu; if (!A || !A.src || !A.g) continue; const gone = !(kn.hl >= 0) || kn.hl > heliGone(kn) || A.n !== kn.hlN;
+    if (gone) { if (A.loop && !A.end) { A.end = 1; try { A.g.gain.cancelScheduledValues(now); A.g.gain.setValueAtTime(A.g.gain.value, now); A.g.gain.linearRampToValueAtTime(0.0001, now + 0.3); A.src.stop(now + 0.35); } catch (e) { } } continue; }
+    if (slow && !A.loop) { A.loop = 1; try { A.src.loop = true; A.g.gain.cancelScheduledValues(now); A.g.gain.setValueAtTime(Math.max(0.0001, A.g.gain.value), now); A.g.gain.linearRampToValueAtTime(0.54, now + 0.2); A.src.stop(now + 600); } catch (e) { } }
+    if (A.loop) { const r = speed < 1 ? 0.62 : 1; if (Math.abs(A.src.playbackRate.value - r) > 0.01) A.src.playbackRate.setTargetAtTime(r, now, 0.15); } } }
 // ======================= Time Traveler (kind 'time') =======================
 // A Victorian gentleman (top hat, frock coat, cane) on the Knight's rig and view: three-quarter toward the camera facing f.
 // A = the arm on his facing-side shoulder, B = the other one (nearest the camera, drawn last), exactly as the Knight. The cane is in the B hand.
@@ -4026,7 +4336,7 @@ function heliAudio(kn) { const bufs = heliBuf(); if (!bufs || !AU.ctx || AU.ctx.
   if (kn.hlAu && kn.hlAu.n !== kn.hlN) kn.hlAu = null; if (kn.hlAu || kn.hl < H.OPEN || kn.hl > heliGone(kn)) return;
   const src = c.createBufferSource(), g = c.createGain(), vol = 0.54, left = heliGone(kn) - kn.hl, tOut = now + Math.max(0.05, left - 0.25), tEnd = now + left + 0.2; const pool = bufs.map((b, i) => i).filter(i => !HELI_LAST.includes(i)), pick = pool[Math.floor(Math.random() * pool.length)], buf = bufs[pick]; HELI_LAST = [pick, ...HELI_LAST].slice(0, 2); src.buffer = buf; src.playbackRate.value = speed < 1 ? 0.62 : 1;
   g.gain.setValueAtTime(0.0001, now); g.gain.linearRampToValueAtTime(vol, now + Math.min(0.3, left * 0.4)); g.gain.setValueAtTime(vol, Math.max(now + Math.min(0.3, left * 0.4), tOut)); g.gain.linearRampToValueAtTime(0.0001, tEnd);
-  src.connect(g); g.connect(AU.out); src.start(now, Math.random() * Math.max(0, buf.duration - (left + 0.3))); src.stop(tEnd + 0.05); kn.hlAu = { n: kn.hlN, src }; }
+  src.connect(g); g.connect(AU.out); src.start(now, Math.random() * Math.max(0, buf.duration - (left + 0.3))); src.stop(tEnd + 0.05); kn.hlAu = { n: kn.hlN, src, g }; }
 // ---- the stampede: the herd is worked out from the synced call (dnx/dny portal, dnf direction, dnN) the same way on every screen ----
 // each dino: k (0 raptor, 1 triceratops, 2 T-rex), off (across the lane), delay, spd, r (body radius), dmg, ph (gait phase), sc (size)
 function dinoHerd(kn) { if (kn.dnHd && kn.dnHd.n === kn.dnN && kn.dnHd.x === kn.dnx) return kn.dnHd.p; const D = TT.DINO, R = shipRnd({ scx: kn.dnx, scy: kn.dny, scN: kn.dnN }), p = [];
@@ -4545,10 +4855,10 @@ const cleaveFx = (w, dir) => { EV.push([w.id, 0, dir, K.i, Math.round(w.x * 10) 
 const spinFx = w => { EV.push([w.id, 1, 0, K.i, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10]); spinKill(w); };
 function step(dt, t) {
   worldStep(dt, t);
-  for (const kn of KN) { if (kn.on === 0) continue; if (kn.in.col && kn.in.col !== kn.col && /^#[0-9a-f]{6}$/i.test(kn.in.col)) kn.col = kn.in.col; if ((kn.in.chN || 0) !== (kn.chSeen || 0)) { kn.chSeen = kn.in.chN || 0; switchChar(kn, kn.in.ch || 'knight'); } K = kn; if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else if (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) priestStep(dt, t); else if (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) swordStep(dt, t); else if (kn.kind === 'time' || (kn.in && kn.in.ch === 'time')) timeStep(dt, t); else knightStep(dt, t);
+  for (const kn of KN) { if (kn.on === 0) continue; if (kn.in.col && kn.in.col !== kn.col && /^#[0-9a-f]{6}$/i.test(kn.in.col)) kn.col = kn.in.col; if ((kn.in.chN || 0) !== (kn.chSeen || 0)) { kn.chSeen = kn.in.chN || 0; switchChar(kn, kn.in.ch || 'knight'); } K = kn; if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else if (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) priestStep(dt, t); else if (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) swordStep(dt, t); else if (kn.kind === 'time' || (kn.in && kn.in.ch === 'time')) timeStep(dt, t); else if (kn.kind === 'ninja' || (kn.in && kn.in.ch === 'ninja')) ninjaStep(dt, t); else knightStep(dt, t);
     { const SB = shipBlockers(); if (SB.length && (kn.z || 0) < 8 && !(kn.vPh >= 0)) shipPush(kn, 3 * (kn.sz || 1), SB); } }
   K = KN[ME];
-  volcFx(dt, t); wpFx(dt, t); ttFx(dt, t);
+  volcFx(dt, t); wpFx(dt, t); ttFx(dt, t); njGhostStep(dt); njHeliAudio();
   if (K.hits > lastHits) { hurtT = 0.12; } lastHits = K.hits; hurtT = Math.max(0, hurtT - dt);
   netTick(dt, t);
 }
@@ -4686,7 +4996,7 @@ function worldStep(dt, t) {
     if (w.atk < 0) { let bd = 1e9; KN.forEach((kn, i) => { if (kn.on === 0) return; const dd = Math.hypot(kn.x - w.x, kn.y - w.y); if (dd < bd) { bd = dd; w.tk = i; } }); }
     const T2 = (KN[w.tk] && KN[w.tk].on !== 0 ? KN[w.tk] : LIVE()[0]) || KN[0], dx = T2.x - w.x, dy = (T2.y - w.y), d = Math.hypot(dx, dy * 1.3) || 1;
     const U = UK[w.k], reach = 4.4 + U.r + ((T2.sz || 1) - 1) * 3.5 + (T2.kind === 'priest' ? 1.6 : 0);
-    if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5 && !((T2.z || 0) > 4) && !(T2.cr >= 0)) { T2.hits += (w.k === 'sapper' ? 3 : U.hw || 1) * (T2.kind !== 'fire' && T2.ultPh >= 0 ? 1 - GIANT_DR : 1); if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
+    if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5 && !((T2.z || 0) > 4) && !(T2.cr >= 0) && !(T2.nPh >= 1)) { T2.hits += (w.k === 'sapper' ? 3 : U.hw || 1) * (T2.kind !== 'fire' && T2.ultPh >= 0 ? 1 - GIANT_DR : 1); if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
     else if (d > reach) { const sp = w.sp * (w.pSl > 0 ? WP.PEN.ASLOW : w.sl > 0 ? WP.SLOWK : 1); w.x += dx / d * sp * dt; w.y += dy / d * sp * dt; }
     else if (w.cd <= 0 && T2.st !== 'kneel') w.atk = 0;
     w.x += w.kx * UK[w.k].kb * dt; w.y += w.ky * UK[w.k].kb * dt; w.kx *= 1 - dt * 6; w.ky *= 1 - dt * 6;
@@ -4743,27 +5053,29 @@ function draw() {
   // while any Firebreather is on his volcano everyone pulls back far enough to see a full-range shot across the screen
   // (drawing a strafe pulls his camera back 30%, and it stays back until his helicopter is gone: HDRAW / hl)
   const volcOn = !!(KN[ME] && KN[ME].kind === 'fire' && KN[ME].vPh >= 0), hw1 = cv.width / 2 / (viewScale() / ultZoom);
-  const penOn = KN[ME] && KN[ME].kind === 'priest' && KN[ME].pPh >= 0, uzT = (volcOn ? Math.min(0.775, hw1 / (V.MAXD + 20)) : penOn ? 0.7 : 1) * (HDRAW || (KN[ME] && KN[ME].kind === 'time' && KN[ME].hl >= 0) ? 0.7 : 1) * (KN[ME] && KN[ME].kind === 'time' && KN[ME].cr >= 0 ? 0.8 : 1); ultZoom = lerp(ultZoom, uzT, volcOn || penOn ? 0.035 : 0.06); ZBUSY = Math.abs(ultZoom - uzT) > uzT * 0.01; // pull the camera back while he's a giant
+  const penOn = KN[ME] && KN[ME].kind === 'priest' && KN[ME].pPh >= 0, uzT = (volcOn ? Math.min(0.775, hw1 / (V.MAXD + 20)) : penOn ? 0.7 : 1) * (HDRAW || (KN[ME] && KN[ME].kind === 'time' && KN[ME].hl >= 0) ? 0.7 : 1) * (KN[ME] && KN[ME].kind === 'time' && KN[ME].cr >= 0 ? 0.8 : 1) * (KN[ME] && KN[ME].kind === 'ninja' && KN[ME].nPh >= 1 ? 0.62 : 1); ultZoom = lerp(ultZoom, uzT, volcOn || penOn ? 0.035 : 0.06); ZBUSY = Math.abs(ultZoom - uzT) > uzT * 0.01; // pull the camera back while he's a giant
   const sc = viewScale(), pc = K.kind === 'priest' && K.pPh >= 0 ? 0.5 : 0; let ctX = pc ? lerp(K.x, K.hx, pc) : K.x, ctY = pc ? lerp(K.y - 6 * (K.sz || 1) - (K.z || 0) * 0.5, K.hy - 6, pc) : K.y - 6 * (K.sz || 1) - (K.z || 0) * 0.5;
   // Time Ride finale: the camera swings toward the spacecraft from the moment its portal starts opening until it hits
   if (K.kind === 'time' && K.cr === 2 && !(K.cBl >= 0)) { const k = 0.55 * sm(cl((K.crT - TT.CAR.SOPEN + 0.6) / 0.6, 0, 1)), sx = K.crT >= TT.CAR.SOPEN ? K.spx : K.csx, sy = K.crT >= TT.CAR.SOPEN ? K.spy - K.spz : K.csy - TT.CAR.SZ; ctX = lerp(ctX, sx, k); ctY = lerp(ctY, sy, k); }
+  // a ninja laying out (and then watching) his strike: his camera sits between him and the middle of the strip
+  if (K.kind === 'ninja' && K.nPh >= 1) { const J = K.nPh === 1 ? (K.njJ || njDefJ(K)) : (K.njF || njDefJ(K)), mx = (K.x + J[0] + J[2] + J[4]) / 4, my = (K.y + J[1] + J[3] + J[5]) / 4; K.njCam = lerp(K.njCam || 0, 1, 0.08); ctX = lerp(ctX, mx, 0.6 * K.njCam); ctY = lerp(ctY, my - 6, 0.6 * K.njCam); } else if (K.njCam) K.njCam = lerp(K.njCam, 0, 0.08);
   camX = lerp(camX, ctX, 0.12); camY = lerp(camY, ctY, 0.12); const shx = shake ? rr(-1, 1) * shake * 5 : 0, shy = shake ? rr(-1, 1) * shake * 5 : 0;
   x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#000'; x.fillRect(0, 0, cv.width, cv.height);
   x.setTransform(sc, 0, 0, sc, cv.width / 2 - (camX + shx) * sc, cv.height / 2 - (camY + shy) * sc); CAM.s = sc; CAM.e = cv.width / 2 - (camX + shx) * sc; CAM.f = cv.height / 2 - (camY + shy) * sc; sprFrame(sc); { const hw = cv.width / 2 / sc + 10, x0 = Math.floor((camX - hw) / W), x1 = Math.floor((camX + hw) / W); const hh = cv.height / 2 / sc + 10, y0 = Math.floor((camY - hh) / H), y1 = Math.floor((camY + hh) / H); for (let gi = x0; gi <= x1; gi++) for (let gj = y0; gj <= y1; gj++) x.drawImage(gj === 0 ? ground : grassT, gi * W, gj * H, W + 0.5, H + 0.5); }
   const VL = camX - cv.width / 2 / sc - 30, VR = camX + cv.width / 2 / sc + 30, inV = q => q.x > VL && q.x < VR;
   for (const sp of splats) { if (sp.x < VL || sp.x > VR) continue; x.globalAlpha = Math.max(0, 1 - sp.t / 5) * 0.85; x.fillStyle = sp.ash ? '#26201c' : '#6a1610'; x.beginPath(); x.ellipse(sp.x, sp.y, sp.r, sp.r * 0.5, 0, 0, 7); x.fill(); } x.globalAlpha = 1;
   for (const kn of LIVE()) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
-  drawFxGround(x); drawGouges(x, t); ttGround(x); drawVolcFloor(x, t); drawBikePreview(x, t); drawLeapPreview(x, t); drawHeliDraw(x, t); drawDashPreview(x, t); drawSweepPreview(x, t); drawCoalPreview(x);
+  drawFxGround(x); drawGouges(x, t); ttGround(x); njGround(x, t); drawVolcFloor(x, t); drawBikePreview(x, t); drawLeapPreview(x, t); drawHeliDraw(x, t); drawDashPreview(x, t); drawSweepPreview(x, t); drawCoalPreview(x);
   for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = pAlpha(p); drawPartFast(x, p); } x.globalAlpha = 1;
   const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(TRAPS.filter(q => q.t >= TT.TRAP.FLY).flatMap(q => { const G = trapGeo(q); return [[q.y, 6, q], [G.ey + 0.01, 7, q]]; })).concat(dinoList()).concat(dgList()).concat(KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.cr >= 0).map(kn => [kn.cyp, 10, kn])).concat(WRECKS.flatMap(q => [[q.y, 11, { q, ship: 0 }], [q.sy + 0.01, 11, { q, ship: 1 }]])).concat(HDEAD.filter(inV).map(q => [q.y - 0.3, 9, q])).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
   HPQ = [];
   for (const [, k, o] of list) {
     if (k < 2) { K = o; COL = o.col; }
     if (k === 4) { COL = o.col; drawFlail(x, o, t); K = KN[ME]; continue; }
-    if (k === 0 && (K.kind === 'priest' || K.kind === 'sword' || K.kind === 'time')) continue;
+    if (k === 0 && (K.kind === 'priest' || K.kind === 'sword' || K.kind === 'time' || K.kind === 'ninja')) continue;
     if (k === 0 && K.kind === 'fire') { const pt = pitOf(K); x.save(); x.translate(pt[0], pt[1]); FBX.firePit(x, 5, t, FBX.pal(5)); x.restore(); continue; }
     if (k === 0) { x.save(); x.translate(K.T.x, K.T.y); boulder(x, t, !(K.st === 'kneel' || (K.st === 'pull' && !K.hold) || (K.st === 'sheathe' && !K.hold)), K.slotGlow); if (!K.hold) { x.translate(STONE.x, STONE.y); x.scale(KS, KS); x.beginPath(); x.rect(-20, -30, 40, 30 - 4.3 / KS); x.clip(); sword(x, [0, -4.3 / KS - 1.3 - 1.1], Math.PI / 2, 10.5); } x.restore(); }
-    else if (k === 1) { if (K.kind === 'fire') drawFire(x, t); else if (K.kind === 'priest') drawPriest(x, t); else if (K.kind === 'sword') drawSword(x, t); else if (K.kind === 'time') { if (!carGone(K)) { if (K.ctu) { const cy0 = K.y - (K.z || 0) - 9; x.save(); x.translate(K.x, cy0); x.rotate(K.ctu); x.translate(-K.x, -cy0); drawTime(x, t); x.restore(); } else drawTime(x, t); } } else drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; if (K.i !== ME) x.fillText((NET && NET.names && NET.names[K.i]) || pName(K.i), K.x, K.y - (K.kind === 'priest' ? 23 + (K.z || 0) : K.kind === 'time' ? 22 + (K.z || 0) : 17 * (K.sz || 1))); } }
+    else if (k === 1) { if (K.kind === 'fire') drawFire(x, t); else if (K.kind === 'priest') drawPriest(x, t); else if (K.kind === 'sword') drawSword(x, t); else if (K.kind === 'ninja') drawNinja(x, t); else if (K.kind === 'time') { if (!carGone(K)) { if (K.ctu) { const cy0 = K.y - (K.z || 0) - 9; x.save(); x.translate(K.x, cy0); x.rotate(K.ctu); x.translate(-K.x, -cy0); drawTime(x, t); x.restore(); } else drawTime(x, t); } } else drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; if (K.i !== ME) x.fillText((NET && NET.names && NET.names[K.i]) || pName(K.i), K.x, K.y - (K.kind === 'priest' ? 23 + (K.z || 0) : K.kind === 'time' ? 22 + (K.z || 0) : 17 * (K.sz || 1))); } }
     else if (k === 5) { drawSawP(x, o, t); continue; }
     else if (k === 8) { if (o.g) drawDinoQ(x, o, t); else drawDinoP(x, o, t); continue; }
     else if (k === 9) { drawHeavyDead(x, o); continue; }
@@ -4786,7 +5098,7 @@ function draw() {
   for (const f of FX) if (f.k === 'lick') drawLick(x, f, t);
   for (const kn of KN) if (kn.kind === 'fire' && kn.fp && kn.fp.length) FBX.drawBreath(x, kn, t);
   for (const kn of KN) if (kn.kind === 'fire') drawLava(x, kn, t);
-  drawFxAir(x); drawVolcAir(x, t); ttAir(x, t); if (ZONES) ttZones(x);
+  drawFxAir(x); drawVolcAir(x, t); ttAir(x, t); njAir(x, t); if (ZONES) ttZones(x);
   // blade trail: a short ribbon the length of the light blade, fading behind it
   for (const kn of KN) { K = kn; if (K.trail && K.trail.length > 1) { x.save(); const now = K.trail[K.trail.length - 1].t, TL = 0.11;
     for (let i = K.trail.length - 1; i > 0; i--) { const A2 = K.trail[i], B2 = K.trail[i - 1], age = now - B2.t; if (age > TL) break; const al = 0.42 * (1 - age / TL) ** 1.6;
@@ -4800,6 +5112,7 @@ function draw() {
     x.save(); x.translate(K.x, K.y - 7); x.scale(SPIN_SZ, SPIN_SZ * 12 / 25); const live = K.spin >= 0 && spinSwept() >= SPIN_MOM;
     for (let i = 0; i < 8; i++) { const a0 = (i - 0.5) * Math.PI / 4; const sa = Math.atan2(Math.sin(a0) * 25 / 12, Math.cos(a0)), sb = Math.atan2(Math.sin(a0 + Math.PI / 4) * 25 / 12, Math.cos(a0 + Math.PI / 4)); x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, 25, sa, sb); x.closePath(); x.fillStyle = live && i === K.sec ? 'rgba(255,60,40,.35)' : 'rgba(255,255,255,.06)'; x.fill(); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 0.3; x.stroke(); }
     x.restore(); }
+  njOverlay(x); njTop(x, t);
   if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
   ST.textContent = (NET ? `Room ${NET.code} · ${LIVE().length}/${MAXP} · ` : '') + (LIVE().length > 1 ? `Enemies ${walkers.length} · ` + LIVE().map(kn => `${kn.i === ME ? 'You' : (NET && NET.names && NET.names[kn.i]) || pName(kn.i)} ${kn.kills}k/${Math.round(kn.hits)}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${Math.round(K.hits)}`);
   // his leap circle is the weapon ability: only there while he holds the alien (toss) or the saw gun (trap); dim while it can't be used
@@ -4808,10 +5121,10 @@ function draw() {
   if (K.kind === 'time') { const ab = K.wpS === 2 && K.wpn >= 1 && K.wpn <= 4; document.body.classList.toggle('ttab', ab); if (ab) { const TQ = K.trQ ?? TT.TRAP.N, lb = K.wpn === 3 ? (K.hu >= 1 ? 'move\nalien' : 'toss') : K.wpn === 1 ? 'ship' : K.wpn === 2 ? (HDRAW ? 'cancel' : 'strafe') : `trap\n${TQ} charge${TQ === 1 ? '' : 's'}`, sm2 = AOE.querySelector('small'); if (sm2 && sm2.textContent !== lb) sm2.textContent = lb; AOE.classList.toggle('dim', K.wpn === 3 ? K.hu === 1 || K.hu === 3 || K.huCd > 0 : K.wpn === 1 ? K.sc >= 1 || K.scCd > 0 : K.wpn === 2 ? K.hl >= 0 || K.hlCd > 0 : TQ <= 0); } }
   else if (document.body.classList.contains('ttab')) { document.body.classList.remove('ttab'); const sm2 = AOE.querySelector('small'); if (sm2) sm2.textContent = 'leap'; }
   const cdk = K.kind === 'time' ? (K.wpS === 2 ? (K.bk >= 0 && K.wpT >= TT.PORT.HOLD ? 0.04 : cl(1 - K.wpT / TT.PORT.HOLD, 0, 1)) : K.wpS ? 1 : cl((K.wpCd || 0) / TT.PORT.CD, 0, 1)) : K.kind === 'priest' ? (K.hoT > 0 ? 1 : cl((K.hoCd || 0) / WP.HO.CD, 0, 1)) : K.kind === 'fire' ? (K.lava ? 1 : cl((K.lvCd || 0) / LAVA.CD, 0, 1)) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
-  { const FV = K.kind === 'fire', WPV = K.kind === 'priest', TV = K.kind === 'time', live = FV ? K.vPh >= 0 : WPV ? K.pPh >= 0 : TV ? K.cr >= 0 : K.ultPh >= 0, pr = TV && K.ulOn && !(K.cr >= 0) ? 0 : cl((K.kills - (K.ultBase || 0)) / ultNeed(K), 0, 1);
+  { const FV = K.kind === 'fire', WPV = K.kind === 'priest', TV = K.kind === 'time', NV = K.kind === 'ninja', live = FV ? K.vPh >= 0 : WPV ? K.pPh >= 0 : TV ? K.cr >= 0 : NV ? K.nPh >= 1 : K.ultPh >= 0, pr = TV && K.ulOn && !(K.cr >= 0) ? 0 : cl((K.kills - (K.ultBase || 0)) / ultNeed(K), 0, 1);
     document.body.classList.toggle('volc', FV && live); document.body.classList.toggle('drive', TV && carGone(K)); const vOpen = K.vPh === 1 || (K.vPh === 0 && K.vT >= V.RISE - 1); VTAP.classList.toggle('on', FV && vOpen && K.vSh < V.SHOTS && !(K.vBel >= 0)); if (FV && vOpen) { const tx = `Tap the screen to erupt · ${V.SHOTS - K.vSh} left`; if (VTAP.textContent !== tx) VTAP.textContent = tx; }
-    if (FV) ULI.style.height = (live ? (K.vPh === 1 ? 1 - K.vT / V.T : K.vPh === 0 ? 1 : 0) : pr) * 100 + '%'; else if (WPV) ULI.style.height = (live ? (K.pPh === 1 ? 1 - K.pT / WP.PEN.T : K.pPh === 0 ? 1 : 0) : pr) * 100 + '%'; else if (TV) ULI.style.height = (live ? (K.cr === 0 ? 1 : K.cr === 1 ? 1 - cl(K.crT / TT.CAR.T, 0, 1) : 0) : pr) * 100 + '%'; else ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live);
-    const lab = live ? (TV ? '' : FV ? (K.vPh === 1 ? Math.ceil(V.T - K.vT) + 's' : '') : WPV ? (K.pPh === 1 ? Math.ceil(WP.PEN.T - K.pT) + 's' : '') : K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (TV && K.ulOn ? 0 : K.kills - (K.ultBase || 0)) + '/' + ultNeed(K); if (ULS.textContent !== lab) ULS.textContent = lab;
+    if (FV) ULI.style.height = (live ? (K.vPh === 1 ? 1 - K.vT / V.T : K.vPh === 0 ? 1 : 0) : pr) * 100 + '%'; else if (WPV) ULI.style.height = (live ? (K.pPh === 1 ? 1 - K.pT / WP.PEN.T : K.pPh === 0 ? 1 : 0) : pr) * 100 + '%'; else if (TV) ULI.style.height = (live ? (K.cr === 0 ? 1 : K.cr === 1 ? 1 - cl(K.crT / TT.CAR.T, 0, 1) : 0) : pr) * 100 + '%'; else if (NV) ULI.style.height = (live ? (K.nPh === 1 ? 1 - cl(K.nT / NJ.ULT.PLAN, 0, 1) : 1 - cl(K.nT / NJ.ULT.STRIKE, 0, 1)) : pr) * 100 + '%'; else ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live);
+    const lab = live ? (TV || NV ? '' : FV ? (K.vPh === 1 ? Math.ceil(V.T - K.vT) + 's' : '') : WPV ? (K.pPh === 1 ? Math.ceil(WP.PEN.T - K.pT) + 's' : '') : K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (TV && K.ulOn ? 0 : K.kills - (K.ultBase || 0)) + '/' + ultNeed(K); if (ULS.textContent !== lab) ULS.textContent = lab;
     document.body.classList.toggle('pen', WPV && live); if (WPV && live && !PENPOS) penPos(); if (!(WPV && live)) PENPOS = 0;
     if (WPV) { dialIdle(K); if (K.hRet >= 0 && !(K.hRetSeen >= 0)) cancelSweepAim(); K.hRetSeen = K.hRet; DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); // while a slam's head is in the air the button is only ever Go to (lit once that's allowed), never another slam
     const early = K.ab === 'slam' && K.abT >= WP.SL.GOEARLY && gd(K.x, K.y, K.sx, K.sy) > WP.DRAG + 2, hOut = K.hOut > 0 || K.hRet >= 0 || early; const abBusy = !!K.penRet || K.ab === 'sweep' || K.ab === 'reel' || (K.ab === 'slam' && !early) || (!hOut && (K.slCd > 0 || K.slWait)); AOE.classList.toggle('out', hOut && !abBusy); AOE.classList.toggle('dim', abBusy); DASHE.classList.toggle('dim', !!K.penRet); if (K.penRet) cancelSweepAim(); BRB.classList.toggle('ready', K.hOut > 0); const al = hOut ? 'go to' : 'slam'; if (AOEL.textContent !== al) AOEL.textContent = al; SMI.style.height = (K.pPh === 1 ? 100 * cl(Math.hypot(K.hvx || 0, K.hvy || 0) / WP.PEN.MAXV, 0, 1) : 0) + '%'; } else if (!FV) { DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); } else { DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); } }
@@ -4821,10 +5134,14 @@ function draw() {
   // anything a press would call off reads 'cancel': the portal while he holds a weapon, the bike while it's coming or he's riding
   if (K.kind === 'time') { const pl = K.wpS === 2 ? 'CANCEL' : 'PORTAL', bl = K.bk === 0 || K.bk === 1 ? 'cancel' : 'bike'; if (SPNL.textContent !== pl) SPNL.textContent = pl; if (DSHL.textContent !== bl) DSHL.textContent = bl; }
   if (K.kind === 'fire') AOEI.style.height = (K.coT >= 0 ? 100 : cl((K.coCd || 0) / CO.CD, 0, 1) * 100) + '%';
+  // the ninja's leap circle shows its charges; the ult's planning hides every control and shows the hint
+  { const NV2 = K.kind === 'ninja', pl = NV2 && K.nPh === 1; document.body.classList.toggle('njult', pl); NJT.classList.toggle('on', pl);
+    if (NV2) { const Q = K.nQ ?? NJ.LEAP.N, lb = `leap\n${Q} charge${Q === 1 ? '' : 's'}`, sm2 = AOE.querySelector('small'); if (sm2 && sm2.textContent !== lb) sm2.textContent = lb; AOE.classList.toggle('dim', Q <= 0); AOEI.style.height = (Q < NJ.LEAP.N ? cl((K.nCd || 0) / NJ.LEAP.CD, 0, 1) : 0) * 100 + '%'; }
+    else if (K.kind !== 'time' && AOE.querySelector('small') && /charge/.test(AOE.querySelector('small').textContent)) AOE.querySelector('small').textContent = K.kind === 'fire' ? 'coals' : K.kind === 'priest' ? 'slam' : 'leap'; }
   // breath charge fills the breath stick's ring with orange from the bottom
   { const rs = document.getElementById('rst'); rs.style.background = K.kind === 'fire' ? `linear-gradient(to top, ${K.lava ? '#f5c518cc' : '#f0a04a88'} ${100 * cl((K.lava ? (K.lvW > 0 ? K.lvW / LAVA.T : 1) : (K.brC ?? FIRE.BR_T) / FIRE.BR_T), 0, 1)}%, #ffffff14 0)` : ''; }
   if (K.kind === 'fire') BSTI.style.height = (100 * (1 - cl((K.brC ?? FIRE.BR_T) / FIRE.BR_T, 0, 1))) + '%';
-  if (K.kind === 'priest') { DASHI.style.height = (K.ab === 'sweep' ? 100 : cl((K.swCd || 0) / WP.SW.CD, 0, 1) * 100) + '%'; AOEI.style.height = (K.hOut > 0 ? 0 : K.ab === 'slam' ? 100 : cl((K.slCd || 0) / WP.SL.CD, 0, 1) * 100) + '%'; } else if (K.kind === 'time') DASHI.style.height = (K.bk === 1 ? 100 * (1 - K.bkT / TT.BIKE.T) : K.bk >= 0 ? 100 : cl((K.bkCd || 0) / TT.BIKE.CD, 0, 1) * 100) + '%'; else if (K.kind === 'fire') DASHI.style.height = (K.plT >= 0 ? 100 * (1 - K.plT / PL.T) : cl((K.plCd || 0) / PL.CD, 0, 1) * 100) + '%'; else DASHI.style.height = (K.ab === 'dash' ? 100 : cl((K.dashCd || 0) / DASH_CD, 0, 1) * 100) + '%'; if (K.kind !== 'fire' && K.kind !== 'priest' && K.kind !== 'time') AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
+  if (K.kind === 'priest') { DASHI.style.height = (K.ab === 'sweep' ? 100 : cl((K.swCd || 0) / WP.SW.CD, 0, 1) * 100) + '%'; AOEI.style.height = (K.hOut > 0 ? 0 : K.ab === 'slam' ? 100 : cl((K.slCd || 0) / WP.SL.CD, 0, 1) * 100) + '%'; } else if (K.kind === 'time') DASHI.style.height = (K.bk === 1 ? 100 * (1 - K.bkT / TT.BIKE.T) : K.bk >= 0 ? 100 : cl((K.bkCd || 0) / TT.BIKE.CD, 0, 1) * 100) + '%'; else if (K.kind === 'fire') DASHI.style.height = (K.plT >= 0 ? 100 * (1 - K.plT / PL.T) : cl((K.plCd || 0) / PL.CD, 0, 1) * 100) + '%'; else DASHI.style.height = (K.ab === 'dash' ? 100 : cl((K.dashCd || 0) / DASH_CD, 0, 1) * 100) + '%'; if (K.kind !== 'fire' && K.kind !== 'priest' && K.kind !== 'time' && K.kind !== 'ninja') AOEI.style.height = (K.ab === 'leap' ? 100 : cl((K.leapCd || 0) / LEAP_CD, 0, 1) * 100) + '%';
 }
 // frame pacing: high-refresh screens (120-240Hz) would step and draw 2-4x as often as a phone; frames closer than 10.5ms are skipped (~90fps at most).
 // QL: if frames average over 24ms (under ~42fps) for a second the resolution steps down (to 55% at least); after 10s of smooth frames it tries a step back up,
@@ -4967,7 +5284,7 @@ DASHE.addEventListener('pointerup', e => dashEnd(e, true)); DASHE.addEventListen
 let aoeId = null;
 const aoeUpd = e => { const r = AOE.getBoundingClientRect(), R = r.width / 2; let dx = (e.clientX - r.left - R) / R, dy = (e.clientY - r.top - R) / R; const d = Math.hypot(dx, dy); if (d > 1) { dx /= d; dy /= d; } LEAPAIM = [dx, dy]; if (KN[ME] && KN[ME].kind === 'fire') { COAIM = LEAPAIM; LEAPAIM = null; } AOED.style.transform = `translate(${dx * (R - 13)}px,${dy * (R - 13)}px)`; };
 // with the shotgun, the circle is a button: a tap starts drawing the strafe on the field (it reads 'cancel' then), another tap calls it off
-let HDRAW = null; const HDT = document.getElementById('hdtap'); const hdOK = () => { const kn = KN[ME]; return kn && kn.kind === 'time' && kn.wpS === 2 && kn.wpn === 2 && !(kn.hl >= 0) && !(kn.hlCd > 0) && kn.st !== 'kneel'; };
+let HDRAW = null; const HDT = document.getElementById('hdtap'), NJT = document.getElementById('njtap'); const hdOK = () => { const kn = KN[ME]; return kn && kn.kind === 'time' && kn.wpS === 2 && kn.wpn === 2 && !(kn.hl >= 0) && !(kn.hlCd > 0) && kn.st !== 'kneel'; };
 const hdToggle = () => { HDRAW = HDRAW ? null : hdOK() ? { s: null, e: null, id: null } : null; };
 addEventListener('pointerdown', e => { if (!HDRAW || e.target !== cv || HDRAW.id !== null) return; HDRAW.id = e.pointerId; HDRAW.s = s2w(e.clientX, e.clientY); HDRAW.e = HDRAW.s.slice(); e.stopPropagation(); e.preventDefault(); }, true);
 addEventListener('pointermove', e => { if (HDRAW && e.pointerId === HDRAW.id) { HDRAW.e = s2w(e.clientX, e.clientY); e.stopPropagation(); } }, true);
@@ -5039,15 +5356,15 @@ const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase
 // the same id every time this device joins, so a player who drops and rejoins gets his own seat (and knight) back instead of a new one
 const myPid = (() => { let id = null; try { id = localStorage.getItem('kn_pid'); } catch (e) { } if (!id) { id = Math.random().toString(36).slice(2, 10); try { localStorage.setItem('kn_pid', id); } catch (e) { } } return id; })();
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plE', 'plD', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'a2T', 'a2s', 'wpM', 'hl', 'hla', 'hlL', 'hlx', 'hly', 'hlN', 'hlCd', 'dn', 'dnf', 'dnx', 'dny', 'dnN', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc', 'cr', 'crT', 'crN', 'crh', 'cv', 'cvx', 'cvy', 'cyr', 'cxp', 'cyp', 'cx0', 'cy0', 'ctx', 'cty', 'cph', 'cHit', 'ulOn', 'cdn', 'ctu', 'cfx', 'cfy', 'cfvx', 'cfvy', 'ckx', 'cky', 'csx', 'csy', 'clx', 'cly', 'uC', 'dg', 'dgN', 'cHitN', 'chd', 'cHT', 'spx', 'spy', 'spz', 'sdx', 'sdy', 'sdz', 'sd0x', 'sd0y', 'sd0z', 'spv', 'sTr', 'cEj', 'cBl', 'ex0', 'ey0', 'ez0', 'cBk'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plE', 'plD', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'a2T', 'a2s', 'wpM', 'hl', 'hla', 'hlL', 'hlx', 'hly', 'hlN', 'hlCd', 'dn', 'dnf', 'dnx', 'dny', 'dnN', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc', 'cr', 'crT', 'crN', 'crh', 'cv', 'cvx', 'cvy', 'cyr', 'cxp', 'cyp', 'cx0', 'cy0', 'ctx', 'cty', 'cph', 'cHit', 'ulOn', 'cdn', 'ctu', 'cfx', 'cfy', 'cfvx', 'cfvy', 'ckx', 'cky', 'csx', 'csy', 'clx', 'cly', 'uC', 'dg', 'dgN', 'cHitN', 'chd', 'cHT', 'spx', 'spy', 'spz', 'sdx', 'sdy', 'sdz', 'sd0x', 'sd0y', 'sd0z', 'spv', 'sTr', 'cEj', 'cBl', 'ex0', 'ey0', 'ez0', 'cBk', 'nl', 'nw', 'nQ', 'nCd', 'nlN', 'nx0', 'ny0', 'nx1', 'ny1', 'nPh', 'nT', 'nUN', 'nSd', 'njF'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
-const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, hdN: n.hdN || 0, hdP: n.hdP || null, twV: n.twV || 0, la: n.la || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
+const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, hdN: n.hdN || 0, hdP: n.hdP || null, twV: n.twV || 0, la: n.la || null, nj: n.nj || null, njN: n.njN || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 // a knight's state: the whole list once a second, otherwise only the fields that changed since the last snapshot ([index, value, ...])
 const kfSame = (a, b) => a === b || (a !== null && typeof a === 'object' && JSON.stringify(a) === JSON.stringify(b));
 const packK = (kn, i, full) => { const v = KF.map(k => r3(kn[k])), P = NET.kPrev || (NET.kPrev = []), prev = P[i]; P[i] = v; const o = { in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] };
   if (kn.i !== ME && kn.in && kn.in.ts) o.a = kn.in.ts; if (full || !prev) o.v = v; else { const d = []; for (let j = 0; j < v.length; j++) if (!kfSame(v[j], prev[j])) d.push(j, v[j]); o.d = d; } return o; };
 // a player is called by their character; a second one of the same gets a number (Knight 2)
-const cName = kn => kn && (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) ? 'Firebreather' : kn && (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) ? 'Warpriest' : kn && (kn.kind === 'time' || (kn.in && kn.in.ch === 'time')) ? 'Time Traveler' : kn && (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) ? 'Swordmaster' : 'Knight';
+const cName = kn => kn && (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) ? 'Firebreather' : kn && (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) ? 'Warpriest' : kn && (kn.kind === 'time' || (kn.in && kn.in.ch === 'time')) ? 'Time Traveler' : kn && (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) ? 'Swordmaster' : kn && (kn.kind === 'ninja' || (kn.in && kn.in.ch === 'ninja')) ? 'Ninja' : 'Knight';
 const pName = i => { const kn = KN[i], n = cName(kn), same = LIVE().filter(o => cName(o) === n); return same.length > 1 && kn ? n + ' ' + (same.indexOf(kn) + 1) : n; };
 // kept small: with 4 players and MAX hordes a snapshot carries ~500 enemies; positions to 0.5 units (guests ease toward them anyway)
 // walkers go out as one flat list, 6 numbers each: id, x, y, hp, attack (x10, -1 idle), bits (1 burn, 2 chained, 4 slowed, 8 grabbed, 16 hit flash, target knight x32, height x128);
@@ -5065,21 +5382,21 @@ function renderGames() { const el = document.getElementById('lGames'), nt = docu
   el.querySelectorAll('[data-code]').forEach(b => b.onclick = () => join(b.dataset.code)); }
 function browse(on) { if (dirT) clearInterval(dirT); dirT = null; if (on) { fetchGames(); dirT = setInterval(fetchGames, 5000); } }
 // the host lists its game while it has room, the whole time it's running (people can join mid-fight)
-function gameRow() { const L2 = NET.started ? LIVE() : [], j = Math.max(1, L2.length), open = j < MAXP, chars = NET.started ? L2.map(kn => cName(kn)).join(', ') : (CHAR === 'fire' ? 'Firebreather' : CHAR === 'priest' ? 'Warpriest' : CHAR === 'time' ? 'Time Traveler' : CHAR === 'sword' ? 'Swordmaster' : 'Knight');
+function gameRow() { const L2 = NET.started ? LIVE() : [], j = Math.max(1, L2.length), open = j < MAXP, chars = NET.started ? L2.map(kn => cName(kn)).join(', ') : (CHAR === 'fire' ? 'Firebreather' : CHAR === 'priest' ? 'Warpriest' : CHAR === 'time' ? 'Time Traveler' : CHAR === 'sword' ? 'Swordmaster' : CHAR === 'ninja' ? 'Ninja' : 'Knight');
   return { code: 'KN' + NET.code, name: ((myName !== 'Knight' ? myName + "'s" : 'Open') + ' brawl').slice(0, 40), host: myName.slice(0, 20), mode: 'brawl', n: MAXP, joined: open ? Math.min(j, MAXP - 1) : MAXP, heroes: (chars + '|' + j + '/' + MAXP).slice(0, 120), version: DIRV() }; }
 function advertise() { const sb = getSB(); if (!sb || !NET || NET.mode !== 'host') return; advertised = 'KN' + NET.code;
   const beat = () => { if (!NET || NET.mode !== 'host') return unadvertise(); sb.from('bod_lobbies').upsert(gameRow(), { onConflict: 'code' }).then(() => { }, () => { }); }; NET.beat = beat; beat(); if (!beatT) beatT = setInterval(beat, 5000); }
 function unadvertise() { if (beatT) clearInterval(beatT); beatT = null; const sb = getSB(); if (advertised && sb) { const c = advertised; advertised = null; sb.from('bod_lobbies').delete().eq('code', c).then(() => { }, () => { }); } }
 addEventListener('pagehide', () => { if (advertised) unadvertise(); });
 // a picture of a character for the menu: a stand-in drawn once into a small canvas (cached per character + colour)
-const WATCH = '<svg viewBox="0 0 24 28" width="13" height="16" aria-hidden="true"><rect x="10.3" y="1" width="3.4" height="3" rx="1" fill="#c99a3a"/><path d="M12 4v2.4" stroke="#c99a3a" stroke-width="1.6"/><circle cx="12" cy="16.5" r="10" fill="#c99a3a"/><circle cx="12" cy="16.5" r="8.2" fill="#f4ecd8"/><g stroke="#3a2c18" stroke-width=".9"><path d="M12 9.3v1.5" transform="rotate(0 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(30 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(60 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(90 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(120 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(150 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(180 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(210 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(240 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(270 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(300 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(330 12 16.5)"/></g><path d="M12 16.5V11.4M12 16.5l3.4 2" stroke="#2a2016" stroke-width="1.3" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1" fill="#2a2016"/></svg>', CPIC = {}, CNAME = { knight: 'Knight', fire: 'Firebreather', priest: 'Warpriest', time: 'Time Traveler', sword: 'Swordmaster' };
+const WATCH = '<svg viewBox="0 0 24 28" width="13" height="16" aria-hidden="true"><rect x="10.3" y="1" width="3.4" height="3" rx="1" fill="#c99a3a"/><path d="M12 4v2.4" stroke="#c99a3a" stroke-width="1.6"/><circle cx="12" cy="16.5" r="10" fill="#c99a3a"/><circle cx="12" cy="16.5" r="8.2" fill="#f4ecd8"/><g stroke="#3a2c18" stroke-width=".9"><path d="M12 9.3v1.5" transform="rotate(0 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(30 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(60 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(90 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(120 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(150 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(180 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(210 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(240 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(270 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(300 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(330 12 16.5)"/></g><path d="M12 16.5V11.4M12 16.5l3.4 2" stroke="#2a2016" stroke-width="1.3" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1" fill="#2a2016"/></svg>', CPIC = {}, CNAME = { knight: 'Knight', fire: 'Firebreather', priest: 'Warpriest', time: 'Time Traveler', sword: 'Swordmaster', ninja: 'Ninja' };
 function charPic(kind, w = 96, h = 120) { const col = MYCOL || KCOLS[0], key = kind + '|' + col + '|' + w; if (CPIC[key]) return CPIC[key];
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const g = cv.getContext('2d'), k0 = K;
   const kn = mkKnight(0); Object.assign(kn, { col, kind, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, f: 1, x: 0, y: 0 });
-  try { if (kind === 'fire') makeFire(kn); else if (kind === 'priest') makePriest(kn); else if (kind === 'time') makeTime(kn);
+  try { if (kind === 'fire') makeFire(kn); else if (kind === 'priest') makePriest(kn); else if (kind === 'time') makeTime(kn); else if (kind === 'ninja') makeNinja(kn);
     Object.assign(kn, { st: 'fight', u: 1, kn: 0, hold: 1, x: 0, y: 0, f: 1 }); if (kind === 'priest') Object.assign(kn, { hx: 14, hy: 6, hz: 0 });
-    K = kn; const S = { knight: 4.4, fire: 2.9, priest: 3.1, time: 3.6 }[kind] || 3.6; g.translate(w / 2, h * 0.86); g.scale(S, S);
-    if (kind === 'fire') drawFire(g, 1.2); else if (kind === 'priest') drawPriest(g, 1.2); else if (kind === 'time') drawTime(g, 1.2); else drawKnight(g, 1.2);
+    K = kn; const S = { knight: 4.4, fire: 2.9, priest: 3.1, time: 3.6, ninja: 4.6 }[kind] || 3.6; g.translate(w / 2, h * 0.86); g.scale(S, S);
+    if (kind === 'fire') drawFire(g, 1.2); else if (kind === 'priest') drawPriest(g, 1.2); else if (kind === 'time') drawTime(g, 1.2); else if (kind === 'ninja') drawNinja(g, 1.2); else drawKnight(g, 1.2);
   } catch (e) { console.warn('charPic', kind, e); } K = k0; return CPIC[key] = cv.toDataURL(); }
 window.__charPic = charPic; window.__ttPic = (st, u, spd, tt = 1.2) => { const cv = document.createElement('canvas'); cv.width = 260; cv.height = 320; const g = cv.getContext('2d'), k0 = K; g.fillStyle = '#556'; g.fillRect(0, 0, 260, 320);
   const kn = mkKnight(0); Object.assign(kn, { col: MYCOL || KCOLS[0], x: 0, y: 0, f: 1 }); makeTime(kn); Object.assign(kn, { st, u, spd, x: 0, y: 0, f: 1, gp: 1 }); K = kn; g.translate(130, 290); g.scale(12, 12); for (let i = 0; i < 40; i++) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = "#556"; g.fillRect(0, 0, 260, 320); g.restore(); drawTime(g, tt); } K = k0; return cv.toDataURL(); }; window.__join = c => join(c); window.__NETS = () => NET && { seats: NET.seats, me: ME };
@@ -5091,7 +5408,7 @@ function lobby(screen, extra) {
     <button class="big pri" id="lHost" ${getSB() ? '' : 'disabled'}>Host a game</button>
     <button class="big" id="lChars"><img src="${charPic(CHAR)}" alt=""><span><small>Character</small>${CNAME[CHAR] || 'Knight'}</span></button>
     <button class="big" id="lSolo">Play solo</button><button class="fsBtn">&#x26F6; Full screen</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
-  else if (screen === 'chars') LC.innerHTML = `<h1>Characters</h1><div class="cgrid">${['knight', 'fire', 'priest', 'time'].map(k => `<button data-ch="${k}" class="${CHAR === k ? 'on' : ''}"><img src="${charPic(k)}" alt=""><span>${CNAME[k]}</span></button>`).join('')}</div>
+  else if (screen === 'chars') LC.innerHTML = `<h1>Characters</h1><div class="cgrid">${['knight', 'fire', 'priest', 'time', 'ninja'].map(k => `<button data-ch="${k}" class="${CHAR === k ? 'on' : ''}"><img src="${charPic(k)}" alt=""><span>${CNAME[k]}</span></button>`).join('')}</div>
     <button class="big" id="lLay">Control layout · ${CNAME[CHAR] || 'Knight'}</button><button class="big pri" id="lBack">Done</button>`;
   else if (screen === 'hosting') LC.innerHTML = `<h1>Knight Brawl</h1><p>Give your friends this code</p><div class="code">${NET.code}</div><p>Waiting for players (up to 4; others can join any time)…</p>
     <button class="big" id="lSoloH">Start now (they can still join)</button><button id="lCancel">Cancel</button>`;
@@ -5178,10 +5495,10 @@ function applySnap(S) {
 }
 // ---------- control layout: each player drags/resizes the touch controls, per character and orientation (saved on this device) ----------
 const CTLS = { move: ['lst', 'Move stick'], swing: ['rst', 'Swing stick'], dash: ['dash', 'Dash aim'], leap: ['aoe', 'Leap aim'], spin: ['spin', 'Spin button'], ult: ['ult', 'Ult button'], breath: ['bst', 'Breath stick'], bring: ['bring', 'Bring in button'] };
-const layCh = () => CHAR === 'fire' || CHAR === 'priest' || CHAR === 'sword' || CHAR === 'time' ? CHAR : 'knight';
+const layCh = () => CHAR === 'fire' || CHAR === 'priest' || CHAR === 'sword' || CHAR === 'time' || CHAR === 'ninja' ? CHAR : 'knight';
 // the HUD for the character being played: which controls show and what they're called
 let CHAR_UI = null;
-function charUI(kind) { CHAR_UI = kind; const fire = kind === 'fire', pr = kind === 'priest', swd = kind === 'sword', tm = kind === 'time'; document.body.classList.toggle('sword', swd); document.body.classList.toggle('time', tm); document.getElementById('help').textContent = fire ? 'WASD/arrows move · hold mouse to breathe at the cursor · E lava · hold Shift to ride a plume the way you move · hold Q to aim the coals at the cursor, release to run them · R volcano, then click to erupt · wheel zoom' : pr ? 'WASD/arrows move · hold mouse to swing the censer toward the cursor · Shift sweep the flail at the cursor · hold Q to aim the slam, release to throw (again to pull yourself to it) · F bring the head in · E holy flame · R penance: WASD/mouse steer the flail, Space smash · wheel zoom' : swd ? 'WASD/arrows move · hold mouse to cut toward the cursor (a three-cut combo while held) · wheel zoom' : tm ? 'WASD/arrows move · hold mouse to swing the cane (or fire the weapon) at the cursor · E opens a portal for a random weapon · Shift calls the motorcycle the way you move, then WASD steers · wheel zoom' : 'WASD/arrows move · hold mouse to swing toward cursor · Space spin · Shift dash where you\'re moving · hold Q to aim the leap at the cursor, release to jump · R ult · wheel zoom'; document.body.classList.toggle('fire', fire); document.body.classList.toggle('priest', pr); document.querySelector('#rst small').textContent = fire ? 'breath' : pr ? 'censer' : swd ? 'blades' : tm ? 'cane' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : pr ? 'sweep' : tm ? 'bike' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : pr ? 'slam' : 'leap'; document.querySelector('#spin span').textContent = fire ? 'LAVA' : pr ? 'HOLY' : tm ? 'PORTAL' : 'SPIN'; }
+function charUI(kind) { CHAR_UI = kind; const fire = kind === 'fire', pr = kind === 'priest', swd = kind === 'sword', tm = kind === 'time', nj = kind === 'ninja'; document.body.classList.toggle('sword', swd); document.body.classList.toggle('ninja', nj); document.body.classList.toggle('time', tm); document.getElementById('help').textContent = fire ? 'WASD/arrows move · hold mouse to breathe at the cursor · E lava · hold Shift to ride a plume the way you move · hold Q to aim the coals at the cursor, release to run them · R volcano, then click to erupt · wheel zoom' : pr ? 'WASD/arrows move · hold mouse to swing the censer toward the cursor · Shift sweep the flail at the cursor · hold Q to aim the slam, release to throw (again to pull yourself to it) · F bring the head in · E holy flame · R penance: WASD/mouse steer the flail, Space smash · wheel zoom' : swd ? 'WASD/arrows move · hold mouse to cut toward the cursor (a three-cut combo while held) · wheel zoom' : nj ? 'WASD/arrows move · hold mouse to cut toward the cursor · hold Q to aim the leap at the cursor, release to leap (3 charges) · R ult: drag the three joints of the strike in slow motion · wheel zoom' : tm ? 'WASD/arrows move · hold mouse to swing the cane (or fire the weapon) at the cursor · E opens a portal for a random weapon · Shift calls the motorcycle the way you move, then WASD steers · wheel zoom' : 'WASD/arrows move · hold mouse to swing toward cursor · Space spin · Shift dash where you\'re moving · hold Q to aim the leap at the cursor, release to jump · R ult · wheel zoom'; document.body.classList.toggle('fire', fire); document.body.classList.toggle('priest', pr); document.querySelector('#rst small').textContent = fire ? 'breath' : pr ? 'censer' : swd ? 'blades' : tm ? 'cane' : nj ? 'ninjato' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : pr ? 'sweep' : tm ? 'bike' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : pr ? 'slam' : 'leap'; document.querySelector('#spin span').textContent = fire ? 'LAVA' : pr ? 'HOLY' : tm ? 'PORTAL' : 'SPIN'; }
 let LAY = {}; try { LAY = JSON.parse(localStorage.getItem('kn_layout') || '{}') || {}; } catch (e) { }
 // plume and coals swapped places: carry a Firebreather layout saved before that over, so his saved spots swap too
 if (LAY.fire && !LAY.fire.sw1) { for (const o of ['landscape', 'portrait']) { const L = LAY.fire[o]; if (L) { const d = L.dash; L.dash = L.leap; L.leap = d; if (!L.dash) delete L.dash; if (!L.leap) delete L.leap; } } LAY.fire.sw1 = 1; try { localStorage.setItem('kn_layout', JSON.stringify(LAY)); } catch (e) { } }
@@ -5254,7 +5571,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '9a3fa9';
+const KBUILD = '1e3dcc';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
