@@ -4223,7 +4223,7 @@ function carStep(dt, t, IN, mvL) { const C = TT.CAR; K.crT += dt;
   return true; }
 // ---- the stampede: small groups (1-5) keep crossing near him through the whole ride, each out of its own portal and into another ----
 // group = [id, start on the ride clock uC, entry x, y, heading (ground), count, half-length, seed]; the host adds them, everyone draws them the same way
-TT.DG = { EVERY: [0.45, 1.0], OPEN: 0.4, HALF: [150, 215], SPD: [[250, 290], [190, 215], [165, 175]], R: [6.25, 11.25, 16.25], SNAG: 0.4, CAP: [12, 3], DMG: [220, 450, 650], DS: [1.25, 1.45, 2.1], RY: [13, 19, 31], EAT: 0.3, EATR: 26 };
+TT.DG = { EVERY: [0.45, 1.0], OPEN: 0.4, HALF: [202.5, 290.25], SPD: [[250, 290], [190, 215], [165, 175]], R: [6.25, 11.25, 16.25], SNAG: 0.4, CAP: [12, 3], DMG: [220, 450, 650], DS: [1.25, 1.45, 2.1], RY: [13, 19, 31], EAT: 0.3, EATR: 26 };
 function dgMembers(g) { if (g.m) return g.m; const D = TT.DG, R = shipRnd({ scx: g[7], scy: g[0], scN: g[5] }), n = g[5], m = [];
   for (let i = 0; i < n; i++) { const k = i === 0 && n <= 2 && R(i * 7 + 1) < 0.35 ? 2 : R(i * 7 + 2) < 0.33 ? 1 : 0, s = D.SPD[k];
     m.push({ k, off: (i - (n - 1) / 2) * 11 + (R(i * 7 + 3) - 0.5) * 5, delay: i * 0.14 + R(i * 7 + 4) * 0.3, spd: lerp(s[0], s[1], R(i * 7 + 5)), sc: 0.9 + R(i * 7 + 6) * 0.2, ph: R(i * 7 + 7) * 6.28 }); }
@@ -4232,7 +4232,7 @@ const dgD = (g, q, uC) => q.spd * (uC - g[1] - TT.DG.OPEN - q.delay) - 28;
 const dgEnd = g => g[1] + TT.DG.OPEN + Math.max(...dgMembers(g).map(q => q.delay + (2 * g[6] + 28 + 45) / q.spd)) + 0.35;
 function dgAt(g, q, uC) { const d = dgD(g, q, uC), f = gDir(g[4]), p = gDir(g[4] + Math.PI / 2), pl = Math.hypot(...p) || 1; return [g[2] + f[0] * d + p[0] / pl * q.off, g[3] + f[1] * d + p[1] / pl * q.off * 0.8, d]; }
 function dgSpawn() { const D = TT.DG, n = [1, 1, 2, 2, 3, 3, 4, 5][Math.floor(Math.random() * 8)], ang = (Math.random() < 0.5 ? 0 : Math.PI) + rr(-0.55, 0.55), P = [K.x + rr(-80, 80), cl(K.y + rr(-60, 60), 34, H - 22)], d = gDir(ang);
-  let half = rr(D.HALF[0], D.HALF[1]); if (Math.abs(d[1]) > 0.01) half = Math.min(half, (d[1] > 0 ? H - 12 - P[1] : P[1] - 24) / Math.abs(d[1]), (d[1] > 0 ? P[1] - 24 : H - 12 - P[1]) / Math.abs(d[1])); half = Math.max(70, half);
+  let half = rr(D.HALF[0], D.HALF[1]); if (Math.abs(d[1]) > 0.01) half = Math.min(half, (d[1] > 0 ? H - 12 - P[1] : P[1] - 24) / Math.abs(d[1]), (d[1] > 0 ? P[1] - 24 : H - 12 - P[1]) / Math.abs(d[1])); half = Math.max(94.5, half);
   K.dgN = (K.dgN || 0) + 1; K.dg = K.dg.concat([[K.dgN, Math.round(K.uC * 100) / 100, r1(P[0] - d[0] * half), r1(P[1] - d[1] * half), Math.round(ang * 1000) / 1000, n, Math.round(half), Math.floor(Math.random() * 1e6)]]); }
 // the ride clock, new groups while he's in the ride (host), finished groups dropped, trampling (host)
 function dgStep(dt, t) { K.uC = (K.uC || 0) + dt;
