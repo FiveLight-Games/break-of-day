@@ -2118,7 +2118,7 @@ function drawLava(c, kn, t) { const dtv = Math.min(0.1, Math.max(0, t - (kn.lvT0
 // the flail head lies where it was last dragged: walking toward it leaves it be; once he's further than the chain allows (hL, normally DRAG) it's dragged after him, gouging the ground
 const WP = { PLOW: { BR: 4.6, BIGR: 9, SLOW: 0.8, DMG: 14, KB: 70, GAP: 0.45, STEP: 8.5, SHK: 0.09 }, S: KS * 1.3, RUN: 0.82, ATK: 0.7, ABMV: 0.55, DRAG: 65.6, HR: 6.3, REEL: 45, MAXC: 156, SLOWK: 0.45, IMP: 0.4,
   TOUCH: { DMG: 35, DRAG: 70, CD: 0.5 },
-  CEN: { T: 0.58, R: 26, ARC: 1.35, COCK: 0.4, DMG: 70, KB: 230, TICK: 1, PCT: 0.035 },
+  CEN: { T: 0.58, R: 26, ARC: 1.35, COCK: 0.4, DMG: 70, KB: 230, PCT: 0.05 },
   SW: { GRAB: 1.0, BASE: 4, BLEND: 0.15, PREP: 0.12, GO: 0.24, SPD: 175, REC: 0.25, ARC: Math.PI * 4 / 3, RMAX: 65.6, RMIN: 12, NEAR: 14, DMG: 90, HEAD: 180, SLOW: 2.5, CD: 7, CD0: 2 },
   SL: { WIND: 0.2, FLY: 0.4, REC: 0.3, RANGE: 104, WAVE: 38, DMG: 275, WDMG: 75, SLOW: 3, BIND: 3, BINDR: 11, HOLD: 3.5, RET: 0.55, CD: 1.75, GOCD: 0, GOEARLY: 0.65, REEL: 0.45, RDMG: 90, PDMG: 110, PKB: 280, PW: 10.1, RW: 9.06, LAND: 16, LDMG: 80 },
   HO: { T: 6, CD: 15, R: 20, DPS: 70, CDPS: 50 },
@@ -2213,7 +2213,7 @@ function censerHit(u0, u1) {
   for (const w of walkers) { if (w.hp <= 0 || w.cenCut === id) continue; const U = UK[w.k], dx = w.x - K.x, dy = w.y - K.y, d = Math.hypot(dx, dy * 1.25); if (d > WP.CEN.R + U.r) continue;
     let da = wrapA((Math.atan2(dy, dx) - a0) * s); if (d > 7 + U.r && (da < -0.12 - U.r / Math.max(d, 4) || da > span + 0.12 + U.r / Math.max(d, 4))) continue;
     if (d <= 7 + U.r && Math.cos(Math.atan2(dy, dx) - K.cenA) < 0) continue;
-    w.cenCut = id; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; if (!(w.cb > 0)) w.cbN = WP.CEN.TICK; w.cb = FIRE.BURN; w.cbs = K.i; const a = Math.atan2(dy, dx); w.kx += Math.cos(a) * WP.CEN.KB; w.ky += Math.sin(a) * WP.CEN.KB * 0.55; hurt(w, WP.CEN.DMG, spinFx); }
+    w.cenCut = id; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; w.cb = FIRE.BURN; w.cbs = K.i; const a = Math.atan2(dy, dx); w.kx += Math.cos(a) * WP.CEN.KB; w.ky += Math.sin(a) * WP.CEN.KB * 0.55; hurt(w, WP.CEN.DMG, spinFx); }
 }
 // HOLY sets the chain alight too: anyone touching it from his hand to the head burns
 function chainBurn(dt) { const a = [K.x, K.y], b = [K.hx, K.hy];
@@ -4560,10 +4560,10 @@ function worldStep(dt, t) {
   for (const w of walkers) {
     w.hit = Math.max(0, w.hit - dt); w.cd -= dt; if (w.sl > 0) w.sl -= dt; if (w.pSl > 0) w.pSl -= dt;
     // big enemies: a ram never catches fire, the tarrasque can't be slowed, trolls regenerate unless burned in the last 3s, and nothing interrupts their swings
-    { const U0 = UK[w.k]; if (U0.heavy) { if (U0.noBurn) w.bd = w.cb = 0; if (U0.unst) { w.sl = 0; w.pSl = 0; } if (w.atkH >= 0 && w.atk < 0 && w.hp > 0) w.atk = w.atkH;
+    { const U0 = UK[w.k]; if (U0.heavy) { if (U0.noBurn && !(w.cb > 0)) w.bd = 0; if (U0.unst) { w.sl = 0; w.pSl = 0; } if (w.atkH >= 0 && w.atk < 0 && w.hp > 0) w.atk = w.atkH;
       if (U0.regen) { if (w.bd > 0) w.nb = 3; else if ((w.nb = (w.nb || 0) - dt) <= 0 && w.hp > 0 && w.hp < w.max) w.hp = Math.min(w.max, w.hp + w.max * U0.regen * dt); } } }
-    // the censer's fire: 3.5% of max hp every second while it burns (its own timer, on top of the normal afterburn)
-    if (w.cb > 0) { w.cb -= dt; w.cbN -= dt; if (w.cbN <= 0) { w.cbN += WP.CEN.TICK; w.hp -= w.max * WP.CEN.PCT; if (w.hp <= 0 && !w.dead) { const k0 = K; K = KN[w.cbs] || KN[0]; K.kills++; burnFx(w); K = k0; continue; } } }
+    // the censer's holy fire (not HOLY's): an extra 5% of max hp per second on top of the afterburn, for as long as it burns; it even burns the siege ram
+    if (w.cb > 0) { w.cb -= dt; w.hp -= w.max * WP.CEN.PCT * dt; if (w.hp <= 0 && !w.dead) { const k0 = K; K = KN[w.cbs] || KN[0]; K.kills++; burnFx(w); K = k0; continue; } }
     if (w.bd > 0) { w.bd -= dt; w.hp -= FIRE.BURN_DPS * (UK[w.k].fireMul || 1) * dt; if (w.hp <= 0 && !w.dead) { const k0 = K; K = KN[w.bsrc] || KN[0]; K.kills++; burnFx(w); K = k0; continue; } }
     // chained to a Warpriest's flail head: carried with it, can't fight
     if (w.bT > 0) { w.bT -= dt; const P = KN[w.bnd]; if (P && P.on !== 0) { w.x = P.hx + w.box; w.y = P.hy + w.boy; } w.atk = -1; w.kx = w.ky = 0; if (w.bT <= 0) w.bnd = null; continue; }
