@@ -277,7 +277,7 @@ function startDash(v) {
   const l = Math.hypot(v[0], v[1]) || 1, d = [v[0] / l, v[1] / l]; Object.assign(K, { dvx: d[0], dvy: d[1], slice: [], ab: 'dash', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: K.x + d[0] * DASH_D, ay1: cl(K.y + d[1] * DASH_D * 0.8, 16, H - 4), dashCd: DASH_CD + DT_PREP + DT_GO + DT_REC });
   if (Math.abs(d[0]) > 0.2) K.f = d[0] > 0 ? 1 : -1;
 }
-function leapTarget(kn, v) { if (kn.kind === 'priest') return slamTarget(kn, v); if (kn.kind === 'time') { const R = kn.wpn === 4 ? TT.TRAP.RANGE : kn.wpn === 1 ? TT.BOOM.RANGE : TT.HURL.RANGE, out = kn.wpn === 3 && kn.hu === 2, bx = out ? kn.hux : kn.x, by = out ? kn.huy : kn.y; return [bx + v[0] * R, cl(by + v[1] * R * 0.8, 16, H - 4)]; } const R = LEAP_R * (kn.ultPh >= 0 ? ULT_LEAP : 1); return [kn.x + v[0] * R, cl(kn.y + v[1] * R * 0.8, 16, H - 4)]; }
+function leapTarget(kn, v) { if (kn.kind === 'priest') return slamTarget(kn, v); if (kn.kind === 'time') { const R = kn.wpn === 4 ? TT.TRAP.RANGE : kn.wpn === 1 ? TT.SHIP.RANGE : TT.HURL.RANGE, out = kn.wpn === 3 && kn.hu === 2, bx = out ? kn.hux : kn.x, by = out ? kn.huy : kn.y; return [bx + v[0] * R, cl(by + v[1] * R * 0.8, 16, H - 4)]; } const R = LEAP_R * (kn.ultPh >= 0 ? ULT_LEAP : 1); return [kn.x + v[0] * R, cl(kn.y + v[1] * R * 0.8, 16, H - 4)]; }
 function startLeap(v) {
   const tg = leapTarget(K, v), dx = tg[0] - K.x, dy = tg[1] - K.y, d = Math.hypot(dx, dy), back = Math.min(LAND_IN * (K.sz || 1), d * 0.6), lx = tg[0] - (d ? dx / d : 0) * back, ly = tg[1] - (d ? dy / d : 0) * back * 0.6;
   if (K.ultPh >= 0) { K.ultLeapt = 1; FX.push({ k: 'charge', i: K.i, t: 0, max: ULT_CR }); }
@@ -435,11 +435,11 @@ function drawDashPreview(c, t) {
   c.strokeStyle = 'rgba(255,240,190,.8)'; c.lineWidth = 0.5; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 10; c.stroke(); c.restore();
 }
 function drawLeapPreview(c, t) {
-  const kn = KN[ME]; if (!LEAPAIM || !kn || kn.st === 'kneel') return; if (kn.kind === 'time' && !(kn.wpS === 2 && (kn.wpn === 3 ? (kn.hu === -1 || kn.hu === 2) && !(kn.huCd > 0) : kn.wpn === 1 ? !(kn.sb >= 1) && !(kn.sbCd > 0) : kn.wpn === 4 && (kn.trQ ?? TT.TRAP.N) > 0))) return;
+  const kn = KN[ME]; if (!LEAPAIM || !kn || kn.st === 'kneel') return; if (kn.kind === 'time' && !(kn.wpS === 2 && (kn.wpn === 3 ? (kn.hu === -1 || kn.hu === 2) && !(kn.huCd > 0) : kn.wpn === 1 ? !(kn.sc >= 1) && !(kn.scCd > 0) : kn.wpn === 4 && (kn.trQ ?? TT.TRAP.N) > 0))) return;
   // a Warpriest with his flail out: the pull along the chain
   if (kn.kind === 'priest' && !(kn.hOut > 0 || kn.hRet >= 0) && (kn.ab || kn.slCd > 0 || kn.slWait)) return;
   if (kn.kind === 'priest' && kn.hOut > 0) { c.save(); c.strokeStyle = 'rgba(255,240,190,.85)'; c.lineWidth = 0.7; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 14; c.beginPath(); c.moveTo(kn.x, kn.y - 6); c.lineTo(kn.hx, kn.hy - 3); c.stroke(); c.restore(); return; }
-  if (kn.kind === 'time' && kn.wpn === 1) return drawBoomPreview(c, kn, leapTarget(kn, LEAPAIM), t);
+  if (kn.kind === 'time' && kn.wpn === 1) return drawShipPreview(c, kn, leapTarget(kn, LEAPAIM), t);
   const aim0 = leapTarget(kn, LEAPAIM), spot = kn.kind === 'time' && kn.wpn === 4 ? trapSpot(kn, ...aim0) : null, [tx, ty] = spot || aim0, pul = 0.5 + 0.5 * Math.sin(t * 8), alo = kn.kind === 'time' && kn.wpn === 3 && kn.hu === 2, O = alo ? { x: kn.hux, y: kn.huy } : kn;
   c.save();
   c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 0.4; c.setLineDash([1.5, 1.5]); const WPK = kn.kind === 'priest', TTK = kn.kind === 'time', LR = TTK ? (kn.wpn === 4 ? TT.TRAP.RANGE : kn.wpn === 1 ? TT.BOOM.RANGE : TT.HURL.RANGE) : WPK ? WP.SL.RANGE : LEAP_R * (kn.ultPh >= 0 ? ULT_LEAP : 1), SR = TTK ? (kn.wpn === 4 ? TT.TRAP.ARM + TT.TRAP.BL : kn.wpn === 1 ? TT.BOOM.R : 14) : WPK ? WP.SL.WAVE : kn.ultPh >= 0 ? ULT_SLAM_R : SLAM_R; c.beginPath(); c.ellipse(O.x, O.y, LR, LR * 0.8, 0, 0, 7); c.stroke();
@@ -458,6 +458,11 @@ function drawLeapPreview(c, t) {
 
 // the saber throw's aim: the whole loop it will fly, as a band the width of what it cuts, with chevrons running round it the way it goes,
 // and a small mark at the far tip; plus the faint range ring
+// the ship call's aim: the range ring, the blast circle and the ship's outline lying along the aim, all in pale blue
+function drawShipPreview(c, kn, tg, t) { const SH = TT.SHIP, pul = 0.5 + 0.5 * Math.sin(t * 8), hd = Math.atan2((tg[1] - kn.y) * 1.25, tg[0] - kn.x), fw = [Math.cos(hd), Math.sin(hd) / 1.25];
+  c.save(); c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 0.4; c.setLineDash([1.5, 1.5]); c.beginPath(); c.ellipse(kn.x, kn.y, SH.RANGE, SH.RANGE * 0.8, 0, 0, 7); c.stroke();
+  c.setLineDash([]); c.fillStyle = `rgba(120,180,255,${0.12 + 0.06 * pul})`; c.strokeStyle = `rgba(170,215,255,${0.7 + 0.3 * pul})`; c.lineWidth = 0.7; c.beginPath(); c.ellipse(tg[0], tg[1], SH.R, SH.R * 0.8, 0, 0, 7); c.fill(); c.stroke();
+  c.setLineDash([2.5, 2]); c.lineDashOffset = -t * 8; c.strokeStyle = 'rgba(200,230,255,.75)'; c.beginPath(); c.ellipse(tg[0], tg[1], SH.LEN / 2 * Math.hypot(fw[0], fw[1]), 9, Math.atan2(fw[1], fw[0]), 0, 7); c.stroke(); c.restore(); }
 function drawBoomPreview(c, kn, tg, t) { const BM = TT.BOOM, f = kn.f || 1, sx = kn.x + f * 3.5, sy = kn.y, pts = []; for (let i = 0; i <= 64; i++) pts.push(boomPt(sx, sy, tg[0], tg[1], i / 64));
   c.save(); c.strokeStyle = 'rgba(255,255,255,.18)'; c.lineWidth = 0.4; c.setLineDash([1.5, 1.5]); c.beginPath(); c.ellipse(kn.x, kn.y, BM.RANGE, BM.RANGE * 0.8, 0, 0, 7); c.stroke(); c.setLineDash([]);
   const path = () => { c.beginPath(); pts.forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); };
@@ -2522,6 +2527,7 @@ const TT = {
   TRAP: { RANGE: 100, FLY: 0.45, R: 9, ARM: 20.8, BL: 8.25, SPIN: 11.25, UP: 0.35, H: 7.5, DMG: 160, GAP: 0.3, CD: 6, N: 2, NEXT: 0.5 },
   SAW: { T: 0.368, SPD: 240, RANGE: 300, BOUNCE: 30, BR: 110, TURN: 3, CONE: 0.873, DMG: 175, W: 9.625, Z: 8, R: 6.6, GUN: 1.3, MU: [3.8, 0.6], HZ: 5 },
   PORT: { CD: 1, HOLD: 16, IN: 0.75, OUT: 0.9 },
+  SHIP: { RANGE: 130, SHADOW: 1.0, DROP: 0.32, LIE: 1.4, FADE: 0.6, R: 34, DMG: 600, KB: 260, CD: 8, SLOW: 0.6, LEN: 72 },
   BOOM: { RANGE: 123.5, LOOP: 1.0, WID: 0.25, R: 16.8, DMG: 200, CD: 0, SPIN: 24, Z: 6, SZ: 1.82 },
   BIKE: { BV: 140, CD: 10, T: 7, JUMP: 0.12, LAND: 0.72, IN: 0.75, OFF: 0.7, HOP: 0.45, DIST: 60, SEAT: 4.6, MAXV: 165, CRUISE: 120, ACC: 210, BRAKE: 240, DMG: 140, KB: 170, R: 5.5, HALF: 6.2 },
 };
@@ -2531,7 +2537,7 @@ const TTC = { SKIN: '#e8bb98', SKIND: '#c08f6c', HAIR: '#6b4a33', HAIRL: '#8a644
 function ttRoll(kn) { if (window.__ttW) return window.__ttW; let n = 0; const s = (kn.in.lvN || 0) * 12.9898 + kn.i * 78.233 + (kn.ttSd || 0) * 0.6131 + 4.1; n = Math.floor((Math.abs(Math.sin(s) * 43758.5453) % 1) * 4) + 1; if (n === kn.wpL) n = n % 4 + 1; return n; }
 // each Time Traveler gets a random seed for his weapon rolls (the host's is synced, so a guest's prediction rolls the same weapon)
 function makeTime(kn) { if (!kn.ttSd) kn.ttSd = 1 + Math.floor(Math.random() * 9999); Object.assign(kn, { kind: 'time', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, kn: 0, hold: 1, cs: -1, csN: 0, csA: 0, csW: 0, csTl: 0, wpn: 0, wpL: 0, wpS: 0, wpT: 0, wpCd: 0, ammo: TT.GUN.AMMO, rl: -1, gunN: 0, sawN: 0, sawX: 0, sawY: 0, sawA: 0, tn: null,
-  sb: -1, sbT: 0, sbx: 0, sby: 0, sbsx: 0, sbsy: 0, sbtx: 0, sbty: 0, sbCd: 0, sbN: 0, hu: -1, huT: 0, hux: 0, huy: 0, huz: 0, hsx: 0, hsy: 0, htx: 0, hty: 0, huCd: 0, trN: 0, trX: 0, trY: 0, trSX: 0, trSY: 0, trSZ: 0, trCd: 0, trQ: 2, al: 0, alA: 0, alC: 0, alNx: 0, alI: 0, alG: 0, tc: null, twSeen: kn.in.twN || 0, bk: -1, bkT: 0, hd: 0, bv: 0, bvx: 0, bvy: 0, yr: 0, bl: 0, bkx: 0, bky: 0, bpx: 0, bpy: 0, bkCd: 0, bkId: 0, bkQ: null, z: 0, ttP: null, gA: 0.55, dashSeen: kn.in.dashN || 0, leapSeen: kn.in.leapN || 0, ultSeen: kn.in.ultN || 0, lvSeen: kn.in.lvN || 0 }); }
+  sc: 0, scT: 0, scx: 0, scy: 0, sch: 0, scCd: 0, scN: 0, sb: -1, sbT: 0, sbx: 0, sby: 0, sbsx: 0, sbsy: 0, sbtx: 0, sbty: 0, sbCd: 0, sbN: 0, hu: -1, huT: 0, hux: 0, huy: 0, huz: 0, hsx: 0, hsy: 0, htx: 0, hty: 0, huCd: 0, trN: 0, trX: 0, trY: 0, trSX: 0, trSY: 0, trSZ: 0, trCd: 0, trQ: 2, al: 0, alA: 0, alC: 0, alNx: 0, alI: 0, alG: 0, tc: null, twSeen: kn.in.twN || 0, bk: -1, bkT: 0, hd: 0, bv: 0, bvx: 0, bvy: 0, yr: 0, bl: 0, bkx: 0, bky: 0, bpx: 0, bpy: 0, bkCd: 0, bkId: 0, bkQ: null, z: 0, ttP: null, gA: 0.55, dashSeen: kn.in.dashN || 0, leapSeen: kn.in.leapN || 0, ultSeen: kn.in.ultN || 0, lvSeen: kn.in.lvN || 0 }); }
 // screen aim -> ground angle (the ground is foreshortened 1.25 vertically)
 const gAng = (sx, sy) => Math.atan2(sy * 1.25, sx), gDir = a => [Math.cos(a), Math.sin(a) / 1.25];
 // ---------- pose ----------
@@ -2578,6 +2584,9 @@ function ttPose(kn, t) {
   if (atk && (W0 === 0 || W0 === 1)) { const keys = W0 === 1 ? TTSAB[ttSabV(kn.csN || 0)] : TTCUT[(kn.csN || 0) % 2], T = W0 === 1 ? TT.SABER.T : TT.CANE.T; A = kfnS(cl(kn.cs / T, 0, 1), keys).map((x, j) => j === 1 ? x * 0.6 : j === 9 ? x * 0.6 : x); }
   // weapons held (not swinging): a fencer's ready stance with the saber; guns at low ready; the creature held out on his palm
   if (!atk && wq === 1) { A[4] = -1.1; A[5] = 3.3; A[6] = 2.0; A[7] = 3.0; A[8] = -1.0; }
+  // calling the ship: saber in a reverse grip, held at his chest with the blade pointing away from the aim; the other hand reaches toward the spot; knees bent
+  const stc = !atk && wq === 1 && ttStance(kn); if (stc) { const v = ttStanceAim(kn), al = Math.atan2(v[1] / 1.25, v[0] * f), c0 = Math.cos(al), s0 = Math.sin(al);
+    A[1] += 0.6; A[2] += 0.12; A[4] = 0.6 + c0 * 3.4; A[5] = 0.6 + s0 * 2.6; A[6] = 0.2 + c0 * 1.2; A[7] = 1.6 + s0 * 0.8; A[8] = al + Math.PI + 0.35; }
   let [, cr, lean, tw, ax, ay, bx, by, ca, stepA] = A, bBack = false, bL = 1;
   if (atk && W0 === 1) { const v = (kn.csN || 0) % 4, dir = v % 2 ? -1 : 1, tilt = [0.2, 0.2, 0.85, -0.6][v], u = cl(kn.cs / TT.SABER.T, 0, 1);
     const ph = u < 0.12 ? -0.12 * sm(u / 0.12) : u < 0.72 ? -0.12 + 1.12 * smt((u - 0.12) / 0.6) : 1, phi = dir * (-1.8 + 3.6 * ph), cp = Math.cos(phi), sp = Math.sin(phi);
@@ -2668,6 +2677,9 @@ function boomPt(sx, sy, tx, ty, s) { const gx = tx - sx, gy = (ty - sy) * 1.25, 
   return [sx + ux * al - uy * pp, sy + (uy * al + ux * pp) / 1.25]; }
 // his weapon is away from his hand (the alien tossed out, the saber thrown): he has the cane meanwhile
 const ttAway = kn => (kn.wpn === 3 && kn.hu >= 1) || (kn.wpn === 1 && kn.sb >= 1);
+// the saber's ship call: while he aims it (input `la` = the aim vector, held) or while its shadow is on the ground, he stands in the calling stance
+const ttStance = kn => kn.kind === 'time' && kn.wpn === 1 && kn.wpS === 2 && (kn.sc === 1 || !!(kn.in && kn.in.la));
+const ttStanceAim = kn => kn.sc === 1 ? [kn.scx - kn.x, (kn.scy - kn.y) * 1.25] : kn.in && kn.in.la ? kn.in.la : [kn.f || 1, 0];
 const ttO = kn => kn.hu >= 1 ? [kn.hux, kn.huy, kn.alq ? 0 : 1] : [kn.x, kn.y, 0];
 function ttGrab(j) { const A = TT.ALIEN, a0 = K.alA, [ox, oy, full] = ttO(K), RR = full ? TT.HURL.R : A.R, taken = new Set(); for (const q of K.tc) if (q) { taken.add(q[0]); for (const e of q[4] || []) taken.add(e); } let best = null, bd = 1e9;
   for (const w of walkers) { if (w.hp <= 0 || w.air || w.gr > 0 || taken.has(w.id)) continue; const dx = w.x - ox, dy = (w.y - oy) * 1.25, d = Math.hypot(dx, dy); if (d > RR + UK[w.k].r || d >= bd) continue; if (!full && d > 6 && Math.abs(wrapA(Math.atan2(dy, dx) - a0)) > A.HALF) continue; bd = d; best = w; }
@@ -2732,16 +2744,23 @@ function timeStep(dt, t) {
   if (K.wpCd > 0) K.wpCd -= dt;
   if (lvP && ready && K.wpS === 0 && !(K.wpCd > 0)) { K.wpn = ttRoll(K); K.wpL = K.wpn; K.wpS = 1; K.trQ = TT.TRAP.N; K.trCd = 0; K.trG = 0; K.wpT = 0; K.ammo = TT.GUN.AMMO; K.rl = -1; if (K.cs >= 0) K.cs = -1; }
   // test buttons: a given weapon right now (through the portal if he has none, swapped straight in if he has one)
-  if ((IN.twN || 0) !== (K.twSeen || 0)) { K.twSeen = IN.twN || 0; const v = IN.twV | 0; if (ready && v >= 1 && v <= 4) { K.wpL = v; if (K.wpS === 2) Object.assign(K, { wpn: v, wpT: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1, al: 0, tc: null, hu: -1, sb: -1, sbCd: 0, trQ: TT.TRAP.N, trCd: 0, trG: 0 }); else if (K.wpS === 0) Object.assign(K, { wpn: v, wpL: v, wpS: 1, wpT: 0, wpCd: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1, trQ: TT.TRAP.N, trCd: 0, trG: 0 }); else if (K.wpS === 1) K.wpn = v; } }
+  if ((IN.twN || 0) !== (K.twSeen || 0)) { K.twSeen = IN.twN || 0; const v = IN.twV | 0; if (ready && v >= 1 && v <= 4) { K.wpL = v; if (K.wpS === 2) Object.assign(K, { wpn: v, wpT: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1, al: 0, tc: null, hu: -1, sb: -1, sbCd: 0, scCd: 0, trQ: TT.TRAP.N, trCd: 0, trG: 0 }); else if (K.wpS === 0) Object.assign(K, { wpn: v, wpL: v, wpS: 1, wpT: 0, wpCd: 0, ammo: TT.GUN.AMMO, rl: -1, cs: -1, trQ: TT.TRAP.N, trCd: 0, trG: 0 }); else if (K.wpS === 1) K.wpn = v; } }
   if (K.wpS === 1) { K.wpT += dt; if (K.wpT >= TT.PORT.IN) { K.wpS = 2; K.wpT = 0; } }
   else if (K.wpS === 2) { K.wpT += dt; if (!(K.sb >= 1) && K.hu !== 1 && K.hu !== 3 && ((lvP && ready) || (K.wpT >= TT.PORT.HOLD + (K.wpn === 3 ? 0.4 : 0) && K.bk !== 0 && K.bk !== 1))) { K.wpS = 3; K.wpT = 0; K.cs = -1; K.rl = -1; K.al = 0; K.tc = null; } }
-  else if (K.wpS === 3) { K.wpT += dt; if (K.wpT >= TT.PORT.OUT) { K.wpS = 0; K.wpT = 0; K.wpn = 0; K.wpCd = TT.PORT.CD; K.hu = -1; K.sb = -1; K.sbCd = 0; K.trQ = TT.TRAP.N; K.trCd = 0; K.trG = 0; K.huCd = 0; } }
+  else if (K.wpS === 3) { K.wpT += dt; if (K.wpT >= TT.PORT.OUT) { K.wpS = 0; K.wpT = 0; K.wpn = 0; K.wpCd = TT.PORT.CD; K.hu = -1; K.sb = -1; K.sbCd = 0; K.scCd = 0; K.trQ = TT.TRAP.N; K.trCd = 0; K.trG = 0; K.huCd = 0; } }
   // ---- weapon abilities on the leap circle: toss the alien (it grabs as it flies, then all round where it lands, then comes home) / a saw trap ----
   { const HU = TT.HURL, TR = TT.TRAP, wq0 = K.wpS === 2 ? K.wpn : 0, bsy = K.wpS === 1 || K.wpS === 3 || K.bk === 0 || K.bk === 2; if (K.huCd > 0) K.huCd -= dt; if ((K.trQ ?? TR.N) < TR.N) { K.trCd -= dt; if (K.trCd <= 0) { K.trQ = (K.trQ ?? TR.N) + 1; K.trCd = K.trQ < TR.N ? TR.CD : 0; } } else K.trCd = 0;
     if (leapP && ready && !bsy && IN.leapT && wq0 === 3 && K.hu !== 1 && !(K.huCd > 0)) { const tg = leapTarget(K, IN.leapT), f = K.f || 1, re = K.hu === 2; Object.assign(K, { hu: 1, huT: 0, hz0: re ? K.huz : 10, hsx: r1(re ? K.hux : K.x + f * 3.5), hsy: r1(re ? K.huy : K.y), htx: r1(tg[0]), hty: r1(tg[1]) }); if (!re) Object.assign(K, { hux: K.x + f * 3.5, huy: K.y, huz: 10 }); if (AUTH() && K.tc) K.tc = K.tc.map(q => q && !q[3] ? null : q); }
     // saber boomerang: flung spinning to the aimed spot along a curve, then it homes back to his hand, cutting everything it passes both ways
     { const BM = TT.BOOM; if (K.sbCd > 0) K.sbCd -= dt;
-      if (leapP && ready && !bsy && IN.leapT && wq0 === 1 && !(K.sb >= 1) && !(K.sbCd > 0)) { const tg = leapTarget(K, IN.leapT), f = K.f || 1; Object.assign(K, { sb: 1, sbT: 0, sbsx: r1(K.x + f * 3.5), sbsy: r1(K.y), sbtx: r1(tg[0]), sbty: r1(tg[1]), sbx: K.x + f * 3.5, sby: K.y, sbN: (K.sbN || 0) + 1 }); if (K.cs >= 0 && K.csW === 1) K.cs = -1; }
+      // ship call (replaced the boomerang throw): release the aim and a great shadow falls on the spot for SHADOW s, then the ship slams down on it
+      { const SH = TT.SHIP; if (K.scCd > 0) K.scCd -= dt;
+        if (leapP && ready && !bsy && IN.leapT && wq0 === 1 && !(K.sc >= 1) && !(K.scCd > 0)) { const tg = leapTarget(K, IN.leapT); Object.assign(K, { sc: 1, scT: 0, scx: r1(tg[0]), scy: r1(tg[1]), sch: Math.round(Math.atan2((tg[1] - K.y) * 1.25, tg[0] - K.x) * 100) / 100, scN: (K.scN || 0) + 1 }); }
+        if (K.sc >= 1) { K.scT += dt;
+          if (K.sc === 1 && K.scT >= SH.SHADOW) { K.sc = 2; K.scT = 0; K.scCd = SH.CD;
+            if (AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.scx, dy = (w.y - K.scy) * 1.25, d = Math.hypot(dx, dy), R = SH.R + UK[w.k].r; if (d > R) continue; const a = Math.atan2(dy / 1.25, dx), k = 1 - 0.4 * d / R; w.atk = -1; w.kx += Math.cos(a) * SH.KB * k; w.ky += Math.sin(a) * SH.KB * 0.6 * k; hurt(w, SH.DMG * k, ww => slamFx(ww, a)); } }
+          else if (K.sc === 2 && K.scT >= SH.LIE + SH.FADE) { K.sc = 0; K.scT = 0; } } }
+      if (false) { const tg = leapTarget(K, IN.leapT), f = K.f || 1; Object.assign(K, { sb: 1, sbT: 0, sbsx: r1(K.x + f * 3.5), sbsy: r1(K.y), sbtx: r1(tg[0]), sbty: r1(tg[1]), sbx: K.x + f * 3.5, sby: K.y, sbN: (K.sbN || 0) + 1 }); if (K.cs >= 0 && K.csW === 1) K.cs = -1; }
       if (K.sb >= 1) { K.sbT += dt; const ox = K.sbx, oy = K.sby;
         // one even loop; the far half (s past 0.5) is the return pass, and the loop's end is pulled along with his hand so it comes back to him wherever he went
         { const sp = cl(K.sbT / BM.LOOP, 0, 1), P0 = boomPt(K.sbsx, K.sbsy, K.sbtx, K.sbty, sp), hx = K.x + (K.f || 1) * 3.5, k = smt(sp); K.sbx = P0[0] + (hx - K.sbsx) * k; K.sby = P0[1] + (K.y - K.sbsy) * k;
@@ -2822,7 +2841,7 @@ function timeStep(dt, t) {
     const e = 1 - Math.exp(-dt * 5), mv2 = mvL > 0.12 ? [IN.mv[0] / mvL * Math.min(1, mvL) * RUN * TT.RUN, IN.mv[1] / mvL * Math.min(1, mvL) * RUN * TT.RUN] : [0, 0]; K.dvx = lerp(K.dvx, mv2[0], e); K.dvy = lerp(K.dvy, mv2[1], e); if (mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1; K.x += K.dvx * dt; K.y = cl(K.y + K.dvy * dt, 16, H - 4); const ac = 1 + K.bkT * 2.5; K.bkx += K.bvx * dt * ac; K.bky += K.bvy * dt * ac; K.spd = Math.hypot(K.dvx, K.dvy);
     if (u >= B.OFF) { K.bk = -1; K.bkT = 0; K.bkCd = B.CD; K.z = 0; K.bl = 0; } }
   // ---- walking (the Swordmaster's / Knight's feel) ----
-  if (K.bk < 0) { const v2 = RUN * TT.RUN * (K.cs >= 0 || K.al ? TT.ATK : 1);
+  if (K.bk < 0) { const v2 = RUN * TT.RUN * (K.cs >= 0 || K.al ? TT.ATK : 1) * (ttStance(K) ? TT.SHIP.SLOW : 1); if (ttStance(K)) { const sa = ttStanceAim(K); if (Math.abs(sa[0]) > 0.15) K.f = sa[0] > 0 ? 1 : -1; }
     if (mvL > 0.12) { const k = Math.min(1, mvL), e = 1 - Math.exp(-dt * 14); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e); } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
     const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const dsd = K.dsd || 0, md = Math.hypot(K.x - ox, K.y - oy) + dsd; K.dsd = 0;
     // the saber's dashing slice counts as moving, so his legs take a couple of quick strides through it (longer strides: half the gait per unit)
@@ -2870,6 +2889,11 @@ let SAWS = [], TTFX = [], SKID = [], TRAPS = [];
 const trapOut = q => q.end !== undefined ? (q.t - q.end) / 0.4 : 0, trapArm = q => { const TR = TT.TRAP, k = q.t - TR.FLY, out = trapOut(q); return TR.ARM * smt(cl((k - TR.UP * 0.5) / TR.UP, 0, 1)) * (1 - smt(Math.min(1, out))); }, trapAng = q => { const TR = TT.TRAP; return (q.a0 || 0) + TR.SPIN * Math.max(0, q.t - TR.FLY - TR.UP * 0.5) ** 1.15; };
 function ttFx(dt, t) {
   for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue; if (kn.wpn === 3 && (kn.al || (kn.alV || 0) > 0.01)) ttTentLines(kn, dt, t); else if (kn.tcS) kn.tcS = null; kn.alV = ap(kn.alV || 0, kn.al && kn.wpn === 3 ? 1 : 0, dt / (kn.al ? TT.ALIEN.OPEN : 0.4)); kn.alCv = Math.abs((kn.alCv ?? 0) + dt - (kn.alC || 0)) > 0.15 ? kn.alC || 0 : (kn.alCv ?? 0) + dt; const S = kn.ttS || (kn.ttS = { gun: kn.gunN || 0, saw: kn.sawN || 0, rl: kn.rl, bk: kn.bk, tr: kn.trN || 0, hu: kn.hu });
+    // the ship hitting the ground (every screen): a huge ring, crater, dust, sparks, shake
+    if ((kn.sc || 0) !== S.sc) { if (kn.sc === 2) { const x = kn.scx, y = kn.scy; FX.push({ k: 'ring', x, y, t: 0, max: 0.8, s: TT.SHIP.R / SLAM_R }, { k: 'crater', x, y, t: 0, max: 9, seed: Math.random() * 1e4, s: 2.8 });
+      for (let i = 0; i < 110; i++) { const a = rr(0, 6.28), v = rr(30, 120); dust.push({ x: x + Math.cos(a) * 14, y: y + Math.sin(a) * 6, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1.5, 3.4), t: 0, max: rr(0.6, 1.4) }); }
+      for (let i = 0; i < 40; i++) { const a = rr(3.3, 6.1); sparks.push({ x: x + rr(-20, 20), y: y - 4, vx: Math.cos(a) * rr(30, 110), vy: Math.sin(a) * rr(30, 90), t: 0, max: rr(0.4, 1.0) }); }
+      if (KN[ME] && Math.hypot(KN[ME].x - x, KN[ME].y - y) < 260) shake = Math.max(shake, 1.0); snd('gslam', x, y); snd('boom', x, y); } S.sc = kn.sc || 0; }
     // shotgun: flash, pellets, smoke
     if ((kn.gunN || 0) !== S.gun) { S.gun = kn.gunN || 0; const a = kn.csA, d = gDir(a), M0 = ttMuzzle(kn, t), M = ttMuzzleD(kn, t), mx = M.x, my = M.y; kn.mzO = M0.off;
       TTFX.push({ k: 'flash', kn, x: mx, y: my, a: M.a, t: 0, max: 0.09 });
@@ -3142,6 +3166,9 @@ function drawTime(c, t) {
   if (!sabBack && !gunBack && !alH) ttHand(c, P.hB, true);
   if (gun && K.rl >= 0 && (q => (q > 0.4 && q < 0.6) || (q > 0.82 && q < 1.0))(K.rl * 1.75 / TT.GUN.RELOAD)) { c.fillStyle = '#b8322a'; c.beginPath(); c.ellipse(P.hA[0], P.hA[1] - 0.3, 0.42, 0.22, 0.4, 0, 7); c.fill(); c.fillStyle = TTC.BRASS; c.beginPath(); c.arc(P.hA[0] - 0.35, P.hA[1] - 0.45, 0.2, 0, 7); c.fill(); }
   if (gun && !gunBack) ttHand(c, P.hA, false);
+  // calling the ship: a flickering blue aura round both hands
+  { const dtA = cl(t - (K.stT ?? t), 0, 0.05); K.stT = t; K.stV = ap(K.stV || 0, ttStance(K) ? 1 : 0, dtA / 0.2); if (K.stV > 0.01) { c.save(); c.globalCompositeOperation = 'lighter'; for (const h of [P.hA, P.hB]) { const r0 = 2.4 + 0.4 * Math.sin(t * 17 + h[0]), g = c.createRadialGradient(h[0], h[1], 0, h[0], h[1], r0); g.addColorStop(0, `rgba(210,235,255,${0.85 * K.stV})`); g.addColorStop(0.45, `rgba(90,160,255,${0.55 * K.stV})`); g.addColorStop(1, 'rgba(40,90,255,0)'); c.fillStyle = g; c.beginPath(); c.arc(h[0], h[1], r0, 0, 7); c.fill();
+    c.strokeStyle = `rgba(150,200,255,${0.6 * K.stV})`; c.lineWidth = 0.18; for (let i = 0; i < 3; i++) { const a = t * 9 + i * 2.1 + h[0], rr0 = 1.2 + 0.6 * Math.sin(t * 13 + i); c.beginPath(); c.arc(h[0], h[1], rr0, a, a + 1.4); c.stroke(); } } c.restore(); } }
   if (window.__labelArms && K.ttTags) for (const [m, txt, col] of K.ttTags) { c.save(); c.translate(m[0], m[1]); c.fillStyle = col; c.strokeStyle = '#fff'; c.lineWidth = 0.18; c.beginPath(); c.arc(0, 0, 0.62, 0, 7); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.font = '700 0.85px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 0, 0.05); c.restore(); }
   rigOff();
 }
@@ -3175,6 +3202,10 @@ function trapOK(kn, x, y) { const TR = TT.TRAP, RR = TR.ARM + TR.BL, mine = TRAP
   return !TRAPS.some(q => q.end === undefined && q !== gone && Math.hypot(q.x - x, (q.y - y) * 1.25) < RR); }
 function ttAir(c, t) {
   for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue;
+    // the ship: falls out of the sky over the last DROP s of the shadow, bounces once on landing, lies there, then sinks and fades
+    if (kn.sc >= 1) { const SH = TT.SHIP; let z = null, a = 1; if (kn.sc === 1 && kn.scT > SH.SHADOW - SH.DROP) { const q = (kn.scT - (SH.SHADOW - SH.DROP)) / SH.DROP; z = 300 * (1 - q) * (1 - q); }
+      else if (kn.sc === 2) { const u = kn.scT; z = u < 0.3 ? 3.5 * Math.sin(Math.PI * u / 0.3) * (1 - u / 0.3) : 0; if (u > SH.LIE) { const q = cl((u - SH.LIE) / SH.FADE, 0, 1); a = 1 - q; z -= 5 * q; } }
+      if (z !== null) ttShip(c, kn.scx, kn.scy, z, kn.sch || 0, a, t, kn.col || COL); }
     // the thrown saber: spinning end over end round its middle, a whirl of its colour and a short trail
     if (kn.wpn === 1 && kn.sb >= 1) { const BM = TT.BOOM, L = TT.SABER.LEN * BM.SZ, a = t * BM.SPIN, d = [Math.cos(a), Math.sin(a) * 0.55], cx = kn.sbx, cy = kn.sby - BM.Z, h = [cx - d[0] * L / 2, cy - d[1] * L / 2], prv = COL; COL = kn.col || COL;
       const tr = kn.sbTr || (kn.sbTr = []); tr.push([cx, cy]); if (tr.length > 8) tr.shift();
@@ -3270,10 +3301,55 @@ function ttTendrils(c, kn, t) { const A = TT.ALIEN, m0 = kn.mouth, byId = new Ma
     // constricting: coils round the body, tightening
     if (sq > 0 && w) { const sc = UK[w.k].sc, wz = w.zd || 0; c.lineWidth = 1.5; for (let i = 0; i < 3; i++) { c.strokeStyle = i % 2 ? '#c4607e' : '#d47a94'; c.beginPath(); c.ellipse(w.x + Math.sin(t * 40 + i) * 0.2 * sq, w.y - wz - (2 + i * 2.3) * sc, (2.4 - sq * 0.6) * sc, 0.8 * sc, 0.15, 0, 7); c.stroke(); } } } }
 // skid marks under everything
-function ttGround(c) { c.lineCap = 'round'; for (const s of SKID) { c.strokeStyle = `rgba(25,20,18,${0.35 * s.a * (1 - s.t / 2.5)})`; c.lineWidth = 0.9; c.beginPath(); c.moveTo(s.x0, s.y0); c.lineTo(s.x1, s.y1); c.stroke(); } }
+// a sky-dreadnought of his own (an original design: a riveted airship with a canvas envelope in brass ribs, a boat-hulled gondola with funnels and
+// turrets, fins and stern propellers), heading hd, height z above the ground, faded by a; drawn with the bike's ground frame
+function ttShip(c, x, y, z, hd, a, t, col) { if (a <= 0.01) return; const fw = [Math.cos(hd), Math.sin(hd) / 1.25], sd = [-Math.sin(hd), Math.cos(hd) / 1.25], P = (u, v, h) => [x + u * fw[0] + v * sd[0], y + u * fw[1] + v * sd[1] - h - z], near = sd[1] >= 0 ? 1 : -1;
+  c.save(); c.globalAlpha = a; c.lineJoin = 'round'; const poly = (pts, fill, st, lw) => { c.beginPath(); pts.forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); c.closePath(); if (fill) { c.fillStyle = fill; c.fill(); } if (st) { c.strokeStyle = st; c.lineWidth = lw || 0.5; c.stroke(); } };
+  const BR = '#c8963e', BRD = '#7a5520', HULL = '#3b2a20', DECK = '#8a6440', CAN = '#5b5048', CAND = '#3e3530';
+  // gondola hull: a long boat shape from stern (u -30) to a pointed bow (+36)
+  const hw = u => 8.5 * Math.sqrt(Math.max(0, 1 - Math.pow(Math.max(0, u - 4) / 32, 2))) * (u < -26 ? 0.8 : 1), US = []; for (let u = -30; u <= 36; u += 3) US.push(u);
+  const deckL = US.map(u => P(u, hw(u), 9)), deckR = US.map(u => P(u, -hw(u), 9)), keel = US.map(u => P(u, 0, 2));
+  poly([...US.map(u => P(u, near * hw(u), 9)), ...US.slice().reverse().map(u => P(u, near * hw(u) * 0.55, 3)), ...[]], HULL, '#1e1510', 0.5);
+  poly([...deckL, ...deckR.slice().reverse()], DECK, BRD, 0.5);
+  c.strokeStyle = 'rgba(60,40,22,.55)'; c.lineWidth = 0.25; for (const v of [-4.5, -1.5, 1.5, 4.5]) { c.beginPath(); US.forEach((u, i) => { if (Math.abs(v) > hw(u) - 0.5) return; const q = P(u, v, 9); i ? c.lineTo(...q) : c.moveTo(...q); }); c.stroke(); }
+  c.strokeStyle = BR; c.lineWidth = 0.7; c.beginPath(); US.forEach((u, i) => { const q = P(u, near * hw(u), 9); i ? c.lineTo(...q) : c.moveTo(...q); }); c.stroke();
+  // portholes along the near side
+  c.fillStyle = '#f2cf7a'; for (let u = -24; u <= 26; u += 6) { const q = P(u, near * hw(u) * 0.8, 6); c.beginPath(); c.arc(q[0], q[1], 0.7, 0, 7); c.fill(); }
+  // bridge house, funnels, turrets
+  const box = (u0, u1, v0, v1, h0, h1, top, side) => { poly([P(u0, v0, h1), P(u1, v0, h1), P(u1, v1, h1), P(u0, v1, h1)], top, BRD, 0.4); poly([P(u0, near > 0 ? v1 : v0, h1), P(u1, near > 0 ? v1 : v0, h1), P(u1, near > 0 ? v1 : v0, h0), P(u0, near > 0 ? v1 : v0, h0)], side, BRD, 0.4); };
+  box(-14, 4, -4.5, 4.5, 9, 15, '#6e4a2c', '#4e3420'); box(-10, 0, -3, 3, 15, 19, '#7a5232', '#583a24');
+  c.fillStyle = '#f2cf7a'; for (let u = -12; u <= 2; u += 3.5) { const q = P(u, near * 4.5, 12.5); c.fillRect(q[0] - 0.6, q[1] - 0.6, 1.2, 1.2); }
+  for (const u of [-22, -17]) { const b0 = P(u, 0, 9), b1 = P(u, 0, 24); c.fillStyle = '#1d1a18'; c.fillRect(b1[0] - 1.6, b1[1], 3.2, b0[1] - b1[1]); c.fillStyle = BR; c.fillRect(b1[0] - 1.8, b1[1], 3.6, 1.2); c.fillRect(b1[0] - 1.6, (b0[1] + b1[1]) / 2, 3.2, 0.7); }
+  for (const [u, v] of [[14, 0], [24, 0], [-27, 0]]) { const q = P(u, v, 10); c.fillStyle = BR; c.beginPath(); c.ellipse(q[0], q[1], 2.6, 1.6, 0, 0, 7); c.fill(); c.strokeStyle = BRD; c.lineWidth = 0.4; c.stroke(); const m = P(u + (u > 0 ? 6 : -6), v, 10.6); c.strokeStyle = '#2a2420'; c.lineWidth = 0.9; c.beginPath(); c.moveTo(q[0], q[1] - 0.4); c.lineTo(m[0], m[1]); c.stroke(); }
+  // rigging up to the envelope
+  c.strokeStyle = 'rgba(40,30,20,.7)'; c.lineWidth = 0.25; for (const u of [-24, -10, 6, 20]) for (const v of [-1, 1]) { const a0 = P(u, v * hw(u) * 0.9, 9), a1 = P(u * 0.9, v * 9, 30); c.beginPath(); c.moveTo(...a0); c.lineTo(...a1); c.stroke(); }
+  // the envelope: a long ribbed cigar above, banded in his colour
+  const EU = []; for (let u = -44; u <= 44; u += 2) EU.push(u); const er = u => 13 * Math.sqrt(Math.max(0, 1 - (u / 45) ** 2)), ctr = u => P(u, 0, 40);
+  const top = EU.map(u => { const q = ctr(u); return [q[0], q[1] - er(u)]; }), bot = EU.map(u => { const q = ctr(u); return [q[0], q[1] + er(u) * 0.95]; });
+  // fins at the tail (the far ones under the bag)
+  const fin = (v, h) => poly([P(-36, 0, 40), P(-48, v, 40 + h), P(-52, v, 40 + h), P(-44, 0, 40)], '#4a3f38', BRD, 0.4); fin(-near * 12, 0); fin(0, 13);
+  poly([...top, ...bot.slice().reverse()], CAN, '#221c18', 0.6);
+  c.save(); c.beginPath(); top.forEach((q, i) => i ? c.lineTo(...q) : c.moveTo(...q)); bot.slice().reverse().forEach(q => c.lineTo(...q)); c.closePath(); c.clip();
+  c.fillStyle = 'rgba(255,255,255,.07)'; c.beginPath(); top.forEach((q, i) => i ? c.lineTo(q[0], q[1] + 1.5) : c.moveTo(q[0], q[1] + 1.5)); EU.slice().reverse().forEach(u => { const q = ctr(u); c.lineTo(q[0], q[1] - er(u) * 0.35); }); c.closePath(); c.fill();
+  c.fillStyle = CAND; c.beginPath(); EU.forEach((u, i) => { const q = ctr(u); i ? c.lineTo(q[0], q[1] + er(u) * 0.35) : c.moveTo(q[0], q[1] + er(u) * 0.35); }); bot.slice().reverse().forEach(q => c.lineTo(...q)); c.closePath(); c.fill();
+  c.fillStyle = col; for (const [u0, u1] of [[-30, -26], [26, 30]]) { c.beginPath(); for (let u = u0; u <= u1; u++) { const q = ctr(u); c.lineTo(q[0], q[1] - er(u)); } for (let u = u1; u >= u0; u--) { const q = ctr(u); c.lineTo(q[0], q[1] + er(u)); } c.closePath(); c.fill(); }
+  c.strokeStyle = BR; c.lineWidth = 0.55; for (let u = -40; u <= 40; u += 8) { const q = ctr(u); c.beginPath(); c.ellipse(q[0], q[1], 0.9 * er(u) * Math.abs(fw[0]) * 0.25 + 0.6, er(u), 0, 0, 7); c.stroke(); }
+  c.strokeStyle = BRD; c.lineWidth = 0.35; c.beginPath(); EU.forEach((u, i) => { const q = ctr(u); i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); }); c.stroke(); c.restore();
+  fin(near * 12, 0);
+  // stern propellers, spinning
+  for (const v of [-6, 6]) { const q = P(-33, v, 8); c.save(); c.translate(q[0], q[1]); c.rotate(t * 30); c.fillStyle = 'rgba(200,170,110,.55)'; c.beginPath(); c.ellipse(0, 0, 3.6, 0.7, 0, 0, 7); c.fill(); c.restore(); c.fillStyle = BR; c.beginPath(); c.arc(q[0], q[1], 0.7, 0, 7); c.fill(); }
+  // a pennant in his colour off the top of the bag
+  const pt = ctr(-6), pq = [pt[0], pt[1] - er(-6)]; c.strokeStyle = '#2a2420'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(pq[0], pq[1]); c.lineTo(pq[0], pq[1] - 7); c.stroke(); c.fillStyle = col; c.beginPath(); c.moveTo(pq[0], pq[1] - 7); c.quadraticCurveTo(pq[0] - 3, pq[1] - 6 + Math.sin(t * 6), pq[0] - 6, pq[1] - 5.5 + Math.sin(t * 6 + 1)); c.lineTo(pq[0], pq[1] - 4.5); c.fill();
+  c.restore(); }
+// the ship call on the ground: its great shadow darkening over the spot, then its shadow under the ship
+function ttShipGround(c, kn) { const SH = TT.SHIP; if (!(kn.sc >= 1)) return; const fw = gDir(kn.sch || 0), ang = Math.atan2(fw[1], fw[0]), L = Math.hypot(fw[0], fw[1]);
+  const k = kn.sc === 1 ? sm(cl(kn.scT / SH.SHADOW, 0, 1)) : 1 - cl((kn.scT - SH.LIE) / SH.FADE, 0, 1), grow = kn.sc === 1 ? lerp(1.35, 1, k) : 1;
+  c.save(); c.translate(kn.scx, kn.scy); c.rotate(ang); for (const [sx, sy, al] of [[52, 20, 0.22], [44, 15, 0.25], [34, 10, 0.25]]) { c.fillStyle = `rgba(0,0,0,${al * k})`; c.beginPath(); c.ellipse(0, 0, sx * grow * L, sy * grow, 0, 0, 7); c.fill(); } c.restore();
+  if (kn.sc === 1) { c.save(); c.translate(kn.scx, kn.scy); c.scale(1, 0.8); c.strokeStyle = `rgba(160,205,255,${0.35 + 0.4 * k})`; c.lineWidth = 0.6; c.setLineDash([3, 2]); c.beginPath(); c.arc(0, 0, SH.R, 0, 7); c.stroke(); c.restore(); } }
+function ttGround(c) { for (const kn of KN) if (kn.kind === 'time' && kn.on !== 0) ttShipGround(c, kn); c.lineCap = 'round'; for (const s of SKID) { c.strokeStyle = `rgba(25,20,18,${0.35 * s.a * (1 - s.t / 2.5)})`; c.lineWidth = 0.9; c.beginPath(); c.moveTo(s.x0, s.y0); c.lineTo(s.x1, s.y1); c.stroke(); } }
 // hit zones: the attack's cone (or the bike's contact strip)
 function ttZones(c) { const kn = KN[ME]; if (!kn || kn.kind !== 'time') return; c.save(); c.fillStyle = 'rgba(255,70,50,.18)';
-  if (kn.wpn === 1 && kn.sb >= 1) { c.save(); c.translate(kn.sbx, kn.sby); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.3)'; c.beginPath(); c.arc(0, 0, TT.BOOM.R, 0, 7); c.fill(); c.restore(); }
+  if (kn.sc === 1) { c.save(); c.translate(kn.scx, kn.scy); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.3)'; c.beginPath(); c.arc(0, 0, TT.SHIP.R, 0, 7); c.fill(); c.restore(); }
   if (kn.wpn === 3 && (kn.hu === 1 || kn.hu === 2) && !kn.alq) { c.save(); c.translate(kn.hux, kn.huy); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.1)'; c.strokeStyle = 'rgba(255,120,100,.7)'; c.lineWidth = 0.5; c.setLineDash([2, 2]); c.beginPath(); c.arc(0, 0, TT.HURL.R, 0, 7); c.fill(); c.stroke(); c.restore(); }
   for (const q of TRAPS) if (q.t >= TT.TRAP.FLY && q.end === undefined) { const T2 = TT.TRAP; c.save(); c.translate(q.x, q.y); c.scale(1, 0.8); c.fillStyle = 'rgba(255,70,50,.25)'; c.beginPath(); c.arc(0, 0, T2.ARM + T2.BL, 0, 7); c.arc(0, 0, Math.max(0, T2.ARM - T2.BL), 0, 7, true); c.fill(); c.restore(); }
   // each flying saw's ricochet cone: where its next bounce may go (70 degrees, BR out, pointing away from where it was fired), and a line to its current target
@@ -3535,8 +3611,9 @@ function draw() {
   if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
   ST.textContent = (NET ? `Room ${NET.code} · ${LIVE().length}/${MAXP} · ` : '') + (LIVE().length > 1 ? `Enemies ${walkers.length} · ` + LIVE().map(kn => `${kn.i === ME ? 'You' : (NET && NET.names && NET.names[kn.i]) || pName(kn.i)} ${kn.kills}k/${Math.round(kn.hits)}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${Math.round(K.hits)}`);
   // his leap circle is the weapon ability: only there while he holds the alien (toss) or the saw gun (trap); dim while it can't be used
+  if (K.kind === 'time') { const la = LEAPAIM && K.wpn === 1 && K.wpS === 2 ? [Math.round(LEAPAIM[0] * 50) / 50, Math.round(LEAPAIM[1] * 50) / 50] : null; if (JSON.stringify(la) !== JSON.stringify(K.in.la ?? null)) { K.in.la = la; markIn(); } }
   if (K.kind === 'time') { const rc = K.wpS === 2 && K.wpn === 3 && K.hu === 2; document.body.classList.toggle('recall', rc); if (rc) { const ar = AOE.getBoundingClientRect(), tp = Math.min(innerHeight - 34, ar.bottom + 6) + 'px', lf = (ar.left + ar.width / 2 - 32) + 'px'; if (RCB.style.top !== tp) RCB.style.top = tp; if (RCB.style.left !== lf) RCB.style.left = lf; } }
-  if (K.kind === 'time') { const ab = K.wpS === 2 && (K.wpn === 1 || K.wpn === 3 || K.wpn === 4); document.body.classList.toggle('ttab', ab); if (ab) { const TQ = K.trQ ?? TT.TRAP.N, lb = K.wpn === 3 ? 'toss' : K.wpn === 1 ? 'throw' : `trap\n${TQ} charge${TQ === 1 ? '' : 's'}`, sm2 = AOE.querySelector('small'); if (sm2 && sm2.textContent !== lb) sm2.textContent = lb; AOE.classList.toggle('dim', K.wpn === 3 ? K.hu === 1 || K.hu === 3 || K.huCd > 0 : K.wpn === 1 ? K.sb >= 1 || K.sbCd > 0 : TQ <= 0); } }
+  if (K.kind === 'time') { const ab = K.wpS === 2 && (K.wpn === 1 || K.wpn === 3 || K.wpn === 4); document.body.classList.toggle('ttab', ab); if (ab) { const TQ = K.trQ ?? TT.TRAP.N, lb = K.wpn === 3 ? 'toss' : K.wpn === 1 ? 'ship' : `trap\n${TQ} charge${TQ === 1 ? '' : 's'}`, sm2 = AOE.querySelector('small'); if (sm2 && sm2.textContent !== lb) sm2.textContent = lb; AOE.classList.toggle('dim', K.wpn === 3 ? K.hu === 1 || K.hu === 3 || K.huCd > 0 : K.wpn === 1 ? K.sc >= 1 || K.scCd > 0 : TQ <= 0); } }
   else if (document.body.classList.contains('ttab')) { document.body.classList.remove('ttab'); const sm2 = AOE.querySelector('small'); if (sm2) sm2.textContent = 'leap'; }
   const cdk = K.kind === 'time' ? (K.wpS === 2 ? (K.bk >= 0 && K.wpT >= TT.PORT.HOLD ? 0.04 : cl(1 - K.wpT / TT.PORT.HOLD, 0, 1)) : K.wpS ? 1 : cl((K.wpCd || 0) / TT.PORT.CD, 0, 1)) : K.kind === 'priest' ? (K.hoT > 0 ? 1 : cl((K.hoCd || 0) / WP.HO.CD, 0, 1)) : K.kind === 'fire' ? (K.lava ? 1 : cl((K.lvCd || 0) / LAVA.CD, 0, 1)) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
   { const FV = K.kind === 'fire', WPV = K.kind === 'priest', live = FV ? K.vPh >= 0 : WPV ? K.pPh >= 0 : K.ultPh >= 0, pr = cl((K.kills - (K.ultBase || 0)) / ultNeed(K), 0, 1);
@@ -3547,7 +3624,7 @@ function draw() {
     if (WPV) { dialIdle(K); if (K.hRet >= 0 && !(K.hRetSeen >= 0)) cancelSweepAim(); K.hRetSeen = K.hRet; DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); // while a slam's head is in the air the button is only ever Go to (lit once that's allowed), never another slam
     const early = K.ab === 'slam' && K.abT >= WP.SL.GOEARLY && gd(K.x, K.y, K.sx, K.sy) > WP.DRAG + 2, hOut = K.hOut > 0 || K.hRet >= 0 || early; const abBusy = !!K.penRet || K.ab === 'sweep' || K.ab === 'reel' || (K.ab === 'slam' && !early) || (!hOut && (K.slCd > 0 || K.slWait)); AOE.classList.toggle('out', hOut && !abBusy); AOE.classList.toggle('dim', abBusy); DASHE.classList.toggle('dim', !!K.penRet); if (K.penRet) cancelSweepAim(); BRB.classList.toggle('ready', K.hOut > 0); const al = hOut ? 'go to' : 'slam'; if (AOEL.textContent !== al) AOEL.textContent = al; SMI.style.height = (K.pPh === 1 ? 100 * cl(Math.hypot(K.hvx || 0, K.hvy || 0) / WP.PEN.MAXV, 0, 1) : 0) + '%'; } else if (!FV) { DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); } else { DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); } }
   if ((K.kind || 'knight') !== CHAR_UI) { charUI(K.kind || 'knight'); applyLayout(); } // switching character in game puts that character's control layout on
-  if (K.kind === 'time') AOEI.style.height = (K.wpn === 4 ? ((K.trQ ?? TT.TRAP.N) < TT.TRAP.N ? cl((K.trCd || 0) / TT.TRAP.CD, 0, 1) : 0) : K.wpn === 3 ? (K.hu === 1 || K.hu === 3 ? 1 : cl((K.huCd || 0) / Math.max(0.01, TT.HURL.CD), 0, 1)) : K.wpn === 1 ? (K.sb >= 1 ? 1 : cl((K.sbCd || 0) / Math.max(0.01, TT.BOOM.CD), 0, 1)) : 0) * 100 + '%';
+  if (K.kind === 'time') AOEI.style.height = (K.wpn === 4 ? ((K.trQ ?? TT.TRAP.N) < TT.TRAP.N ? cl((K.trCd || 0) / TT.TRAP.CD, 0, 1) : 0) : K.wpn === 3 ? (K.hu === 1 || K.hu === 3 ? 1 : cl((K.huCd || 0) / Math.max(0.01, TT.HURL.CD), 0, 1)) : K.wpn === 1 ? (K.sc === 1 ? 1 : cl((K.scCd || 0) / TT.SHIP.CD, 0, 1)) : 0) * 100 + '%';
   if (K.kind === 'fire') AOEI.style.height = (K.coT >= 0 ? 100 : cl((K.coCd || 0) / CO.CD, 0, 1) * 100) + '%';
   // breath charge fills the breath stick's ring with orange from the bottom
   { const rs = document.getElementById('rst'); rs.style.background = K.kind === 'fire' ? `linear-gradient(to top, ${K.lava ? '#f5c518cc' : '#f0a04a88'} ${100 * cl((K.lava ? (K.lvW > 0 ? K.lvW / LAVA.T : 1) : (K.brC ?? FIRE.BR_T) / FIRE.BR_T), 0, 1)}%, #ffffff14 0)` : ''; }
@@ -3738,9 +3815,9 @@ let sbc = null;
 const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase.createClient(SB_URL, SB_KEY, { realtime: { params: { eventsPerSecond: 40 } } }); } catch (e) { } } return sbc; };
 const myPid = Math.random().toString(36).slice(2, 10);
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
-const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, twV: n.twV || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
+const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, twV: n.twV || 0, la: n.la || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 const packK = kn => ({ v: KF.map(k => r3(kn[k])), in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] });
 // a player is called by their character; a second one of the same gets a number (Knight 2)
 const cName = kn => kn && (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) ? 'Firebreather' : kn && (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) ? 'Warpriest' : kn && (kn.kind === 'time' || (kn.in && kn.in.ch === 'time')) ? 'Time Traveler' : kn && (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) ? 'Swordmaster' : 'Knight';
