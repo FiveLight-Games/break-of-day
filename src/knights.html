@@ -1052,6 +1052,9 @@ function drawPart(c, p) {
 }
 // ---------- sound: all synthesized (Web Audio), throttled per kind so a horde doesn't turn into noise ----------
 const AU = { ctx: null, on: true, mus: true, last: {} };
+// the helicopter recording (src/assets/heli.mp3, inlined by build.py), decoded once the audio context exists
+const HELI_MP3 = '__HELI_MP3__'; let HELI_BUF = null, HELI_DEC = false;
+function heliBuf() { if (HELI_BUF || HELI_DEC || !AU.ctx || HELI_MP3.startsWith('__')) return HELI_BUF; HELI_DEC = true; try { const b = atob(HELI_MP3), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); AU.ctx.decodeAudioData(u.buffer).then(x => { HELI_BUF = x; }).catch(() => { }); } catch (e) { } return HELI_BUF; }
 try { AU.on = localStorage.getItem('kn_sfx') !== '0'; const sv = localStorage.getItem('kn_vol'); if (sv !== null) AU.vol = +sv; } catch (e) { }
 if (!(AU.vol >= 0)) AU.vol = 44; AU.mus = AU.vol > 0; const musGain = () => AU.vol / 100 * 0.5;
 function audioInit() {
@@ -2966,7 +2969,7 @@ let SAWS = [], TTFX = [], SKID = [], TRAPS = [];
 // a saw trap's arm length (swings out, folds back) and angle (spinning up) at its age: the same on every screen
 const trapOut = q => q.end !== undefined ? (q.t - q.end) / 0.4 : 0, trapArm = q => { const TR = TT.TRAP, k = q.t - TR.FLY, out = trapOut(q); return TR.ARM * smt(cl((k - TR.UP * 0.5) / TR.UP, 0, 1)) * (1 - smt(Math.min(1, out))); }, trapAng = q => { const TR = TT.TRAP; return (q.a0 || 0) + TR.SPIN * Math.max(0, q.t - TR.FLY - TR.UP * 0.5) ** 1.15; };
 function ttFx(dt, t) {
-  for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue; if (kn.dn >= 0) { dinoFx(kn, dt); if (kn.dnSN !== kn.dnN) { kn.dnSN = kn.dnN; snd('rumble', kn.dnx, kn.dny); snd('trex', kn.dnx, kn.dny); } }
+  for (const kn of KN) { if (kn.kind !== 'time' || kn.on === 0) continue; if (kn.hl >= 0) heliFx(kn); if (kn.dn >= 0) { dinoFx(kn, dt); if (kn.dnSN !== kn.dnN) { kn.dnSN = kn.dnN; snd('rumble', kn.dnx, kn.dny); snd('trex', kn.dnx, kn.dny); } }
     // guests: the host's tossed-alien state (grabs; for other players its whole tentacle clock too)
     if (!AUTH() && kn.a2s && kn.a2s !== kn.a2sSeen) { kn.a2sSeen = kn.a2s; const P = ttA2(kn); if (kn === KN[ME]) { P.tc = kn.a2s.tc; P.alG = kn.a2s.alG; } else Object.assign(P, kn.a2s); }
     if (kn.A2) { const P = ttA2Sync(kn); if (kn.wpn === 3 && (P.al || (P.alV || 0) > 0.01)) ttTentLines(P, dt, t); else if (P.tcS) P.tcS = null; P.alV = ap(P.alV || 0, P.al && kn.wpn === 3 ? 1 : 0, dt / (P.al ? TT.ALIEN.OPEN : 0.4)); P.alCv = Math.abs((P.alCv ?? 0) + dt - (P.alC || 0)) > 0.15 ? P.alC || 0 : (P.alCv ?? 0) + dt; }
@@ -3529,7 +3532,13 @@ function heliAir(c, kn, t) { const H = TT.HELI, s = kn.hl, near = heliNear(kn), 
 // on the ground: bullet strikes (dust and a dark pock mark that fades), every screen
 function heliGround(c, kn) { const S = heliShots(kn), s = kn.hl; for (const q of S) { const e = s - q[0]; if (e < 0) break; const a = 1 - cl((s - heliEnd(kn) + 0.3) / 0.8, 0, 1); c.fillStyle = `rgba(40,30,20,${0.45 * a})`; c.beginPath(); c.ellipse(q[1], q[2], 0.9, 0.45, 0, 0, 7); c.fill(); } }
 function heliFx(kn) { const S = heliShots(kn); if (kn.hlFN !== kn.hlN) { kn.hlFN = kn.hlN; kn.hlFI = 0; } while (kn.hlFI < S.length && S[kn.hlFI][0] <= kn.hl) { const q = S[kn.hlFI++]; for (let k = 0; k < 3; k++) { const a = rr(0, 6.28), v = rr(10, 30); dust.push({ x: q[1], y: q[2], vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5 - 6, r: rr(0.8, 1.6), t: 0, max: rr(0.3, 0.6) }); } if (Math.random() < 0.5) sparks.push({ x: q[1], y: q[2] - 1, vx: rr(-30, 30), vy: rr(-40, -10), t: 0, max: rr(0.15, 0.3) }); snd('mg', q[1], q[2]); }
-  const g = heliG(kn, heliU(kn.hl), -heliNear(kn) * TT.HELI.OFF); if (kn.hl > TT.HELI.OPEN * 0.6 && kn.hl < heliEnd(kn)) snd('heli', g[0], g[1]); }
+  heliAudio(kn); }
+// the recording plays from when the helicopter comes out of the first portal, fading in over 0.3s, and fades out as it goes into the second
+function heliAudio(kn) { const buf = heliBuf(); if (!buf || !AU.ctx || AU.ctx.state !== 'running') return; const H = TT.HELI, c = AU.ctx, now = c.currentTime;
+  if (kn.hlAu && kn.hlAu.n !== kn.hlN) kn.hlAu = null; if (kn.hlAu || kn.hl < H.OPEN || kn.hl > heliEnd(kn)) return;
+  const src = c.createBufferSource(), g = c.createGain(), vol = 0.9, left = heliEnd(kn) - kn.hl, tOut = now + Math.max(0.05, left - 0.25), tEnd = now + left + 0.2; src.buffer = buf; src.playbackRate.value = speed < 1 ? 0.62 : 1;
+  g.gain.setValueAtTime(0.0001, now); g.gain.linearRampToValueAtTime(vol, now + Math.min(0.3, left * 0.4)); g.gain.setValueAtTime(vol, Math.max(now + Math.min(0.3, left * 0.4), tOut)); g.gain.linearRampToValueAtTime(0.0001, tEnd);
+  src.connect(g); g.connect(AU.out); src.start(now, Math.min(0.15, buf.duration * 0.05)); src.stop(tEnd + 0.05); kn.hlAu = { n: kn.hlN, src }; }
 // ---- the stampede: the herd is worked out from the synced call (dnx/dny portal, dnf direction, dnN) the same way on every screen ----
 // each dino: k (0 raptor, 1 triceratops, 2 T-rex), off (across the lane), delay, spd, r (body radius), dmg, ph (gait phase), sc (size)
 function dinoHerd(kn) { if (kn.dnHd && kn.dnHd.n === kn.dnN && kn.dnHd.x === kn.dnx) return kn.dnHd.p; const D = TT.DINO, R = shipRnd({ scx: kn.dnx, scy: kn.dny, scN: kn.dnN }), p = [];
@@ -4319,7 +4328,7 @@ addEventListener('resize', () => setTimeout(() => { applyLayout(); if (EDIT) { l
 charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
-window.__shipDb = kn => shipDebris(kn); window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
+window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
 const KBUILD = '__BUILD__';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
