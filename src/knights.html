@@ -3501,10 +3501,10 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   // game hooks: the swinging arm goes behind the body while its fist is round the far side of him, in front of everything while it's on the near side
   const hkA = !!HKo && HKo.k > 0.05 && HKo.arm === 0, hkB = !!HKo && HKo.k > 0.05 && HKo.arm === 1, armA = () => { weaponOf(0, hA); arm(shA, hA, SF ? SS : IS, 'A', !SF); }, armB = () => { if (opts.ham && opts.ham.at === 'B') opts.ham.draw(c, hA, hB); weaponOf(1, hB); arm(shB, hB, SF ? IS : SS, 'B', SF); };
   if (opts.ham && opts.ham.at === 'pre') opts.ham.draw(c, hA, hB);
-  const guardBehind = !!HKo && HKo.k > 0.05 && HKo.arm === 1; if (hkA ? !HKo.front : (aLow || guardBehind)) armA();
+  const gFront = !!HKo && HKo.gFlip && HKo.arm === 1, guardBehind = !!HKo && HKo.k > 0.05 && HKo.arm === 1 && !gFront; if (hkA ? !HKo.front : ((aLow && !gFront) || guardBehind)) armA();
   if (hkB && !HKo.front) armB();
   torso(); torsoDone = 1; leg(0, SF ? SS : IS, !SF); leg(1, SF ? IS : SS, SF); loin();
-  if (!hkA && !aLow && !guardBehind) armA();
+  if (!hkA && (!aLow || gFront) && !guardBehind) armA();
   const hI = () => head(HI, true, f, Math.max(iceOn, argue * Math.max(0, -Math.sin(t * 13))), both ? b : actK), hZ = () => head(HZ, false, argue > 0.3 ? -f : f, Math.max(zapOn, argue * Math.max(0, Math.sin(t * 13))), both ? b : 1 - actK);
   // the head on his facing side is drawn last; the storm shoulder stones sit behind the storm face
   if (SF) { hI(); shoulder(shA, false); hZ(); } else { shoulder(shA, true); hZ(); hI(); }
