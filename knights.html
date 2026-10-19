@@ -4318,7 +4318,7 @@ function ogDragonAir(c, t, D) { const G = OG.DRG, V0 = OGX.V, OUT = OGX.OUT, arc
 // strip; then afterimages dash down through it.
 const NJ = { RUN: 1.3, ATK: 0.8, T: [0.34, 0.34, 0.26], KU: { N: 5, SPREAD: 0.5, V: 340, RANGE: 125, DMG: 90, KB: 30, REL: 0.48, GRAB: 0.26, EARLY: 0.6, HOP: 15, HZ: 3.2, PIERCE: 2, Z: 7, LIE: 1.2 }, DMG: 70, KB: 22, LEN: 9.6, FAST: 6, GAP: 0.25,
   LEAP: { D: 130, T: 0.95, H: 34, R: 22, AR: 26, DMG: 220, KB: 120, TICK: 0.1, SDMG: 32, N: 3, CD: 2.76, PRE: 0.86, SW: 0.48, CHAIN: 0.4, MIN: 0.5 },
-  KM: { RANGE: 125, CONE: 1.4, FROM: 0.65, BACK: 52, LT: 0.7, H: 26, THR: 0.62, FLY: 0.1, TUG: 0.58, YANK: 0.04, V: 430, PAST: 75, W: 10, DMG: 200, HDMG: 120, KB: 90, CD: 6, REC: 0.4, OM: 28, TURN: 1.3, TWE: 0.7, OUT: 0.62, END: 0.75, MO: 0.5, CARRY: 0.14, DK: 6, MOV: 2.2, SHOW: 0.47, KS: 1.15 },
+  KM: { RANGE: 125, CONE: 1.4, FROM: 0.65, BACK: 52, LT: 0.7, H: 26, THR: 0.62, FLY: 0.1, TUG: 0.58, YANK: 0.04, V: 430, PAST: 75, W: 10, DMG: 200, HDMG: 500, SDMG: 500, KB: 90, CD: 6, REC: 0.4, OM: 28, TURN: 1.3, TWE: 0.7, OUT: 0.62, END: 0.75, MO: 0.5, CARRY: 0.14, DK: 6, MOV: 2.2, SHOW: 0.47, KS: 1.15 },
   ULT: { PLAN: 4, SLOW: 0.3, SEG: 72, HW: 11, JR: 17, HITS: 30, DASH: 5, HDMG: 120, SWR: 2, SWRR: 14, SWDMG: 55, STRIKE: 1.6, END: 0.2, GZ: 22, GT: 0.5, BIGSW: 2, BSW: 0.62, BWU: 0.2, GLT: 0.2, REAP: 0.85 } };
 // action keys (chest-relative, facing right, y down): [u, crouch, lean, twist, A hand x, y, B hand x, y, B blade angle, step]
 const NJG = [0, 1.6, 0.2, 0.15, 2.0, 3.3, 0.5, 2.5, 2.75, 0];
@@ -4564,8 +4564,14 @@ function njKmStep(dt, t) { const M = NJ.KM; if (!(K.km >= 0)) return false; cons
   // the throw: the kama leaves his hand where it is
   if (s0 < tl.tT && s >= tl.tT) { const P = njPose(K, t); K.kmR0 = njWorld(K, P.hA); snd('shur', K.x, K.y); }
   // the hook: it bites if the target is still alive, else it drops where the target was and he just lands
-  if (mine && K.kmH === 0 && s >= tl.tH) { if (tw && tw.hp > 0) { K.kmH = 1; K.kmTX = tw.x; K.kmTY = tw.y; if (host) { const k0 = K; if (!UK[tw.k].heavy) tw.atk = -1; hurt(tw, M.HDMG, ww => cleaveFx(ww, ww.x >= k0.x ? 1 : -1)); K = k0; } } else K.kmH = -1; tl = njKmTL(K); }
+  if (mine && K.kmH === 0 && s >= tl.tH) { if (tw && tw.hp > 0) { K.kmH = 1; K.kmTX = tw.x; K.kmTY = tw.y; tw.kmH = K.kmN; if (host) { const k0 = K; if (!UK[tw.k].heavy) tw.atk = -1; hurt(tw, M.HDMG, ww => cleaveFx(ww, ww.x >= k0.x ? 1 : -1)); K = k0; } } else K.kmH = -1; tl = njKmTL(K); }
   if (s0 < tl.tH && s >= tl.tH && K.kmH !== -1) { const hx = K.kmTX, hy = K.kmTY - (K.kmTZ || 5); for (let n = 0; n < 6; n++) sparks.push({ x: hx, y: hy, vx: rr(-30, 30), vy: -rr(5, 35), t: 0, max: rr(0.15, 0.3) }); spray(K.kmTX, K.kmTY, K.kmTZ || 5, K.kmTX >= K.x ? 1 : -1, 6, 0.7); snd('cane', hx, hy); }
+  // the slice: as he's reeled all the way in and flies past the target he cuts it (SDMG, the other half of the single-target damage; host),
+  // every screen gets the slash across it, blood and a ring of sound
+  if (!tl.miss && K.kmH === 1 && s0 < tl.tRip && s >= tl.tRip) { const ty = K.kmTY - (K.kmTZ || 5), a = Math.atan2(tl.d[1] / 1.25, tl.d[0]);
+    FX.push({ k: 'kmsl', x: K.kmTX, y: ty, a, f: K.f || 1, t: 0, max: 0.26 }); spray(K.kmTX, K.kmTY, K.kmTZ || 5, tl.d[0] >= 0 ? 1 : -1, 12, 1.2); snd('swing', K.kmTX, K.kmTY);
+    for (let n = 0; n < 6; n++) sparks.push({ x: K.kmTX, y: ty, vx: tl.d[0] * rr(30, 70) + rr(-15, 15), vy: rr(-30, 5), t: 0, max: rr(0.12, 0.25) });
+    if (host && tw && tw.hp > 0) { const k0 = K; tw.kx += tl.d[0] * 40; tw.ky += tl.d[1] * 25; hurt(tw, M.SDMG, ww => cleaveFx(ww, tl.d[0] >= 0 ? 1 : -1)); K = k0; } }
   // the hooked target is held where the kama bit until he's past it
   if (host && K.kmH === 1 && tw && tw.hp > 0 && s < tl.tRip) { tw.x = K.kmTX; tw.y = K.kmTY; tw.kx = tw.ky = 0; }
   // the tug: a dust burst at his feet as the rope snaps taut
@@ -4982,6 +4988,11 @@ function njGround(c, t) { for (const kn of LIVE()) { if (kn.kind !== 'ninja') co
 function njTop(c, t) { const kn = njMine(); if (kn) njStrip(c, kn, kn.njJ || njDefJ(kn), 1, t, true); }
 function njAir(c, t) { for (const k of NJKU) { const a = k.st ? k.sa : k.fall ? Math.atan2(k.vy - k.vz * 0.6, k.vx) : Math.atan2(k.vy, k.vx), fa = k.st ? 1 - sm(cl((k.lt - NJ.KU.LIE * 0.4) / (NJ.KU.LIE * 0.6), 0, 1)) : 1; if (fa <= 0.01) continue; c.save(); c.globalAlpha = 0.25 * fa; c.fillStyle = '#000'; c.beginPath(); c.ellipse(k.x, k.y, 1.6, 0.6, 0, 0, 7); c.fill(); c.globalAlpha = fa; c.translate(k.x, k.y - k.z); c.scale(KS, KS); njKunaiAt(c, k.st ? -3.0 : -1.9, 0, a, 1.8); c.restore(); } for (const s of NJSH) { const u = cl(s.t / s.max, 0, 1), x = lerp(s.x, s.tx, u), y = lerp(s.y, s.ty, u), z = s.z * (1 - u); njShuriken(c, x, y - z, s.t * s.sp, 0.8); }
   for (const g of NJGH) njGhostDraw(c, g, t);
+  // the kama slice: a bright crescent drawn on fast across the target, diagonal to his path, then thinning out
+  for (const f of FX) if (f.k === 'kmsl') { const u = cl(f.t / f.max, 0, 1), on = sm(Math.min(1, u / 0.35)), L = 13, ca = Math.cos(f.a), sa = Math.sin(f.a), ax = -sa * 0.75 + ca * 0.66, ay = ca * 0.75 + sa * 0.66, al = 1 - sm(cl((u - 0.3) / 0.7, 0, 1));
+    const N = 14, P = []; for (let i = 0; i <= N; i++) { const v = i / N; if (v > on) break; const tt = v * 2 - 1, bow = (1 - tt * tt) * 3.2, wd = Math.sin(Math.PI * v) * 1.5 * (1 - u * 0.6); P.push([f.x - ax * L * tt + ca * bow, f.y - ay * L * tt * 0.9 + sa * bow - bow * 0.3, wd]); }
+    if (P.length > 1) { c.save(); c.globalAlpha = al; c.fillStyle = '#ffffff'; c.beginPath(); P.forEach((p, i) => i ? c.lineTo(p[0] + ca * p[2], p[1] + sa * p[2]) : c.moveTo(p[0], p[1])); for (let i = P.length - 1; i >= 0; i--) c.lineTo(P[i][0] - ca * P[i][2] * 0.4, P[i][1] - sa * P[i][2] * 0.4); c.closePath(); c.fill();
+      c.globalAlpha = al * 0.35; c.strokeStyle = '#cfe6ff'; c.lineWidth = 2.6; c.lineCap = 'round'; c.beginPath(); P.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.stroke(); c.restore(); } }
   for (const f of FX) if (f.k === 'njsw') { const u = cl(f.t / f.max, 0, 1), R = NJ.LEAP.R * (f.s || 1) * (0.75 + 0.25 * u); c.save(); c.globalAlpha = (1 - u) * 0.85; c.strokeStyle = '#f4f8ff'; c.lineWidth = 1.6 * (1 - u) + 0.3; c.lineCap = 'round'; c.beginPath(); const a0 = f.f > 0 ? 0 : Math.PI, sp = f.f * Math.PI * 2 * Math.min(1, u * 1.6); c.ellipse(f.x, f.y - 3, R, R * 0.8, 0, Math.min(a0, a0 + sp), Math.max(a0, a0 + sp)); c.stroke(); c.restore(); } }
 // slow motion, seen by everyone: the colour drains, the edges darken and ink streaks drift across while a ninja lays out his strike
 function njOverlay(c) { const on = LIVE().some(kn => kn.kind === 'ninja' && kn.nPh === 1); NJO.v = lerp(NJO.v, on ? 1 : 0, on ? 0.12 : 0.08); const a = NJO.v; if (a < 0.01) return;
@@ -7766,7 +7777,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = 'ec603d';
+const KBUILD = '1c11e3';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
