@@ -6577,7 +6577,7 @@ const CR = { S: KS * 1.05, RUN: 0.95,
   LZ: { T: 0.3, REC: 0.12, ARC: 1.7, D: 62, NEAR: 6, W: 4, DMG: 110, SLOW: 0.75 },   // laser strikes: sweep time, pause before the next, arc swept (rad), reach, width, damage (each enemy once per strike), walk speed while striking
   BAR: { CD: 7, RANGE: LEAP_R * 1.66, N: 14, GAP: 0.075, START: 0.25, FLY: 1.0, H: 60, SPREAD: 21, R: 21, DMG: 230, END: 1.75 },   // egg barrage: rockets, gap, first shot, flight, arc height, landing spread, blast radius, damage, pose time
   MINE: { CD: 6, T: 0.9, REL: 0.5, N: 10, ROWS: 2, GAP: 11, FIRST: 14, STEP: 9, ARM: 0.35, TRIG: 6, R: 16, DMG: 320, LIFE: 14 }, // egg mines: throw time, release, mines per row, rows, gap between the rows, trail spacing, arm time, trigger radius, blast radius, damage, how long a mine lasts
-  BOMB: { CD: 6, UP: 0.4, Z: 24, SPD: 150, LEN: 150, EVERY: 0.07, ZZ: 8, R: 12, DMG: 200 },                       // bombing run: take-off, height, speed, length, drop rate, blast radius, damage
+  BOMB: { CD: 6, UP: 0.4, Z: 24, SPD: 150, LEN: 150, EVERY: 0.07, ZZ: 9.6, JZ: 0.45, JA: 5, TURN: 1.1, R: 12, DMG: 200 },  // ZZ +20% (2026-10-18); JZ/JA: each bomb's side offset varies by ±JZ of ZZ and it lands up to ±JA along the line; TURN: the move stick steers him (rad/s)                       // bombing run: take-off, height, speed, length, drop rate, blast radius, damage
   LAY: { EVERY: 1, POP: 0.5, DROP: 0.2 },  // passive: an egg laid behind him every EVERY s that pops into a kamikaze chick POP s after it leaves him (DROP of that is the fall)
   ULT: { SPIN: 1.6, N: 75, THROW: 1.4, R0: 14, R1: 105, HATCH: 0.45, SPD: 75, R: 9, DMG: 220, LIFE: 10, REACH: 3, PER: 2, ENGAGE: 55, FR0: 8, FR1: 18, MAXF: 20 } }; // ENGAGE: how close an enemy has to get before a chick goes for it; FR0-FR1: the ring they follow him in; MAXF: most chicks following him (the oldest pops off) // chick storm: spin, eggs, throw window, landing ring, hatch time, chick speed, kamikaze blast radius + damage, chick lifetime, contact reach, chicks per target
 let CRFX = [];
@@ -6601,8 +6601,10 @@ function roosterStep(dt, t) {
   if (K.cu >= 0) { K.cu += dt; if (K.cu > CR.ULT.SPIN + CR.ULT.LIFE + 1) K.cu = -1; }
   // ---- Bombing Run (dash stick): up on the egg tanks, across the field dropping eggs, back down ----
   if (dashP && !busy && !(K.bmCd > 0)) { const v = IN.dashD || (mvL > 0.2 ? IN.mv : [K.f || 1, 0]), a = Math.atan2(v[1] * 1.25, v[0]); Object.assign(K, { bmT: 0, bmN: (K.bmN || 0) + 1, bmX: r1(K.x), bmY: r1(K.y), bmA: Math.round(a * 100) / 100, brT: -1, mtT: -1 }); if (Math.abs(Math.cos(a)) > 0.2) K.f = Math.cos(a) > 0 ? 1 : -1; }
-  if (K.bmT >= 0) { const B = CR.BOMB, fly = B.LEN / B.SPD; K.bmT += dt; const d = [Math.cos(K.bmA), Math.sin(K.bmA) / 1.25], s = cl((K.bmT - B.UP) / fly, 0, 1) * B.LEN + crBombGlide(K.bmT - B.UP - fly);
-    K.x = K.bmX + d[0] * s; K.y = cl(K.bmY + d[1] * s, 16, H - 4); K.z = K.bmT < B.UP ? sm(K.bmT / B.UP) * B.Z : K.bmT < B.UP + fly ? B.Z + Math.sin(K.bmT * 6) * 0.8 : (1 - sm(cl((K.bmT - B.UP - fly) / B.UP, 0, 1))) * B.Z;
+  if (K.bmT >= 0) { const B = CR.BOMB, fly = B.LEN / B.SPD, sAt = q => cl((q - B.UP) / fly, 0, 1) * B.LEN + crBombGlide(q - B.UP - fly), s0 = sAt(K.bmT); K.bmT += dt; const ds = sAt(K.bmT) - s0;
+    // slightly steerable: once he's up, the move stick turns his heading a little (TURN rad/s); he flies on along wherever it points
+    if (K.bmT > B.UP * 0.5 && mvL > 0.2) { const want = Math.atan2(IN.mv[1] * 1.25, IN.mv[0]); let da = want - K.bmA; da -= Math.round(da / 6.283) * 6.283; K.bmA = Math.round((K.bmA + cl(da, -B.TURN * dt, B.TURN * dt)) * 1000) / 1000; }
+    const d = [Math.cos(K.bmA), Math.sin(K.bmA) / 1.25]; K.x += d[0] * ds; K.y = cl(K.y + d[1] * ds, 16, H - 4); if (Math.abs(Math.cos(K.bmA)) > 0.2) K.f = Math.cos(K.bmA) > 0 ? 1 : -1; K.z = K.bmT < B.UP ? sm(K.bmT / B.UP) * B.Z : K.bmT < B.UP + fly ? B.Z + Math.sin(K.bmT * 6) * 0.8 : (1 - sm(cl((K.bmT - B.UP - fly) / B.UP, 0, 1))) * B.Z;
     K.vx = K.vy = 0; K.spd = 0; if (K.bmT >= crBombTot()) { K.bmT = -1; K.z = 0; K.bmCd = B.CD; } }
   // ---- Egg Barrage (leap circle): 14 rocket eggs lobbed onto the aimed spot ----
   if (leapP && IN.leapT && !busy && K.brT < 0 && !(K.brCd > 0)) { const tg = leapTarget(K, IN.leapT); Object.assign(K, { brT: 0, brN: (K.brN || 0) + 1, brX: r1(tg[0]), brY: r1(tg[1]), brCd: CR.BAR.CD, mtT: -1 }); if (Math.abs(tg[0] - K.x) > 2) K.f = tg[0] > K.x ? 1 : -1; }
@@ -6647,8 +6649,9 @@ function crFx(dt, t) {
     // bombing run: an egg bomb every EVERY while he's over the field
     // bomb i leaves him at i*EVERY into the run, zig-zagging ZZ either side of his line (the same plan the aim preview draws)
     if (kn.bmT >= 0) { const B = CR.BOMB, fly = B.LEN / B.SPD; if (S.bmN !== kn.bmN) { S.bmN = kn.bmN; S.bmI = 0; } const due = kn.bmT < B.UP ? 0 : Math.min(Math.ceil(fly / B.EVERY), Math.floor((kn.bmT - B.UP) / B.EVERY) + 1);
-      while (S.bmI < due) { const i = S.bmI++, a = kn.bmA, d = [Math.cos(a), Math.sin(a) / 1.25], n = [-Math.sin(a), Math.cos(a) / 1.25], sd = (i % 2 ? 1 : -1) * B.ZZ, s0 = i * B.EVERY * B.SPD, ff = Math.abs(Math.cos(a)) > 0.2 ? (Math.cos(a) > 0 ? 1 : -1) : f;
-        CRFX.push({ k: 'bomb', o: kn.i, x: kn.bmX + d[0] * s0 - ff * 3 + n[0] * sd, y: cl(kn.bmY + d[1] * s0 + n[1] * sd, 16, H - 4), z: B.Z + 4, vx: d[0] * B.SPD * 0.35, vy: d[1] * B.SPD * 0.35, vz: 0, sp: crH(i, kn.bmN) * 6 }); } }
+      // each bomb drops from under him as he is now (so it follows his steering), zig-zagging either side, each with its own jitter (side and along), the same on every screen
+      while (S.bmI < due) { const i = S.bmI++, a = kn.bmA, d = [Math.cos(a), Math.sin(a) / 1.25], n = [-Math.sin(a), Math.cos(a) / 1.25], sd = crSide(i, kn.bmN), s0 = (crH(i + 50, kn.bmN) - 0.5) * 2 * B.JA, ff = Math.abs(Math.cos(a)) > 0.2 ? (Math.cos(a) > 0 ? 1 : -1) : f;
+        CRFX.push({ k: 'bomb', o: kn.i, x: kn.x + d[0] * s0 - ff * 3 + n[0] * sd, y: cl(kn.y + d[1] * s0 + n[1] * sd, 16, H - 4), z: B.Z + 4, vx: d[0] * B.SPD * 0.35, vy: d[1] * B.SPD * 0.35, vz: 0, sp: crH(i, kn.bmN) * 6 }); } }
     // the egg he lays every second: it drops out behind him and pops into a kamikaze chick
     if (S.egN !== kn.egN) { const first = S.egN === undefined; S.egN = kn.egN; if (!first && kn.st === 'fight') { const L = CR.LAY; CRFX.push({ k: 'fly', o: kn.i, x0: kn.x - f * 3.5, y0: kn.y, z0: (kn.z || 0) + 7, tx: kn.x - f * 6, ty: kn.y + 0.5, t: 0, T: L.DROP, H: 1.5, sp: 0, hatch: 1, pop: L.POP - L.DROP }); } }
     // chick storm: eggs thrown out all round him while he spins
@@ -6682,13 +6685,16 @@ const crLsAng = (kn, u) => (kn.lsA || 0) + (kn.lsS || 1) * CR.LZ.ARC * (sm(cl(u 
 // aiming (or firing) the egg barrage pulls the camera back just enough to show his whole range circle
 function crZoom(hw1) { const kn = KN[ME]; if (!kn || kn.kind !== 'rooster' || !(LEAPAIM || kn.brT >= 0)) return 1; const hh1 = hw1 * cv.height / cv.width, R = CR.BAR.RANGE; return Math.min(1, hw1 / (R + 14), hh1 / (R * 0.8 + 14)); }
 // the bombing run worked out from where he stands and the aim, the same way the run itself goes: his flight line, where every egg bomb will land, where he touches down
+const crSide = (i, n) => (i % 2 ? 1 : -1) * CR.BOMB.ZZ * (1 + (crH(i, n) - 0.5) * 2 * CR.BOMB.JZ);
 function crBombPlan(kn, v) { const B = CR.BOMB, a = Math.atan2(v[1] * 1.25, v[0]), d = [Math.cos(a), Math.sin(a) / 1.25], f = Math.abs(Math.cos(a)) > 0.2 ? (Math.cos(a) > 0 ? 1 : -1) : (kn.f || 1), fly = B.LEN / B.SPD, at = s => [kn.x + d[0] * s, cl(kn.y + d[1] * s, 16, H - 4)];
-  const z0 = B.Z + 4, tf = Math.sqrt(2 * z0 / 160), n = [-Math.sin(a), Math.cos(a) / 1.25], drops = []; for (let i = 0; i < Math.ceil(fly / B.EVERY); i++) { const sd = (i % 2 ? 1 : -1) * B.ZZ, p = [kn.x + d[0] * i * B.EVERY * B.SPD + n[0] * sd, kn.y + d[1] * i * B.EVERY * B.SPD + n[1] * sd]; drops.push([p[0] - f * 3 + d[0] * B.SPD * 0.35 * tf, cl(cl(p[1], 16, H - 4) + d[1] * B.SPD * 0.35 * tf, 16, H - 4)]); }
+  const z0 = B.Z + 4, tf = Math.sqrt(2 * z0 / 160), n = [-Math.sin(a), Math.cos(a) / 1.25], drops = [], nx = (kn.bmN || 0) + 1; for (let i = 0; i < Math.ceil(fly / B.EVERY); i++) { const sd = crSide(i, nx), s1 = i * B.EVERY * B.SPD + (crH(i + 50, nx) - 0.5) * 2 * B.JA, p = [kn.x + d[0] * s1 + n[0] * sd, kn.y + d[1] * s1 + n[1] * sd]; drops.push([p[0] - f * 3 + d[0] * B.SPD * 0.35 * tf, cl(cl(p[1], 16, H - 4) + d[1] * B.SPD * 0.35 * tf, 16, H - 4)]); }
   return { a, d, end: at(B.LEN + crBombGlide(B.UP)), drops }; }
 function crBombPreview(c, t, kn, v) { if (kn.st === 'kneel') return; const P = crBombPlan(kn, v), B = CR.BOMB, rdy = !(kn.bmCd > 0) && !(kn.bmT >= 0); c.save(); c.globalAlpha = rdy ? 1 : 0.35;
   // the strip the blasts will cover
   c.fillStyle = 'rgba(255,120,60,.13)'; for (const p of P.drops) { c.beginPath(); c.ellipse(p[0], p[1], B.R, B.R * 0.8, 0, 0, 7); c.fill(); }
   c.strokeStyle = 'rgba(255,170,90,.75)'; c.lineWidth = 0.4; for (const p of P.drops) { c.beginPath(); c.ellipse(p[0], p[1], 1.6, 1.1, 0, 0, 7); c.stroke(); }
+  // how far he can steer it: the two hardest-turning flight paths, faint dashed, either side of the straight line
+  { const fly = B.LEN / B.SPD; c.strokeStyle = 'rgba(255,200,140,.35)'; c.lineWidth = 0.45; c.setLineDash([1.2, 1.6]); for (const sg of [-1, 1]) { c.beginPath(); let x = kn.x, y = kn.y, a = P.a; c.moveTo(x, y); const N = 24, tt = fly + B.UP; for (let k = 1; k <= N; k++) { const q = k / N * tt; if (q > B.UP * 0.5) a += sg * B.TURN * tt / N; const ds = (B.LEN + crBombGlide(B.UP)) / N; x += Math.cos(a) * ds; y += Math.sin(a) / 1.25 * ds; c.lineTo(x, cl(y, 16, H - 4)); } c.stroke(); } c.setLineDash([]); }
   // his flight line and where he lands
   c.strokeStyle = 'rgba(255,240,190,.85)'; c.lineWidth = 0.6; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 10; c.beginPath(); c.moveTo(kn.x, kn.y); c.lineTo(...P.end); c.stroke(); c.setLineDash([]);
   c.strokeStyle = kn.col; c.lineWidth = 0.7; c.beginPath(); c.ellipse(P.end[0], P.end[1], 5, 3, 0, 0, 7); c.stroke(); c.restore(); }
