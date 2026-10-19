@@ -40,7 +40,7 @@ function renderMenu() {
   else if (homeScreen === 'other') m.innerHTML = `<div class="eyebrow">Other modes</div>
     <button class="btn big" data-act="htl">Hold the Line<small>1vX tower defense: defenders build, an attacker sends the horde</small></button>
     <button class="btn ghost" data-act="home">Back</button>`;
-  else if (homeScreen === 'home') m.innerHTML = `<div class="eyebrow">Play</div>
+  else if (homeScreen === 'home') m.innerHTML = `
     <button class="btn primary big" data-act="knights" style="font-size:30px;padding:20px 12px;letter-spacing:.04em">Play</button>
     <button class="btn big" data-act="other">Other Modes</button><p class="err">${esc(menuErr)}</p>`;
   else { const on = !!getSB(); m.innerHTML = `<div class="eyebrow">Hold the Line</div>
