@@ -3189,7 +3189,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   let py = -8.2 - (4.55 - 3.95) * 2 - 0.25 + bob * 0.3 + Math.sin(t * 1.7) * 0.05; [1, -1].forEach((s2, i) => { const dx = feet[i][0] - (px + f * s2 * 1.9), ay = feet[i][1] - 0.95, R = LL * 0.972; py = Math.max(py, ay - Math.sqrt(Math.max(0, R * R - dx * dx)) + 0.3); });
   const pel = [px, py + cr], lean = 0.05 + SV * (0.16 + Math.sin(t * 2.3) * 0.04) + w * GAIT.RUN * 0.28 + k * (AT === 1 || HK ? 0.24 : 0.36) - wind * 0.14 + b * 0.05 + (HKo ? HKo.ln : 0) + (opts.lnx || 0);
   // game: opts.yaw turns his upper body round its spine (+ brings the facing-side shoulder A toward the camera, - brings B): the body narrows as it turns side-on and the shoulder coming round drops nearer
-  const YW = opts.yaw || 0, YS = Math.max(0.55, Math.abs(Math.cos(YW)));
+  const YW = opts.yaw || 0, YS = Math.max(opts.hk && opts.hk.yf || 0.55, Math.abs(Math.cos(YW)));
   const cs = Math.cos(f * lean), sn = Math.sin(f * lean), T = p => { const q = [f * p[0] * YS, p[1]]; return [pel[0] + q[0] * cs - q[1] * sn, pel[1] + q[0] * sn + q[1] * cs]; }, Ts = p => T([f * p[0], p[1]]), SF = f > 0;
   const hips = [1, -1].map(s => [pel[0] + f * s * 1.9, pel[1] - 0.3]); // the pelvis stays level; only the body above it leans
   const ankles = hips.map((h, i) => { const a = [feet[i][0], feet[i][1] - 0.95], dx = a[0] - h[0], dy = a[1] - h[1], d = Math.hypot(dx, dy) || 1;
@@ -3228,8 +3228,10 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   const gI = HKo && HKo.gp > 0 ? (HKo.arm ? 0 : 1) : -1; if (gI >= 0) { const sg = gI ? shB : shA, h0 = gI ? hB0 : hA0, GV = (typeof window !== 'undefined' && window.__gv) || 0, SA = GV === 1 ? Math.PI / 2 - f * 0.55 : GV === 2 ? (f > 0 ? 0.25 : Math.PI - 0.25) : Math.PI / 2, S = [sg[0] + Math.cos(SA) * 7, sg[1] + Math.sin(SA) * 7], G2 = [pel[0] + f * HKo.gd[0], pel[1] + HKo.gd[1]], gp = HKo.gp, gx = HKo.gx || 0, gr = HKo.gr || 0, ED = Math.atan2(0.82, -f * 0.57), at = a2 => [sg[0] + Math.cos(a2) * 7, sg[1] + Math.sin(a2) * 7];
     // thrown out straight (down and back, away from the punch); on the way back it swings round at full length to hang straight, then returns to where it hangs
     const p = gr > 0 ? (gr < 0.5 ? at(lerp(ED, SA, sm(gr / 0.5))) : L2(S, h0, sm((gr - 0.5) / 0.5))) : gx > 0 ? L2(G2, at(ED), sm(gx)) : gp < 0.5 ? L2(h0, S, sm(gp / 0.5)) : L2(S, G2, sm((gp - 0.5) / 0.5)); h0[0] = p[0]; h0[1] = p[1]; }
+  // game: the punching arm driven out to (nearly) its full length along the fist's arc direction on screen, HKo.ex 0..1
+  if (HKo && HKo.ex > 0 && HKo.k > 0.05) { const s0 = HKo.arm ? shB : shA, h0 = HKo.arm ? hB0 : hA0, dx = Math.cos(HKo.th) * f, dy = Math.sin(HKo.th) * 0.42, dl = Math.hypot(dx, dy) || 1, X = [s0[0] + dx / dl * 6.998, s0[1] + dy / dl * 6.998]; h0[0] = lerp(h0[0], X[0], HKo.ex); h0[1] = lerp(h0[1], X[1], HKo.ex); }
   const reach = (s, h, m = 6.9) => { const d = Math.hypot(h[0] - s[0], h[1] - s[1]); return d > m ? L2(s, h, m / d) : h; };
-  const hA = reach(shA, hA0, gI === 0 ? 6.998 : 6.9), hB = reach(shB, hB0, gI === 1 ? 6.998 : 6.9), aLow = hA[1] - shA[1] > 4.0;
+  const XA = HKo && HKo.ex > 0 && HKo.k > 0.05, hA = reach(shA, hA0, gI === 0 || (XA && !HKo.arm) ? 6.998 : 6.9), hB = reach(shB, hB0, gI === 1 || (XA && HKo.arm) ? 6.998 : 6.9), aLow = hA[1] - shA[1] > 4.0;
 
   // ---- pieces ----
   const leg = (i, sk, ice) => { const h = hips[i], kn = knees[i], ft = feet[i];
@@ -3339,7 +3341,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
     path(c, [W(1.5, 0.28), W(3.9, 0.45), W(3.5, 0.08), W(6.6, 0.35), W(6.25, 0.0), W(10.1, 0.0), W(6.1, -0.3), W(6.5, -0.06), W(3.5, -0.4), W(3.85, -0.08), W(1.5, -0.28)]); c.fillStyle = '#f2fbff'; c.fill();
     if (rnd(Math.floor(t * 12) + 5) > 0.35 - glowK * 0.3) { const q0 = 1.6 + rnd(Math.floor(t * 12)) * 7, sd = Math.floor(t * 12) * 7; arc2(c, W(q0, 0.4), W(q0 + 1.2, 1.4 + rnd(sd) * 0.6), SG, V.core, sd, 0.06, 0.5, 4); } };
   const weaponOf = (ar, h) => { if (!WPN) return; const a = scrA(wpA(ar)), isHam = ar === iceArm; if (isHam) hammer(h, a, iL); else sword(h, a, zL); };
-  const arm = (s, h, sk, side, ice) => { const e = (() => { const e1 = ik(s, h, 3.5, 3.5, 1), e2 = ik(s, h, 3.5, 3.5, -1); if (HKo && HKo.gFlip && side === (HKo.arm ? 'A' : 'B')) return e1[1] > e2[1] ? e1 : e2; if (HKo && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const C0 = [pel[0], pel[1] - 7.3], d1 = Math.hypot(e1[0] - C0[0], (e1[1] - C0[1]) * 1.6), d2 = Math.hypot(e2[0] - C0[0], (e2[1] - C0[1]) * 1.6); return d1 > d2 ? e1 : e2; } return f * e1[0] < f * e2[0] ? e1 : e2; })(), dx = h[0] - e[0], dy = h[1] - e[1], dl = Math.hypot(dx, dy) || 1, d = [dx / dl, dy / dl], n = [-d[1], d[0]], fa0 = Math.atan2(dy, dx);
+  const arm = (s, h, sk, side, ice) => { const e = (() => { const e1 = ik(s, h, 3.5, 3.5, 1), e2 = ik(s, h, 3.5, 3.5, -1); if (HKo && HKo.gFlip && side === (HKo.arm ? 'A' : 'B')) return e1[1] > e2[1] ? e1 : e2; if (HKo && HKo.bs && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const cz = q => (h[0] - s[0]) * (q[1] - s[1]) - (h[1] - s[1]) * (q[0] - s[0]); return cz(e1) * f * HKo.bs >= 0 ? e1 : e2; } if (HKo && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const C0 = [pel[0], pel[1] - 7.3], d1 = Math.hypot(e1[0] - C0[0], (e1[1] - C0[1]) * 1.6), d2 = Math.hypot(e2[0] - C0[0], (e2[1] - C0[1]) * 1.6); return d1 > d2 ? e1 : e2; } return f * e1[0] < f * e2[0] ? e1 : e2; })(), dx = h[0] - e[0], dy = h[1] - e[1], dl = Math.hypot(dx, dy) || 1, d = [dx / dl, dy / dl], n = [-d[1], d[0]], fa0 = Math.atan2(dy, dx);
     const UA = limbP(s, e, 1.6, 1.25, 1.25, 0.38); cel(c, UA, sk, { noStroke: 1 });
     // arm muscles drawn like the abs: soft muscle plates inside the arm, each with a shadow, a shine on top and a fine edge line
     const mus = Pp => { c.beginPath(); addSmooth(c, Pp); c.fillStyle = 'rgba(20,12,40,.17)'; c.fill(); const [cx, cy] = ctr(Pp), Hh = Pp.map(p => [cx + (p[0] - cx) * 0.75 + LIT[0] * 0.15, cy + (p[1] - cy) * 0.68 + LIT[1] * 0.2]); c.beginPath(); addSmooth(c, Hh); c.fillStyle = 'rgba(255,255,255,.24)'; c.fill(); c.beginPath(); addSmooth(c, Pp); c.strokeStyle = 'rgba(20,12,40,.34)'; c.lineWidth = 0.1; c.stroke(); };
@@ -4040,18 +4042,20 @@ function ogHookTh(k2, a, u) { const s = k2 === 0 ? 1 : -1, th0 = a + s * 2.09, t
 function ogHookPose(kn, u) { const f = kn.f || 1, k2 = kn.ouK, frost = k2 === 0, arm = frost ? (f > 0 ? 1 : 0) : (f > 0 ? 0 : 1), sB = arm === 1 ? 1 : -1, W = OGHK.W, F = OGHK.F;
   const [th, e] = ogHookTh(k2, kn.ouA, u), wk = sm(cl(u / W, 0, 1)), rec = u > F ? sm(cl((u - F) / (1 - F), 0, 1)) : 0, k = (u < W ? wk : 1) * (1 - rec), R = u < W ? 5.6 : 5.6 + 1.1 * Math.sin(Math.PI * Math.min(1, e * 1.2));
   // the whole upper body turns into the hook: cocked away on the wind-up (the punching shoulder back), then wheeling round so that shoulder comes through toward the target
-  const yaw = sB * (u < W ? 0.55 * wk : lerp(0.55, -1.05, sm(cl((u - W) / (F - W), 0, 1)))) * (1 - rec), YS = Math.max(0.55, Math.abs(Math.cos(yaw)));
+  const yaw = sB * (u < W ? 0.55 * wk : lerp(0.55, frost ? -1.05 : -1.5, sm(cl((u - W) / (F - W), 0, 1)))) * (1 - rec), YS = Math.max(frost ? 0.55 : 0.42, Math.abs(Math.cos(yaw)));
   // a big sweeping hook: the arm nearly straight, the fist swung round the arc from the punching shoulder, not folded in at the chest
   const sh = arm === 0 ? [4.15 * YS, -7.9 + Math.sin(yaw) * 1.4] : [-4.0 * YS, -7.7 - Math.sin(yaw) * 1.4], X = Math.cos(th) * R, Y = sh[1] + Math.sin(th) * R * 0.42 + (u < W ? 0.5 * wk : 0);
   const cr = u < W ? 2.0 * wk : u < W + 0.12 ? lerp(2.0, -0.7, sm((u - W) / 0.12)) : lerp(-0.7, 0, sm(cl((u - W - 0.12) / (1 - W - 0.12), 0, 1)));
-  const ln = u < W ? -0.14 * wk : 0.3 * Math.sin(Math.PI * cl((u - W) / (1 - W), 0, 1)), tw = 0;
+  const ln = (u < W ? -0.14 * wk : 0.3 * Math.sin(Math.PI * cl((u - W) / (1 - W), 0, 1))) + (frost ? 0 : 0.4 * Math.sin(Math.PI * cl((u - W) / 0.2, 0, 1))), tw = 0;
+  // storm hook: the elbow bends back/down through the wind-up, the arm drives out almost straight (ex) and flips its bend at full stretch (uf), then bends the other way as it recovers
+  const uf = W + 0.76 * (F - W), ex = frost ? 0 : u < uf ? (u < W ? 0 : sm(cl((u - W) / (uf - W), 0, 1))) : 1 - sm(cl((u - uf) / 0.035, 0, 1)), bs = frost ? 0 : u < uf ? 1 : -1;
   // the guard hand: its forearm first swings down until the arm hangs straight (where both elbow bends meet, so the elbow can flip unseen), then it comes up in front of his chest
   // with the elbow bent down, not up past the shoulder; on the way back the same in reverse, as fast as the punch was thrown
   const gs = arm === 0 ? [-4.0 * YS, -7.7 - Math.sin(yaw) * 1.4] : [4.15 * YS, -7.9 + Math.sin(yaw) * 1.4], S = [gs[0] + 0.25, gs[1] + 6.8], Gd = [0.9 * YS, -5.0];
   // gp 0..1 the guard coming up (straight down, flip, up to the chest), gx 0..1 as the punch launches it's thrown out dead straight, down and back away from the punch
   // (W to W + 0.04, about 3 game frames), gr 0..1 the recovery: swung round at full length to straight down (first half), then back to where it hangs
   const gp = u < W ? sm(u / W) : 1, gx = u < W ? 0 : sm(cl((u - W) / 0.04, 0, 1)), gr = cl((u - 0.8) / 0.18, 0, 1), gk = gp < 0.5 ? sm(gp / 0.5) : 1, gq = gp < 0.5 ? 0 : sm((gp - 0.5) / 0.5), g = [lerp(S[0], Gd[0], gq), lerp(S[1], Gd[1], gq)];
-  return { arm, h: [sh[0] + X * f, Y], g, gk: 0, gp: gr > 0 ? 1 : gp, gx, gr, gd: Gd, gFlip: gp >= 0.5 && gr < 0.5, k, cr, ln, tw, yaw, front: Math.sin(th) > 0, th, R, e, sh }; }
+  return { arm, h: [sh[0] + X * f, Y], g, gk: 0, gp: gr > 0 ? 1 : gp, gx, gr, gd: Gd, gFlip: gp >= 0.5 && gr < 0.5, k, cr, ln, tw, yaw, ex, bs, yf: frost ? 0.55 : 0.42, front: Math.sin(th) > 0, th, R, e, sh }; }
 // where the fist is in the world (for the smear)
 const ogFistW = (kn, th, R, sh) => [kn.x + ((sh ? sh[0] : 0) * (kn.f || 1) + Math.cos(th) * R) * OGSC, kn.y + (-9.6 + (sh ? sh[1] : -7.4)) * OGSC + Math.sin(th) * R * 0.42 * OGSC];
 // shards / chips of ice flying (spike bursts, shatters): every screen
@@ -7534,7 +7538,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '190789';
+const KBUILD = '702d98';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
