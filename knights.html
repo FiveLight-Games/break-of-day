@@ -3222,8 +3222,11 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   const hA0 = [pel[0] + f * H4[0], pel[1] + H4[1]], hB0 = [pel[0] + f * H4[2], pel[1] + H4[3]];
   // game: both hands placed absolutely (feet-relative screen units, already facing-mirrored), blended in by k (the storm hammer's grip)
   if (opts.hAbs && opts.hAbs.k > 0) { const q = opts.hAbs; for (let i = 0; i < 2; i++) { hA0[i] = lerp(hA0[i], q.A[i], q.k); hB0[i] = lerp(hB0[i], q.B[i], q.k); } }
-  const reach = (s, h) => { const d = Math.hypot(h[0] - s[0], h[1] - s[1]), m = 6.9; return d > m ? L2(s, h, m / d) : h; };
-  const hA = reach(shA, hA0), hB = reach(shB, hB0), aLow = hA[1] - shA[1] > 4.0;
+  // game: the guard hand of a hook (HKo.gp 0..1): from wherever it hangs it swings down until the arm is dead straight below the real shoulder, the elbow flips there (both IK bends meet),
+  // then the hand comes up in front of his chest to HKo.gd; the same back as the punch recovers. While it's straight the reach allows the full arm, so there's no bend to jump
+  const gI = HKo && HKo.gp > 0 ? (HKo.arm ? 0 : 1) : -1; if (gI >= 0) { const sg = gI ? shB : shA, h0 = gI ? hB0 : hA0, S = [sg[0], sg[1] + 7], G2 = [pel[0] + f * HKo.gd[0], pel[1] + HKo.gd[1]], gp = HKo.gp, p = gp < 0.5 ? L2(h0, S, sm(gp / 0.5)) : L2(S, G2, sm((gp - 0.5) / 0.5)); h0[0] = p[0]; h0[1] = p[1]; }
+  const reach = (s, h, m = 6.9) => { const d = Math.hypot(h[0] - s[0], h[1] - s[1]); return d > m ? L2(s, h, m / d) : h; };
+  const hA = reach(shA, hA0, gI === 0 ? 6.998 : 6.9), hB = reach(shB, hB0, gI === 1 ? 6.998 : 6.9), aLow = hA[1] - shA[1] > 4.0;
 
   // ---- pieces ----
   const leg = (i, sk, ice) => { const h = hips[i], kn = knees[i], ft = feet[i];
@@ -3501,11 +3504,11 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   // game hooks: the swinging arm goes behind the body while its fist is round the far side of him, in front of everything while it's on the near side
   const hkA = !!HKo && HKo.k > 0.05 && HKo.arm === 0, hkB = !!HKo && HKo.k > 0.05 && HKo.arm === 1, armA = () => { weaponOf(0, hA); arm(shA, hA, SF ? SS : IS, 'A', !SF); }, armB = () => { if (opts.ham && opts.ham.at === 'B') opts.ham.draw(c, hA, hB); weaponOf(1, hB); arm(shB, hB, SF ? IS : SS, 'B', SF); };
   if (opts.ham && opts.ham.at === 'pre') opts.ham.draw(c, hA, hB);
-  // the far arm A guarding a near-side hook comes in front of his torso: it fades in front over the first 30% of its move (and back out at the end), so it never pops across
-  const gA = HKo && HKo.arm === 1 ? (HKo.gA || 0) : 0, guardBehind = !!HKo && HKo.k > 0.05 && HKo.arm === 1; if (hkA ? !HKo.front : ((aLow || guardBehind) && gA < 0.999)) armA();
+  // the far arm A guarding a near-side hook goes in front of his torso the moment it hangs dead straight at his side (where the elbow flips), never before
+  const gFront = !!HKo && HKo.gFlip && HKo.arm === 1, guardBehind = !!HKo && HKo.k > 0.05 && HKo.arm === 1 && !gFront; if (hkA ? !HKo.front : ((aLow && !gFront) || guardBehind)) armA();
   if (hkB && !HKo.front) armB();
   torso(); torsoDone = 1; leg(0, SF ? SS : IS, !SF); leg(1, SF ? IS : SS, SF); loin();
-  if (!hkA && ((!aLow && !guardBehind) || gA > 0.001)) { if ((aLow || guardBehind) && gA < 0.999) { c.save(); c.globalAlpha *= gA; armA(); c.restore(); } else armA(); }
+  if (!hkA && (!aLow || gFront) && !guardBehind) armA();
   const hI = () => head(HI, true, f, Math.max(iceOn, argue * Math.max(0, -Math.sin(t * 13))), both ? b : actK), hZ = () => head(HZ, false, argue > 0.3 ? -f : f, Math.max(zapOn, argue * Math.max(0, Math.sin(t * 13))), both ? b : 1 - actK);
   // the head on his facing side is drawn last; the storm shoulder stones sit behind the storm face
   if (SF) { hI(); shoulder(shA, false); hZ(); } else { shoulder(shA, true); hZ(); hI(); }
@@ -4019,7 +4022,7 @@ function ogHookPose(kn, u) { const f = kn.f || 1, k2 = kn.ouK, frost = k2 === 0,
   // with the elbow bent down, not up past the shoulder; on the way back the same in reverse, as fast as the punch was thrown
   const gs = arm === 0 ? [-4.0 * YS, -7.7 - Math.sin(yaw) * 1.4] : [4.15 * YS, -7.9 + Math.sin(yaw) * 1.4], S = [gs[0] + 0.25, gs[1] + 6.8], Gd = [0.9 * YS, -5.0];
   const gp = u < W ? sm(u / W) : u < F ? 1 : 1 - cl((u - F) / (F - W), 0, 1), gk = gp < 0.5 ? sm(gp / 0.5) : 1, gq = gp < 0.5 ? 0 : sm((gp - 0.5) / 0.5), g = [lerp(S[0], Gd[0], gq), lerp(S[1], Gd[1], gq)];
-  return { arm, h: [sh[0] + X * f, Y], g, gk, gFlip: gp >= 0.5, gA: sm(cl(gp / 0.3, 0, 1)), k, cr, ln, tw, yaw, front: Math.sin(th) > 0, th, R, e, sh }; }
+  return { arm, h: [sh[0] + X * f, Y], g, gk: 0, gp, gd: Gd, gFlip: gp >= 0.5, k, cr, ln, tw, yaw, front: Math.sin(th) > 0, th, R, e, sh }; }
 // where the fist is in the world (for the smear)
 const ogFistW = (kn, th, R, sh) => [kn.x + ((sh ? sh[0] : 0) * (kn.f || 1) + Math.cos(th) * R) * OGSC, kn.y + (-9.6 + (sh ? sh[1] : -7.4)) * OGSC + Math.sin(th) * R * 0.42 * OGSC];
 // shards / chips of ice flying (spike bursts, shatters): every screen
@@ -7057,7 +7060,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = 'b24a2d';
+const KBUILD = 'c7c801';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
