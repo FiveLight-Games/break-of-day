@@ -3002,7 +3002,7 @@ function drawSword(c, t) {
 // Leap (leap circle / Q): always the same length; flips through the air throwing a stream of shuriken into a circle under the apex,
 // lands with a full circle of the ninjato. 3 charges. Ult (R): the whole game in slow motion for 2s while he lays out a three-segment
 // strip; then afterimages dash down through it.
-const NJ = { RUN: 1.3, ATK: 0.8, T: [0.34, 0.34, 0.26], KU: { N: 5, SPREAD: 0.5, V: 340, RANGE: 125, DMG: 90, KB: 30, REL: 0.48, GRAB: 0.26, EARLY: 0.6, Z: 7, LIE: 1.2 }, DMG: 70, KB: 22, LEN: 9.6, FAST: 6, GAP: 0.25,
+const NJ = { RUN: 1.3, ATK: 0.8, T: [0.34, 0.34, 0.26], KU: { N: 5, SPREAD: 0.5, V: 340, RANGE: 125, DMG: 90, KB: 30, REL: 0.48, GRAB: 0.26, EARLY: 0.6, HOP: 20, HZ: 3.2, Z: 7, LIE: 1.2 }, DMG: 70, KB: 22, LEN: 9.6, FAST: 6, GAP: 0.25,
   LEAP: { D: 130, T: 0.95, H: 34, R: 22, AR: 26, DMG: 220, KB: 120, TICK: 0.1, SDMG: 32, N: 3, CD: 2.76, SW: 0.48, CHAIN: 0.4, MIN: 0.5 },
   ULT: { PLAN: 4, SLOW: 0.3, SEG: 72, HW: 11, JR: 17, HITS: 30, DASH: 5, HDMG: 120, SWR: 2, SWRR: 14, SWDMG: 55, STRIKE: 1.6, END: 0.2, GZ: 22, GT: 0.5, BIGSW: 2, BSW: 0.62, BWU: 0.2, GLT: 0.2, REAP: 0.85 } };
 // action keys (chest-relative, facing right, y down): [u, crouch, lean, twist, A hand x, y, B hand x, y, B blade angle, step]
@@ -3219,12 +3219,16 @@ function ninjaStep(dt, t) {
   if (!(K.cut >= 0) && IN.aim && K.st === 'fight' && !(K.nw >= 0 && K.nw < njSwT(K) * 0.55)) { const a = Math.atan2(IN.aim[1], IN.aim[0]); if (t - (K.cutE || -9) > NJ.GAP) K.cutN = (K.cutN || 0) + (3 - (K.cutN || 0) % 3) % 3; K.cut = 0; K.cutA = a; K.nw = -1;
     if (Math.abs(Math.cos(a)) > 0.2) K.f = Math.cos(a) >= 0 ? 1 : -1; K.cutTl = cl(Math.atan2(Math.sin(a), Math.abs(Math.cos(a))), -1.2, 1.2) * 0.85; }
   if (K.cut >= 0 && (K.cutN || 0) % 3 === 2 && K.cut >= NJ.KU.REL * NJ.T[2] && K.njKT !== K.cutN) { K.njKT = K.cutN; njThrow(t); }
+  // every kunai throw is a small hop the way the move stick points (straight up if it's centred)
+  if (K.cut >= 0 && (K.cutN || 0) % 3 === 2) { const u = cl(K.cut / NJ.T[2], 0, 1); if (K.njHN !== K.cutN) { K.njHN = K.cutN; const l = Math.hypot(IN.mv[0], IN.mv[1]); K.njHv = l > 0.2 ? [IN.mv[0] / Math.max(1, l), IN.mv[1] / Math.max(1, l)] : [0, 0]; }
+    const sp = NJ.KU.HOP * Math.sin(Math.PI * u) * Math.PI / 2 / NJ.T[2]; K.x += K.njHv[0] * sp * dt; K.y = cl(K.y + K.njHv[1] * sp * 0.8 * dt, 16, H - 4); K.z = NJ.KU.HZ * Math.sin(Math.PI * u); }
   if (K.cut >= 0) { K.cut += dt; njSweep(t); const v = (K.cutN || 0) % 3; if (K.cut >= NJ.T[v] || (v === 1 && IN.aim && K.cut >= NJ.T[1] * NJ.KU.EARLY)) { K.cut = -1; K.cutE = t; K.cutN = (K.cutN || 0) + 1; } }
   const v2 = RUN * NJ.RUN * (K.cut >= 0 ? NJ.ATK : 1) * (K.nw >= 0 ? 0.85 : 1);
   if (mvL > 0.12) { const k = Math.min(1, mvL), e = 1 - Math.exp(-dt * 14); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e); } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
   const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy);
   K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.45;
-  if (!(K.cut >= 0) && mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1;
+  // moving only turns him when he isn't attacking: while the attack stick is held (or just after a cut) he keeps facing his aim
+  if (!(K.cut >= 0) && !IN.aim && t - (K.cutE || -9) > NJ.GAP && mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1;
   if (K.st !== 'pull') K.st = 'fight';
 }
 // ---- art (Knight-rig units, scaled by KS) ----
