@@ -3224,7 +3224,9 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   if (opts.hAbs && opts.hAbs.k > 0) { const q = opts.hAbs; for (let i = 0; i < 2; i++) { hA0[i] = lerp(hA0[i], q.A[i], q.k); hB0[i] = lerp(hB0[i], q.B[i], q.k); } }
   // game: the guard hand of a hook (HKo.gp 0..1): from wherever it hangs it swings down until the arm is dead straight below the real shoulder, the elbow flips there (both IK bends meet),
   // then the hand comes up in front of his chest to HKo.gd; the same back as the punch recovers. While it's straight the reach allows the full arm, so there's no bend to jump
-  const gI = HKo && HKo.gp > 0 ? (HKo.arm ? 0 : 1) : -1; if (gI >= 0) { const sg = gI ? shB : shA, h0 = gI ? hB0 : hA0, S = [sg[0], sg[1] + 7], G2 = [pel[0] + f * HKo.gd[0], pel[1] + HKo.gd[1]], gp = HKo.gp, p = gp < 0.5 ? L2(h0, S, sm(gp / 0.5)) : L2(S, G2, sm((gp - 0.5) / 0.5)); h0[0] = p[0]; h0[1] = p[1]; }
+  const gI = HKo && HKo.gp > 0 ? (HKo.arm ? 0 : 1) : -1; if (gI >= 0) { const sg = gI ? shB : shA, h0 = gI ? hB0 : hA0, GV = (typeof window !== 'undefined' && window.__gv) || 0, SA = GV === 1 ? Math.PI / 2 - f * 0.55 : GV === 2 ? (f > 0 ? 0.25 : Math.PI - 0.25) : Math.PI / 2, S = [sg[0] + Math.cos(SA) * 7, sg[1] + Math.sin(SA) * 7], G2 = [pel[0] + f * HKo.gd[0], pel[1] + HKo.gd[1]], gp = HKo.gp, gx = HKo.gx || 0, gr = HKo.gr || 0, ED = Math.atan2(0.82, -f * 0.57), at = a2 => [sg[0] + Math.cos(a2) * 7, sg[1] + Math.sin(a2) * 7];
+    // thrown out straight (down and back, away from the punch); on the way back it swings round at full length to hang straight, then returns to where it hangs
+    const p = gr > 0 ? (gr < 0.5 ? at(lerp(ED, SA, sm(gr / 0.5))) : L2(S, h0, sm((gr - 0.5) / 0.5))) : gx > 0 ? L2(G2, at(ED), sm(gx)) : gp < 0.5 ? L2(h0, S, sm(gp / 0.5)) : L2(S, G2, sm((gp - 0.5) / 0.5)); h0[0] = p[0]; h0[1] = p[1]; }
   const reach = (s, h, m = 6.9) => { const d = Math.hypot(h[0] - s[0], h[1] - s[1]); return d > m ? L2(s, h, m / d) : h; };
   const hA = reach(shA, hA0, gI === 0 ? 6.998 : 6.9), hB = reach(shB, hB0, gI === 1 ? 6.998 : 6.9), aLow = hA[1] - shA[1] > 4.0;
 
@@ -3587,7 +3589,8 @@ function drawBack(c, V, t, f, o) {
   const hipG = [-1.4, py - 0.2], hipP = [1.2, py + 0.15];
   leg(hipG, [4.0 + sway * 0.2, -1.45], false, skG, !pi, 7);          // front leg (guard side), planted toward the target, farthest away
   // ---- the guard arm: up by his face on the far side; only the elbow and the back of the arm show past his back ----
-  const Sg = X([-3.4, py - 8.2]), Eg = X([-4.9, py - 5.6]), Hg = X([-1.6, py - 10.4]);
+  // (game: o.gx 0..1 throws it out dead straight, down and away from the punch, as in the front view)
+  const gxB = o.gx ?? 0, Sg = X([-3.4, py - 8.2]), Ex = X([-3.4 - 0.57 * 3.5, py - 8.2 + 0.82 * 3.5]), Hx = X([-3.4 - 0.57 * 7, py - 8.2 + 0.82 * 7]), Eg = L2(X([-4.9, py - 5.6]), Ex, gxB), Hg = L2(X([-1.6, py - 10.4]), Hx, gxB);
   cel(c, limbP(Sg, Eg, 1.6, 1.25, 1.1, 0.42), skG, { d: 0.16, hl: 0.1 }); cel(c, limbP(Eg, Hg, 1.25, 1.0, 1.12, 0.4), skG, { d: 0.16, hl: 0.08 });
   leg(hipP, [-3.3, -1.7], true, skP, pi, 11);                          // rear leg (punch side), back and across, pivoting on the ball of the foot
   // ---- the back ----
@@ -3940,7 +3943,7 @@ function drawStormOgre(c, t) { if (!Number.isFinite(K.ogPh)) K.ogPh = 0; const D
   // holds through the follow-through, then crossfades back to his front as he recovers
   // the turn is played as a real turn, not a cut: the front view narrows round his middle as he wheels away, swaps to the rear view at its narrowest, and the rear view widens out (and the same back again as he recovers)
   const kb = hk0 && hk0.arm === 1 ? (K.ou < OGHK.F + 0.04 ? sm(cl(hk0.e / 0.7, 0, 1)) : 1 - sm(cl((K.ou - OGHK.F - 0.04) / 0.2, 0, 1))) : 0;
-  const front = g => { OGX.drawO2(g, OGX.V, t, f, w, hk0 ? -1 : (u >= 0 && K.ouK === 2 && !K.ouS ? (u < 0.6 ? 0.25 * sm(u / 0.6) : u < 0.7 ? 0.25 + 0.17 * ((u - 0.6) / 0.1) ** 2 : 0.42 + 0.58 * (u - 0.7) / 0.3) : u), bk, bk >= 0 && !fb ? 'both' : 'act', K.ogAk, K.sv >= 0 ? K.sv * OGX.SURF.T / OG.SURF.T : -1, foes, 0, { noTrail: 1, jet: [Math.cos(K.svA || 0) * 9, Math.sin(K.svA || 0) * 9 * OGY - 0.4], aimTo, fb, atype: 2, hk: hk0, yaw: hk0 ? hk0.yaw : 0, noFx: 1, noJet: 1, ph: K.ogPh, st: ogStride(K), h2, hAbs, hCurl: hAbs ? hAbs.k : 0, ham: hamO, crx: hCr, lnx: hLn }); }, back = g => OGX.drawBack(g, OGX.V, t, f, { e: cl(hk0.e, 0, 1), pi: K.ouK === 0, cr: hk0.cr, iL: K.ogAk, zL: 1 - K.ogAk });
+  const front = g => { OGX.drawO2(g, OGX.V, t, f, w, hk0 ? -1 : (u >= 0 && K.ouK === 2 && !K.ouS ? (u < 0.6 ? 0.25 * sm(u / 0.6) : u < 0.7 ? 0.25 + 0.17 * ((u - 0.6) / 0.1) ** 2 : 0.42 + 0.58 * (u - 0.7) / 0.3) : u), bk, bk >= 0 && !fb ? 'both' : 'act', K.ogAk, K.sv >= 0 ? K.sv * OGX.SURF.T / OG.SURF.T : -1, foes, 0, { noTrail: 1, jet: [Math.cos(K.svA || 0) * 9, Math.sin(K.svA || 0) * 9 * OGY - 0.4], aimTo, fb, atype: 2, hk: hk0, yaw: hk0 ? hk0.yaw : 0, noFx: 1, noJet: 1, ph: K.ogPh, st: ogStride(K), h2, hAbs, hCurl: hAbs ? hAbs.k : 0, ham: hamO, crx: hCr, lnx: hLn }); }, back = g => OGX.drawBack(g, OGX.V, t, f, { e: cl(hk0.e, 0, 1), pi: K.ouK === 0, cr: hk0.cr, gx: hk0.gx, iL: K.ogAk, zL: 1 - K.ogAk });
   if (kb <= 0) front(c); else { const sx = kb < 0.5 ? 1 - kb : kb; c.save(); c.scale(sx, 1); if (kb < 0.5) front(c); else back(c); c.restore(); }
   OGX.GAIT.RUN = 0; OGX.arcn(0); c.restore(); }
 // the storm hammer itself (body units, from the lower hand G to the head's centre Hd): a dark iron haft bound with ice, a collar in his colour, an ice spike for a pommel,
@@ -4021,8 +4024,10 @@ function ogHookPose(kn, u) { const f = kn.f || 1, k2 = kn.ouK, frost = k2 === 0,
   // the guard hand: its forearm first swings down until the arm hangs straight (where both elbow bends meet, so the elbow can flip unseen), then it comes up in front of his chest
   // with the elbow bent down, not up past the shoulder; on the way back the same in reverse, as fast as the punch was thrown
   const gs = arm === 0 ? [-4.0 * YS, -7.7 - Math.sin(yaw) * 1.4] : [4.15 * YS, -7.9 + Math.sin(yaw) * 1.4], S = [gs[0] + 0.25, gs[1] + 6.8], Gd = [0.9 * YS, -5.0];
-  const gp = u < W ? sm(u / W) : u < F ? 1 : 1 - cl((u - F) / (F - W), 0, 1), gk = gp < 0.5 ? sm(gp / 0.5) : 1, gq = gp < 0.5 ? 0 : sm((gp - 0.5) / 0.5), g = [lerp(S[0], Gd[0], gq), lerp(S[1], Gd[1], gq)];
-  return { arm, h: [sh[0] + X * f, Y], g, gk: 0, gp, gd: Gd, gFlip: gp >= 0.5, k, cr, ln, tw, yaw, front: Math.sin(th) > 0, th, R, e, sh }; }
+  // gp 0..1 the guard coming up (straight down, flip, up to the chest), gx 0..1 as the punch launches it's thrown out dead straight, down and back away from the punch
+  // (W to W + 0.04, about 3 game frames), gr 0..1 the recovery: swung round at full length to straight down (first half), then back to where it hangs
+  const gp = u < W ? sm(u / W) : 1, gx = u < W ? 0 : sm(cl((u - W) / 0.04, 0, 1)), gr = cl((u - 0.8) / 0.18, 0, 1), gk = gp < 0.5 ? sm(gp / 0.5) : 1, gq = gp < 0.5 ? 0 : sm((gp - 0.5) / 0.5), g = [lerp(S[0], Gd[0], gq), lerp(S[1], Gd[1], gq)];
+  return { arm, h: [sh[0] + X * f, Y], g, gk: 0, gp: gr > 0 ? 1 : gp, gx, gr, gd: Gd, gFlip: gp >= 0.5 && gr < 0.5, k, cr, ln, tw, yaw, front: Math.sin(th) > 0, th, R, e, sh }; }
 // where the fist is in the world (for the smear)
 const ogFistW = (kn, th, R, sh) => [kn.x + ((sh ? sh[0] : 0) * (kn.f || 1) + Math.cos(th) * R) * OGSC, kn.y + (-9.6 + (sh ? sh[1] : -7.4)) * OGSC + Math.sin(th) * R * 0.42 * OGSC];
 // shards / chips of ice flying (spike bursts, shatters): every screen
@@ -7060,7 +7065,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = 'c7c801';
+const KBUILD = '25ddac';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
