@@ -634,7 +634,7 @@ function pose(t) {
   return P;
 }
 // the giant (Knight ult): how far grown (0..1), his gait's run (relative to his size, so at full size he takes long heavy walking strides), and stride length (x`GIANT.ST` longer, legs cycle slower per distance so the feet never slide)
-const GIANT = { ST: 1.1, R: 9, DMG: 60, KB: 9, SHK: 0.13 };
+const GIANT = { ST: 1.1, R: 9, DMG: 120, KB: 9, SHK: 0.13 };
 const gzOf = kn => cl(((kn.sz || 1) - 1) / (ULT_SZ - 1), 0, 1), gRun = kn => { const r = cl((kn.spd || 0) / RUN, 0, 1), g = gzOf(kn); return g > 0 ? lerp(r, cl((kn.spd || 0) / (RUN * (kn.sz || 1) * 0.5), 0, 1), g) : r; }, gTri = ph => { const q = ((ph - Math.PI / 2) / Math.PI % 2 + 2) % 2; return q < 1 ? 1 - 2 * q : -1 + 2 * sm(q - 1); }, gStride = kn => lerp(2.0, 3.6, gRun(kn)) * lerp(1, GIANT.ST, gzOf(kn));
 // a giant footfall: dust, a thud and a shake on every screen; on the host it hits everyone under the foot (small knockback, kills crushed flat or knocked over a short way)
 function giantStep(n, dx, dy, host) { const s = K.sz || 1, side = n % 2 ? 1 : -1, st = gStride(K) * KS * s * 0.75, x = K.x + dx * st - dy * side * 1.1 * s, y = K.y + dy * st * 0.7 + dx * side * 0.8 * s;
@@ -7560,7 +7560,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = 'b6009a';
+const KBUILD = '53f538';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
