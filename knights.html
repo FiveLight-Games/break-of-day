@@ -3521,6 +3521,8 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   trail();
   // ---- breath ----
   const mouth = (H, hf, open) => [H[0] + hf * 1.45, H[1] + 1.05 + open * 0.5];
+  // game: hand the real mouth spots back (rig units from his feet), so his breaths start inside the mouths as drawn
+  if (opts.outM) { opts.outM.Z = mouth(HZ, f, 0); opts.outM.I = mouth(HI, f, 0); }
   // frost: a cone of cold air and spinning ice shards; when the breath ends the back of the cone leaves his mouth and the whole blast drifts out to the target
   const fz = (M, rise, tail, tilt, len = 10.5) => { const L = len, d = [f * Math.cos(tilt), Math.sin(tilt)], n = [-d[1], d[0]], wv = Math.sin(t * 6) * 0.25, at = (u, v) => [M[0] + d[0] * u * L + n[0] * v, M[1] + d[1] * u * L + n[1] * v], hw = u => 0.35 + u * L * 0.3;
     const u0 = tail, u1 = Math.max(rise, tail + 0.001), al = tail > 0.6 ? (1 - tail) / 0.4 : 1;
@@ -3954,9 +3956,11 @@ function drawStormOgre(c, t) { if (!Number.isFinite(K.ogPh)) K.ogPh = 0; const D
   // holds through the follow-through, then crossfades back to his front as he recovers
   // the turn is played as a real turn, not a cut: the front view narrows round his middle as he wheels away, swaps to the rear view at its narrowest, and the rear view widens out (and the same back again as he recovers)
   const kb = hk0 && hk0.arm === 1 ? (K.ou < OGHK.F + 0.04 ? sm(cl(hk0.e / 0.7, 0, 1)) : 1 - sm(cl((K.ou - OGHK.F - 0.04) / 0.2, 0, 1))) : 0;
-  const front = g => { OGX.drawO2(g, OGX.V, t, f, w, hk0 ? -1 : (u >= 0 && K.ouK === 2 && !K.ouS ? (u < 0.6 ? 0.25 * sm(u / 0.6) : u < 0.7 ? 0.25 + 0.17 * ((u - 0.6) / 0.1) ** 2 : 0.42 + 0.58 * (u - 0.7) / 0.3) : u), bk, bk >= 0 && !fb ? 'both' : 'act', K.ogAk, K.sv >= 0 ? K.sv * OGX.SURF.T / OG.SURF.T : -1, foes, 0, { noTrail: 1, jet: [Math.cos(K.svA || 0) * 9, Math.sin(K.svA || 0) * 9 * OGY - 0.4], aimTo, fb, atype: 2, hk: hk0, yaw: hk0 ? hk0.yaw : 0, noFx: 1, noJet: 1, ph: K.ogPh, st: ogStride(K), h2, hAbs, hCurl: hAbs ? hAbs.k : 0, ham: hamO, crx: hCr, lnx: hLn, iSw: K.iSwV }); }, back = g => OGX.drawBack(g, OGX.V, t, f, { e: cl(hk0.e, 0, 1), pi: K.ouK === 0, cr: hk0.cr, gx: hk0.gx, iL: K.ogAk, zL: 1 - K.ogAk });
-  if (kb <= 0) front(c); else { const sx = kb < 0.5 ? 1 - kb : kb; c.save(); c.scale(sx, 1); if (kb < 0.5) front(c); else back(c); c.restore(); }
+  const front = g => { OGX.drawO2(g, OGX.V, t, f, w, hk0 ? -1 : (u >= 0 && K.ouK === 2 && !K.ouS ? (u < 0.6 ? 0.25 * sm(u / 0.6) : u < 0.7 ? 0.25 + 0.17 * ((u - 0.6) / 0.1) ** 2 : 0.42 + 0.58 * (u - 0.7) / 0.3) : u), bk, bk >= 0 && !fb ? 'both' : 'act', K.ogAk, K.sv >= 0 ? K.sv * OGX.SURF.T / OG.SURF.T : -1, foes, 0, { noTrail: 1, jet: [Math.cos(K.svA || 0) * 9, Math.sin(K.svA || 0) * 9 * OGY - 0.4], aimTo, fb, atype: 2, hk: hk0, yaw: hk0 ? hk0.yaw : 0, noFx: 1, noJet: 1, ph: K.ogPh, st: ogStride(K), h2, hAbs, hCurl: hAbs ? hAbs.k : 0, ham: hamO, crx: hCr, lnx: hLn, iSw: K.iSwV, outM: OGMO }); }, back = g => OGX.drawBack(g, OGX.V, t, f, { e: cl(hk0.e, 0, 1), pi: K.ouK === 0, cr: hk0.cr, gx: hk0.gx, iL: K.ogAk, zL: 1 - K.ogAk });
+  OGMO.Z = OGMO.I = null; if (kb <= 0) front(c); else { const sx = kb < 0.5 ? 1 - kb : kb; c.save(); c.scale(sx, 1); if (kb < 0.5) front(c); else back(c); c.restore(); }
+  if (OGMO.Z && kb <= 0) { const zz = K.y - (K.z || 0); K.ogMo = [[K.x + OGMO.Z[0] * OGSC, zz + OGMO.Z[1] * OGSC], [K.x + OGMO.I[0] * OGSC, zz + OGMO.I[1] * OGSC]]; }
   OGX.GAIT.RUN = 0; OGX.arcn(0); c.restore(); }
+const OGMO = {};
 // the storm hammer itself (body units, from the lower hand G to the head's centre Hd): a dark iron haft bound with ice, a collar in his colour, an ice spike for a pommel,
 // and a huge head of glacier ice with a raised striking slab at each end, a crown of ice spikes, lightning crawling inside it and static leaping off it; chg 0..1 = charging for the finisher
 function ogHammerDraw(c, G, Hd, vis, t, kn, chg) { const dx = Hd[0] - G[0], dy = Hd[1] - G[1], Lp = Math.max(0.5, Math.hypot(dx, dy)), d = [dx / Lp, dy / Lp], n = [-d[1], d[0]], sc = 0.35 + 0.65 * vis;
@@ -4018,7 +4022,7 @@ function ogIceBlock(c, w, t) { const U = UK[w.k], s = U.sc, x = w.x, y = w.y, hw
   c.strokeStyle = 'rgba(245,252,255,.75)'; c.lineWidth = 0.18; c.beginPath(); c.moveTo(...P[1]); c.lineTo(...P[2]); c.lineTo(...P[3]); c.stroke();
   c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 0.12; c.beginPath(); c.moveTo(x - hw * 0.3, y - h * 0.9); c.lineTo(x + hw * 0.1, y - h * 0.5); c.lineTo(x - hw * 0.2, y - h * 0.15); c.moveTo(x + hw * 0.5, y - h * 0.7); c.lineTo(x + hw * 0.7, y - h * 0.35); c.stroke(); c.restore(); }
 // his two mouths (storm head on screen-right, frost head on screen-left, both turned the way he faces) and the point just in front of him where their breaths meet
-const ogMouths = kn => { const f = kn.f || 1; return [[kn.x + (2.45 + f * 1.3) * OGSC, kn.y - 20.0 * OGSC], [kn.x + (-2.45 + f * 1.3) * OGSC, kn.y - 19.7 * OGSC]]; }, ogMix = kn => [kn.x + (kn.f || 1) * 9 * OGSC, kn.y - 22.5 * OGSC];
+const ogMouths = kn => { if (kn.ogMo) return kn.ogMo; const f = kn.f || 1; return [[kn.x + (2.45 + f * 1.3) * OGSC, kn.y - 20.0 * OGSC], [kn.x + (-2.45 + f * 1.3) * OGSC, kn.y - 19.7 * OGSC]]; }, ogMix = kn => [kn.x + (kn.f || 1) * 9 * OGSC, kn.y - 22.5 * OGSC];
 // the frost hook's / storm hook's fist path: angle round him (ground space) and how far through the swing (0 before the launch .. 1 at its end)
 // a long slow coil (to W), then the fist explodes round the arc in (F - W) x T, about 0.16s, accelerating into the hit
 const OGHK = { W: 0.55, F: 0.67 };
@@ -7504,7 +7508,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '330f35';
+const KBUILD = '4b8834';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
