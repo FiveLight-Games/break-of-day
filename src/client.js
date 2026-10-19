@@ -42,7 +42,7 @@ function renderMenu() {
     <button class="btn ghost" data-act="home">Back</button>`;
   else if (homeScreen === 'home') m.innerHTML = `<div class="eyebrow">Play</div>
     <button class="btn primary big" data-act="knights">Knight Brawl<small>Co-op vs the horde, up to 4 players</small></button>
-    <button class="btn big" data-act="other">Other Modes<small>Hold the Line</small></button><p class="err">${esc(menuErr)}</p>`;
+    <button class="btn big" data-act="other">Other Modes</button><p class="err">${esc(menuErr)}</p>`;
   else { const on = !!getSB(); m.innerHTML = `<div class="eyebrow">Hold the Line</div>
     <button class="btn primary big" data-act="find" ${on ? '' : 'disabled'}>Find Match<small>Join the next open lobby</small></button>
     <div class="row2"><button class="btn big" data-act="hostForm" ${on ? '' : 'disabled'}>Host Lobby</button><button class="btn big" data-act="browse" ${on ? '' : 'disabled'}>Browse Lobbies</button></div>
