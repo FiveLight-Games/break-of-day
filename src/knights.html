@@ -3526,10 +3526,11 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
 return { drawO2, V: VARS[0], ICEM, OUT, arc2, glow, bevel, iceIn, addSmooth, rnd, surfK, SURF, GAIT, col: c => { COL = c; }, arcn: v => { ARCN = v; } };
 })();
 const OG = { SPD: 0.72, AT: 1.0, HIT: 0.42, DMG: 170, R: 17, KB: 70,
-  SURF: { T: 4.2, V: 92, TURN: 2.4, ZR: 38, ZN: 3, ZDPS: 330, TRAIL: 3.2, TW: 4.5, SLOW: 0.15, CD: 9 },
-  CLOUD: { CAST: 0.9, FORM: 0.6, T: 5.5, R: 24, H: 26, EVERY: 0.32, KILL: 4.5, KDMG: 420, RANGE: 70, CD: 10 },
-  SPK: { LEN: 70, W: 16, SPD: 110, GAP: 2.6, HOLD: 0.65, LIFE: 2.4, HIT: 0.48, HDMG: 220, CD: 6 },
-  DRG: { BUILD: 1.6, STRIKE: 0.7, RISE: 0.6, SPD: 40, LEN: 190, SEG: 30, GAP: 1.9, R: 15, Z: 14, SHAT: 0.35, BR: 5.2, SR: 18, HDMG: 600 } };
+  // abilities x1.7 size and damage (2026-10-18): surf zap reach/dps/trail width, cloud radius/aim range/strike radius/damage, spike line length/width/speed/damage, dragon path/freeze width/strike radius/damage/speed
+  SURF: { T: 4.2, V: 92, TURN: 2.4, ZR: 64.6, ZN: 3, ZDPS: 561, TRAIL: 3.2, TW: 7.65, SLOW: 0.15, CD: 9 },
+  CLOUD: { CAST: 0.9, FORM: 0.6, T: 5.5, R: 40.8, H: 34, EVERY: 0.32, KILL: 7.65, KDMG: 714, RANGE: 119, CD: 10 },
+  SPK: { LEN: 119, W: 27.2, SPD: 187, GAP: 2.6, HOLD: 0.65, LIFE: 2.4, HIT: 0.48, HDMG: 374, CD: 6 },
+  DRG: { BUILD: 1.6, STRIKE: 0.7, RISE: 0.6, SPD: 68, LEN: 323, SEG: 30, GAP: 2.85, R: 25.5, Z: 18, SHAT: 0.35, BR: 7.8, SR: 30.6, HDMG: 1020 } };
 const OGY = 0.8, OGFX = { hail: [], strikes: [] };
 const ogDist = (ax, ay, bx, by) => Math.hypot(ax - bx, (ay - by) / OGY);
 function makeOgre(kn) { Object.assign(kn, { kind: 'ogre', st: 'fight', cut: -1, ou: -1, ouN: 0, ouS: 0, ouA: 0, sv: -1, svA: 0, svCd: 0, clN: 0, clX: 0, clY: 0, clT: -9, clCd: 0, spN: 0, spX: 0, spY: 0, spA: 0, spCd: 0,
@@ -3540,7 +3541,7 @@ function ogAimAt(kn, R) { let b = null, bd = R; for (const w of walkers) { if (w
 const ogD = kn => kn.ogDT >= 0 ? { t: kn.ogDT, dir: [Math.cos(kn.ogDA), Math.sin(kn.ogDA)], ox: kn.ogDX, oy: kn.ogDY, sx: kn.ogDSX, sy: kn.ogDSY } : null;
 const drgS0 = () => OG.DRG.SEG * OG.DRG.GAP + 4, drgFT = D => D.t - OG.DRG.BUILD - OG.DRG.STRIKE, drgHS = D => drgS0() + Math.max(0, drgFT(D)) * OG.DRG.SPD, drgLift = D => sm(Math.min(1, Math.max(0, drgFT(D)) / OG.DRG.RISE));
 const drgEnd = () => OG.DRG.BUILD + OG.DRG.STRIKE + (OG.DRG.LEN + 20 + OG.DRG.SEG * OG.DRG.GAP - drgS0()) / OG.DRG.SPD;
-const drgPos = (D, sd) => { const G = OG.DRG, u = Math.max(0, sd), w = Math.sin(u * 0.07) * 10 * Math.min(1, u / 20), lf = drgLift(D), z = lerp(G.BR * 0.7, G.Z + Math.sin(u * 0.13 + 1) * 3 - Math.max(0, 1 - u / 12) * G.Z * 0.7, lf); return { x: D.ox + D.dir[0] * u - D.dir[1] * w, y: D.oy + (D.dir[1] * u + D.dir[0] * w) * OGY, z }; };
+const drgPos = (D, sd) => { const G = OG.DRG, u = Math.max(0, sd), w = Math.sin(u * 0.045) * 17 * Math.min(1, u / 30), lf = drgLift(D), z = lerp(G.BR * 0.7, G.Z + Math.sin(u * 0.13 + 1) * 3 - Math.max(0, 1 - u / 12) * G.Z * 0.7, lf); return { x: D.ox + D.dir[0] * u - D.dir[1] * w, y: D.oy + (D.dir[1] * u + D.dir[0] * w) * OGY, z }; };
 // a lightning strike everyone sees: the host lists it in kn.ogS (synced), every screen draws it when a new one turns up
 function ogStrike(x, y) { const n = (K.ogSN = (K.ogSN || 0) + 1); K.ogS = (K.ogS || []).concat([[n, Math.round(x * 10) / 10, Math.round(y * 10) / 10]]).slice(-12); }
 function ogKill(w, dmg, kn, burn) { const k0 = K; K = kn; const a = Math.atan2(w.y - kn.y, w.x - kn.x); hurt(w, dmg, ww => burn ? burnFx(ww) : slamFx(ww, a)); K = k0; }
@@ -3553,10 +3554,10 @@ function ogreStep(dt, t) {
   K.st = 'fight'; for (const k of ['svCd', 'clCd', 'spCd']) K[k] = Math.max(0, (K[k] || 0) - dt);
   const drg = K.ogDT >= 0, rooted = drg && K.ogDT < O.DRG.BUILD + O.DRG.STRIKE;
   // ---- starting things ----
-  if (mine && ultP && ultReady(K) && !drg) { const a = ogAimAt(K, 220); Object.assign(K, { ogDN: (K.ogDN || 0) + 1, ogDA: a, ogDX: K.x + Math.cos(a) * 4, ogDY: K.y + Math.sin(a) * 4 * OGY, ogDT: 0, sv: -1, ou: -1, ogH: 1 }); K.f = Math.cos(a) >= 0 ? 1 : -1; }
+  if (mine && ultP && ultReady(K) && !drg) { const a = IN.ulV ? Math.atan2(IN.ulV[1] / OGY, IN.ulV[0]) : ogAimAt(K, 260); Object.assign(K, { ogDN: (K.ogDN || 0) + 1, ogDA: a, ogDX: K.x + Math.cos(a) * 4, ogDY: K.y + Math.sin(a) * 4 * OGY, ogDT: 0, sv: -1, ou: -1, ogH: 1 }); K.f = Math.cos(a) >= 0 ? 1 : -1; }
   else if (mine && dashP && IN.dashD && !(K.svCd > 0) && !drg) { Object.assign(K, { sv: 0, svA: Math.atan2(IN.dashD[1], IN.dashD[0]), svCd: O.SURF.CD + O.SURF.T, ou: -1, ogH: 1 }); }
   else if (mine && leapP && !(K.clCd > 0) && !drg) { const [x, y] = leapTarget(K, IN.leapT || [K.f || 1, 0]); Object.assign(K, { clN: (K.clN || 0) + 1, clX: x, clY: y, clT: -O.CLOUD.CAST, clCd: O.CLOUD.CD, sv: -1, ogH: 0 }); K.f = x >= K.x ? 1 : -1; }
-  else if (mine && lvP && !(K.spCd > 0) && !drg) { const a = IN.aim ? Math.atan2(IN.aim[1] / OGY, IN.aim[0]) : ogAimAt(K, 90); Object.assign(K, { spN: (K.spN || 0) + 1, spX: K.x, spY: K.y, spA: a, spCd: O.SPK.CD, sv: -1, ou: 0, ouN: (K.ouN || 0) + 1, ouS: 1, ouA: a, ogH: 1 }); K.f = Math.cos(a) >= 0 ? 1 : -1; }
+  else if (mine && lvP && !(K.spCd > 0) && !drg) { const a = IN.lvV ? Math.atan2(IN.lvV[1] / OGY, IN.lvV[0]) : IN.aim ? Math.atan2(IN.aim[1] / OGY, IN.aim[0]) : ogAimAt(K, 130); Object.assign(K, { spN: (K.spN || 0) + 1, spX: K.x, spY: K.y, spA: a, spCd: O.SPK.CD, sv: -1, ou: 0, ouN: (K.ouN || 0) + 1, ouS: 1, ouA: a, ogH: 1 }); K.f = Math.cos(a) >= 0 ? 1 : -1; }
   // ---- clocks ----
   if (K.clT < O.CLOUD.T) K.clT += dt;
   if (drg) { K.ogDT += dt; if (K.ogDT > drgEnd()) { K.ogDT = -1; if (host) K.ultBase = K.kills; } }
@@ -3576,13 +3577,13 @@ function ogreStep(dt, t) {
     if (K.ogTr.length) for (const w of walkers) { if (w.hp <= 0) continue; for (let i = 0; i < K.ogTr.length; i += 3) { const p = K.ogTr[i]; if (Math.abs(p.x - w.x) < 6 && ogDist(p.x, p.y, w.x, w.y) < 6) { w.sl = Math.max(w.sl || 0, O.SURF.SLOW); break; } } } }
   // ---- storm cloud: hail slows everyone under it, lightning strikes one of them every EVERY s ----
   const C = O.CLOUD; if (K.clT >= C.FORM && K.clT < C.T) { const inR = w => ogDist(w.x, w.y, K.clX, K.clY) < C.R;
-    if (K.clT < C.T - 0.6) { K.ogHn = (K.ogHn || 0) + dt * 6; while (K.ogHn >= 1) { K.ogHn -= 1; const a = Math.random() * 6.283, r2 = Math.sqrt(Math.random()) * C.R; OGFX.hail.push({ x: K.clX + Math.cos(a) * r2, y: K.clY + Math.sin(a) * r2 * OGY, z: C.H - 4 + Math.random() * 4, t: 0, r: 1.8 + Math.random(), sp: Math.random() * 6, vz: 0 }); } }
+    if (K.clT < C.T - 0.6) { K.ogHn = (K.ogHn || 0) + dt * 10; while (K.ogHn >= 1) { K.ogHn -= 1; const a = Math.random() * 6.283, r2 = Math.sqrt(Math.random()) * C.R; OGFX.hail.push({ x: K.clX + Math.cos(a) * r2, y: K.clY + Math.sin(a) * r2 * OGY, z: C.H - 4 + Math.random() * 4, t: 0, r: 1.8 + Math.random(), sp: Math.random() * 6, vz: 0 }); } }
     if (host) { const al = []; for (const w of walkers) if (w.hp > 0 && inR(w)) { w.sl = Math.max(w.sl || 0, 0.25); al.push(w); }
       K.clNx = (K.clNx || 0) - dt; if (K.clNx <= 0 && K.clT < C.T - 0.6) { K.clNx = C.EVERY * (0.7 + Math.random() * 0.6); const tg = al.length ? al[Math.floor(Math.random() * al.length)] : null, a = Math.random() * 6.283, r2 = Math.sqrt(Math.random()) * C.R * 0.8;
         const px = tg ? tg.x : K.clX + Math.cos(a) * r2, py = tg ? tg.y : K.clY + Math.sin(a) * r2 * OGY; ogStrike(px, py); for (const w of walkers) if (w.hp > 0 && ogDist(w.x, w.y, px, py) < C.KILL + UK[w.k].r) ogKill(w, C.KDMG, K); } } }
   // ---- ice spikes: a line of spikes bursts out toward the aim; whoever's caught is lifted onto one (half damage), then struck dead ----
   const S = O.SPK; if (K.spN && (!K.ogP || K.ogP.n !== K.spN)) { const dir = [Math.cos(K.spA), Math.sin(K.spA)], L = S.LEN, list = [];
-    for (let u = 6; u < L; u += S.GAP) { const sd = u * 3.1 + K.spN * 7.7, off = (OGX.rnd(sd) - 0.5) * S.W; list.push({ x: K.spX + dir[0] * u - dir[1] * off, y: K.spY + (dir[1] * u + dir[0] * off) * OGY, u, h: 0, H: 6 + OGX.rnd(u + K.spN) * 5, lean: (OGX.rnd(u * 7 + K.spN) - 0.5) * 0.6, born: -1 }); }
+    for (let u = 6; u < L; u += S.GAP) { const sd = u * 3.1 + K.spN * 7.7, off = (OGX.rnd(sd) - 0.5) * S.W; list.push({ x: K.spX + dir[0] * u - dir[1] * off, y: K.spY + (dir[1] * u + dir[0] * off) * OGY, u, h: 0, H: (6 + OGX.rnd(u + K.spN) * 5) * 1.4, lean: (OGX.rnd(u * 7 + K.spN) - 0.5) * 0.6, born: -1 }); }
     K.ogP = { n: K.spN, t: 0, dir, L, list, ox: K.spX, oy: K.spY }; }
   if (K.ogP) { const P = K.ogP; P.t += dt; const front = (P.t - S.HIT) * S.SPD;
     for (const q of P.list) { if (q.born < 0 && front >= q.u) q.born = P.t; if (q.born >= 0) { const a = P.t - q.born; q.h = a < 0.08 ? q.H * (a / 0.08) * 1.15 : a < 0.16 ? q.H * (1.15 - 0.15 * (a - 0.08) / 0.08) : a > S.LIFE ? q.H * Math.max(0, 1 - (a - S.LIFE) / 0.35) : q.H; } }
@@ -3607,6 +3608,11 @@ function ogreStep(dt, t) {
   K.spd = lerp(K.spd || 0, SV > 0 ? 0 : md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); if (!(SV > 0)) K.ogPh += md / KS * OGX.GAIT.RATE / OGX.GAIT.SPD;
   if (!(K.ou >= 0) && !IN.aim && !(SV > 0) && !rooted && mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1;
 }
+// the aim preview while SPIKES or ULT is held and dragged: the spike line, or the dragon's path
+function ogAimDraw(c, t) { const kn = KN[ME]; if (!OGAIM || !OGAIM.v || !kn || kn.kind !== 'ogre') return; const a = Math.atan2(OGAIM.v[1] / OGY, OGAIM.v[0]), d = [Math.cos(a), Math.sin(a)], sp = OGAIM.k === 'lv', L = sp ? OG.SPK.LEN : OG.DRG.LEN, hw = sp ? OG.SPK.W * 0.6 : OG.DRG.R;
+  const P = (u, o) => [kn.x + d[0] * u - d[1] * o, kn.y + (d[1] * u + d[0] * o) * OGY]; c.save(); c.fillStyle = sp ? 'rgba(200,236,255,.22)' : 'rgba(150,215,255,.16)'; c.strokeStyle = 'rgba(220,245,255,.85)'; c.lineWidth = 0.6; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 10;
+  c.beginPath(); if (sp) { c.moveTo(...P(4, -hw)); c.lineTo(...P(L, -hw)); c.lineTo(...P(L, hw)); c.lineTo(...P(4, hw)); c.closePath(); } else { for (let u = 0; u <= L; u += 6) { const w = Math.sin(u * 0.045) * 17 * Math.min(1, u / 30); c.lineTo(...P(u, w - hw)); } for (let u = L - (L % 6); u >= 0; u -= 6) { const w = Math.sin(u * 0.045) * 17 * Math.min(1, u / 30); c.lineTo(...P(u, w + hw)); } c.closePath(); }
+  c.fill(); c.stroke(); c.setLineDash([]); c.fillStyle = 'rgba(230,248,255,.8)'; for (let u = 14 + (t * 30) % 14; u < L - 4; u += 14) { const w = sp ? 0 : Math.sin(u * 0.045) * 17 * Math.min(1, u / 30), m = P(u, w), m2 = P(u + 3, w), n = P(u, w + 2.2), n2 = P(u, w - 2.2); c.beginPath(); c.moveTo(...m2); c.lineTo(...n); c.lineTo(...n2); c.closePath(); c.fill(); } c.restore(); }
 // effects that only look (hail falling and bouncing, strikes fading): every screen, every step
 function ogFxStep(dt) { for (const h2 of OGFX.hail) { if (h2.z > 0 || h2.vz > 0) { h2.vz -= 90 * dt; h2.z += h2.vz * dt; h2.sp += dt * 4; if (h2.z <= 0) { h2.z = 0; if (!h2.b) { h2.b = 1; h2.vz = 9; h2.z = 0.01; h2.t = 0; } else h2.vz = 0; } } else h2.t += dt; }
   OGFX.hail = OGFX.hail.filter(h2 => h2.z > 0 || h2.vz > 0 || h2.t < 0.45); for (const s3 of OGFX.strikes) s3.t += dt; OGFX.strikes = OGFX.strikes.filter(s3 => s3.t < 0.6); }
@@ -3652,7 +3658,7 @@ function ogAir(c, t) { const V0 = OGX.V; OGX.arcn(1);
   for (const s3 of OGFX.strikes) { const q = s3.t / 0.6, top = [s3.cx !== null ? s3.cx + (s3.x - s3.cx) * 0.4 : s3.x + 4, (s3.cy !== null ? s3.cy : s3.y) - (s3.cx !== null ? OG.CLOUD.H - 3 : 90)], al = q < 0.15 ? 1 : 1 - (q - 0.15) / 0.85; if (al <= 0) continue;
     c.save(); c.globalAlpha = al; const P = OGX.arc2(c, top, [s3.x, s3.y], V0.gc, '#ffffff', s3.sd, 0.35, 5, 12); for (let j = 0; j < 2; j++) { const m = P[3 + j * 4]; OGX.arc2(c, m, [m[0] + (OGX.rnd(s3.sd + j) - 0.5) * 12, m[1] + 5 + OGX.rnd(s3.sd * 2 + j) * 5], V0.gc, '#ffffff', s3.sd + j * 7, 0.15, 2, 5); } c.globalCompositeOperation = 'lighter'; OGX.glow(c, s3.x, s3.y - 1, 7, V0.gc, 0.9 * al); c.restore(); }
   for (const kn of LIVE()) { if (kn.kind !== 'ogre') continue; const C = OG.CLOUD;
-    if (kn.clT > 0 && kn.clT < C.T) { const k = sm(Math.min(1, kn.clT / C.FORM)) * (1 - sm(Math.max(0, (kn.clT - C.T + 0.6) / 0.6))); if (k > 0) { const cy = kn.clY - C.H, puffs = []; for (let i = 0; i < 14; i++) { const a = i * 2.39996 + t * 0.15, r2 = Math.sqrt(i / 14) * C.R * 0.85; puffs.push([kn.clX + Math.cos(a) * r2, cy + Math.sin(a) * r2 * 0.35 - (1 - i / 14) * 2, (6.5 - i * 0.15) * (0.6 + 0.4 * k)]); }
+    if (kn.clT > 0 && kn.clT < C.T) { const k = sm(Math.min(1, kn.clT / C.FORM)) * (1 - sm(Math.max(0, (kn.clT - C.T + 0.6) / 0.6))); if (k > 0) { const cy = kn.clY - C.H, puffs = []; for (let i = 0; i < 14; i++) { const a = i * 2.39996 + t * 0.15, r2 = Math.sqrt(i / 14) * C.R * 0.85; puffs.push([kn.clX + Math.cos(a) * r2, cy + Math.sin(a) * r2 * 0.35 - (1 - i / 14) * 2, (6.5 - i * 0.15) * (C.R / 24) * (0.6 + 0.4 * k)]); }
       c.save(); c.globalAlpha = Math.min(1, k * 1.3); puffs.sort((a, b) => a[1] - b[1]); for (const [x, y, r2] of puffs) { c.fillStyle = OGX.OUT; c.beginPath(); c.arc(x, y, r2 + 0.3, 0, 7); c.fill(); } for (const [x, y, r2] of puffs) { c.fillStyle = '#3b4258'; c.beginPath(); c.arc(x, y, r2, 0, 7); c.fill(); }
       for (const [x, y, r2] of puffs) { c.fillStyle = '#525b78'; c.beginPath(); c.arc(x - r2 * 0.1, y - r2 * 0.2, r2 * 0.82, 0, 7); c.fill(); } for (const [x, y, r2] of puffs) { c.fillStyle = 'rgba(190,210,240,.35)'; c.beginPath(); c.arc(x - r2 * 0.3, y - r2 * 0.45, r2 * 0.4, 0, 7); c.fill(); }
       const fl = OGX.rnd(Math.floor(t * 9) * 3.7); if (fl > 0.55) { c.globalCompositeOperation = 'lighter'; const pp = puffs[Math.floor(OGX.rnd(Math.floor(t * 9)) * puffs.length)]; OGX.glow(c, pp[0], pp[1], 10, V0.gc, (fl - 0.55) * 1.6); } c.restore(); } }
@@ -3671,7 +3677,7 @@ function ogDragonAir(c, t, D) { const G = OG.DRG, V0 = OGX.V, OUT = OGX.OUT, arc
     c.strokeStyle = alive ? `rgba(150,215,255,${0.6 + 0.4 * Math.sin(t * 20 + k)})` : 'rgba(255,255,255,.5)'; c.lineWidth = 0.18; c.beginPath(); c.moveTo(g.x - r2 * 0.7, g.y + r2 * 0.3); c.lineTo(g.x - r2 * 0.2, g.y + r2 * 0.55); c.lineTo(g.x + r2 * 0.1, g.y + r2 * 0.3); c.lineTo(g.x + r2 * 0.6, g.y + r2 * 0.55); c.stroke(); }
   const tl = segs[segs.length - 1]; if (alive && tl && segs.length > 3) { const pv = segs[segs.length - 2], a = Math.atan2(tl.y - pv.y, tl.x - pv.x); arc2(c, [tl.x, tl.y], [tl.x + Math.cos(a) * 6, tl.y + Math.sin(a) * 6], V0.gc, '#ffffff', Math.floor(t * 16), 0.22, 2.2, 6); }
   const Hd = segs[0]; if (Hd && segs.length > 1 && segs[0].i === 0) { const a = Math.atan2(Hd.y - segs[1].y, Hd.x - segs[1].x), sx = Math.cos(a) >= 0 ? 1 : -1;
-    c.save(); c.translate(Hd.x, Hd.y); c.rotate(sx > 0 ? a : a + Math.PI); c.scale(sx * 1.45, 1.45); const hr = 4.2, jaw = alive ? 0.35 + 0.25 * Math.sin(t * 9) : 0;
+    c.save(); c.translate(Hd.x, Hd.y); c.rotate(sx > 0 ? a : a + Math.PI); c.scale(sx * 1.45 * G.BR / 5.2, 1.45 * G.BR / 5.2); const hr = 4.2, jaw = alive ? 0.35 + 0.25 * Math.sin(t * 9) : 0;
     for (const [x, y, l] of [[-1.5, -2.4, 4.6], [0.2, -2.6, 3.8]]) bevel(c, [[x - 0.6, y + 0.6], [x - l, y - l * 0.55], [x + 0.6, y + 0.3]], '#e2f5ff', { lw: 0.15, k: 0.5 });
     path(c, [[-1.5, 0.6], [hr * 1.15, 0.8 + jaw * 2.2], [hr * 1.05, 1.6 + jaw * 2.2], [-1.2, 2.0]]); c.fillStyle = alive ? '#3c4a6e' : '#7fb8d8'; c.fill(); c.strokeStyle = OUT; c.lineWidth = 0.2; c.stroke();
     for (let i = 0; i < 4; i++) { const x = 0.6 + i * 0.85; path(c, [[x, 0.85 + jaw * 2.2 * (x / hr)], [x + 0.25, 0.25 + jaw * 2.2 * (x / hr)], [x + 0.5, 0.95 + jaw * 2.2 * (x / hr)]]); c.fillStyle = '#ffffff'; c.fill(); }
@@ -5973,7 +5979,7 @@ function draw() {
   const VL = camX - cv.width / 2 / sc - 30, VR = camX + cv.width / 2 / sc + 30, inV = q => q.x > VL && q.x < VR;
   for (const sp of splats) { if (sp.x < VL || sp.x > VR) continue; x.globalAlpha = Math.max(0, 1 - sp.t / 5) * 0.85; x.fillStyle = sp.ash ? '#26201c' : '#6a1610'; x.beginPath(); x.ellipse(sp.x, sp.y, sp.r, sp.r * 0.5, 0, 0, 7); x.fill(); } x.globalAlpha = 1;
   for (const kn of LIVE()) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
-  drawFxGround(x); drawGouges(x, t); ttGround(x); njGround(x, t); ogGround(x, t); drawVolcFloor(x, t); drawBikePreview(x, t); drawLeapPreview(x, t); drawHeliDraw(x, t); drawDashPreview(x, t); drawSweepPreview(x, t); drawCoalPreview(x);
+  drawFxGround(x); drawGouges(x, t); ttGround(x); njGround(x, t); ogGround(x, t); ogAimDraw(x, t); drawVolcFloor(x, t); drawBikePreview(x, t); drawLeapPreview(x, t); drawHeliDraw(x, t); drawDashPreview(x, t); drawSweepPreview(x, t); drawCoalPreview(x);
   for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = pAlpha(p); drawPartFast(x, p); } x.globalAlpha = 1;
   const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(TRAPS.filter(q => q.t >= TT.TRAP.FLY).flatMap(q => { const G = trapGeo(q); return [[q.y, 6, q], [G.ey + 0.01, 7, q]]; })).concat(dinoList()).concat(dgList()).concat(ogSpikes()).concat(KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.cr >= 0).map(kn => [kn.cyp, 10, kn])).concat(WRECKS.flatMap(q => [[q.y, 11, { q, ship: 0 }], [q.sy + 0.01, 11, { q, ship: 1 }]])).concat(HDEAD.filter(inV).map(q => [q.y - 0.3, 9, q])).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
   HPQ = [];
@@ -6217,11 +6223,19 @@ document.addEventListener('dblclick', e => e.preventDefault());
 window.__horde = (r, k) => setHorde(r, k); window.__dash = v => doDash(typeof v === 'number' ? DIR8[v] : v); window.__aimDash = v => { DASHAIM = v; }; window.__DA = () => DASHAIM; window.__leap = doLeap; window.__aimLeap = v => { LEAPAIM = v; };
 const ub = document.getElementById('ult'), ULI = ub.querySelector('i'), ULS = ub.querySelector('small');
 function doUlt() { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.ultN = (IN.ultN || 0) + 1; markIn(); }
-ub.addEventListener('pointerdown', e => { e.preventDefault(); doUlt(); });
+ub.addEventListener('pointerdown', e => { e.preventDefault(); if (isOgre() && ultReady(KN[ME]) && !(KN[ME].ogDT >= 0)) { ogAimStart(e, 'ul', ub); return; } doUlt(); });
 const sb = document.getElementById('spin'), VTAP = document.getElementById('vtap');
 // on the volcano a tap anywhere picks where the next rock lands
 cv.addEventListener('pointerdown', e => { const kn = KN[ME]; if (!kn || kn.kind !== 'fire' || !(kn.vPh === 1 || (kn.vPh === 0 && kn.vT >= V.RISE - 1))) return; const [wx, wy] = s2w(e.clientX, e.clientY); const IN = kn.in; IN.vtN = (IN.vtN || 0) + 1; IN.vtP = [Math.round(wx * 10) / 10, Math.round(wy * 10) / 10]; markIn(); });
-sb.addEventListener('pointerdown', e => { if (isFire() || isPriest() || isTime() || isOgre()) { const IN = KN[ME].in; IN.lvN = (IN.lvN || 0) + 1; markIn(); } else { btnSpin = true; syncIn(); } e.preventDefault(); });
+sb.addEventListener('pointerdown', e => { if (isOgre()) { e.preventDefault(); if (!(KN[ME].spCd > 0) && !(KN[ME].ogDT >= 0)) ogAimStart(e, 'lv', sb); return; } if (isFire() || isPriest() || isTime()) { const IN = KN[ME].in; IN.lvN = (IN.lvN || 0) + 1; markIn(); } else { btnSpin = true; syncIn(); } e.preventDefault(); });
+// Storm Ogre: SPIKES and ULT are drag-to-aim buttons: press, drag the way to send it (a preview shows the spike line / dragon path), release to cast;
+// a tap with no drag sends it at the nearest enemy (or the way he faces)
+let OGAIM = null;
+function ogAimStart(e, k, el) { OGAIM = { k, id: e.pointerId, x0: e.clientX, y0: e.clientY, v: null }; try { el.setPointerCapture(e.pointerId); } catch (er) { } }
+addEventListener('pointermove', e => { if (!OGAIM || e.pointerId !== OGAIM.id) return; const dx = e.clientX - OGAIM.x0, dy = e.clientY - OGAIM.y0; OGAIM.v = Math.hypot(dx, dy) > 12 ? [dx, dy] : null; });
+const ogAimEnd = e => { if (!OGAIM || e.pointerId !== OGAIM.id) return; const A = OGAIM; OGAIM = null; const kn = KN[ME]; if (!kn || kn.kind !== 'ogre') return; const IN = kn.in;
+  if (A.k === 'lv') { IN.lvV = A.v; IN.lvN = (IN.lvN || 0) + 1; } else { IN.ulV = A.v; IN.ultN = (IN.ultN || 0) + 1; } markIn(); };
+addEventListener('pointerup', ogAimEnd); addEventListener('pointercancel', e => { if (OGAIM && e.pointerId === OGAIM.id) OGAIM = null; });
 const sbUp = () => { btnSpin = false; syncIn(); }; sb.addEventListener('pointerup', sbUp); sb.addEventListener('pointerleave', sbUp); sb.addEventListener('pointercancel', sbUp);
 // keyboard + mouse
 const keys = new Set();
@@ -6239,8 +6253,9 @@ addEventListener('keydown', e => { if (e.target && e.target.closest && e.target.
   if (k === 'q') { if (!e.repeat) keys.add('q'); if (isFire()) COAIM = kbCoal(); else LEAPAIM = kbLeap(); }
   if (k === 'f' && !e.repeat && KN[ME] && KN[ME].kind === 'time') { const IN = KN[ME].in; IN.rcN = (IN.rcN || 0) + 1; markIn(); }
   if (k === 'f' && !e.repeat && isPriest()) { const IN = KN[ME].in; IN.biN = (IN.biN || 0) + 1; markIn(); }
-  if (k === 'e' && !e.repeat && (isFire() || isPriest() || isTime() || isOgre())) { const IN = KN[ME].in; IN.lvN = (IN.lvN || 0) + 1; markIn(); }
-  if (k === 'r' && !e.repeat) doUlt(); });
+  if (k === 'e' && !e.repeat && isOgre()) { const IN = KN[ME].in; IN.lvV = cursorVec(); IN.lvN = (IN.lvN || 0) + 1; markIn(); }
+  else if (k === 'e' && !e.repeat && (isFire() || isPriest() || isTime())) { const IN = KN[ME].in; IN.lvN = (IN.lvN || 0) + 1; markIn(); }
+  if (k === 'r' && !e.repeat) { if (isOgre()) KN[ME].in.ulV = cursorVec(); doUlt(); } });
 addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') return; mousePos = [e.clientX, e.clientY]; if (keys.has('q')) { if (isFire()) COAIM = kbCoal(); else LEAPAIM = kbLeap(); } if (isFire() && keys.has(' ')) syncIn(); });
 addEventListener('keyup', e => { if (keyOf(e) === 'q' && keys.has('q')) { keys.delete('q'); if (COAIM) { const IN = KN[ME].in; IN.coN = (IN.coN || 0) + 1; IN.coV = [Math.round(COAIM[0] * 100) / 100, Math.round(COAIM[1] * 100) / 100]; markIn(); } else if (LEAPAIM) doLeap(LEAPAIM); LEAPAIM = null; COAIM = null; } });
 addEventListener('keyup', e => { keys.delete(keyOf(e)); keyUpd(); });
@@ -6268,7 +6283,7 @@ const myPid = (() => { let id = null; try { id = localStorage.getItem('kn_pid');
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
 const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plE', 'plD', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'a2T', 'a2s', 'wpM', 'hl', 'hla', 'hlL', 'hlx', 'hly', 'hlN', 'hlCd', 'dn', 'dnf', 'dnx', 'dny', 'dnN', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc', 'cr', 'crT', 'crN', 'crh', 'cv', 'cvx', 'cvy', 'cyr', 'cxp', 'cyp', 'cx0', 'cy0', 'ctx', 'cty', 'cph', 'cHit', 'ulOn', 'cdn', 'ctu', 'cfx', 'cfy', 'cfvx', 'cfvy', 'ckx', 'cky', 'csx', 'csy', 'clx', 'cly', 'uC', 'dg', 'dgN', 'cHitN', 'chd', 'cHT', 'spx', 'spy', 'spz', 'sdx', 'sdy', 'sdz', 'sd0x', 'sd0y', 'sd0z', 'spv', 'sTr', 'cEj', 'cBl', 'ex0', 'ey0', 'ez0', 'cBk', 'nl', 'nw', 'nwB', 'nQ', 'nCd', 'nlN', 'nlm', 'nx0', 'ny0', 'nx1', 'ny1', 'nPh', 'nT', 'nUN', 'nSd', 'njF', 'ou', 'ouN', 'ouS', 'ouA', 'sv', 'svA', 'svCd', 'clN', 'clX', 'clY', 'clT', 'clCd', 'spN', 'spX', 'spY', 'spA', 'spCd', 'ogDN', 'ogDX', 'ogDY', 'ogDA', 'ogDT', 'ogDSX', 'ogDSY', 'ogH', 'ogS', 'ogZ', 'ogSN'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
-const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, hdN: n.hdN || 0, hdP: n.hdP || null, twV: n.twV || 0, la: n.la || null, nj: n.nj || null, njN: n.njN || 0, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
+const packIn = n => ({ mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, hdN: n.hdN || 0, hdP: n.hdP || null, twV: n.twV || 0, la: n.la || null, nj: n.nj || null, njN: n.njN || 0, lvV: n.lvV || null, ulV: n.ulV || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 // a knight's state: the whole list once a second, otherwise only the fields that changed since the last snapshot ([index, value, ...])
 const kfSame = (a, b) => a === b || (a !== null && typeof a === 'object' && JSON.stringify(a) === JSON.stringify(b));
 const packK = (kn, i, full) => { const v = KF.map(k => r3(kn[k])), P = NET.kPrev || (NET.kPrev = []), prev = P[i]; P[i] = v; const o = { in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] };
