@@ -19,13 +19,13 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   }
   const A = await mk('A', 'Elijah'), B = await mk('B', 'Raider', { width: 390, height: 844 }), C = await mk('C', 'Warden', { width: 390, height: 844 });
   // A hosts
-  await A.click('[data-act=hostForm]'); await A.fill('#lobbyIn', 'Test Lobby'); await A.click('#hostForm button[type=submit]'); await sleep(800);
+  await A.click('[data-act=other]'); await A.click('[data-act=htl]'); await A.click('[data-act=hostForm]'); await A.fill('#lobbyIn', 'Test Lobby'); await A.click('#hostForm button[type=submit]'); await sleep(800);
   check(await A.isVisible('#lobby'), 'host lands in the lobby');
   check(await A.evaluate(() => document.querySelectorAll('.mapCard:not([disabled])').length === 1 && document.querySelectorAll('.mapCard').length === 3), 'map picker: Greenvale available, 2 coming soon');
   check(await A.evaluate(() => [...document.querySelectorAll('.race')].map(b => b.textContent.split(/Available|Coming/)[0] + (b.disabled ? '-' : '+')).join(',')) === 'Human+,Orc-,Elf-,Dwarf-', 'races: Human on, Orc/Elf/Dwarf greyed');
   check(await A.evaluate(() => document.querySelectorAll('.swatch').length) === 10, '10 colors');
   // B browses and joins
-  await B.click('[data-act=browse]'); await sleep(1500);
+  await B.click('[data-act=other]'); await B.click('[data-act=htl]'); await B.click('[data-act=browse]'); await sleep(1500);
   check(await B.evaluate(() => document.querySelector('.lobbyItem') && document.querySelector('.lobbyItem').textContent.includes('Test Lobby')), 'lobby browser lists the lobby');
   await B.click('.lobbyItem'); await sleep(1500);
   check(await B.isVisible('#lobby'), 'B joined from the browser');
@@ -34,7 +34,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(await A.evaluate(() => window.TDC.LS.seats[0]) === await B.evaluate(() => localStorage.getItem('td_pid')), 'B is the attacker');
   await B.click('.swatch[title="Purple"]'); await sleep(600);
   // C finds a match
-  await C.click('[data-act=find]'); await sleep(2500);
+  await C.click('[data-act=other]'); await C.click('[data-act=htl]'); await C.click('[data-act=find]'); await sleep(2500);
   check(await C.isVisible('#lobby'), 'C joined via Find Match');
   check(await C.evaluate(() => document.querySelector('.swatch[title="Purple"]').disabled), "C can't pick B's color");
   const cols = await A.evaluate(() => Object.values(window.TDC.LS.pl).map(p => p.color)); check(new Set(cols).size === cols.length, 'every player has a different color: ' + cols.join(','));
@@ -208,7 +208,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   check(await C.evaluate(() => !window.TDC.V.over), 'match running');
   // vs AI
   const D = await mk('D', 'Solo', { width: 390, height: 844 });
-  await D.click('[data-act=vsai]'); await sleep(300);
+  await D.click('[data-act=other]'); await D.click('[data-act=htl]'); await D.click('[data-act=vsai]'); await sleep(300);
   check(await D.evaluate(() => window.TDC.LS.seats[0] === 'ai'), 'vs AI: AI takes the attacker seat');
   await D.click('#btnReady'); await sleep(500);
   { const sp = await spots(D, 5, 400); await D.evaluate(sp => sp.forEach(([c, r]) => window.TDC.send({ c: 'build', k: 'stone', c2: c, r })), sp); }
@@ -219,7 +219,7 @@ let fails = 0; const check = (ok, m) => { console.log((ok ? 'ok   ' : 'FAIL ') +
   await D.screenshot({ path: OUT + '/game-vsai.png' });
   // attack vs AI defenders
   const E = await mk('E', 'Raider2', { width: 390, height: 844 });
-  await E.click('[data-act=atkai]'); await sleep(300);
+  await E.click('[data-act=other]'); await E.click('[data-act=htl]'); await E.click('[data-act=atkai]'); await sleep(300);
   check(await E.evaluate(() => window.TDC.LS.seats[0] === window.localStorage.getItem('td_pid') && window.TDC.LS.seats[1] === 'ai'), 'Attack vs AI: you attack, an AI defends');
   await E.click('[data-ai="2"]'); await sleep(200);
   check(await E.evaluate(() => window.TDC.LS.seats[2] === 'ai' && window.TDC.LS.aiCol[1] !== window.TDC.LS.aiCol[2]), 'host can add a second AI defender with its own colour');

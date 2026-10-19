@@ -31,17 +31,23 @@ function renderMenu() {
   if (homeScreen === 'name' || !myName) m.innerHTML = `<div class="eyebrow">${myName ? 'Change name' : 'Welcome'}</div><h2>${myName ? 'Change your name' : 'Choose your name'}</h2>
     <form id="nameForm" class="menuPanel"><input id="nameIn" class="textin" maxlength="16" placeholder="Your name" value="${esc(myName)}" autocomplete="off"><button class="btn primary" type="submit">Continue</button>${myName ? '<button class="btn ghost" type="button" data-act="home">Back</button>' : ''}</form><p class="err">${esc(menuErr)}</p>`;
   else if (homeScreen === 'host') m.innerHTML = `<div class="eyebrow">Host a lobby</div><h2>Name your lobby</h2>
-    <form id="hostForm" class="menuPanel"><input id="lobbyIn" class="textin" maxlength="28" placeholder="${esc(myName)}'s Lobby" value="${esc(store.get('lobbyName', ''))}" autocomplete="off"><button class="btn primary" type="submit">Open lobby</button><button class="btn ghost" type="button" data-act="home">Back</button></form>`;
+    <form id="hostForm" class="menuPanel"><input id="lobbyIn" class="textin" maxlength="28" placeholder="${esc(myName)}'s Lobby" value="${esc(store.get('lobbyName', ''))}" autocomplete="off"><button class="btn primary" type="submit">Open lobby</button><button class="btn ghost" type="button" data-act="htl">Back</button></form>`;
   else if (homeScreen === 'browse') m.innerHTML = `<div class="eyebrow">Lobby browser</div><h2>Open lobbies</h2>
     <div class="lobbyList">${!dir.ready ? '<div class="spin"></div>' : dir.list.length ? dir.list.map(l => `<button class="lobbyItem" data-join="${esc(l.code)}"><div class="grow"><b>${esc(l.name)}</b><small class="muted">${esc(mapName(l.mode))} · ${esc(String(l.heroes || '').split('|')[0])} · host ${esc(l.host)}</small></div><span class="chip">${esc(String(l.heroes || '').split('|')[1] || l.joined + '/' + l.n)}</span></button>`).join('') : '<div class="empty">No open lobbies right now. Host one, or play vs AI.</div>'}</div>
-    <div class="row" style="justify-content:space-between"><small class="muted">${esc(dir.err || 'Refreshes every 5 seconds')}</small><button class="btn ghost sm" data-act="home">Back</button></div>`;
+    <div class="row" style="justify-content:space-between"><small class="muted">${esc(dir.err || 'Refreshes every 5 seconds')}</small><button class="btn ghost sm" data-act="htl">Back</button></div>`;
   else if (homeScreen === 'search') m.innerHTML = `<div class="eyebrow">Find match</div><h2>Searching…</h2><div class="spin"></div><p class="muted" style="text-align:center">${esc(qm.status)}</p><button class="btn ghost" data-act="cancelSearch">Cancel</button>`;
   else if (homeScreen === 'joining') m.innerHTML = `<div class="eyebrow">Joining</div><h2>Joining lobby…</h2><div class="spin"></div><button class="btn ghost" data-act="cancelJoin">Cancel</button>`;
-  else { const on = !!getSB(); m.innerHTML = `<div class="eyebrow">Play</div>
+  else if (homeScreen === 'other') m.innerHTML = `<div class="eyebrow">Other modes</div>
+    <button class="btn big" data-act="htl">Hold the Line<small>1vX tower defense: defenders build, an attacker sends the horde</small></button>
+    <button class="btn ghost" data-act="home">Back</button>`;
+  else if (homeScreen === 'home') m.innerHTML = `<div class="eyebrow">Play</div>
+    <button class="btn primary big" data-act="knights">Knight Brawl<small>Co-op vs the horde, up to 4 players</small></button>
+    <button class="btn big" data-act="other">Other Modes<small>Hold the Line</small></button><p class="err">${esc(menuErr)}</p>`;
+  else { const on = !!getSB(); m.innerHTML = `<div class="eyebrow">Hold the Line</div>
     <button class="btn primary big" data-act="find" ${on ? '' : 'disabled'}>Find Match<small>Join the next open lobby</small></button>
     <div class="row2"><button class="btn big" data-act="hostForm" ${on ? '' : 'disabled'}>Host Lobby</button><button class="btn big" data-act="browse" ${on ? '' : 'disabled'}>Browse Lobbies</button></div>
     <div class="row2"><button class="btn big" data-act="vsai">Defend vs AI<small>Hold the line against an AI attacker</small></button><button class="btn big" data-act="atkai">Attack vs AI<small>Break through AI defenders</small></button></div>
-    <button class="btn big" data-act="knights">Knight Brawl<small>New mode: 2 knights co-op vs the horde</small></button>
+    <button class="btn ghost" data-act="other">Back</button>
     ${on ? '' : '<p class="err">Online play is unavailable (the game server didn\'t load). Play vs AI still works.</p>'}<p class="err">${esc(menuErr)}</p>`; }
   bindMenu();
 }
@@ -58,10 +64,12 @@ function menuAct(a) {
   if (a === 'find' || a === 'browse' || a === 'hostForm') checkVersion(); // an out-of-date page can't see (or be seen by) players on the new version
   if (a === 'rename') { homeScreen = 'name'; return renderMenu(); }
   if (a === 'home') { stopBrowsing(); homeScreen = 'home'; return renderMenu(); }
+  if (a === 'other') { stopBrowsing(); homeScreen = 'other'; return renderMenu(); }
+  if (a === 'htl') { stopBrowsing(); homeScreen = 'htl'; return renderMenu(); }
   if (a === 'hostForm') { homeScreen = 'host'; return renderMenu(); }
   if (a === 'browse') { homeScreen = 'browse'; startBrowsing(); return renderMenu(); }
   if (a === 'find') { goFull(); return startQuick(); }
-  if (a === 'cancelSearch') { stopQuick(); homeScreen = 'home'; return renderMenu(); }
+  if (a === 'cancelSearch') { stopQuick(); homeScreen = 'htl'; return renderMenu(); }
   if (a === 'cancelJoin') { leaveLobby(); return; }
   if (a === 'knights') { location.href = 'knights.html?v=' + BUILD; return; }
   if (a === 'vsai') { goFull(); return enterSolo('def'); }
@@ -207,7 +215,7 @@ function leaveLobby(silent) {
   stopQuick(); unadvertise(); clearTimeout(L.joinTimer); clearTimeout(L.hostGone); L.hostGone = null;
   if (L.ch) { try { L.ch.untrack(); getSB().removeChannel(L.ch); } catch (e) { } }
   L.ch = null; L.code = null; L.seenHost = false; L.quick = false; L.mode = null;
-  if (silent) return; homeScreen = 'home'; show('menu'); renderMenu();
+  if (silent) return; homeScreen = 'htl'; show('menu'); renderMenu();
 }
 // ---------- lobby screen ----------
 function seatRow(i) {
