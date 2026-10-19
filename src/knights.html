@@ -3721,6 +3721,8 @@ function ogreStep(dt, t) {
     Object.assign(K, { ou: 0, ouN: (K.ouN || 0) + 1, ouS: 0, ouA: a, ouC: c2, ouK: c2, ogH: c2 === 0 ? 1 : c2 === 1 ? 0 : K.ogH }); if (Math.abs(Math.cos(a)) > 0.2) K.f = Math.cos(a) > 0 ? 1 : -1; }
   if (K.ou >= 0) { const u0 = K.ou, T0 = K.ouS ? O.AT : SWG.T[K.ouK ?? 2]; K.ou += dt / T0; const HT = K.ouS ? 2 : SWG.HIT[K.ouK ?? 2]; if (u0 < HT && K.ou >= HT && !K.ouS) ogSwingHit(K.ouK, K.ouA, host, K.ouBig ? OG.RAMP.BIG : 1);
     if (K.ou >= 1) { K.ou = -1; K.ouE = t; K.ouBig = 0; } }
+  // ---- storm-hook spark hits waiting for their spark to arrive (host) ----
+  if (K.ogQ && K.ogQ.length) { if (!host) K.ogQ = []; else { const due = []; K.ogQ = K.ogQ.filter(q => { q[2] -= dt; if (q[2] > 0) return true; due.push(q); return false; }); for (const [id, dmg] of due) { const w = walkers.find(z => z.id === id && z.hp > 0); if (w) { w.hit = 0.1; ogKill(w, dmg, K, 1); } } } }
   // ---- frost surf: ride the ice the frost head lays down, steering with the move stick; the storm head zaps up to 3 around him ----
   let SV = 0; if (K.sv >= 0) { K.sv += dt; if (K.sv > O.SURF.T) K.sv = -1; else SV = OGX.surfK(K.sv * OGX.SURF.T / O.SURF.T); }
   if (SV > 0 && mvL > 0.2) { const want = Math.atan2(IN.mv[1] / OGY, IN.mv[0]); let da = want - K.svA; da -= Math.round(da / (2 * Math.PI)) * 2 * Math.PI; K.svA += cl(da, -O.SURF.TURN * dt, O.SURF.TURN * dt); }
@@ -3923,10 +3925,12 @@ function ogSwingHit(k, a, host, big = 1) { const S = OG.SW, d = [Math.cos(a), Ma
       const firsts = []; for (let b = 0; b < S.BIG; b++) { const lo = a - S.CA + 2 * S.CA * b / S.BIG, hi = lo + 2 * S.CA / S.BIG; const c2 = near(fx, fy, S.CR, true).find(w => { let da = Math.atan2((w.y - K.y) / OGY, w.x - K.x) - lo; da -= Math.floor(da / 6.283) * 6.283; return da <= hi - lo || ogDist(w.x, w.y, K.x, K.y) < 8; }) || near(fx, fy, S.CR, true)[0]; if (c2) { done.add(c2.id); firsts.push(c2); } }
       // a spark only ever jumps to an enemy no spark of this punch has hit yet
       const hopTo = (o, n2) => near(o.x, o.y, S.SJR, false).slice(0, n2);
-      const zap = (w, dmg, g, x0, y0) => { seg.push(g, r1(x0), r1(y0), r1(w.x), r1(w.y - 5)); w.hit = 0.1; ogKill(w, dmg, K, 1); };
+      const hits = [], zap = (w, dmg, g, x0, y0) => { seg.push(g, r1(x0), r1(y0), r1(w.x), r1(w.y - 5)); hits.push([w.id, dmg, g]); };
       for (const w of firsts) { zap(w, S.BDMG, 0, fx, fy); let front = [w];
         for (let g = 1; g <= 1 + S.CJ2 && front.length; g++) { const nxt = []; for (const o of front) { const n2 = g === 1 ? S.SPL : 1; for (const q of hopTo(o, n2)) { done.add(q.id); zap(q, S.SDMG2, g, o.x, o.y - 5); nxt.push(q); } } front = nxt; } }
-      if (seg.length) { K.ogCN = (K.ogCN || 0) + 1; K.ogC = [K.ogCN].concat(seg); } } }
+      if (seg.length) { K.ogCN = (K.ogCN || 0) + 1; K.ogC = [K.ogCN].concat(seg);
+        // each hit lands when its spark is drawn reaching the enemy: the same stagger the drawing uses (ogch: seed ogCN x 13, a random 0..0.15s per big spark, +0.08s per jump)
+        const sd = K.ogCN * 13; let d0 = 0; K.ogQ = (K.ogQ || []).concat(hits.map(([id, dmg, g], i) => { if (g === 0) d0 = OGX.rnd(sd * 3.7 + i * 1.9) * 0.15; return [id, dmg, d0 + g * 0.08]; })); } } }
   else { const SR = S.SR * big, cx = K.x + d[0] * S.SO * big, cy = K.y + d[1] * S.SO * big * OGY; ogSmashFx(cx, cy, f, big);
     if (host) for (const w of walkers) { if (w.hp <= 0) continue; const dd = ogDist(w.x, w.y, cx, cy); if (dd > SR + UK[w.k].r) continue; const ka = Math.atan2(w.y - cy, w.x - cx); w.atk = -1; w.kx += Math.cos(ka) * S.SKB * big; w.ky += Math.sin(ka) * S.SKB * big * 0.6; w.sl = Math.max(w.sl || 0, 1); ogKill(w, S.SDMG * (big > 1 ? 1.6 : 1) * (1 - 0.4 * Math.min(1, dd / SR)), K, dd < SR * 0.4); } } }
 function ogHookFx(k, x, y, a) { if (!k) for (let n = 0; n < 7; n++) { const b = a + rr(-0.9, 0.9), v = rr(20, 55); OGFX.chips.push({ x: x + rr(-1, 1), y: y + rr(-1, 1), z: rr(5, 8), vx: Math.cos(b) * v, vy: Math.sin(b) * v * 0.6, vz: rr(5, 25), t: 0, r: rr(0.4, 0.9), sp: rr(-12, 12) }); } FX.push({ k: 'oghk', x, y, a, c: k, f: K.f || 1, t: 0, max: 0.45, sd: Math.random() * 999 }); snd(k ? 'zap' : 'gswing', x, y); shake = Math.max(shake, 0.08); }
