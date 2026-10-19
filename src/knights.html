@@ -4641,7 +4641,8 @@ function njClAI(P, cov) { const U = NJ.ULT, S = U.SEG, live = walkers.filter(w =
     for (const w of live) if (njInSeg(best[3], 0, w)) cov.add(w.id); out.push(best[0], best[1]); cx = best[0]; cy = best[1]; pa = best[2]; }
   return out; }
 // a clone's strike strip: his own strip moved over to where the clone stands (so it moves when he drags his)
-const njClJ = (kn, P) => { const J = kn.njF || kn.njJ || njDefJ(kn), dx = P.x - kn.x, dy = P.y - kn.y; return J.map((v, i) => i % 2 ? cl(v + dy, 16, H - 4) : v + dx); };
+// while he plans (nPh 1) the clones' strips follow the strip he's dragging now; njF is the last strike's final joints (stale until this ult's strike starts)
+const njClJ = (kn, P) => { const J = (kn.nPh === 1 ? kn.njJ : kn.njF || kn.njJ) || njDefJ(kn), dx = P.x - kn.x, dy = P.y - kn.y; return J.map((v, i) => i % 2 ? cl(v + dy, 16, H - 4) : v + dx); };
 // where the 3 clones go when he casts with no shape aimed: a square with him at one corner, its far corner straight ahead of him
 const njClDef = kn => { const f = kn.f || 1, S = NJ.CL.S, h = S / Math.SQRT2; return [f * h, -h * 0.8, f * 2 * h, 0, f * h, h * 0.8]; };
 function njCloneStep(kn, dt, t) { const C = NJ.CL;
