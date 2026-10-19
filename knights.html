@@ -4805,7 +4805,8 @@ function njRope(c, a, b, sag, vib, t) { const N = 24, dx = b[0] - a[0], dy = b[1
 // is he twirling through the slide right now
 const njKmTw = kn => kn.km >= 0 && kn.kmH === 1 && kn.km >= NJ.KM.TUG && kn.km < njKmTL(kn).tE;
 // the kama and rope while it's out of his hand: flying to the target, hooked in it (or lying where it missed), ripped free and flying home
-function njKmAir(c, t) { for (const kn of LIVE()) { if (kn.kind !== 'ninja' || !(kn.km >= 0) || kn.kmX0 === undefined) continue; const M = NJ.KM, tl = njKmTL(kn), s = kn.km;
+// the thrown/hooked kama and its rope, drawn in his own depth slot just before his body so it's always behind him
+function njKmAir(c, t, only) { for (const kn of only ? [only] : LIVE()) { if (kn.kind !== 'ninja' || !(kn.km >= 0) || kn.kmX0 === undefined) continue; const M = NJ.KM, tl = njKmTL(kn), s = kn.km;
     if (s < tl.tT || s >= tl.tRip + 0.2) continue;
     const Hw = kn.kmHw || njWorld(kn, njPose(kn, t).hA), tz = kn.kmTZ || 5, Hk = tl.miss && s >= tl.tH ? [kn.kmTX, kn.kmTY - 0.6] : [kn.kmTX, kn.kmTY - tz], SC = KS * M.KS; let pos, a, sd, pom, sag = 0, vib = 0;
     if (s < tl.tH) { const q = (s - tl.tT) / M.FLY, R0 = kn.kmR0 || Hw; pos = [lerp(R0[0], Hk[0], q), lerp(R0[1], Hk[1], q) - Math.sin(Math.PI * q) * 5]; a = -(kn.f || 1) * q * Math.PI * 2.6 + Math.atan2(Hk[1] - R0[1], Hk[0] - R0[0]); sd = kn.f || 1; sag = 2.2 * (1 - q) + 0.6; }
@@ -4840,7 +4841,7 @@ function drawNinja(c, t, ghost) { const G = ghost ? null : njGl(K); if (!G) retu
 // he's drawn as one piece: the body is drawn twice, first as a solid dark silhouette grown by OW all round (every fill also stroked,
 // every stroke widened, through njOl, a stand-in for the context), then in colour with no outlines of its own (NJFLAT), so the only
 // outline is round the whole figure and no line ever shows where one part meets another
-let NJFLAT = false, NJOLM = false; const NJOL = '#0c0e14';
+let NJFLAT = false, NJOLM = false, NJRAW = null; const NJOL = '#0c0e14';
 const NJOLP = new WeakMap();
 function njOl(c, ow) { let e = NJOLP.get(c); if (e) { e.W = 2 * ow; e.ow = ow; return e.p; } e = { W: 2 * ow, ow, b: {} }; const S = e;
   const fns = { fill: (...a) => { c.fillStyle = NJOL; c.fill(...a); const lw = c.lineWidth; c.strokeStyle = NJOL; c.lineWidth = S.W; c.lineJoin = 'round'; if (a[0] instanceof Path2D) c.stroke(a[0]); else c.stroke(); c.lineWidth = lw; },
@@ -4850,7 +4851,8 @@ function njOl(c, ow) { let e = NJOLP.get(c); if (e) { e.W = 2 * ow; e.ow = ow; r
   NJOLP.set(c, e); return e.p; }
 function drawNinja0(c, t, ghost) { if (window.__njRaw) return drawNinjaBody(c, t, ghost); const z = K.z || 0;
   if (!ghost) { const zs = Math.max(0.35, 1 - z / 50), px0 = K.njP ? K.njP.pel[0] : 0; c.fillStyle = `rgba(0,0,0,${0.28 * zs})`; c.beginPath(); c.ellipse(K.x + px0 * 0.4 * KS, K.y + 0.4 * KS, 4.6 * zs * KS, 1.5 * zs * KS, 0, 0, 7); c.fill(); }
-  NJFLAT = true; try { c.save(); NJOLM = true; drawNinjaBody(njOl(c, 0.19), t, ghost); NJOLM = false; c.restore(); drawNinjaBody(c, t, ghost); } finally { NJFLAT = false; NJOLM = false; }
+  if (!ghost) njKmAir(c, t, K);
+  NJFLAT = true; NJRAW = c; try { c.save(); NJOLM = true; drawNinjaBody(njOl(c, 0.19), t, ghost); NJOLM = false; c.restore(); drawNinjaBody(c, t, ghost); } finally { NJFLAT = false; NJOLM = false; }
   const tr = !ghost && K.njTr; if (tr && tr.length > 1) { c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = '#dfefff'; for (let i = 1; i < tr.length; i++) { const a = tr[i - 1], b = tr[i]; c.globalAlpha = 0.45 * Math.max(0, 1 - (t - b[2]) / 0.1); c.beginPath(); c.moveTo(...a[1]); c.lineTo(...a[0]); c.lineTo(...b[0]); c.lineTo(...b[1]); c.closePath(); c.fill(); } c.restore(); } }
 function drawNinjaBody(c, t, ghost) {
   const dt = Math.min(0.1, Math.max(0, t - (K.njT ?? t))); K.njT = t;
@@ -4872,15 +4874,18 @@ function drawNinjaBody(c, t, ghost) {
   // the kama: hanging from his sash on the far hip, or in his free hand (gripped just above the ring, the handle along his forearm, the blade forward);
   // the rope's coil hangs at that hip and runs to the kama's ring, or to his hand once the kama is out
   const kmHipP = add(P.C, rot([f * 1.05, 4.0], f * P.lean * 0.6)), kmKa = (h) => { const dx = h[0] - sA[0], dy = h[1] - sA[1], l = Math.hypot(dx, dy) || 1, d = [dx / l, dy / l]; return { pom: [h[0] - d[0] * 0.55, h[1] - d[1] * 0.55], a: Math.atan2(d[1], d[0]) }; };
-  const kmCoil = [kmHipP[0] + f * 0.5, kmHipP[1] - 0.6], kmRopeTo = (q) => { if (NJOLM) return; c.save(); c.lineCap = 'round'; c.strokeStyle = '#b8945f'; c.lineWidth = 0.32; c.beginPath(); c.moveTo(...kmCoil); c.quadraticCurveTo((kmCoil[0] + q[0]) / 2, Math.max(kmCoil[1], q[1]) + 1.4, q[0], q[1]); c.stroke(); c.restore(); };
-  const kmDraw = (h) => { const q = kmKa(h); kmRopeTo([q.pom[0] - Math.cos(q.a) * 0.22, q.pom[1] - Math.sin(q.a) * 0.22]); njKama(c, q.pom, q.a, NJ.KM.KS, -f); };
+  const kmCoil = [kmHipP[0] + f * 0.5, kmHipP[1] - 0.6], kmRopeTo = (q, c) => { if (NJOLM) return; c.save(); c.lineCap = 'round'; c.strokeStyle = '#b8945f'; c.lineWidth = 0.32; c.beginPath(); c.moveTo(...kmCoil); c.quadraticCurveTo((kmCoil[0] + q[0]) / 2, Math.max(kmCoil[1], q[1]) + 1.4, q[0], q[1]); c.stroke(); c.restore(); };
+  const kmDraw = (h, c) => { const q = kmKa(h); kmRopeTo([q.pom[0] - Math.cos(q.a) * 0.22, q.pom[1] - Math.sin(q.a) * 0.22], c); njKama(c, q.pom, q.a, NJ.KM.KS, -f); };
   if (!ghost && !NJOLM) K.kmHw = [K.x + P.hA[0] * KS, K.y - z + P.hA[1] * KS];
+  // the kama, its rope and the coil go down before any of him, so every body part is drawn over them
+  // (outline and colour both go down in the first, outline pass, so his body's outline is drawn over the kama too)
+  const kmLayer = c => { if (!NJOLM) { c.save(); c.strokeStyle = '#b8945f'; c.lineWidth = 0.34; for (let i = 0; i < 3; i++) { c.beginPath(); c.ellipse(kmCoil[0] - f * 0.1 * i, kmCoil[1] + 0.35 + i * 0.12, 0.85, 0.55, f * 0.4, 0, 7); c.stroke(); } c.restore(); }
+    if (T.kmh) kmDraw(P.hA, c); else if (T.kmHip) kmDraw(kmHipP, c); else if (K.km >= 0) kmRopeTo(P.hA, c); };
+  if (!ghost) { if (NJOLM) { kmLayer(c); NJOLM = false; const f0 = NJFLAT; NJFLAT = false; kmLayer(NJRAW); NJFLAT = f0; NJOLM = true; } else if (!NJFLAT) kmLayer(c); }
   njBack(c, P, f, t);
   if (backB) blade();
   // back limbs behind front limbs: back leg, back (A) arm, front leg, then the body over them
-  njLeg(c, P.hips[near], P.knees[near], P.feet[near], f, true); if (!T.af) { armA(); if (T.kmh && !ghost) { kmDraw(P.hA); if (!NJOLM) { c.fillStyle = NJC.TABI; c.beginPath(); c.ellipse(P.hA[0], P.hA[1], 0.62, 0.55, 0, 0, 7); c.fill(); } } } njLeg(c, P.hips[far], P.knees[far], P.feet[far], f, false);
-  if (!ghost) { if (!NJOLM) { c.save(); c.strokeStyle = '#b8945f'; c.lineWidth = 0.34; for (let i = 0; i < 3; i++) { c.beginPath(); c.ellipse(kmCoil[0] - f * 0.1 * i, kmCoil[1] + 0.35 + i * 0.12, 0.85, 0.55, f * 0.4, 0, 7); c.stroke(); } c.restore(); }
-    if (T.kmHip) kmDraw(kmHipP); else if (!T.kmh && K.km >= 0) kmRopeTo(P.hA); }
+  njLeg(c, P.hips[near], P.knees[near], P.feet[near], f, true); if (!T.af) { armA(); if (T.kmh && !ghost) { if (!NJOLM) { c.fillStyle = NJC.TABI; c.beginPath(); c.ellipse(P.hA[0], P.hA[1], 0.62, 0.55, 0, 0, 7); c.fill(); } } } njLeg(c, P.hips[far], P.knees[far], P.feet[far], f, false);
   njNeck(c, P, f); njTorso(c, P, f, t); njKunai(c, P, f, t, T.kt); if (T.af) armA();
   njHead(c, P, f, t);
   armB(); if (!backB) blade(); c.fillStyle = NJC.TABI; c.beginPath(); c.arc(P.hB[0], P.hB[1], 0.6, 0, 7); c.fill();
@@ -4960,7 +4965,7 @@ function njGround(c, t) { for (const kn of LIVE()) { if (kn.kind !== 'ninja') co
     if (kn.nl >= 0) { const L = NJ.LEAP, ax = (kn.nx0 + kn.nx1) / 2, ay = (kn.ny0 + kn.ny1) / 2; c.save(); c.globalAlpha = 0.5; c.strokeStyle = '#cfe0ff'; c.lineWidth = 0.6; c.setLineDash([2, 1.5]); { const r = njAR(kn.nlm ?? 1); c.beginPath(); c.ellipse(ax, ay, r, r * 0.8, 0, 0, 7); c.stroke(); } c.strokeStyle = '#ffe2a0'; c.beginPath(); c.ellipse(kn.nx1, kn.ny1, L.R, L.R * 0.8, 0, 0, 7); c.stroke(); c.restore(); } } }
 // the strip is drawn over the slow-motion overlay, so it stays in full colour on his screen
 function njTop(c, t) { const kn = njMine(); if (kn) njStrip(c, kn, kn.njJ || njDefJ(kn), 1, t, true); }
-function njAir(c, t) { njKmAir(c, t); for (const k of NJKU) { const a = k.st ? k.sa : k.fall ? Math.atan2(k.vy - k.vz * 0.6, k.vx) : Math.atan2(k.vy, k.vx), fa = k.st ? 1 - sm(cl((k.lt - NJ.KU.LIE * 0.4) / (NJ.KU.LIE * 0.6), 0, 1)) : 1; if (fa <= 0.01) continue; c.save(); c.globalAlpha = 0.25 * fa; c.fillStyle = '#000'; c.beginPath(); c.ellipse(k.x, k.y, 1.6, 0.6, 0, 0, 7); c.fill(); c.globalAlpha = fa; c.translate(k.x, k.y - k.z); c.scale(KS, KS); njKunaiAt(c, k.st ? -3.0 : -1.9, 0, a, 1.8); c.restore(); } for (const s of NJSH) { const u = cl(s.t / s.max, 0, 1), x = lerp(s.x, s.tx, u), y = lerp(s.y, s.ty, u), z = s.z * (1 - u); njShuriken(c, x, y - z, s.t * s.sp, 0.8); }
+function njAir(c, t) { for (const k of NJKU) { const a = k.st ? k.sa : k.fall ? Math.atan2(k.vy - k.vz * 0.6, k.vx) : Math.atan2(k.vy, k.vx), fa = k.st ? 1 - sm(cl((k.lt - NJ.KU.LIE * 0.4) / (NJ.KU.LIE * 0.6), 0, 1)) : 1; if (fa <= 0.01) continue; c.save(); c.globalAlpha = 0.25 * fa; c.fillStyle = '#000'; c.beginPath(); c.ellipse(k.x, k.y, 1.6, 0.6, 0, 0, 7); c.fill(); c.globalAlpha = fa; c.translate(k.x, k.y - k.z); c.scale(KS, KS); njKunaiAt(c, k.st ? -3.0 : -1.9, 0, a, 1.8); c.restore(); } for (const s of NJSH) { const u = cl(s.t / s.max, 0, 1), x = lerp(s.x, s.tx, u), y = lerp(s.y, s.ty, u), z = s.z * (1 - u); njShuriken(c, x, y - z, s.t * s.sp, 0.8); }
   for (const g of NJGH) njGhostDraw(c, g, t);
   for (const f of FX) if (f.k === 'njsw') { const u = cl(f.t / f.max, 0, 1), R = NJ.LEAP.R * (f.s || 1) * (0.75 + 0.25 * u); c.save(); c.globalAlpha = (1 - u) * 0.85; c.strokeStyle = '#f4f8ff'; c.lineWidth = 1.6 * (1 - u) + 0.3; c.lineCap = 'round'; c.beginPath(); const a0 = f.f > 0 ? 0 : Math.PI, sp = f.f * Math.PI * 2 * Math.min(1, u * 1.6); c.ellipse(f.x, f.y - 3, R, R * 0.8, 0, Math.min(a0, a0 + sp), Math.max(a0, a0 + sp)); c.stroke(); c.restore(); } }
 // slow motion, seen by everyone: the colour drains, the edges darken and ink streaks drift across while a ninja lays out his strike
@@ -7746,7 +7751,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '10b62f';
+const KBUILD = '3fcf10';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
