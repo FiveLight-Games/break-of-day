@@ -4320,7 +4320,7 @@ const NJ = { RUN: 1.3, ATK: 0.8, T: [0.34, 0.34, 0.26], KU: { N: 5, SPREAD: 0.5,
   LEAP: { D: 130, T: 0.95, H: 34, R: 22, AR: 26, DMG: 220, KB: 120, TICK: 0.1, SDMG: 32, N: 3, CD: 2.76, PRE: 0.86, SW: 0.48, CHAIN: 0.4, MIN: 0.5 },
   // SHADOW CLONE (Spin button / E): a hand seal, a puff of smoke beside him, and a glitching copy that stands there mirroring his cuts
   // and copying his next N abilities (leap, kama) from where it stands; it lasts LIFE s, then bursts (POP radius, PDMG)
-  CL: { CD: 14, LIFE: 8, N: 3, SIDE: 16, POP: 18, PDMG: 120, IN: 0.3, OUT: 0.32, SEAL: 0.4, A: 0.82, B: 0.06, KR: 140 },
+  CL: { CD: 18, LIFE: 10, N: 3, S: 44, MAXR: 110, DM: 0.5, UDM: 0.3, SIDE: 16, POP: 18, PDMG: 120, IN: 0.3, OUT: 0.32, SEAL: 0.4, A: 0.82, B: 0.06, KR: 140 },
   KM: { RANGE: 125, CONE: 1.4, FROM: 0.65, BN: 16, BW: 0.14, BACK: 52, LT: 0.7, H: 26, THR: 0.62, FLY: 0.1, TUG: 0.58, YANK: 0.04, V: 430, PAST: 75, W: 10, DMG: 200, HDMG: 500, SDMG: 500, KB: 90, CD: 6, REC: 0.4, OM: 28, TURN: 1.3, TWE: 0.7, OUT: 0.62, END: 0.75, MO: 0.5, CARRY: 0.14, DK: 6, MOV: 2.2, SHOW: 0.47, KS: 1.15 },
   ULT: { PLAN: 4, SLOW: 0.3, SEG: 72, HW: 11, JR: 17, HITS: 30, DASH: 5, HDMG: 120, SWR: 2, SWRR: 14, SWDMG: 55, STRIKE: 1.6, END: 0.2, GZ: 22, GT: 0.5, BIGSW: 2, BSW: 0.62, BWU: 0.2, GLT: 0.2, REAP: 0.85 } };
 // action keys (chest-relative, facing right, y down): [u, crouch, lean, twist, A hand x, y, B hand x, y, B blade angle, step]
@@ -4613,34 +4613,57 @@ function njSwStep(dt) { const U = NJ.ULT; if (!(K.nw >= 0)) return; K.nw += dt;
   if (K.nw >= njSwT(K)) { K.nw = -1; K.nwB = 0; } }
 function njStrikeEv() { if (K.nEvSd !== K.nSd + ':' + (K.njF || []).join()) { K.njPts = njPts(K, K.njF || njDefJ(K)); K.nEv = njEvents(K); K.nEvI = 0; K.nEvSd = K.nSd + ':' + (K.njF || []).join(); }
   while (K.nEvI < K.nEv.length && K.nEv[K.nEvI].t <= K.nT) njEvent(K, K.nEv[K.nEvI++]); }
-// the shadow clone: made on every screen when his clN ticks over (at clX/clY), stepped with ninjaStep like a ninja of its own whose input is
-// fed from what he does (synced state only: his cut aim, his leap and kama counters), so every screen runs the same copy; its kills are his
-function njCloneSpawn(kn) { const C = NJ.CL, P = { i: kn.i, col: kn.col, x: kn.clX, y: kn.clY, f: kn.f || 1, z: 0, vx: 0, vy: 0, spd: 0, gp: 0, kills: 0, hits: 0, on: 1, st: 'fight',
+// the shadow clones: made on every screen when his clN ticks over, one at each of the 3 corners he aimed (clP, world points), each stepped
+// with ninjaStep like a ninja of its own whose input is fed from his synced state (his cut aim, his leap and kama counters), so every screen
+// runs the same copies; their hits do half damage (hurt) and their kills are his
+function njCloneOne(kn, x, y) { const C = NJ.CL, P = { i: kn.i, col: kn.col, x, y: cl(y, 16, H - 4), f: kn.f || 1, z: 0, vx: 0, vy: 0, spd: 0, gp: 0, kills: 0, hits: 0, on: 1, st: 'fight',
     in: { mv: [0, 0], aim: null, leapN: 0, dashN: 0, ultN: 0, lvN: 0 }, isCl: 1, age: 0, left: C.N, dying: -1, sL: kn.nlN || 0, sK: kn.kmN || 0, clA: 0, clB: 1 };
-  makeNinja(P); P.st = 'fight'; kn.CL = P;
+  makeNinja(P); P.st = 'fight';
   for (let n = 0; n < 12; n++) { const a = rr(0, 6.28), r = rr(1, 6); dust.push({ x: P.x + Math.cos(a) * r, y: P.y - rr(0, 8), vx: Math.cos(a) * rr(8, 22), vy: -rr(4, 14), r: rr(2.2, 4), t: 0, max: rr(0.5, 0.9) }); }
-  snd('jump', P.x, P.y); }
+  return P; }
+// a clone's strike strip: segment by segment from where it stands, the heading (of 24) whose segment covers the most enemies (heavies x3,
+// ones an earlier segment, his own strip or another clone's already covers count a third, so the clones spread out), keeping inside the field
+function njClAI(P, cov) { const U = NJ.ULT, S = U.SEG, live = walkers.filter(w => w.hp > 0 && Math.abs(w.x - P.x) < S * 3.4 + 20 && Math.abs(w.y - P.y) < S * 3 + 20), out = []; cov = cov || new Set(); let cx = P.x, cy = P.y, pa = null;
+  for (let s = 0; s < 3; s++) { let best = null, bs = -1;
+    for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; if (pa !== null && Math.abs(wrapA(a - pa)) > 2.2) continue; const ex = cx + Math.cos(a) * S, ey = cl(cy + Math.sin(a) * S / 1.25, 16, H - 4), Q = [[cx, cy], [ex, ey]];
+      let sc = 0; for (const w of live) if (njInSeg(Q, 0, w)) sc += (UK[w.k].heavy ? 3 : 1) * (cov.has(w.id) ? 0.33 : 1); if (sc > bs) { bs = sc; best = [ex, ey, a, Q]; } }
+    for (const w of live) if (njInSeg(best[3], 0, w)) cov.add(w.id); out.push(best[0], best[1]); cx = best[0]; cy = best[1]; pa = best[2]; }
+  return out; }
+// where the 3 clones go when he casts with no shape aimed: a square with him at one corner, its far corner straight ahead of him
+const njClDef = kn => { const f = kn.f || 1, S = NJ.CL.S, h = S / Math.SQRT2; return [f * h, -h * 0.8, f * 2 * h, 0, f * h, h * 0.8]; };
 function njCloneStep(kn, dt, t) { const C = NJ.CL;
-  if ((kn.clN || 0) !== (kn.clS || 0)) { kn.clS = kn.clN || 0; if (kn.clN && kn.clCd > NJ.CL.CD - 1) { /* a stale count from a snapshot, long after the cast, makes no clone */ if (kn.CL) njClonePop(kn); njCloneSpawn(kn); } }
-  const P = kn.CL; if (!P) return; P.col = kn.col; P.age += dt;
-  if (P.dying >= 0) { P.dying += dt; const u = cl(P.dying / C.OUT, 0, 1); P.clA = C.A * (1 - sm(u)); P.clB = C.B + u; if (u >= 1) kn.CL = null; return; }
-  const ui = sm(cl(P.age / C.IN, 0, 1)); P.clA = C.A * ui; P.clB = C.B + (1 - ui) * 0.9;
-  // his leap: the same jump (direction and length) from where the clone stands
-  if ((kn.nlN || 0) !== P.sL) { P.sL = kn.nlN || 0; if (P.left > 0 && kn.nx1 !== undefined) { const D = NJ.LEAP.D; P.in.leapT = [(kn.nx1 - kn.nx0) / D, (kn.ny1 - kn.ny0) / (0.8 * D)]; P.in.leapN++; P.left--; } }
-  // his kama: the clone hooks its own enemy (nearest to it, leaning toward where his went, never the same one)
-  if ((kn.kmN || 0) !== P.sK) { P.sK = kn.kmN || 0; if (P.left > 0) { const ax = (kn.kmTX ?? P.x) - P.x, ay = (kn.kmTY ?? P.y) - P.y, aa = Math.atan2(ay * 1.25, ax); let b = null, bs = 1e9;
-      for (const w of walkers) { if (w.hp <= 0 || w.gr || w.id === kn.kmT) continue; const dx = w.x - P.x, dy = (w.y - P.y) * 1.25, d = Math.hypot(dx, dy); if (d > C.KR + UK[w.k].r) continue; const sc = d / C.KR + Math.abs(wrapA(Math.atan2(dy, dx) - aa)) * 0.5; if (sc < bs) { bs = sc; b = w; } }
-      if (b) { P.in.dashD = [b.x - P.x, b.y - P.y, b.id]; P.in.dashN++; P.left--; } } }
-  // his cuts: the clone cuts along with him, the same way
-  P.in.aim = kn.cut >= 0 ? [Math.cos(kn.cutA || 0), Math.sin(kn.cutA || 0)] : null;
-  const k0 = K; K = P; ninjaStep(dt, t); K = k0; kn.kills += P.kills; P.kills = 0;
-  const idle = !(P.nl >= 0) && !(P.km >= 0) && !(P.nw >= 0) && !P.nqL && !P.kmq;
-  if (idle && (P.left <= 0 || P.age >= C.LIFE)) njClonePop(kn); }
-// the clone bursts: smoke, a flash of its glitch colours, and everyone right round it is cut (host, credited to him)
-function njClonePop(kn) { const C = NJ.CL, P = kn.CL; if (!P || P.dying >= 0) return; P.dying = 0;
+  if ((kn.clN || 0) !== (kn.clS || 0)) { kn.clS = kn.clN || 0; if (kn.clN && kn.clCd > C.CD - 1 && kn.clP) { /* a stale count from a snapshot, long after the cast, makes no clones */
+    for (const P of kn.CLS || []) njClonePop(kn, P); kn.CLS = (kn.CLS || []).concat([0, 1, 2].map(j => njCloneOne(kn, kn.clP[j * 2], kn.clP[j * 2 + 1]))); snd('jump', kn.x, kn.y); } }
+  const L = kn.CLS; if (!L || !L.length) return;
+  const leapC = (kn.nlN || 0), kmC = (kn.kmN || 0), taken = [kn.kmT];
+  for (const P of L) { P.col = kn.col; P.age += dt;
+    if (P.dying >= 0) { P.dying += dt; const u = cl(P.dying / C.OUT, 0, 1); P.clA = C.A * (1 - sm(u)); P.clB = C.B + u; continue; }
+    const ui = sm(cl(P.age / C.IN, 0, 1)); P.clA = C.A * ui; P.clB = C.B + (1 - ui) * 0.9;
+    // his leap: each clone leaps at the same spot he aimed his at (as far as its own leap reaches)
+    if (leapC !== P.sL) { P.sL = leapC; if (P.left > 0 && kn.nx1 !== undefined) { const D = NJ.LEAP.D; P.in.leapT = [(kn.nx1 - P.x) / D, (kn.ny1 - P.y) / (0.8 * D)]; P.in.leapN++; P.left--; } } // every clone leaps at the spot he leapt at
+    // his kama: each clone hooks its own enemy (nearest to it, leaning toward where his went, never one already taken)
+    if (kmC !== P.sK) { P.sK = kmC; if (P.left > 0) { const aa = Math.atan2(((kn.kmTY ?? P.y) - P.y) * 1.25, (kn.kmTX ?? P.x) - P.x); let b = null, bs = 1e9;
+        for (const w of walkers) { if (w.hp <= 0 || w.gr || taken.includes(w.id)) continue; const dx = w.x - P.x, dy = (w.y - P.y) * 1.25, d = Math.hypot(dx, dy); if (d > C.KR + UK[w.k].r) continue; const sc = d / C.KR + Math.abs(wrapA(Math.atan2(dy, dx) - aa)) * 0.5; if (sc < bs) { bs = sc; b = w; } }
+        if (b) { taken.push(b.id); P.in.dashD = [b.x - P.x, b.y - P.y, b.id]; P.in.dashN++; P.left--; } } }
+    // his ult: when his strike starts, each clone strikes too, along the 3 segments that cover the most enemies from where it stands (njClAI)
+    if (kn.nPh === 2 && P.ulS !== kn.nUN && P.left > 0) { P.ulS = kn.nUN; P.left--; const ix = L.indexOf(P);
+      if (kn.clCvN !== kn.nUN) { kn.clCvN = kn.nUN; kn.clCv = new Set(); const J = kn.njF || njDefJ(kn), Q = [[kn.x, kn.y], [J[0], J[1]], [J[2], J[3]], [J[4], J[5]]]; for (const w of walkers) if (w.hp > 0 && [0, 1, 2].some(s2 => njInSeg(Q, s2, w))) kn.clCv.add(w.id); }
+      Object.assign(P, { nPh: 2, nT: 0, nSd: 1 + ((kn.nSd || 1) * 7 + ix * 131) % 9999, njF: njClAI(P, kn.clCv), njEnd: 0, njTail: 0, cut: -1, nl: -1, km: -1, nw: -1, nwB: 0, ulD: NJ.ULT.STRIKE + NJ.ULT.BSW + 0.4 }); }
+    if (P.ulD > 0) P.ulD -= dt;
+    // his cuts: every clone cuts along with him, the same way
+    P.in.aim = kn.cut >= 0 ? [Math.cos(kn.cutA || 0), Math.sin(kn.cutA || 0)] : null;
+    const k0 = K; K = P; ninjaStep(dt, t);
+    // (the strike's end is the host's call for a real ninja; a clone isn't synced, so every screen ends its own)
+    if (P.nPh === 2 && P.nT >= NJ.ULT.REAP + NJ.ULT.GLT) { P.nPh = -1; P.nw = 0; P.nwB = 1; P.nwH = 0; P.njTail = 1; }
+    K = k0; kn.kills += P.kills; P.kills = 0;
+    const idle = !(P.nl >= 0) && !(P.km >= 0) && !(P.nw >= 0) && !P.nqL && !P.kmq && !(P.nPh >= 1) && !P.njTail;
+    if (idle && (P.left <= 0 || P.age >= C.LIFE)) njClonePop(kn, P); }
+  kn.CLS = L.filter(P => !(P.dying >= C.OUT)); for (const P of L) if (P.dying >= C.OUT) { kn.kills += P.kills; P.kills = 0; } }
+// a clone bursts: smoke, sparks, and everyone right round it is cut (host; half damage like all its hits, credited to him)
+function njClonePop(kn, P) { const C = NJ.CL; if (!P || P.dying >= 0) return; P.dying = 0;
   for (let n = 0; n < 16; n++) { const a = rr(0, 6.28), r = rr(1, 8); dust.push({ x: P.x + Math.cos(a) * r, y: P.y - rr(0, 9), vx: Math.cos(a) * rr(14, 34), vy: -rr(4, 18), r: rr(2.4, 4.4), t: 0, max: rr(0.5, 1) }); }
   for (let n = 0; n < 10; n++) sparks.push({ x: P.x, y: P.y - 6, vx: rr(-50, 50), vy: rr(-50, 10), t: 0, max: rr(0.15, 0.3) }); snd('dash', P.x, P.y);
-  if (AUTH()) { const k0 = K; K = kn; for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - P.x, dy = (w.y - P.y) * 1.25, d = Math.hypot(dx, dy); if (d > C.POP + UK[w.k].r) continue; w.atk = -1; w.kx += dx / (d || 1) * 80; w.ky += dy / (d || 1) * 40; hurt(w, C.PDMG, ww => cleaveFx(ww, ww.x >= P.x ? 1 : -1)); } K = k0; } }
+  if (AUTH()) { const k0 = K; K = kn; for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - P.x, dy = (w.y - P.y) * 1.25, d = Math.hypot(dx, dy); if (d > C.POP + UK[w.k].r) continue; w.atk = -1; w.kx += dx / (d || 1) * 80; w.ky += dy / (d || 1) * 40; hurt(w, C.PDMG * C.DM, ww => cleaveFx(ww, ww.x >= P.x ? 1 : -1)); } K = k0; } }
 function ninjaStep(dt, t) {
   if (K.kind !== 'ninja') makeNinja(K);
   const IN = K.in, mvL = Math.hypot(IN.mv[0], IN.mv[1]), mine = AUTH() || K.i === ME, L = NJ.LEAP, U = NJ.ULT;
@@ -4649,7 +4672,7 @@ function ninjaStep(dt, t) {
   if (K.isCl) { K.nQ = L.N; K.kmCd = 0; } // a clone copies what he does, it has no charges or cooldowns of its own
   if (K.clCd > 0) K.clCd = Math.max(0, K.clCd - dt); if (K.hsT >= 0) { K.hsT += dt; if (K.hsT >= NJ.CL.SEAL) K.hsT = -1; }
   // the shadow clone: a hand seal and the copy steps out of a puff of smoke beside him, on the side away from where he faces
-  if (!K.isCl && mine && lvP && !(K.clCd > 0) && K.st !== 'kneel' && !(K.nPh >= 1)) { const C = NJ.CL, f = K.f || 1; Object.assign(K, { clN: (K.clN || 0) + 1, clX: K.x - f * C.SIDE, clY: cl(K.y + 6, 16, H - 4), clCd: C.CD, hsT: 0 }); }
+  if (!K.isCl && mine && lvP && !(K.clCd > 0) && K.st !== 'kneel' && !(K.nPh >= 1)) { const C = NJ.CL, o = IN.lvV && IN.lvV.length === 6 ? IN.lvV : njClDef(K); Object.assign(K, { clN: (K.clN || 0) + 1, clP: o.map((v, j) => v + (j % 2 ? K.y : K.x)), clCd: C.CD, hsT: 0 }); }
   // charges come back one at a time
   if (K.nQ < L.N) { K.nCd -= dt; if (K.nCd <= 0) { K.nQ++; K.nCd = K.nQ < L.N ? L.CD : 0; } } else K.nCd = 0;
   if (K.st === 'kneel') { K.vx = K.vy = 0; K.spd = 0; if (mine && (mvL > 0.2 || IN.aim || leapP)) { K.st = 'pull'; K.u = 0; } return; }
@@ -4835,7 +4858,7 @@ function njHead(c, P, f, t) { const C = NJC, [hx, hy] = P.head, blink = (t % 5.1
 function njShuriken(c, x, y, a, s) { c.save(); c.translate(x, y); c.rotate(a); c.scale(s, s); c.fillStyle = '#cfd6de'; c.beginPath(); for (let i = 0; i < 4; i++) { const b = i * Math.PI / 2; c.lineTo(Math.cos(b) * 1.6, Math.sin(b) * 1.6); c.lineTo(Math.cos(b + Math.PI / 4) * 0.45, Math.sin(b + Math.PI / 4) * 0.45); } c.closePath(); c.fill(); c.fillStyle = '#4a4f57'; c.beginPath(); c.arc(0, 0, 0.3, 0, 7); c.fill(); c.restore(); }
 // during the strike he's gone: as it starts he glitches apart like his afterimages (slices tearing, colour split, fading over GLT) and,
 // when the cuts are done, glitches back together at the far end of the strip over GLT; njGl = [alpha, break-up] or null when solid
-const njGl = kn => { if (kn.isCl) return [kn.clA ?? 0, kn.clB ?? 1]; if (kn.nPh !== 2) return null; const U = NJ.ULT, T = kn.nT || 0; if (T < U.GLT) { const u = T / U.GLT; return [1 - sm(u), u]; } if (T < U.REAP) return [0, 1]; const u = cl((T - U.REAP) / U.GLT, 0, 1); return u >= 1 ? null : [sm(u), 1 - u]; };
+const njGl = kn => { if (kn.isCl) { const g = kn.nPh === 2 ? njGl0(kn) : null; return g ? [g[0] * (kn.clA ?? 0), Math.max(g[1], kn.clB ?? 1)] : [kn.clA ?? 0, kn.clB ?? 1]; } return njGl0(kn); }, njGl0 = kn => { if (kn.nPh !== 2) return null; const U = NJ.ULT, T = kn.nT || 0; if (T < U.GLT) { const u = T / U.GLT; return [1 - sm(u), u]; } if (T < U.REAP) return [0, 1]; const u = cl((T - U.REAP) / U.GLT, 0, 1); return u >= 1 ? null : [sm(u), 1 - u]; };
 const NJME = document.createElement('canvas');
 // the kama: a short hardwood handle with a ring at the pommel for the rope, a wrap in his colour, a brass ferrule, and a sickle blade set
 // across the head of the handle, sweeping out to one side and curving back down toward the pommel, the edge on the inside of the curve.
@@ -4899,7 +4922,7 @@ function drawNinja(c, t, ghost) { const G = ghost ? null : njGl(K); if (!G) retu
   const box = NJG_BOX, px = Math.min(128, Math.max(32, Math.round(box * Math.max(1, CAM.s || 3) * 0.6 / 8) * 8)), cx = K.x, cy = K.y - (K.z || 0) - 7;
   if (NJME.width !== px * 3 || NJME.height !== px) { NJME.width = px * 3; NJME.height = px; } const q = NJME.getContext('2d'); q.setTransform(1, 0, 0, 1, 0, 0); q.globalCompositeOperation = 'source-over'; q.clearRect(0, 0, px * 3, px);
   q.setTransform(px / box, 0, 0, px / box, px / 2 - cx * px / box, px / 2 - cy * px / box); drawNinja0(q, t, ghost); njTints(q, NJME, px);
-  const T0 = Math.floor(t / 0.05); njGlitch(c, NJME, px, cx, cy, box, G[0] * 0.9, G[1], n => njRnd(K.i * 7.3 + 1, T0, n), K.col, null); }
+  const T0 = Math.floor(t / 0.05); njGlitch(c, NJME, px, cx, cy, box, G[0] * 0.9, G[1], n => njRnd(K.i * 7.3 + 1 + (K.isCl ? K.x * 0.37 : 0), T0, n), K.col, null, !!K.isCl); }
 // he's drawn as one piece: the body is drawn twice, first as a solid dark silhouette grown by OW all round (every fill also stroked,
 // every stroke widened, through njOl, a stand-in for the context), then in colour with no outlines of its own (NJFLAT), so the only
 // outline is round the whole figure and no line ever shows where one part meets another
@@ -4982,7 +5005,7 @@ function njGhostSpr(kn, k, f, tb, px) { const key = kn.col + '|' + px; if (key !
 function njTints(q, o, px) { q.setTransform(1, 0, 0, 1, 0, 0); for (const [n, col] of [[1, '#3ff4ff'], [2, '#ff3fd2']]) { q.globalCompositeOperation = 'source-over'; q.drawImage(o, 0, 0, px, px, n * px, 0, px, px); q.globalCompositeOperation = 'source-atop'; q.fillStyle = col; q.fillRect(n * px, 0, px, px); } q.globalCompositeOperation = 'source-over'; }
 // the glitch stamp shared by the afterimages and by him vanishing/reappearing: glow, colour split, jittering slices that drop out and
 // tear apart as brk rises, scan lines; rot = [angle, pivot x, pivot y] to pitch the figure (the dive), or null
-function njGlitch(c, o, px, cx, cy, box, al, brk, R, col, rot) { const x0 = cx - box / 2, y0 = cy - box / 2; c.save();
+function njGlitch(c, o, px, cx, cy, box, al, brk, R, col, rot, noLn) { const x0 = cx - box / 2, y0 = cy - box / 2; c.save();
   c.globalCompositeOperation = 'lighter'; c.globalAlpha = al * 0.45; c.drawImage(njGlow(col), cx - 11, cy - 11, 22, 22);
   c.save(); if (rot) { c.translate(rot[1], rot[2]); c.rotate(rot[0]); c.translate(-rot[1], -rot[2]); }
   const sp = 0.55 + R(1) * 0.5 + brk * 2.5; c.globalAlpha = al * 0.55; c.drawImage(o, px, 0, px, px, x0 - sp, y0, box, box); c.drawImage(o, px * 2, 0, px, px, x0 + sp, y0 + (R(2) - 0.5) * 0.4, box, box);
@@ -4990,7 +5013,7 @@ function njGlitch(c, o, px, cx, cy, box, al, brk, R, col, rot) { const x0 = cx -
   for (let i = 0; i < N; i++) { const r = R(10 + i); if (r > 0.9 - brk * 0.35) continue; const ox = (r > 0.68 ? (R(30 + i) - 0.5) * 3.2 : 0) + (R(50 + i) - 0.5) * brk * 9;
     c.globalAlpha = al * (0.8 + R(70 + i) * 0.2); c.drawImage(o, 0, i * px / N, px, px / N, x0 + ox, y0 + i * box / N, box, box / N + 0.05); }
   c.restore();
-  c.globalCompositeOperation = 'lighter'; c.globalAlpha = al * 0.5; c.fillStyle = shade(col, 0.5); for (let i = 0; i < 2; i++) { const yy = y0 + box * (0.3 + R(90 + i) * 0.55); c.fillRect(cx - 7 - R(95 + i) * 3, yy, 14 + R(97 + i) * 6, 0.25); }
+  if (!noLn) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = al * 0.5; c.fillStyle = shade(col, 0.5); } if (!noLn) for (let i = 0; i < 2; i++) { const yy = y0 + box * (0.3 + R(90 + i) * 0.55); c.fillRect(cx - 7 - R(95 + i) * 3, yy, 14 + R(97 + i) * 6, 0.25); }
   c.restore(); }
 function njGhostDraw(c, g0, t) { const g = { ...g0, t: g0.t / NJ.ULT.GT }, kn = g.kn; let al, x, y, z, rot = 0, d = 0, brk;
   if (g.k === 'd') { const u = cl(g.t / 0.17, 0, 1), q = u * u * (3 - 2 * u); x = lerp(g.x0, g.tx - g.f * 4.5, q); y = lerp(g.y0, g.ty, q); z = g.z0 * (1 - q);
@@ -5021,7 +5044,31 @@ function njStrip(c, kn, J, al, t, live) { const U = NJ.ULT, P = njPts(kn, J), co
     c.globalAlpha = al * 0.2; c.beginPath(); c.ellipse(B[0], B[1], U.JR, U.JR * 0.8, 0, 0, 7); c.fill(); c.globalAlpha = al * 0.8; c.lineWidth = 0.6; c.stroke(); }
   if (live) for (let j = 1; j <= 3; j++) { const p = P[j], pul = 0.5 + 0.5 * Math.sin(t * 9 + j); c.globalAlpha = al; c.fillStyle = '#fff6e0'; c.beginPath(); c.arc(p[0], p[1], 2.4 + pul * 0.5, 0, 7); c.fill(); c.strokeStyle = cols[j - 1]; c.lineWidth = 0.7; c.stroke(); c.fillStyle = '#2a2016'; c.font = '700 2.6px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(String(j), p[0], p[1] + 0.1); }
   c.restore(); }
-function njGround(c, t) { for (const kn of LIVE()) { if (kn.kind !== 'ninja') continue;
+// aiming the clones (his screen only): a quad with him at one corner and a clone at each of the other three; drag a corner to move it,
+// drag anywhere else on the field to turn and stretch the whole shape round him; CLONE again casts it
+let CLAIM = null;
+const clK = () => { const kn = KN[ME]; return kn && kn.kind === 'ninja' ? kn : null; };
+function clPress() { const kn = clK(); if (!kn || kn.clCd > 0 || kn.nPh >= 1) { CLAIM = null; return; } if (!CLAIM) { CLAIM = { o: njClDef(kn), d: null }; return; }
+  const IN = kn.in; IN.lvV = CLAIM.o.map(v => Math.round(v * 10) / 10); IN.lvN = (IN.lvN || 0) + 1; markIn(); CLAIM = null; }
+const clClamp = (dx, dy) => { const g = Math.hypot(dx, dy * 1.25), M = NJ.CL.MAXR; return g > M ? [dx * M / g, dy * M / g] : [dx, dy]; };
+addEventListener('pointerdown', e => { const kn = clK(); if (!CLAIM || !kn || e.target !== cv || CLAIM.d) return; const p = s2w(e.clientX, e.clientY), o = CLAIM.o; let bj = -1, bd = 1e9;
+  for (let j = 0; j < 3; j++) { const d = njGP(p, [kn.x + o[j * 2], kn.y + o[j * 2 + 1]]); if (d < bd) { bd = d; bj = j; } }
+  CLAIM.d = bd < 26 ? { id: e.pointerId, j: bj } : { id: e.pointerId, j: -1, a0: Math.atan2((p[1] - kn.y) * 1.25, p[0] - kn.x), l0: Math.max(8, njGP(p, [kn.x, kn.y])), o0: o.slice() };
+  e.stopPropagation(); e.preventDefault(); }, true);
+addEventListener('pointermove', e => { const D = CLAIM && CLAIM.d, kn = clK(); if (!D || e.pointerId !== D.id || !kn) return; e.stopPropagation(); const p = s2w(e.clientX, e.clientY);
+  if (D.j >= 0) { const q = clClamp(p[0] - kn.x, p[1] - kn.y); CLAIM.o[D.j * 2] = q[0]; CLAIM.o[D.j * 2 + 1] = q[1]; return; }
+  const da = Math.atan2((p[1] - kn.y) * 1.25, p[0] - kn.x) - D.a0, sc = Math.max(0.3, njGP(p, [kn.x, kn.y]) / D.l0), ca = Math.cos(da), sa = Math.sin(da);
+  for (let j = 0; j < 3; j++) { const x0 = D.o0[j * 2] * sc, y0 = D.o0[j * 2 + 1] * 1.25 * sc, q = clClamp(x0 * ca - y0 * sa, (x0 * sa + y0 * ca) / 1.25); CLAIM.o[j * 2] = q[0]; CLAIM.o[j * 2 + 1] = q[1]; } }, true);
+addEventListener('pointerup', e => { if (CLAIM && CLAIM.d && e.pointerId === CLAIM.d.id) { CLAIM.d = null; e.stopPropagation(); } }, true);
+addEventListener('pointercancel', e => { if (CLAIM && CLAIM.d && e.pointerId === CLAIM.d.id) CLAIM.d = null; }, true);
+function njClAimDraw(c, t) { const kn = clK(); if (!CLAIM || !kn || kn.clCd > 0) { if (CLAIM && (!kn || kn.clCd > 0)) CLAIM = null; return; } const o = CLAIM.o, P = [[kn.x, kn.y], ...[0, 1, 2].map(j => [kn.x + o[j * 2], kn.y + o[j * 2 + 1]])], pul = 0.5 + 0.5 * Math.sin(t * 6);
+  c.save(); c.fillStyle = 'rgba(120,230,255,.12)'; c.beginPath(); P.forEach((q, i) => i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1])); c.closePath(); c.fill();
+  c.strokeStyle = 'rgba(160,240,255,.75)'; c.lineWidth = 0.6; c.setLineDash([2, 1.5]); c.lineDashOffset = -t * 8; c.stroke(); c.setLineDash([]);
+  c.globalAlpha = 0.25; c.strokeStyle = '#cfe0ff'; c.lineWidth = 0.4; c.setLineDash([1.5, 1.5]); c.beginPath(); c.ellipse(kn.x, kn.y, NJ.CL.MAXR, NJ.CL.MAXR / 1.25, 0, 0, 7); c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+  for (let j = 1; j <= 3; j++) { const [x, y] = P[j], hot = CLAIM.d && CLAIM.d.j === j - 1; c.fillStyle = `rgba(120,230,255,${0.18 + 0.1 * pul})`; c.beginPath(); c.ellipse(x, y, 5.5, 4.4, 0, 0, 7); c.fill();
+    c.strokeStyle = hot ? '#ffffff' : '#9ff0ff'; c.lineWidth = hot ? 0.8 : 0.6; c.stroke(); c.fillStyle = '#e8fbff'; c.beginPath(); c.arc(x, y - 7, 1.1, 0, 7); c.fill(); c.strokeStyle = 'rgba(232,251,255,.6)'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(x, y - 6); c.lineTo(x, y); c.stroke(); }
+  c.restore(); }
+function njGround(c, t) { njClAimDraw(c, t); for (const kn of LIVE()) { if (kn.kind !== 'ninja') continue;
     if (kn.nPh === 2 && kn.njF && (kn.nT || 0) < NJ.ULT.REAP) njStrip(c, kn, kn.njF, Math.max(0, 1 - (kn.nT || 0) / NJ.ULT.REAP) * 0.6, t, false);
     // in flight: the apex circle the shuriken are going into and the landing circle
     if (kn.nl >= 0) { const L = NJ.LEAP, ax = (kn.nx0 + kn.nx1) / 2, ay = (kn.ny0 + kn.ny1) / 2; c.save(); c.globalAlpha = 0.5; c.strokeStyle = '#cfe0ff'; c.lineWidth = 0.6; c.setLineDash([2, 1.5]); { const r = njAR(kn.nlm ?? 1); c.beginPath(); c.ellipse(ax, ay, r, r * 0.8, 0, 0, 7); c.stroke(); } c.strokeStyle = '#ffe2a0'; c.beginPath(); c.ellipse(kn.nx1, kn.ny1, L.R, L.R * 0.8, 0, 0, 7); c.stroke(); c.restore(); } } }
@@ -7040,7 +7087,7 @@ window.__cr = m => { const IN = KN[ME].in; if (m === 'bomb') { IN.dashN = (IN.da
 
 
 
-function hurt(w, d, kill) { w.hp -= d; w.hit = 0.1; if (w.hp <= 0) { K.kills++; kill(w); } else hitSnd(w); }
+function hurt(w, d, kill) { if (K && K.isCl) d *= K.ulD > 0 ? NJ.CL.UDM : NJ.CL.DM; w.hp -= d; w.hit = 0.1; if (w.hp <= 0) { K.kills++; kill(w); } else hitSnd(w); }
 const cleaveFx = (w, dir) => { EV.push([w.id, 0, dir, K.i, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10]); cleaveKill(w, dir); };
 const spinFx = w => { EV.push([w.id, 1, 0, K.i, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10]); spinKill(w); };
 function step(dt, t) {
@@ -7261,7 +7308,7 @@ function draw() {
   for (const kn of LIVE()) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
   drawFxGround(x); drawGouges(x, t); ttGround(x); crGround(x, t); njGround(x, t); ogGround(x, t); ogAimDraw(x, t); drawVolcFloor(x, t); drawBikePreview(x, t); drawLeapPreview(x, t); drawHeliDraw(x, t); drawDashPreview(x, t); drawSweepPreview(x, t); drawCoalPreview(x);
   for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = pAlpha(p); drawPartFast(x, p); } x.globalAlpha = 1;
-  const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(LIVE().filter(kn => kn.CL && kn.kind === 'ninja').map(kn => [kn.CL.y + 0.01, 14, kn.CL])).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(TRAPS.filter(q => q.t >= TT.TRAP.FLY).flatMap(q => { const G = trapGeo(q); return [[q.y, 6, q], [G.ey + 0.01, 7, q]]; })).concat(dinoList()).concat(crList()).concat(dgList()).concat(ogSpikes()).concat(KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.cr >= 0).map(kn => [kn.cyp, 10, kn])).concat(WRECKS.flatMap(q => [[q.y, 11, { q, ship: 0 }], [q.sy + 0.01, 11, { q, ship: 1 }]])).concat(HDEAD.filter(inV).map(q => [q.y - 0.3, 9, q])).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
+  const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(LIVE().filter(kn => kn.CLS && kn.kind === 'ninja').flatMap(kn => kn.CLS.map(P => [P.y + 0.01, 14, P]))).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(TRAPS.filter(q => q.t >= TT.TRAP.FLY).flatMap(q => { const G = trapGeo(q); return [[q.y, 6, q], [G.ey + 0.01, 7, q]]; })).concat(dinoList()).concat(crList()).concat(dgList()).concat(ogSpikes()).concat(KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.cr >= 0).map(kn => [kn.cyp, 10, kn])).concat(WRECKS.flatMap(q => [[q.y, 11, { q, ship: 0 }], [q.sy + 0.01, 11, { q, ship: 1 }]])).concat(HDEAD.filter(inV).map(q => [q.y - 0.3, 9, q])).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
   HPQ = [];
   for (const [, k, o] of list) {
     if (k < 2) { K = o; COL = o.col; }
@@ -7273,8 +7320,7 @@ function draw() {
     else if (k === 5) { drawSawP(x, o, t); continue; }
     else if (k === 12) { ogDrawSpike(x, o, t); continue; }
     else if (k === 13) { crDrawP(x, o, t); continue; }
-    else if (k === 14) { K = o; COL = o.col; x.save(); x.globalAlpha = 0.75 * (o.clA || 0); njKmAir(x, t, o); x.restore(); drawNinja(x, t); // copies left: small diamonds over the clone's head
-      if (o.dying < 0 && o.left > 0) { x.save(); x.globalAlpha = 0.8 * (o.clA || 0); x.fillStyle = '#9ff6ff'; for (let i = 0; i < o.left; i++) { const px = o.x + (i - (o.left - 1) / 2) * 2.6, py = o.y - (o.z || 0) - 17; x.beginPath(); x.moveTo(px, py - 1); x.lineTo(px + 0.8, py); x.lineTo(px, py + 1); x.lineTo(px - 0.8, py); x.closePath(); x.fill(); } x.restore(); }
+    else if (k === 14) { K = o; COL = o.col; x.save(); x.globalAlpha = 0.75 * (o.clA || 0); njKmAir(x, t, o); x.restore(); drawNinja(x, t);
       K = KN[ME]; continue; }
     else if (k === 8) { if (o.g) drawDinoQ(x, o, t); else drawDinoP(x, o, t); continue; }
     else if (k === 9) { drawHeavyDead(x, o); continue; }
@@ -7337,6 +7383,7 @@ function draw() {
   if (K.kind === 'ogre') { BSTI.style.height = cl((K.spCd || 0) / OG.SPK.CD, 0, 1) * 100 + '%'; AOEI.style.height = cl((K.clCd || 0) / OG.CLOUD.CD, 0, 1) * 100 + '%'; DASHI.style.height = (K.sv >= 0 ? 100 : cl(((K.svCd || 0)) / OG.SURF.CD, 0, 1) * 100) + '%'; }
   // the ninja's leap circle shows its charges; the ult's planning hides every control and shows the hint
   { const NV2 = K.kind === 'ninja', pl = NV2 && K.nPh === 1; document.body.classList.toggle('njult', pl); NJT.classList.toggle('on', pl);
+    if (NV2) { const sl = CLAIM ? 'CAST' : 'CLONE'; if (SPNL.textContent !== sl) SPNL.textContent = sl; }
     if (NV2) DASHI.style.height = (K.km >= 0 && K.km < njKmTL(K).tE ? 100 : cl((K.kmCd || 0) / NJ.KM.CD, 0, 1) * 100) + '%';
     if (NV2) { const Q = K.nQ ?? NJ.LEAP.N, lb = `leap\n${Q} charge${Q === 1 ? '' : 's'}`, sm2 = AOE.querySelector('small'); if (sm2 && sm2.textContent !== lb) sm2.textContent = lb; AOE.classList.toggle('dim', Q <= 0); AOEI.style.height = (Q < NJ.LEAP.N ? cl((K.nCd || 0) / NJ.LEAP.CD, 0, 1) : 0) * 100 + '%'; }
     else if (K.kind !== 'time' && AOE.querySelector('small') && /charge/.test(AOE.querySelector('small').textContent)) AOE.querySelector('small').textContent = K.kind === 'fire' ? 'coals' : K.kind === 'priest' ? 'slam' : 'leap'; }
@@ -7538,7 +7585,7 @@ const mnSend = v => { const IN = KN[ME].in; IN.mnD = v ? [Math.round(v[0] * 100)
 sb.addEventListener('pointerdown', e => { if (!isRooster()) return; const r = sb.getBoundingClientRect(); MNDRAG = { id: e.pointerId, cx: r.left + r.width / 2, cy: r.top + r.height / 2 }; MNAIM = null; try { sb.setPointerCapture(e.pointerId); } catch (er) { } e.preventDefault(); e.stopImmediatePropagation(); });
 sb.addEventListener('pointermove', e => { if (!MNDRAG || e.pointerId !== MNDRAG.id) return; const v = [e.clientX - MNDRAG.cx, e.clientY - MNDRAG.cy], l = Math.hypot(...v); MNAIM = l > 14 ? [v[0] / l, v[1] / l] : null; });
 const mnUp = e => { if (!MNDRAG || e.pointerId !== MNDRAG.id) return; MNDRAG = null; mnSend(MNAIM); MNAIM = null; }; sb.addEventListener('pointerup', mnUp); sb.addEventListener('pointercancel', mnUp);
-sb.addEventListener('pointerdown', e => { if (isRooster()) return; if (isOgre()) { e.preventDefault(); if (!(KN[ME].spCd > 0) && !(KN[ME].ogDT >= 0)) ogAimStart(e, 'lv', sb); return; } if (isFire() || isPriest() || isTime() || (KN[ME] && KN[ME].kind === 'ninja')) { const IN = KN[ME].in; IN.lvN = (IN.lvN || 0) + 1; markIn(); } else { btnSpin = true; syncIn(); } e.preventDefault(); });
+sb.addEventListener('pointerdown', e => { if (isRooster()) return; if (isOgre()) { e.preventDefault(); if (!(KN[ME].spCd > 0) && !(KN[ME].ogDT >= 0)) ogAimStart(e, 'lv', sb); return; } if (KN[ME] && KN[ME].kind === 'ninja') clPress(); else if (isFire() || isPriest() || isTime()) { const IN = KN[ME].in; IN.lvN = (IN.lvN || 0) + 1; markIn(); } else { btnSpin = true; syncIn(); } e.preventDefault(); });
 // Storm Ogre: SPIKES and ULT are drag-to-aim buttons: press, drag the way to send it (a preview shows the spike line / dragon path), release to cast;
 // a tap with no drag sends it at the nearest enemy (or the way he faces)
 let OGAIM = null;
@@ -7567,7 +7614,8 @@ addEventListener('keydown', e => { if (e.target && e.target.closest && e.target.
   if (k === 'f' && !e.repeat && isPriest()) { const IN = KN[ME].in; IN.biN = (IN.biN || 0) + 1; markIn(); }
   if (k === 'e' && isRooster()) { if (!e.repeat) keys.add('e'); MNAIM = mnCursor(); return; }
   if (k === 'e' && !e.repeat && isOgre()) { const IN = KN[ME].in; IN.lvV = cursorVec(); IN.lvN = (IN.lvN || 0) + 1; markIn(); }
-  else if (k === 'e' && !e.repeat && (isFire() || isPriest() || isTime() || (KN[ME] && KN[ME].kind === 'ninja'))) { const IN = KN[ME].in; IN.lvN = (IN.lvN || 0) + 1; markIn(); }
+  else if (k === 'e' && !e.repeat && KN[ME] && KN[ME].kind === 'ninja') clPress();
+  else if (k === 'e' && !e.repeat && (isFire() || isPriest() || isTime())) { const IN = KN[ME].in; IN.lvN = (IN.lvN || 0) + 1; markIn(); }
   if (k === 'r' && !e.repeat) { if (isOgre()) KN[ME].in.ulV = cursorVec(); doUlt(); } });
 addEventListener('pointermove', e => { if (e.pointerType !== 'mouse') return; mousePos = [e.clientX, e.clientY]; if (keys.has('e') && isRooster()) MNAIM = mnCursor(); if (keys.has('q')) { if (isFire()) COAIM = kbCoal(); else LEAPAIM = kbLeap(); } if (isFire() && keys.has(' ')) syncIn(); });
 addEventListener('keyup', e => { if (keyOf(e) === 'e' && keys.has('e') && isRooster()) { keys.delete('e'); mnSend(MNAIM || mnCursor()); MNAIM = null; } });
@@ -7595,7 +7643,7 @@ const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase
 // the same id every time this device joins, so a player who drops and rejoins gets his own seat (and knight) back instead of a new one
 const myPid = (() => { let id = null; try { id = localStorage.getItem('kn_pid'); } catch (e) { } if (!id) { id = Math.random().toString(36).slice(2, 10); try { localStorage.setItem('kn_pid', id); } catch (e) { } } return id; })();
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plE', 'plD', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'a2T', 'a2s', 'wpM', 'hl', 'hla', 'hlL', 'hlx', 'hly', 'hlN', 'hlCd', 'dn', 'dnf', 'dnx', 'dny', 'dnN', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc', 'cr', 'crT', 'crN', 'crh', 'cv', 'cvx', 'cvy', 'cyr', 'cxp', 'cyp', 'cx0', 'cy0', 'ctx', 'cty', 'cph', 'cHit', 'ulOn', 'cdn', 'ctu', 'cfx', 'cfy', 'cfvx', 'cfvy', 'ckx', 'cky', 'csx', 'csy', 'clx', 'cly', 'uC', 'dg', 'dgN', 'cHitN', 'chd', 'cHT', 'spx', 'spy', 'spz', 'sdx', 'sdy', 'sdz', 'sd0x', 'sd0y', 'sd0z', 'spv', 'sTr', 'cEj', 'cBl', 'ex0', 'ey0', 'ez0', 'cBk', 'nl', 'nw', 'nwB', 'nQ', 'nCd', 'nlN', 'nlm', 'km', 'kmN', 'kmT', 'kmH', 'kmCd', 'kmX0', 'kmY0', 'kmX1', 'kmY1', 'kmTX', 'kmTY', 'kmTZ', 'kmEx', 'kmA', 'clN', 'clX', 'clY', 'clCd', 'hsT', 'kmZ0', 'kmFr', 'nlBx', 'nlBy', 'nlBT', 'nx0', 'ny0', 'nx1', 'ny1', 'nPh', 'nT', 'nUN', 'nSd', 'njF', 'ou', 'ouN', 'ouS', 'ouA', 'sv', 'svA', 'svCd', 'clN', 'clX', 'clY', 'clT', 'clCd', 'spN', 'spX', 'spY', 'spA', 'spCd', 'ogDN', 'ogDX', 'ogDY', 'ogDA', 'ogDT', 'ogDSX', 'ogDSY', 'ogH', 'ogS', 'ogZ', 'ogSN', 'ouC', 'ouK', 'ogC', 'ogCN', 'svN', 'ogX', 'ogXN', 'lsT', 'lsN', 'lsA', 'lsS', 'brT', 'brN', 'brX', 'brY', 'brCd', 'mtT', 'mtN', 'mnX', 'mnY', 'mnA', 'mnCd', 'bmT', 'bmN', 'bmX', 'bmY', 'bmA', 'bmCd', 'cu', 'cuN', 'egN', 'ogR', 'ogRA', 'ogRV', 'ogRB', 'ogRN', 'ogHs', 'ogHk', 'ogHa', 'ogHd', 'ogHn', 'ogHq', 'ogFn', 'ogZc', 'ogIc', 'ogZn', 'ogIn', 'ogA', 'ogAN'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plE', 'plD', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'a2T', 'a2s', 'wpM', 'hl', 'hla', 'hlL', 'hlx', 'hly', 'hlN', 'hlCd', 'dn', 'dnf', 'dnx', 'dny', 'dnN', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc', 'cr', 'crT', 'crN', 'crh', 'cv', 'cvx', 'cvy', 'cyr', 'cxp', 'cyp', 'cx0', 'cy0', 'ctx', 'cty', 'cph', 'cHit', 'ulOn', 'cdn', 'ctu', 'cfx', 'cfy', 'cfvx', 'cfvy', 'ckx', 'cky', 'csx', 'csy', 'clx', 'cly', 'uC', 'dg', 'dgN', 'cHitN', 'chd', 'cHT', 'spx', 'spy', 'spz', 'sdx', 'sdy', 'sdz', 'sd0x', 'sd0y', 'sd0z', 'spv', 'sTr', 'cEj', 'cBl', 'ex0', 'ey0', 'ez0', 'cBk', 'nl', 'nw', 'nwB', 'nQ', 'nCd', 'nlN', 'nlm', 'km', 'kmN', 'kmT', 'kmH', 'kmCd', 'kmX0', 'kmY0', 'kmX1', 'kmY1', 'kmTX', 'kmTY', 'kmTZ', 'kmEx', 'kmA', 'clN', 'clP', 'clCd', 'hsT', 'kmZ0', 'kmFr', 'nlBx', 'nlBy', 'nlBT', 'nx0', 'ny0', 'nx1', 'ny1', 'nPh', 'nT', 'nUN', 'nSd', 'njF', 'ou', 'ouN', 'ouS', 'ouA', 'sv', 'svA', 'svCd', 'clN', 'clX', 'clY', 'clT', 'clCd', 'spN', 'spX', 'spY', 'spA', 'spCd', 'ogDN', 'ogDX', 'ogDY', 'ogDA', 'ogDT', 'ogDSX', 'ogDSY', 'ogH', 'ogS', 'ogZ', 'ogSN', 'ouC', 'ouK', 'ogC', 'ogCN', 'svN', 'ogX', 'ogXN', 'lsT', 'lsN', 'lsA', 'lsS', 'brT', 'brN', 'brX', 'brY', 'brCd', 'mtT', 'mtN', 'mnX', 'mnY', 'mnA', 'mnCd', 'bmT', 'bmN', 'bmX', 'bmY', 'bmA', 'bmCd', 'cu', 'cuN', 'egN', 'ogR', 'ogRA', 'ogRV', 'ogRB', 'ogRN', 'ogHs', 'ogHk', 'ogHa', 'ogHd', 'ogHn', 'ogHq', 'ogFn', 'ogZc', 'ogIc', 'ogZn', 'ogIn', 'ogA', 'ogAN'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
 const packIn = n => ({ mnD: n.mnD || null, mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, hdN: n.hdN || 0, hdP: n.hdP || null, twV: n.twV || 0, la: n.la || null, nj: n.nj || null, njN: n.njN || 0, lvV: n.lvV || null, ulV: n.ulV || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 // a knight's state: the whole list once a second, otherwise only the fields that changed since the last snapshot ([index, value, ...])
@@ -7747,7 +7795,7 @@ const CTLS = { move: ['lst', 'Move stick'], swing: ['rst', 'Swing stick'], dash:
 const layCh = () => CHAR === 'fire' || CHAR === 'priest' || CHAR === 'sword' || CHAR === 'time' || CHAR === 'ninja' || CHAR === 'ogre' || CHAR === 'rooster' ? CHAR : 'knight';
 // the HUD for the character being played: which controls show and what they're called
 let CHAR_UI = null;
-function charUI(kind) { CHAR_UI = kind; const fire = kind === 'fire', pr = kind === 'priest', swd = kind === 'sword', tm = kind === 'time', nj = kind === 'ninja', og = kind === 'ogre'; document.body.classList.toggle('ogre', og); document.body.classList.toggle('sword', swd); document.body.classList.toggle('ninja', nj); document.body.classList.toggle('time', tm); document.getElementById('help').textContent = og ? 'WASD/arrows move · hold mouse to smash toward the cursor · Shift frost surf the way you move (WASD steers) · hold Q to aim the storm cloud at the cursor · E ice spikes toward the cursor · R frozen thunder dragon · wheel zoom' : fire ? 'WASD/arrows move · hold mouse to breathe at the cursor · E lava · hold Shift to ride a plume the way you move · hold Q to aim the coals at the cursor, release to run them · R volcano, then click to erupt · wheel zoom' : pr ? 'WASD/arrows move · hold mouse to swing the censer toward the cursor · Shift sweep the flail at the cursor · hold Q to aim the slam, release to throw (again to pull yourself to it) · F bring the head in · E holy flame · R penance: WASD/mouse steer the flail, Space smash · wheel zoom' : swd ? 'WASD/arrows move · hold mouse to cut toward the cursor (a three-cut combo while held) · wheel zoom' : nj ? 'WASD/arrows move · hold mouse to cut toward the cursor · Shift kama at the enemy nearest the cursor · E shadow clone · hold Q to aim the leap at the cursor, release to leap (3 charges) · R ult: drag the three joints of the strike in slow motion, R again to strike now · wheel zoom' : tm ? 'WASD/arrows move · hold mouse to swing the cane (or fire the weapon) at the cursor · E opens a portal for a random weapon · Shift calls the motorcycle the way you move, then WASD steers · wheel zoom' : 'WASD/arrows move · hold mouse to swing toward cursor · Space spin · Shift dash where you\'re moving · hold Q to aim the leap at the cursor, release to jump · R ult · wheel zoom'; document.body.classList.toggle('fire', fire); document.body.classList.toggle('priest', pr); document.querySelector('#rst small').textContent = fire ? 'breath' : pr ? 'censer' : swd ? 'blades' : tm ? 'cane' : nj ? 'ninjato' : og ? 'smash' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : pr ? 'sweep' : tm ? 'bike' : og ? 'surf' : nj ? 'kama' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : pr ? 'slam' : og ? 'cloud' : 'leap'; document.querySelector('#bst small').textContent = og ? 'spikes' : 'breath'; document.querySelector('#spin span').textContent = fire ? 'LAVA' : pr ? 'HOLY' : tm ? 'PORTAL' : og ? 'SPIKES' : nj ? 'CLONE' : 'SPIN';
+function charUI(kind) { CHAR_UI = kind; const fire = kind === 'fire', pr = kind === 'priest', swd = kind === 'sword', tm = kind === 'time', nj = kind === 'ninja', og = kind === 'ogre'; document.body.classList.toggle('ogre', og); document.body.classList.toggle('sword', swd); document.body.classList.toggle('ninja', nj); document.body.classList.toggle('time', tm); document.getElementById('help').textContent = og ? 'WASD/arrows move · hold mouse to smash toward the cursor · Shift frost surf the way you move (WASD steers) · hold Q to aim the storm cloud at the cursor · E ice spikes toward the cursor · R frozen thunder dragon · wheel zoom' : fire ? 'WASD/arrows move · hold mouse to breathe at the cursor · E lava · hold Shift to ride a plume the way you move · hold Q to aim the coals at the cursor, release to run them · R volcano, then click to erupt · wheel zoom' : pr ? 'WASD/arrows move · hold mouse to swing the censer toward the cursor · Shift sweep the flail at the cursor · hold Q to aim the slam, release to throw (again to pull yourself to it) · F bring the head in · E holy flame · R penance: WASD/mouse steer the flail, Space smash · wheel zoom' : swd ? 'WASD/arrows move · hold mouse to cut toward the cursor (a three-cut combo while held) · wheel zoom' : nj ? 'WASD/arrows move · hold mouse to cut toward the cursor · Shift kama at the enemy nearest the cursor · E shadow clones (E again to cast; drag the corners) · hold Q to aim the leap at the cursor, release to leap (3 charges) · R ult: drag the three joints of the strike in slow motion, R again to strike now · wheel zoom' : tm ? 'WASD/arrows move · hold mouse to swing the cane (or fire the weapon) at the cursor · E opens a portal for a random weapon · Shift calls the motorcycle the way you move, then WASD steers · wheel zoom' : 'WASD/arrows move · hold mouse to swing toward cursor · Space spin · Shift dash where you\'re moving · hold Q to aim the leap at the cursor, release to jump · R ult · wheel zoom'; document.body.classList.toggle('fire', fire); document.body.classList.toggle('priest', pr); document.querySelector('#rst small').textContent = fire ? 'breath' : pr ? 'censer' : swd ? 'blades' : tm ? 'cane' : nj ? 'ninjato' : og ? 'smash' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : pr ? 'sweep' : tm ? 'bike' : og ? 'surf' : nj ? 'kama' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : pr ? 'slam' : og ? 'cloud' : 'leap'; document.querySelector('#bst small').textContent = og ? 'spikes' : 'breath'; document.querySelector('#spin span').textContent = fire ? 'LAVA' : pr ? 'HOLY' : tm ? 'PORTAL' : og ? 'SPIKES' : nj ? 'CLONE' : 'SPIN';
   if (kind === 'rooster') { document.getElementById('help').textContent = 'WASD/arrows move · mouse: laser strikes sweep across toward the cursor (hold to keep striking) · Shift bombing run the way you move · hold Q to aim the egg barrage, release to fire · E egg mines · R chick storm · wheel zoom'; document.querySelector('#rst small').textContent = 'laser'; document.querySelector('#dash small').textContent = 'bomb run'; document.querySelector('#aoe small').textContent = 'barrage'; document.querySelector('#spin span').textContent = 'MINES'; } }
 let LAY = {}; try { LAY = JSON.parse(localStorage.getItem('kn_layout') || '{}') || {}; } catch (e) { }
 // plume and coals swapped places: carry a Firebreather layout saved before that over, so his saved spots swap too
@@ -7821,7 +7869,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = 'ab3389';
+const KBUILD = 'f2b57f';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
