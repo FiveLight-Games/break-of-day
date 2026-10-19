@@ -3904,8 +3904,8 @@ function ogSwingHit(k, a, host, big = 1) { const S = OG.SW, d = [Math.cos(a), Ma
     else if (host) { const r1 = v => Math.round(v * 10) / 10, seg = [], done = new Set(hitF), near = (x, y, R, cone) => walkers.filter(w => w.hp > 0 && !done.has(w.id) && (cone ? inCone(w, R, S.CA) : ogDist(w.x, w.y, x, y) < R + UK[w.k].r)).sort((p, q) => ogDist(p.x, p.y, x, y) - ogDist(q.x, q.y, x, y));
       // BIG sparks to different enemies, spread across the cone: take the nearest few in each of BIG slices
       const firsts = []; for (let b = 0; b < S.BIG; b++) { const lo = a - S.CA + 2 * S.CA * b / S.BIG, hi = lo + 2 * S.CA / S.BIG; const c2 = near(fx, fy, S.CR, true).find(w => { let da = Math.atan2((w.y - K.y) / OGY, w.x - K.x) - lo; da -= Math.floor(da / 6.283) * 6.283; return da <= hi - lo || ogDist(w.x, w.y, K.x, K.y) < 8; }) || near(fx, fy, S.CR, true)[0]; if (c2) { done.add(c2.id); firsts.push(c2); } }
-      // a spark jumps to fresh enemies first; with none left nearby it can jump back to one it already hit (never straight back onto the one it's on), so it bounces back and forth between two
-      const hopTo = (o, n2) => { const all = walkers.filter(w => w.hp > 0 && w !== o && ogDist(w.x, w.y, o.x, o.y) < S.SJR + UK[w.k].r).sort((p, q) => (done.has(p.id) - done.has(q.id)) || ogDist(p.x, p.y, o.x, o.y) - ogDist(q.x, q.y, o.x, o.y)); return all.slice(0, n2); };
+      // a spark only ever jumps to an enemy no spark of this punch has hit yet
+      const hopTo = (o, n2) => near(o.x, o.y, S.SJR, false).slice(0, n2);
       const zap = (w, dmg, g, x0, y0) => { seg.push(g, r1(x0), r1(y0), r1(w.x), r1(w.y - 5)); w.hit = 0.1; ogKill(w, dmg, K, 1); };
       for (const w of firsts) { zap(w, S.BDMG, 0, fx, fy - 6); let front = [w];
         for (let g = 1; g <= 1 + S.CJ2 && front.length; g++) { const nxt = []; for (const o of front) { const n2 = g === 1 ? S.SPL : 1; for (const q of hopTo(o, n2)) { done.add(q.id); zap(q, S.SDMG2, g, o.x, o.y - 5); nxt.push(q); } } front = nxt; } }
@@ -7057,7 +7057,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = 'b4ca49';
+const KBUILD = 'fd11d9';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
