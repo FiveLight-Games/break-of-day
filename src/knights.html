@@ -4519,8 +4519,8 @@ function njStartLeap(v) { const l = Math.hypot(v[0], v[1]), d = l > 0.05 ? [v[0]
   Object.assign(K, { nl: 0, cut: -1, km: -1, nlm: m, nx0: K.x, ny0: K.y, nx1: K.x + d[0] * D, ny1: cl(K.y + d[1] * D * 0.8, 16, H - 4), nlN: (K.nlN || 0) + 1, nlk: 0, nQ: K.nQ - 1 }); if (!(K.nCd > 0)) K.nCd = L.CD;
   if (Math.abs(d[0]) > 0.15) K.f = d[0] > 0 ? 1 : -1; }
 function njStartUlt() { const U = NJ.ULT; Object.assign(K, { nPh: 1, nT: 0, nUN: (K.nUN || 0) + 1, cut: -1, vx: 0, vy: 0, nqU: 0, njEnd: 0, njTail: 0 }); K.njA = njAimA(K); K.njJ = njDefJ(K);
-  // his clones always join the ult: with none out he gets 3 (where the clones stick last aimed, else the square ahead), whatever their cooldown
-  if (!(K.CLS || []).some(P => P.dying < 0 && P.left > 0)) { const o = CLV && K.i === ME ? njClFar(CLV[0], CLV[1]) : njClDef(K); Object.assign(K, { clN: (K.clN || 0) + 1, clP: o.map((v, j) => v + (j % 2 ? K.y : K.x)), clUl: K.nUN }); }
+  // his clones always join the ult: any already out vanish and 3 new ones appear where the clones stick last aimed (else the square ahead), whatever their cooldown
+  { const o = CLV && K.i === ME ? njClFar(CLV[0], CLV[1]) : njClDef(K); Object.assign(K, { clN: (K.clN || 0) + 1, clP: o.map((v, j) => v + (j % 2 ? K.y : K.x)), clUl: K.nUN }); }
   if (K.i === ME) { K.in.nj = K.njJ.slice(); K.in.njN = K.nUN; markIn(); }
   if (AUTH()) { K.nSp0 = speed; speed = U.SLOW; slowLabel(); } }
 // the landing circle (sc 1) and the big one when the ult ends (sc ULT.BIGSW): ring + dust on every screen, damage + knockback on the host
@@ -4637,7 +4637,7 @@ const njClJ = (kn, P) => { const J = kn.njF || kn.njJ || njDefJ(kn), dx = P.x - 
 const njClDef = kn => { const f = kn.f || 1, S = NJ.CL.S, h = S / Math.SQRT2; return [f * h, -h * 0.8, f * 2 * h, 0, f * h, h * 0.8]; };
 function njCloneStep(kn, dt, t) { const C = NJ.CL;
   if ((kn.clN || 0) !== (kn.clS || 0)) { kn.clS = kn.clN || 0; if (kn.clN && (kn.clCd > C.CD - 1 || (kn.clUl === kn.nUN && kn.nPh >= 1)) && kn.clP) { /* a stale count from a snapshot, long after the cast, makes no clones */
-    for (const P of kn.CLS || []) njClonePop(kn, P); kn.CLS = (kn.CLS || []).concat([0, 1, 2].map(j => njCloneOne(kn, kn.clP[j * 2], kn.clP[j * 2 + 1]))); snd('jump', kn.x, kn.y); } }
+    const ul = kn.clUl === kn.nUN && kn.nPh >= 1; for (const P of kn.CLS || []) njClonePop(kn, P, ul); kn.CLS = (kn.CLS || []).concat([0, 1, 2].map(j => njCloneOne(kn, kn.clP[j * 2], kn.clP[j * 2 + 1]))); snd('jump', kn.x, kn.y); } }
   const L = kn.CLS; if (!L || !L.length) return;
   const leapC = (kn.nlN || 0), kmC = (kn.kmN || 0), taken = [kn.kmT];
   for (const P of L) { P.col = kn.col; P.age += dt;
@@ -4664,10 +4664,10 @@ function njCloneStep(kn, dt, t) { const C = NJ.CL;
     if (idle && (P.left <= 0 || P.age >= C.LIFE)) njClonePop(kn, P); }
   kn.CLS = L.filter(P => !(P.dying >= C.OUT)); for (const P of L) if (P.dying >= C.OUT) { kn.kills += P.kills; P.kills = 0; } }
 // a clone bursts: smoke, sparks, and everyone right round it is cut (host; half damage like all its hits, credited to him)
-function njClonePop(kn, P) { const C = NJ.CL; if (!P || P.dying >= 0) return; P.dying = 0;
+function njClonePop(kn, P, quiet) { const C = NJ.CL; if (!P || P.dying >= 0) return; P.dying = 0; // quiet: replaced by the ult's clones, it just vanishes (no burst damage)
   for (let n = 0; n < 16; n++) { const a = rr(0, 6.28), r = rr(1, 8); dust.push({ x: P.x + Math.cos(a) * r, y: P.y - rr(0, 9), vx: Math.cos(a) * rr(14, 34), vy: -rr(4, 18), r: rr(2.4, 4.4), t: 0, max: rr(0.5, 1) }); }
   for (let n = 0; n < 10; n++) sparks.push({ x: P.x, y: P.y - 6, vx: rr(-50, 50), vy: rr(-50, 10), t: 0, max: rr(0.15, 0.3) }); snd('dash', P.x, P.y);
-  if (AUTH()) { const k0 = K; K = kn; for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - P.x, dy = (w.y - P.y) * 1.25, d = Math.hypot(dx, dy); if (d > C.POP + UK[w.k].r) continue; w.atk = -1; w.kx += dx / (d || 1) * 80; w.ky += dy / (d || 1) * 40; hurt(w, C.PDMG * C.DM, ww => cleaveFx(ww, ww.x >= P.x ? 1 : -1)); } K = k0; } }
+  if (AUTH() && !quiet) { const k0 = K; K = kn; for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - P.x, dy = (w.y - P.y) * 1.25, d = Math.hypot(dx, dy); if (d > C.POP + UK[w.k].r) continue; w.atk = -1; w.kx += dx / (d || 1) * 80; w.ky += dy / (d || 1) * 40; hurt(w, C.PDMG * C.DM, ww => cleaveFx(ww, ww.x >= P.x ? 1 : -1)); } K = k0; } }
 function ninjaStep(dt, t) {
   if (K.kind !== 'ninja') makeNinja(K);
   const IN = K.in, mvL = Math.hypot(IN.mv[0], IN.mv[1]), mine = AUTH() || K.i === ME, L = NJ.LEAP, U = NJ.ULT;
