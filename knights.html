@@ -3169,13 +3169,13 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
    IG = '170,228,255';
   { const zc = zL, ic = iL; MARK.z = 0.2 + 0.8 * zc + 0.25 * zc; MARK.zw = 1 + 0.6 * zc; MARK.i = 0.2 + 0.8 * ic + 0.25 * ic; MARK.iw = 1 + 0.3 * ic; }
   // ---- pose ----
-  const LS = GAIT.LS, cr = k * (AT === 1 || HK ? 1.1 : AT === 0 ? 2.2 : 2.8) + wind * 0.3 + SV * 1.0 + (HKo ? HKo.cr : 0), bob = w * (Math.abs(Math.cos(ph)) * 0.55 - 0.3) * LS + Math.sin(t * 1.7) * 0.07, breathe = Math.sin(t * 1.7) * 0.06;
+  const LS = GAIT.LS, cr = k * (AT === 1 || HK ? 1.1 : AT === 0 ? 2.2 : 2.8) + wind * 0.3 + SV * 1.0 + (HKo ? HKo.cr : 0) + (opts.crx || 0), bob = w * (Math.abs(Math.cos(ph)) * 0.55 - 0.3) * LS + Math.sin(t * 1.7) * 0.07, breathe = Math.sin(t * 1.7) * 0.06;
   const feet = [1, -1].map((s, i) => { const p = ph + (i ? Math.PI : 0); return [f * s * 1.15 * LS + f * Math.sin(p) * lerp(1.8, 3.6, GAIT.RUN) * LS * w * (opts.st || 1), -Math.max(0, Math.cos(p)) * lerp(1.0, 1.8, GAIT.RUN) * LS * w + Math.sin(p) * 0.12 * w]; });
   if (SV > 0) { const bob2 = Math.sin(t * 9) * 0.12; const sf = [[f * 2.5, -0.9 + bob2], [-f * 2.3, -0.75 + bob2]]; for (let i = 0; i < 2; i++) feet[i] = L2(feet[i], sf[i], SV); }
   const LEG = 4.55, LL = LEG * 2, SOFT = LL * 0.975, px = f * (0.15 + w * GAIT.RUN * 0.35 * LS);
   // standing tall (legs almost straight) unless a leg needs the hips lower to reach its foot: then they dip just enough (straight-legged walk, hips lowest at full stride)
   let py = -8.2 - (4.55 - 3.95) * 2 - 0.25 + bob * 0.3 + Math.sin(t * 1.7) * 0.05; [1, -1].forEach((s2, i) => { const dx = feet[i][0] - (px + f * s2 * 1.9), ay = feet[i][1] - 0.95, R = LL * 0.972; py = Math.max(py, ay - Math.sqrt(Math.max(0, R * R - dx * dx)) + 0.3); });
-  const pel = [px, py + cr], lean = 0.05 + SV * (0.16 + Math.sin(t * 2.3) * 0.04) + w * GAIT.RUN * 0.28 + k * (AT === 1 || HK ? 0.24 : 0.36) - wind * 0.14 + b * 0.05 + (HKo ? HKo.ln : 0);
+  const pel = [px, py + cr], lean = 0.05 + SV * (0.16 + Math.sin(t * 2.3) * 0.04) + w * GAIT.RUN * 0.28 + k * (AT === 1 || HK ? 0.24 : 0.36) - wind * 0.14 + b * 0.05 + (HKo ? HKo.ln : 0) + (opts.lnx || 0);
   // game: opts.yaw turns his upper body round its spine (+ brings the facing-side shoulder A toward the camera, - brings B): the body narrows as it turns side-on and the shoulder coming round drops nearer
   const YW = opts.yaw || 0, YS = Math.max(0.55, Math.abs(Math.cos(YW)));
   const cs = Math.cos(f * lean), sn = Math.sin(f * lean), T = p => { const q = [f * p[0] * YS, p[1]]; return [pel[0] + q[0] * cs - q[1] * sn, pel[1] + q[0] * sn + q[1] * cs]; }, Ts = p => T([f * p[0], p[1]]), SF = f > 0;
@@ -3487,10 +3487,10 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   // ---- draw order (A = facing-side arm, storm; B = trailing arm, ice, nearest the camera) ----
   // game hooks: the swinging arm goes behind the body while its fist is round the far side of him, in front of everything while it's on the near side
   const hkA = !!HKo && HKo.k > 0.05 && HKo.arm === 0, hkB = !!HKo && HKo.k > 0.05 && HKo.arm === 1, armA = () => { weaponOf(0, hA); arm(shA, hA, SF ? SS : IS, 'A', !SF); }, armB = () => { weaponOf(1, hB); arm(shB, hB, SF ? IS : SS, 'B', SF); };
-  if (hkA ? !HKo.front : aLow) armA();
+  const guardBehind = !!HKo && HKo.k > 0.05 && HKo.arm === 1; if (hkA ? !HKo.front : (aLow || guardBehind)) armA();
   if (hkB && !HKo.front) armB();
   torso(); torsoDone = 1; leg(0, SF ? SS : IS, !SF); leg(1, SF ? IS : SS, SF); loin();
-  if (!hkA && !aLow) armA();
+  if (!hkA && !aLow && !guardBehind) armA();
   const hI = () => head(HI, true, f, Math.max(iceOn, argue * Math.max(0, -Math.sin(t * 13))), both ? b : actK), hZ = () => head(HZ, false, argue > 0.3 ? -f : f, Math.max(zapOn, argue * Math.max(0, Math.sin(t * 13))), both ? b : 1 - actK);
   // the head on his facing side is drawn last; the storm shoulder stones sit behind the storm face
   if (SF) { hI(); shoulder(shA, false); hZ(); } else { shoulder(shA, true); hZ(); hI(); }
@@ -3538,7 +3538,95 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
     bub([HZ[0] + f * 0.8, HZ[1] - 3.9 + Math.sin(t * 9) * 0.1], '#@!'); bub([HI[0] - f * 0.6, HI[1] - 3.5 + Math.sin(t * 9 + 2) * 0.1], '?!'); }
 }
 
-return { drawO2, V: VARS[0], ICEM, OUT, arc2, glow, bevel, iceIn, addSmooth, rnd, surfK, SURF, GAIT, col: c => { COL = c; }, arcn: v => { ARCN = v; } };
+// game: the ogre seen from behind (rear three-quarter), for the follow-through of a hook thrown with his near-side arm: his body has wheeled round so we see his back,
+// the punching arm driven out to the target at shoulder height, the guard arm up by his face on the far side (hidden behind him but for the elbow), hips turned,
+// the rear leg back and across, up on the ball of its foot (pivoting), the front leg planted toward the target. o: { e (follow-through 0..1), pi (punching side is ice), cr, iL, zL }
+function drawBack(c, V, t, f, o) {
+  const e = o.e ?? 1, pi = !!o.pi, cr = o.cr || 0, py = -9.6 + cr, SG = V.gc;
+  const mixC = (a, b2, k2) => { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), A = p(a), B = p(b2); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * k2).toString(16).padStart(2, '0')).join(''); };
+  const iL = o.iL ?? 0.5, zL = o.zL ?? 0.5, IS = mixC(V.iceSkin, '#86c9f5', iL), SS = mixC(V.stormSkin, '#262a36', zL * 0.7);
+  { MARK.z = 0.2 + 1.05 * zL; MARK.zw = 1 + 0.6 * zL; MARK.i = 0.2 + 1.05 * iL; MARK.iw = 1 + 0.3 * iL; }
+  const X = p => [p[0] * f, p[1]], XS = pts => pts.map(X), skP = pi ? IS : SS, skG = pi ? SS : IS;
+  const sway = Math.sin(t * 2.4) * 0.12;
+  // ground shadow
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(f * 0.5, 0.2, 6.4, 1.6, 0, 0, 7); c.fill();
+  // ---- legs ----
+  const leg = (hip, ank, heelUp, sk, ice, seed) => { const H0 = X(hip), A0 = X(ank), k1 = ik(H0, A0, 4.55, 4.55, 1), k2 = ik(H0, A0, 4.55, 4.55, -1), K0 = f * k1[0] > f * k2[0] ? k1 : k2;
+    const TH = limbP(H0, K0, 1.85, 1.3, 1.08, 0.4), SH = limbP(K0, A0, 1.3, 0.85, 1.15, 0.38); cel(c, TH, sk, { d: 0.16, hl: 0.1 }); cel(c, SH, sk, { d: 0.18, hl: 0.12 });
+    // the calf (we see the back of the leg): a swelling plate, and the crease behind the knee
+    { const a = L2(K0, A0, 0.12), b = L2(K0, A0, 0.55), dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, n = [-dy / l, dx / l], Q = [a, [L2(a, b, 0.4)[0] + n[0] * 0.95, L2(a, b, 0.4)[1] + n[1] * 0.95], b, [L2(a, b, 0.45)[0] - n[0] * 0.85, L2(a, b, 0.45)[1] - n[1] * 0.85]];
+      c.beginPath(); addSmooth(c, Q); c.fillStyle = 'rgba(20,12,40,.16)'; c.fill(); c.strokeStyle = 'rgba(20,12,40,.3)'; c.lineWidth = 0.09; c.stroke(); }
+    c.strokeStyle = 'rgba(20,12,40,.35)'; c.lineWidth = 0.12; c.lineCap = 'round'; c.beginPath(); c.moveTo(K0[0] - 0.7, K0[1] + 0.1); c.quadraticCurveTo(K0[0], K0[1] + 0.45, K0[0] + 0.7, K0[1] + 0.1); c.stroke();
+    // the foot: a heel and the side of a big flat foot pointing to the target; the rear one is up on its toes, heel turned out
+    const fx = f, hl = [A0[0] - fx * 0.2, A0[1] + 0.75], toe = heelUp ? [A0[0] + fx * 1.4, A0[1] + 2.2] : [A0[0] + fx * 3.0, A0[1] + 0.95];
+    const FT = heelUp ? [[A0[0] - fx * 0.9, A0[1] + 0.2], [A0[0] - fx * 0.8, A0[1] + 1.2], [A0[0] + fx * 0.3, A0[1] + 2.0], [toe[0] + fx * 0.4, toe[1] + 0.1], [toe[0], toe[1] - 0.7], [A0[0] + fx * 0.7, A0[1] - 0.1]]
+      : [[A0[0] - fx * 1.0, A0[1] - 0.1], [A0[0] - fx * 1.1, A0[1] + 0.85], [toe[0], toe[1] + 0.05], [toe[0] + fx * 0.35, toe[1] - 0.5], [toe[0] - fx * 0.6, A0[1] - 0.15], [A0[0] + fx * 0.6, A0[1] - 0.5]];
+    cel(c, FT, sk, { d: 0.2, hl: 0.08 }); c.fillStyle = heelUp ? 'rgba(235,225,200,.55)' : 'rgba(20,12,40,.12)'; c.beginPath(); c.ellipse(heelUp ? A0[0] - fx * 0.35 : hl[0], heelUp ? A0[1] + 0.9 : hl[1], 0.75, 0.5, 0, 0, 7); c.fill();
+    if (!heelUp) for (let j = 0; j < 3; j++) { const tx = toe[0] - fx * (0.2 + j * 0.55), ty = toe[1] - 0.15 - j * 0.12; c.fillStyle = '#efe6cf'; c.strokeStyle = OUT; c.lineWidth = 0.1 * OLW; c.beginPath(); c.ellipse(tx, ty, 0.3, 0.2, 0, 0, 7); c.fill(); c.stroke(); }
+    if (ice) { snowflake(c, L2(H0, K0, 0.5), 0.55, t, seed); snowflake(c, L2(K0, A0, 0.45), 0.4, t, seed + 2); }
+    else veins(c, bolt(L2(H0, K0, 0.2), L2(K0, A0, 0.6), 300 + seed, 5, 0.3), SG, V.core, seed, t, 0.07);
+    return K0; };
+  const hipG = [-1.4, py - 0.2], hipP = [1.2, py + 0.15];
+  leg(hipG, [4.0 + sway * 0.2, -1.45], false, skG, !pi, 7);          // front leg (guard side), planted toward the target, farthest away
+  // ---- the guard arm: up by his face on the far side; only the elbow and the back of the arm show past his back ----
+  const Sg = X([-3.4, py - 8.2]), Eg = X([-4.9, py - 5.6]), Hg = X([-1.6, py - 10.4]);
+  cel(c, limbP(Sg, Eg, 1.6, 1.25, 1.1, 0.42), skG, { d: 0.16, hl: 0.1 }); cel(c, limbP(Eg, Hg, 1.25, 1.0, 1.12, 0.4), skG, { d: 0.16, hl: 0.08 });
+  leg(hipP, [-3.3, -1.7], true, skP, pi, 11);                          // rear leg (punch side), back and across, pivoting on the ball of the foot
+  // ---- the back ----
+  const TO = XS([[-2.6, 0.6], [-3.5, -1.6], [-3.8, -4.2], [-4.4, -6.6], [-4.5, -8.4], [-3.6, -9.7], [-1.6, -10.4], [0.2, -10.5], [2.3, -10.2], [4.0, -9.4], [4.8, -8.0], [4.6, -6.2], [4.0, -3.8], [3.3, -1.4], [2.4, 0.4], [0, 0.75]].map(([x, y]) => [x, y + py]));
+  cel(c, TO, skG, { d: 0.1, hl: 0.1, paint: () => {
+    // the punching side's half (the halves meet at a wavy seam down his spine)
+    const seam = []; for (let y = 1.5; y >= -11.5; y -= 0.5) seam.push(X([0.3 + Math.sin(y * 1.4) * 0.26, y + py])); c.beginPath(); seam.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.lineTo(...X([12, py - 11.5])); c.lineTo(...X([12, py + 1.5])); c.closePath(); c.fillStyle = skP; c.fill();
+    const musc = (pts, dk, hl) => { const P = XS(pts.map(([x, y]) => [x, y + py])); c.beginPath(); addSmooth(c, P); c.fillStyle = `rgba(20,12,40,${dk})`; c.fill(); const [cx, cy] = ctr(P), H = P.map(p => [cx + (p[0] - cx) * 0.75 + LIT[0] * 0.2, cy + (p[1] - cy) * 0.7 + LIT[1] * 0.22]); c.beginPath(); addSmooth(c, H); c.fillStyle = `rgba(255,255,255,${hl})`; c.fill(); c.beginPath(); addSmooth(c, P); c.strokeStyle = 'rgba(20,12,40,.3)'; c.lineWidth = 0.1; c.stroke(); };
+    // traps from the neck out to each shoulder, the shoulder blades, the lats sweeping in to the waist, two columns either side of the spine
+    musc([[-0.4, -10.2], [-2.6, -9.6], [-3.6, -8.8], [-1.6, -8.6], [-0.3, -8.0]], 0.14, 0.18); musc([[0.9, -10.2], [3.1, -9.6], [4.2, -8.7], [2.2, -8.5], [0.9, -7.9]], 0.14, 0.18);
+    musc([[-3.6, -8.4], [-1.2, -8.1], [-0.8, -6.4], [-1.9, -5.2], [-3.4, -5.8], [-4.0, -7.2]], 0.18, 0.2); musc([[1.4, -8.1], [3.9, -8.3], [4.4, -7.0], [3.8, -5.6], [2.4, -5.1], [1.2, -6.3]], 0.18, 0.2);
+    musc([[-3.8, -5.4], [-1.6, -4.8], [-0.9, -2.4], [-2.2, -1.0], [-3.4, -2.6]], 0.16, 0.14); musc([[2.0, -4.8], [4.1, -5.3], [3.6, -2.6], [2.5, -1.0], [1.4, -2.4]], 0.16, 0.14);
+    musc([[-0.9, -4.6], [-0.15, -4.7], [-0.1, -0.8], [-0.9, -0.6], [-1.15, -2.6]], 0.15, 0.16); musc([[0.75, -4.7], [1.5, -4.6], [1.75, -2.6], [1.5, -0.6], [0.7, -0.8]], 0.15, 0.16);
+    c.strokeStyle = 'rgba(20,12,40,.3)'; c.lineWidth = 0.13; c.beginPath(); c.moveTo(...X([0.3, py - 9.5])); c.lineTo(...X([0.32, py - 0.4])); c.stroke();
+    // markings: frost on the ice half, lightning cracks on the storm half
+    const iceSide = s2 => (s2 > 0) === pi; for (const s2 of [-1, 1]) { if (iceSide(s2)) { snowflake(c, X([s2 * 2.4, py - 7.0]), 0.75, t, 21 + s2); snowflake(c, X([s2 * 1.5, py - 3.6]), 0.5, t, 25 + s2); snowflake(c, X([s2 * 3.0, py - 2.4]), 0.45, t, 29 + s2); for (let i = 0; i < 4; i++) { const p = X([s2 * (3.8 - (i % 2) * 0.5), py - 8.6 + i * 1.6]); bevel(c, chunk(p[0], p[1], 0.45 + rnd(i) * 0.2, 0.32, rnd(i + 3), 240 + i, 5), '#dff4ff', { lw: 0.09, k: 0.5 }); } }
+      else { veins(c, bolt(X([s2 * 1.0, py - 9.2]), X([s2 * 3.4, py - 6.0]), 41, 5, 0.32), SG, V.core, 11, t, 0.09); veins(c, bolt(X([s2 * 2.8, py - 5.4]), X([s2 * 1.4, py - 1.2]), 47, 6, 0.3), SG, V.core, 12, t, 0.08); } }
+    c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = 'rgba(210,235,255,.28)'; c.lineWidth = 0.5; c.beginPath(); seam.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.stroke(); c.restore(); } });
+  // ---- belt and the back flap of the loincloth ----
+  { const B = XS([[-2.9, -0.35], [3.3, -0.55], [3.2, 0.55], [-2.8, 0.75]].map(([x, y]) => [x, y + py])); cel(c, B, '#5a3d27', { d: 0.3, hl: 0.15, lw: 0.16 });
+    const sw2 = sway - f * 0.2, LC = XS([[-1.4, 0.4], [1.6, 0.35], [1.8 + sw2, 3.4], [1.0 + sw2, 3.1], [0.4 + sw2, 3.6], [-0.4 + sw2, 3.2], [-1.3 + sw2, 3.5]].map(([x, y]) => [x, y + py])); cel(c, LC, COL, { d: 0.22, hl: 0.12, lw: 0.15 }); }
+  // ---- heads: the backs of both heads, turned toward the target (an ear, the jaw corner and a tusk tip show on the target side) ----
+  const head = (H, ice, hs) => { const r = 1.75, Pt = p => [H[0] + p[0] * f * r, H[1] + p[1] * r], sk = ice ? IS : SS;
+    // neck down into the shoulders
+    cel(c, [[H[0] - 1.2, H[1] + 0.8], [H[0] + 1.3, H[1] + 0.9], [H[0] + 1.9, H[1] + 2.9], [H[0] - 1.9, H[1] + 2.9]], sk, { d: 0.1, hl: 0.05, noStroke: 1 });
+    if (ice) { const sp = [[-0.95, -0.4], [-1.2, -1.4], [-0.6, -1.05], [-0.5, -2.1], [0.0, -1.2], [0.3, -2.25], [0.55, -1.15], [1.05, -1.75], [0.95, -0.7]].map(Pt); path(c, sp); c.fillStyle = '#cdeeff'; c.fill(); c.strokeStyle = OUT; c.lineWidth = 0.15 * OLW; c.stroke(); for (const i of [3, 5]) snowflake(c, L2(sp[i], sp[i + 1], 0.35), 0.28, t, 50 + i); }
+    // ear on the target side, then the skull (we see the back of it)
+    cel(c, [[0.85, -0.3], [1.35, -0.6], [1.25, 0.15], [0.95, 0.3]].map(Pt), sk, { lw: 0.15, d: 0.3 });
+    const HP = [[-1.0, -0.35], [-0.78, -0.98], [0.0, -1.15], [0.78, -0.95], [1.06, -0.3], [1.1, 0.42], [0.85, 0.98], [0.1, 1.12], [-0.62, 0.95], [-0.98, 0.4]].map(Pt); cel(c, HP, sk, { d: 0.16 });
+    // a tusk tip and the jaw corner past the edge of the head on the target side
+    { const a = Pt([1.0, 0.82]), b = Pt([1.35, 0.25]); c.beginPath(); c.moveTo(...a); c.quadraticCurveTo(...Pt([1.35, 0.7]), ...b); c.lineTo(...Pt([1.18, 0.78])); c.closePath(); c.fillStyle = ice ? '#dff4ff' : '#f3ead2'; c.fill(); c.strokeStyle = OUT; c.lineWidth = 0.1 * OLW; c.stroke(); }
+    c.strokeStyle = 'rgba(20,12,40,.28)'; c.lineWidth = 0.1; c.beginPath(); c.moveTo(...Pt([-0.55, 0.85])); c.quadraticCurveTo(...Pt([0.2, 1.0]), ...Pt([0.75, 0.75])); c.stroke();
+    if (ice) { c.fillStyle = '#e6f6ff'; for (let i = 0; i < 4; i++) { const x0 = 0.35 + i * 0.18; path(c, [Pt([x0, 0.95]), Pt([x0 + 0.14, 1.55 + (i % 2) * 0.25]), Pt([x0 + 0.24, 0.95])]); c.fill(); } }
+    else { // the mohawk from behind: the three bolt locks in a row along the top of his skull, the nearest one biggest
+      for (let j = 2; j >= 0; j--) { const bx = -0.15 + j * 0.28, s2 = 1 - j * 0.12, base = Pt([bx, -0.95]), up = [-0.08 * f, -1], acr = [1, 0], L = 1.35 * s2 * r, wd = 0.7 * s2 * r, P = (v, u) => [base[0] + acr[0] * v * wd * f + up[0] * u * L, base[1] + acr[1] * v * wd + up[1] * u * L];
+        const ol = [P(-0.45, -0.3), P(0.45, -0.3), P(0.15, 0.4), P(0.7, 0.4), P(-0.05, 1.0), P(0.12, 0.56), P(-0.5, 0.56)]; path(c, ol); c.fillStyle = shade(SS, -0.35); c.fill(); c.lineJoin = 'miter'; c.strokeStyle = OUT; c.lineWidth = 0.15 * OLW; c.stroke();
+        c.save(); c.globalAlpha = Math.min(1, 0.35 + 0.65 * MARK.z); path(c, [P(-0.12, 0.12), P(0.1, 0.12), P(-0.05, 0.46), P(0.4, 0.46), P(0.02, 0.84), P(0.06, 0.52), P(-0.3, 0.52)]); c.fillStyle = `rgb(${SG})`; c.fill(); c.restore(); } }
+    return HP; };
+  const HG = X([-2.2, py - 11.7]), HPp = X([2.4, py - 11.3]); head(HG, !pi, 0); head(HPp, pi, 1);
+  // ---- shoulder caps: stone plates on the storm shoulder, ice spikes on the ice shoulder ----
+  const cap = (S, ice, s2) => { if (ice) for (let i = 0; i < 3; i++) { const b = [S[0] + (i - 1) * 0.8 * f, S[1] - 0.6 - Math.abs(i - 1) * -0.2]; bevel(c, [[b[0] - 0.45, b[1] + 0.3], [b[0] + (i - 1) * 0.3 * f, b[1] - 1.5 + Math.abs(i - 1) * 0.4], [b[0] + 0.45, b[1] + 0.3]], ICEM.base, { lw: 0.12, k: 0.5 }); }
+    else piece(c, chunk(S[0], S[1] - 0.6, 1.2, 0.75, 0.2 * s2, 81, 7), 'stone', 81, t, V, { crack: 0.6 }); };
+  // ---- the punching arm: driven out at the target at shoulder height, carrying on round a little as he follows through ----
+  const Sp = X([3.7, py - 8.1]), F = X([3.7 + 6.4 - 1.1 * e, py - 8.4 - 1.5 * e]), e1 = ik(Sp, F, 3.5, 3.5, 1), e2 = ik(Sp, F, 3.5, 3.5, -1), E = e1[1] > e2[1] ? e1 : e2;
+  cap(Sg, !pi, -1);
+  cel(c, limbP(Sp, E, 1.7, 1.3, 1.12, 0.4), skP, { d: 0.16, hl: 0.12 }); cel(c, limbP(E, F, 1.3, 1.05, 1.14, 0.38), skP, { d: 0.16, hl: 0.12 });
+  if (pi) { snowflake(c, L2(Sp, E, 0.5), 0.55, t, 61); snowflake(c, L2(E, F, 0.45), 0.42, t, 63); } else veins(c, bolt(L2(Sp, E, 0.2), L2(E, F, 0.75), 410, 6, 0.3), SG, V.core, 14, t, 0.08);
+  { const dx = F[0] - E[0], dy = F[1] - E[1], l = Math.hypot(dx, dy) || 1, d = [dx / l, dy / l], n = [-d[1], d[0]], wb = L2(E, F, 0.66), wb2 = L2(E, F, 0.84), W = (p, v) => [p[0] + n[0] * v, p[1] + n[1] * v];
+    path(c, [W(wb, 1.3), W(wb2, 1.35), W(wb2, -1.35), W(wb, -1.3)]); c.fillStyle = COL; c.fill(); c.strokeStyle = OUT; c.lineWidth = 0.15 * OLW; c.stroke();
+    // the fist: a big rounded block, knuckles toward the target, thumb wrapped over
+    const fc = [F[0] + d[0] * 0.5, F[1] + d[1] * 0.5], FP = [[-1.0, -1.05], [0.4, -1.2], [1.25, -0.8], [1.35, 0.3], [1.0, 1.05], [-0.2, 1.15], [-1.05, 0.7]].map(([u, v]) => [fc[0] + d[0] * u + n[0] * v, fc[1] + d[1] * u + n[1] * v]);
+    cel(c, FP, skP, { d: 0.24, hl: 0.12, lw: 0.17 }); c.strokeStyle = 'rgba(20,12,40,.35)'; c.lineWidth = 0.1; for (const v of [-0.5, 0.15, 0.75]) { c.beginPath(); c.moveTo(fc[0] + d[0] * 0.5 + n[0] * (v - 0.25), fc[1] + d[1] * 0.5 + n[1] * (v - 0.25)); c.quadraticCurveTo(fc[0] + d[0] * 1.15 + n[0] * v, fc[1] + d[1] * 1.15 + n[1] * v, fc[0] + d[0] * 0.5 + n[0] * (v + 0.25), fc[1] + d[1] * 0.5 + n[1] * (v + 0.25)); c.stroke(); }
+    for (const v of [-0.55, 0.15, 0.8]) { const p = [fc[0] + d[0] * 1.3 + n[0] * v, fc[1] + d[1] * 1.3 + n[1] * v]; c.fillStyle = '#efe6cf'; c.strokeStyle = OUT; c.lineWidth = 0.08 * OLW; c.beginPath(); c.ellipse(p[0], p[1], 0.18, 0.13, Math.atan2(d[1], d[0]), 0, 7); c.fill(); c.stroke(); }
+    c.save(); c.globalCompositeOperation = 'lighter'; glow(c, fc[0], fc[1], 3.4, pi ? '170,228,255' : SG, 0.5); c.restore(); }
+  cap(Sp, pi, 1);
+}
+return { drawO2, drawBack, V: VARS[0], ICEM, OUT, arc2, glow, bevel, iceIn, addSmooth, rnd, surfK, SURF, GAIT, col: c => { COL = c; }, arcn: v => { ARCN = v; } };
 })();
 const OG = { SPD: 0.504,
   // footfalls: every step shakes the screen and hits everyone within R of the foot (DMG, knockback KB); kills are crushed flat or torn apart
@@ -3546,7 +3634,7 @@ const OG = { SPD: 0.504,
   // ULT: Rampage. WIND s of roaring, then a charge that builds from V0 to V1 x his run over ACC s, steered by the move stick (turn rate TURN0 slow .. TURN1 at full tilt), slowing to a stop over the
   // last DEC s of T. Anyone he runs into (within HIT ahead) takes DMG + knockback KB (each at most every GAP s); small ones (not heavy, UK hp <= SMALL) are grabbed instead, up to HAND a handful,
   // by whichever arm is free: the storm arm lifts them overhead, lightning strikes them (ZS), and he flings them aside (ZR) as ash; the ice arm freezes them and slams them down (IS) to shatter
-  RAMP: { T: 9, WIND: 0.7, ACC: 2.6, V0: 0.9, V1: 3.6, TURN0: 2.6, TURN1: 1.25, DEC: 0.7, HIT: 9, DMG: 170, KB: 240, GAP: 0.5, SMALL: 350, HAND: 3, ZT: 1.35, ZS: 0.62, ZR: 0.96, IT: 1.12, IS: 0.7, SR: 11, SDMG: 90, STEPR: 12, STEPD: 70 }, AT: 1.0, HIT: 0.42, DMG: 170, R: 17, KB: 70,
+  RAMP: { T: 9, WIND: 0.7, ACC: 2.6, V0: 0.9, V1: 3.6, TURN0: 4.6, TURN1: 2.9, DEC: 0, BIG: 2, HIT: 9, DMG: 170, KB: 240, GAP: 0.5, SMALL: 350, HAND: 3, ZT: 1.35, ZS: 0.62, ZR: 0.96, IT: 1.12, IS: 0.7, SR: 11, SDMG: 90, STEPR: 12, STEPD: 70 }, AT: 1.0, HIT: 0.42, DMG: 170, R: 17, KB: 70,
   // the swing combo: T per swing (frost hook, storm hook, smash), fist reach FR within a cone FA either side of the aim; frost wave out to WR in a cone WA (WDMG + slow WSL s
   // to anyone the fist didn't hit); chain lightning from the fist: first target within CR in a cone CA, then CJ jumps of CJR, CDMG each; smash: centre SO ahead, radius SR, SDMG falling to 60%
   // (2026-10-18 rework: slow heavy swings, hit at HIT[k] of each; storm hook: BIG sparks leap from the fist to BIG different enemies within CR in a ±CA cone (BDMG),
@@ -3556,9 +3644,9 @@ const OG = { SPD: 0.504,
   SURF: { T: 4.2, V: 92, TURN: 2.4, ZR: 64.6, ZN: 3, ZDPS: 561, TRAIL: 3.2, TW: 7.65, SLOW: 0.15, CD: 9,
     // the frost blast as he lays the platform: a cone (R, ±A) ahead: DMG + slowed SL s; weak enemies (UK hp <= WEAK, not heavy) frozen solid for FZ s;
     // riding into a frozen one (within SH + its radius) shatters it: dead, and everyone within SR of it takes SDMG and is knocked back SKB
-    CONE: { R: 52, A: 0.65, DMG: 140, SL: 3, FZ: 4, WEAK: 350, SH: 9, SR: 14, SDMG: 60, SKB: 120 } },
+    CONE: { R: 64, A: 0.7, DPS: 120, DMG: 140, SL: 3, FZ: 4, WEAK: 350, SH: 9, SR: 14, SDMG: 60, SKB: 120 } },
   // cloud: R x1.5 again (2026-10-18), strikes a little weaker and a little more often, and never the same enemy twice within SAME s
-  CLOUD: { CAST: 0.9, FORM: 0.6, T: 5.5, R: 61.2, H: 40, EVERY: 0.26, KILL: 7.65, KDMG: 600, SAME: 0.4, RANGE: 119, CD: 10 },
+  CLOUD: { CAST: 0.9, FORM: 0.6, T: 5.5, R: 61.2, H: 40, EVERY: 0.37, KILL: 7.65, KDMG: 600, SAME: 0.4, RANGE: 119, CD: 10 },
   SPK: { LEN: 119, W: 27.2, SPD: 187, GAP: 2.6, HOLD: 0.65, LIFE: 2.4, HIT: 0.48, HDMG: 374, CD: 6 },
   DRG: { BUILD: 1.6, STRIKE: 0.7, RISE: 0.6, SPD: 68, LEN: 323, SEG: 30, GAP: 2.85, R: 25.5, Z: 18, SHAT: 0.35, BR: 7.8, SR: 30.6, HDMG: 1020 } };
 // OGSC: he's drawn 15% bigger than the hand-off's size; ST: his strides are 1.75x longer (and his legs cycle that much slower per distance, so the feet still don't slide)
@@ -3583,7 +3671,7 @@ function ogreStep(dt, t) {
   const dashP = (IN.dashN || 0) !== (K.dashSeen || 0); K.dashSeen = IN.dashN || 0; const leapP = (IN.leapN || 0) !== (K.leapSeen || 0); K.leapSeen = IN.leapN || 0;
   const lvP = (IN.lvN || 0) !== (K.lvSeen || 0); K.lvSeen = IN.lvN || 0; const ultP = (IN.ultN || 0) !== (K.ultSeen || 0); K.ultSeen = IN.ultN || 0;
   K.st = 'fight'; for (const k of ['svCd', 'clCd', 'spCd']) K[k] = Math.max(0, (K[k] || 0) - dt);
-  const ram = K.ogR >= 0, drg = K.ogDT >= 0 || ram, rooted = K.ogDT >= 0 && K.ogDT < O.DRG.BUILD + O.DRG.STRIKE;
+  const ram = K.ogR >= 0 && K.ogR < O.RAMP.T, drg = K.ogDT >= 0 || ram, rooted = K.ogDT >= 0 && K.ogDT < O.DRG.BUILD + O.DRG.STRIKE;
   // ---- starting things ----
   if (mine && ultP && ultReady(K) && !drg) { const a = IN.ulV ? Math.atan2(IN.ulV[1] / OGY, IN.ulV[0]) : mvL > 0.2 ? Math.atan2(IN.mv[1] / OGY, IN.mv[0]) : ((K.f || 1) > 0 ? 0 : Math.PI); Object.assign(K, { ogR: 0, ogRN: (K.ogRN || 0) + 1, ogRA: a, ogRV: 0, ogZc: -1, ogIc: -1, sv: -1, ou: -1, ogH: 0.5 }); K.f = Math.cos(a) >= 0 ? 1 : -1; }
   else if (mine && dashP && IN.dashD && !(K.svCd > 0) && !drg) { Object.assign(K, { sv: 0, svN: (K.svN || 0) + 1, svA: Math.atan2(IN.dashD[1], IN.dashD[0]), svCd: O.SURF.CD + O.SURF.T, ou: -1, ogH: 1 }); }
@@ -3596,8 +3684,8 @@ function ogreStep(dt, t) {
   // a new combo starts at 1 after a pause (SW.GAP); while surfing he only throws the two hooks, alternating ----
   const SWG = O.SW; if (!(K.ou >= 0) && IN.aim && !rooted && !ram && !(K.clT < 0 && K.clT > -O.CLOUD.CAST)) { const a = Math.atan2(IN.aim[1] / OGY, IN.aim[0]), fresh = t - (K.ouE ?? -9) > SWG.GAP; let c2 = fresh ? 0 : ((K.ouC ?? -1) + 1) % 3; if (K.sv >= 0 && c2 === 2) c2 = 0;
     Object.assign(K, { ou: 0, ouN: (K.ouN || 0) + 1, ouS: 0, ouA: a, ouC: c2, ouK: c2, ogH: c2 === 0 ? 1 : c2 === 1 ? 0 : K.ogH }); if (Math.abs(Math.cos(a)) > 0.2) K.f = Math.cos(a) > 0 ? 1 : -1; }
-  if (K.ou >= 0) { const u0 = K.ou, T0 = K.ouS ? O.AT : SWG.T[K.ouK ?? 2]; K.ou += dt / T0; const HT = K.ouS ? 2 : SWG.HIT[K.ouK ?? 2]; if (u0 < HT && K.ou >= HT && !K.ouS) ogSwingHit(K.ouK, K.ouA, host);
-    if (K.ou >= 1) { K.ou = -1; K.ouE = t; } }
+  if (K.ou >= 0) { const u0 = K.ou, T0 = K.ouS ? O.AT : SWG.T[K.ouK ?? 2]; K.ou += dt / T0; const HT = K.ouS ? 2 : SWG.HIT[K.ouK ?? 2]; if (u0 < HT && K.ou >= HT && !K.ouS) ogSwingHit(K.ouK, K.ouA, host, K.ouBig ? OG.RAMP.BIG : 1);
+    if (K.ou >= 1) { K.ou = -1; K.ouE = t; K.ouBig = 0; } }
   // ---- frost surf: ride the ice the frost head lays down, steering with the move stick; the storm head zaps up to 3 around him ----
   let SV = 0; if (K.sv >= 0) { K.sv += dt; if (K.sv > O.SURF.T) K.sv = -1; else SV = OGX.surfK(K.sv * OGX.SURF.T / O.SURF.T); }
   if (SV > 0 && mvL > 0.2) { const want = Math.atan2(IN.mv[1] / OGY, IN.mv[0]); let da = want - K.svA; da -= Math.round(da / (2 * Math.PI)) * 2 * Math.PI; K.svA += cl(da, -O.SURF.TURN * dt, O.SURF.TURN * dt); }
@@ -3605,10 +3693,13 @@ function ogreStep(dt, t) {
   if (K.svN && K.svN !== K.svNs) { K.svNs = K.svN; if (K.sv >= 0 && K.sv < 0.5) { const CN = O.SURF.CONE; FX.push({ k: 'ogsc', x: K.x, y: K.y, a: K.svA, t: 0, max: 1.1, sd: K.svN * 17 + K.i }); snd('fwave', K.x, K.y); snd('plume', K.x, K.y);
     if (host) for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.x, dy = (w.y - K.y) / OGY, r = Math.hypot(dx, dy); if (r > CN.R + UK[w.k].r) continue; let da = Math.atan2(dy, dx) - K.svA; da -= Math.round(da / 6.283) * 6.283; if (Math.abs(da) > CN.A && r > 6) continue;
       w.sl = Math.max(w.sl || 0, CN.SL); w.atk = -1; if (!UK[w.k].heavy && UK[w.k].hp <= CN.WEAK) { w.ogFz = CN.FZ; w.ogFo = K.i; w.kx = w.ky = 0; w.hit = 0.1; } else ogKill(w, CN.DMG, K); } } }
+  // the freezing cone keeps blowing ahead of him for the whole surf: the weak freeze solid, everyone else is hurt and slowed
+  if (host && SV > 0.25) { const CN = O.SURF.CONE; for (const w of walkers) { if (w.hp <= 0 || w.ogFz > 0) continue; const dx = w.x - K.x, dy = (w.y - K.y) / OGY, r = Math.hypot(dx, dy); if (r > CN.R + UK[w.k].r) continue; let da = Math.atan2(dy, dx) - K.svA; da -= Math.round(da / 6.283) * 6.283; if (Math.abs(da) > CN.A && r > 6) continue;
+    w.sl = Math.max(w.sl || 0, 1); if (!UK[w.k].heavy && UK[w.k].hp <= CN.WEAK) { w.ogFz = CN.FZ; w.ogFo = K.i; w.atk = -1; w.kx = w.ky = 0; w.hit = 0.1; } else ogKill(w, CN.DPS * dt, K); } }
   // riding into a frozen enemy shatters it
   if (host && SV > 0.2) { const CN = O.SURF.CONE; for (const w of walkers) if (w.hp > 0 && w.ogFz > 0 && ogDist(w.x, w.y, K.x, K.y) < CN.SH + UK[w.k].r) ogShatter(w, K.svA); }
   for (const p of K.ogTr) p.a += dt; while (K.ogTr.length && K.ogTr[0].a > O.SURF.TRAIL) K.ogTr.shift();
-  if (SV > 0.3) K.ogTr.push({ x: K.x + Math.cos(K.svA) * 4, y: K.y + Math.sin(K.svA) * 4 * OGY, a: 0 });
+  if (SV > 0.3) K.ogTr.push({ x: K.x + Math.cos(K.svA) * 4, y: K.y + Math.sin(K.svA) * 4 * OGY, a: 0, n: (K.ogTN = (K.ogTN || 0) + 1) });
   if (host) { if (SV > 0.2) { const near = walkers.filter(w => w.hp > 0 && ogDist(w.x, w.y, K.x, K.y) < O.SURF.ZR).sort((a, b) => ogDist(a.x, a.y, K.x, K.y) - ogDist(b.x, b.y, K.x, K.y)).slice(0, O.SURF.ZN);
       for (const w of near) { ogKill(w, O.SURF.ZDPS * dt, K, 1); } const ids = near.map(w => w.id); if (ids.join() !== (K.ogZ || []).join()) K.ogZ = ids; } else if ((K.ogZ || []).length) K.ogZ = [];
     // the ice trail slows anyone standing on it
@@ -3647,11 +3738,11 @@ function ogreStep(dt, t) {
   // ---- strikes the host listed: every screen draws each new one ----
   for (const s3 of K.ogS || []) if (s3[0] > (K.ogSs || 0)) { K.ogSs = s3[0]; const cl2 = K.clT >= 0 && K.clT < OG.CLOUD.T && ogDist(s3[1], s3[2], K.clX, K.clY) < OG.CLOUD.R + 4; OGFX.strikes.push({ x: s3[1], y: s3[2], t: 0, sd: s3[0] * 37 + K.i, cx: cl2 ? K.clX : null, cy: cl2 ? K.clY : null }); snd('boom', s3[1], s3[2]); }
   // ---- moving ----
-  if (ram) ogRampStep(dt, t, host, IN, mvL);
-  let v2 = RUN * O.SPD * (K.ou >= 0 && K.ouS && K.ou < 0.6 ? 0.35 : 1) * (K.clT < 0 && K.clT > -O.CLOUD.CAST ? 0.3 : 1) * (rooted ? 0 : 1);
+  if (K.ogR >= 0) ogRampStep(dt, t, host, IN, mvL);
+  let v2 = RUN * O.SPD * (K.ou >= 0 && K.ouS && K.ou < 0.6 ? 0.35 : K.ou >= 0 && K.ouBig && K.ou < 0.78 ? 0.3 : 1) * (K.clT < 0 && K.clT > -O.CLOUD.CAST ? 0.3 : 1) * (rooted ? 0 : 1);
   if (ram) { K.vx = Math.cos(K.ogRA) * K.ogRV; K.vy = Math.sin(K.ogRA) * K.ogRV * OGY; if (Math.abs(Math.cos(K.ogRA)) > 0.12) K.f = Math.cos(K.ogRA) > 0 ? 1 : -1; }
   else if (SV > 0) { const vv = O.SURF.V * SV; K.vx = lerp(K.vx || 0, Math.cos(K.svA) * vv, 1 - Math.exp(-dt * 8)); K.vy = lerp(K.vy || 0, Math.sin(K.svA) * vv * OGY, 1 - Math.exp(-dt * 8)); if (Math.abs(Math.cos(K.svA)) > 0.15) K.f = Math.cos(K.svA) > 0 ? 1 : -1; }
-  else if (mvL > 0.12 && v2 > 0) { const k = Math.min(1, mvL), e = 1 - Math.exp(-dt * 10); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e); } else { const dmp = Math.exp(-dt * 10); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
+  else if (mvL > 0.12 && v2 > 0) { if (K.ogSl > 0) K.ogSl -= dt; const k = Math.min(1, mvL), e = 1 - Math.exp(-dt * (K.ogSl > 0 ? 2.5 : 10)); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e); } else { if (K.ogSl > 0) K.ogSl -= dt; const dmp = Math.exp(-dt * (K.ogSl > 0 ? 2.5 : 10)); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
   const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy);
   K.spd = lerp(K.spd || 0, SV > 0 ? 0 : md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); if (!(SV > 0)) { const p0 = K.ogPh; K.ogPh += md / OGSC * Math.PI / (2 * lerp(1.8, 3.6, ogRun(K)) * OGX.GAIT.LS * ogStride(K)); if (Math.floor((K.ogPh - Math.PI / 2) / Math.PI) !== Math.floor((p0 - Math.PI / 2) / Math.PI) && K.spd > 4) ogStep(Math.floor((K.ogPh - Math.PI / 2) / Math.PI), host); }
   if (!ram && !(K.ou >= 0) && !IN.aim && !(SV > 0) && !rooted && mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1;
@@ -3666,21 +3757,23 @@ function ogAimDraw(c, t) { const kn = KN[ME]; if (!OGAIM || !OGAIM.v || !kn || k
 const ogRun = kn => kn.ogR >= 0 ? cl(((kn.ogRV || 0) - RUN * OG.SPD * 1.2) / (RUN * OG.SPD * 1.6), 0, 1) : 0, ogStride = kn => lerp(OGST, 1.25, ogRun(kn));
 // the arms while he rampages: a grab-lift-strike-fling cycle for the storm arm, a grab-freeze-slam cycle for the ice arm (s = seconds into the cycle); facing-relative hand
 // positions relative to his pelvis, eased segment to segment (the slam accelerates into the ground); k = how much it overrides his running arm swing
-const OGZK = [[0, [5.5, -6.0]], [0.16, [7.0, -3.4]], [0.5, [2.2, -16.0]], [0.8, [2.4, -16.6]], [0.88, [3.8, -15.2]], [1.02, [-6.2, -10.8]], [1.35, [-3.0, -8.0]]];
-const OGIK = [[0, [5.5, -6.0]], [0.16, [7.0, -3.4]], [0.45, [4.0, -13.2]], [0.56, [4.4, -14.0]], [0.7, [8.4, 0.4]], [0.82, [8.2, 0.6]], [1.12, [5.0, -5.0]]];
+const OGZK = [[0, [5.5, -6.0]], [0.18, [6.4, 5.2]], [0.5, [2.2, -16.0]], [0.8, [2.4, -16.6]], [0.88, [3.8, -15.2]], [1.02, [-6.2, -10.8]], [1.35, [-3.0, -8.0]]];
+const OGIK = [[0, [5.5, -6.0]], [0.18, [6.4, 5.2]], [0.45, [4.0, -13.2]], [0.56, [4.4, -14.0]], [0.7, [8.4, 0.4]], [0.82, [8.2, 0.6]], [1.12, [5.0, -5.0]]];
 function ogArmK(storm, s) { const K2 = storm ? OGZK : OGIK, end = K2[K2.length - 1][0]; if (s < 0 || s > end) return null; let i = 0; while (i < K2.length - 2 && s > K2[i + 1][0]) i++;
   const [t0, a] = K2[i], [t1, b] = K2[i + 1], q0 = cl((s - t0) / (t1 - t0), 0, 1), slam = !storm && i === 3, q = slam ? q0 * q0 * q0 : q0 * q0 * (3 - 2 * q0), h = [lerp(a[0], b[0], q), lerp(a[1], b[1], q)];
   const rel = storm ? 1.05 : 0.82, k = s < 0.1 ? sm(s / 0.1) : s > rel ? 1 - sm((s - rel) / (end - rel)) : 1;
   if (storm && s > OG.RAMP.ZS && s < OG.RAMP.ZR) { h[0] += Math.sin(s * 90) * 0.22; h[1] += Math.cos(s * 77) * 0.22; }
   return { h, k, c: s < 0.12 ? s / 0.12 : s > rel ? 0.4 : 1 }; }
 // where a hand is in the world (the same rig maths as drawO2: pelvis, shoulder, reach clamp)
-function ogHandW(kn, arm, h) { const f = kn.f || 1, run = ogRun(kn), pel = [f * (0.15 + 0.35 * OGX.GAIT.LS * run), -9.4], sh = arm === 0 ? [pel[0] + f * 4.15, pel[1] - 7.9] : [pel[0] - f * 4.0, pel[1] - 7.7];
+// how far he stoops to scoop up a handful (both hands), 0..1
+const ogStoop = kn => { let v = 0; for (const c0 of [kn.ogZc, kn.ogIc]) if (c0 >= 0) { const s = kn.ogR - c0; if (s >= 0 && s < 0.36) v = Math.max(v, Math.sin(Math.PI * s / 0.36)); } return v; };
+function ogHandW(kn, arm, h) { const f = kn.f || 1, run = ogRun(kn), pel = [f * (0.15 + 0.35 * OGX.GAIT.LS * run), -9.4 + 2.6 * ogStoop(kn)], sh = arm === 0 ? [pel[0] + f * 4.15, pel[1] - 7.9] : [pel[0] - f * 4.0, pel[1] - 7.7];
   let hx = pel[0] + f * h[0], hy = pel[1] + h[1]; const d = Math.hypot(hx - sh[0], hy - sh[1]); if (d > 6.9) { hx = sh[0] + (hx - sh[0]) * 6.9 / d; hy = sh[1] + (hy - sh[1]) * 6.9 / d; }
   return [kn.x + hx * OGSC, kn.y - (kn.z || 0) + hy * OGSC]; }
 const ogZArm = kn => (kn.f || 1) > 0 ? 0 : 1, ogIArm = kn => 1 - ogZArm(kn);
 function ogRampStep(dt, t, host, IN, mvL) { const RP = OG.RAMP, base = RUN * OG.SPD, r0 = K.ogR; K.ogR += dt; const r = K.ogR;
   // speed: still while he roars, then building, then pulling up at the end
-  const tgt = r < RP.WIND ? 0 : r < RP.T - RP.DEC ? base * lerp(RP.V0, RP.V1, sm(Math.min(1, (r - RP.WIND) / RP.ACC))) : base * RP.V1 * Math.max(0, 1 - (r - (RP.T - RP.DEC)) / RP.DEC);
+  const tgt = r < RP.WIND ? 0 : r < RP.T ? base * lerp(RP.V0, RP.V1, sm(Math.min(1, (r - RP.WIND) / RP.ACC))) : 0;
   K.ogRV = lerp(K.ogRV || 0, tgt, 1 - Math.exp(-dt * (tgt < (K.ogRV || 0) ? 5 : 3)));
   if (r0 < RP.WIND && r >= RP.WIND) { snd('roar', K.x, K.y); if (K.i === ME) shake = Math.max(shake, 0.35); for (let i = 0; i < 24; i++) { const a = rr(0, 6.28), v = rr(25, 60); dust.push({ x: K.x + Math.cos(a) * 4, y: K.y + Math.sin(a) * 3, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1, 2.2), t: 0, max: rr(0.5, 0.9) }); } }
   if (r0 === 0 || (r0 < 0.02 && r >= 0.02)) { snd('ult', K.x, K.y); snd('rumble', K.x, K.y); }
@@ -3693,7 +3786,7 @@ function ogRampStep(dt, t, host, IN, mvL) { const RP = OG.RAMP, base = RUN * OG.
   if (K.ogZc >= 0) { const s = r - K.ogZc, s0 = s - dt, k = ogArmK(true, s); const hw = k ? ogHandW(K, zA, k.h) : null;
     if (s0 < RP.ZS && s >= RP.ZS && hw) { OGFX.strikes.push({ x: hw[0], y: hw[1] + 1, t: 0, sd: (K.ogZn || 0) * 31 + K.i, cx: null, cy: null, ns: 1 }); snd('boom', hw[0], hw[1]); if (K.i === ME) shake = Math.max(shake, 0.25); }
     if (host && K.ogZh) { const ws = K.ogZh.map(id => walkers.find(w => w.id === id && w.hp > 0)).filter(Boolean);
-      if (hw && s < RP.ZR) ws.forEach((w, j) => { const sc = UK[w.k].sc; w.x = hw[0] + (j - 1) * 1.6; w.y = K.y + (zA === 1 ? 1.4 : -1.4) + j * 0.3; w.z = Math.max(0, w.y - hw[1] - 5.5 * sc); w.gr = 0.2; w.atk = -1; w.kx = w.ky = 0; if (s > RP.ZS) { w.bd = 1; w.bsrc = K.i; } });
+      if (hw && s < RP.ZR) ws.forEach((w, j) => { const sc = UK[w.k].sc; if (!w.ogG0) w.ogG0 = [w.x, w.y]; const g = sm(cl((s - 0.14) / 0.16, 0, 1)), tx = hw[0] + (j - 1) * 1.6, ty = K.y + (zA === 1 ? 1.4 : -1.4) + j * 0.3, tz = Math.max(0, ty - hw[1] - 5.5 * sc); w.x = lerp(w.ogG0[0], tx, g); w.y = lerp(w.ogG0[1], ty, g); w.z = tz * g; w.gr = 0.2; w.atk = -1; w.kx = w.ky = 0; if (s > RP.ZS) { w.bd = 1; w.bsrc = K.i; } });
       if (s0 < RP.ZR && s >= RP.ZR) { const sd = (K.ogRA || 0) + (zA === 0 ? -1 : 1) * Math.PI / 2 * (K.f || 1), base2 = Math.atan2(Math.sin(sd), Math.cos(sd));
         for (const w of ws) { const a = base2 + rr(-0.5, 0.5), v = rr(55, 85), z = w.z || 0; const n = (K.ogAN = (K.ogAN || 0) + 1); K.ogA = (K.ogA || []).concat([[n, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10, Math.round(z * 10) / 10, Math.round(Math.cos(a) * v - Math.cos(K.ogRA) * 30), Math.round(Math.sin(a) * v * 0.6), UKEYS.indexOf(w.k)]]).slice(-16);
           w.gr = 0; w.z = 0; const k0 = K; hurt(w, w.hp + 1, ww => { ww.dead = 1; killSnd(ww); }); K = k0; }
@@ -3702,20 +3795,21 @@ function ogRampStep(dt, t, host, IN, mvL) { const RP = OG.RAMP, base = RUN * OG.
   if (K.ogIc >= 0) { const s = r - K.ogIc, s0 = s - dt, k = ogArmK(false, s); const hw = k ? ogHandW(K, iA, k.h) : null;
     if (s0 < RP.IS && s >= RP.IS && hw) { const gy = K.y + (iA === 1 ? 2 : -2); FX.push({ k: 'ogim', x: hw[0], y: gy, t: 0, max: 0.9, sd: (K.ogIn || 0) * 17 + K.i }); for (let i = 0; i < 14; i++) { const a = rr(0, 6.28), v = rr(20, 60); OGFX.chips.push({ x: hw[0], y: gy, z: rr(0.5, 3), vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.6, vz: rr(15, 45), t: 0, r: rr(0.5, 1.2), sp: rr(-14, 14) }); } snd('gslam', hw[0], gy); if (K.i === ME || Math.abs(K.x - camX) < 140) shake = Math.max(shake, 0.32); }
     if (host && K.ogIh) { const ws = K.ogIh.map(id => walkers.find(w => w.id === id && w.hp > 0)).filter(Boolean);
-      if (hw && s < RP.IS) ws.forEach((w, j) => { const sc = UK[w.k].sc; w.x = hw[0] + (j - 1) * 1.6; w.y = K.y + (iA === 1 ? 1.4 : -1.4) + j * 0.3; w.z = Math.max(0, w.y - hw[1] - 5.5 * sc); w.ogFz = 0.25; w.atk = -1; w.kx = w.ky = 0; });
+      if (hw && s < RP.IS) ws.forEach((w, j) => { const sc = UK[w.k].sc; if (!w.ogG0) w.ogG0 = [w.x, w.y]; const g = sm(cl((s - 0.14) / 0.16, 0, 1)), tx = hw[0] + (j - 1) * 1.6, ty = K.y + (iA === 1 ? 1.4 : -1.4) + j * 0.3, tz = Math.max(0, ty - hw[1] - 5.5 * sc); w.x = lerp(w.ogG0[0], tx, g); w.y = lerp(w.ogG0[1], ty, g); w.z = tz * g; w.ogFz = 0.25; w.atk = -1; w.kx = w.ky = 0; });
       if (s0 < RP.IS && s >= RP.IS) { const gy = K.y + (iA === 1 ? 2 : -2); for (const w of ws) { w.z = 0; w.y = gy; ogShatter(w, K.ogRA + rr(-1, 1)); }
         for (const w of walkers) { if (w.hp <= 0 || !hw) continue; const d = ogDist(w.x, w.y, hw[0], gy); if (d > RP.SR + UK[w.k].r) continue; const a = Math.atan2(w.y - gy, w.x - hw[0]); w.kx += Math.cos(a) * 160; w.ky += Math.sin(a) * 100; const k0 = K; hurt(w, RP.SDMG, ww => slamFx(ww, a)); K = k0; }
         K.ogIh = null; } }
     if (s > RP.IT) { K.ogIc = -1; K.ogIh = null; } }
   // running into people: grab the small ones with a free hand, smash the rest aside
-  if (host && r > RP.WIND && K.ogRV > base * 0.6) { const hx = K.x + Math.cos(K.ogRA) * 5, hy = K.y + Math.sin(K.ogRA) * 5 * OGY, held = new Set([...(K.ogZh || []), ...(K.ogIh || [])]);
+  if (host && r > RP.WIND && r < RP.T && K.ogRV > base * 0.6) { const hx = K.x + Math.cos(K.ogRA) * 5, hy = K.y + Math.sin(K.ogRA) * 5 * OGY, held = new Set([...(K.ogZh || []), ...(K.ogIh || [])]);
     for (const w of walkers) { if (w.hp <= 0 || held.has(w.id) || w.gr > 0 || (w.z || 0) > 3) continue; const d = ogDist(w.x, w.y, hx, hy); if (d > RP.HIT + UK[w.k].r) continue;
       const small = !UK[w.k].heavy && UK[w.k].hp <= RP.SMALL, zFree = K.ogZc < 0, iFree = K.ogIc < 0;
       if (small && (zFree || iFree)) { const useZ = zFree && (!iFree || !K.ogRnx); K.ogRnx = useZ ? 1 : 0; const hand = [w.id]; for (const o of walkers) { if (hand.length >= RP.HAND) break; if (o === w || o.hp <= 0 || held.has(o.id) || UK[o.k].heavy || UK[o.k].hp > RP.SMALL || o.gr > 0) continue; if (ogDist(o.x, o.y, w.x, w.y) < 7) hand.push(o.id); }
-        hand.forEach(id => held.add(id)); if (useZ) { K.ogZc = r; K.ogZn = (K.ogZn || 0) + 1; K.ogZh = hand; } else { K.ogIc = r; K.ogIn = (K.ogIn || 0) + 1; K.ogIh = hand; } continue; }
+        hand.forEach(id => { held.add(id); const q = walkers.find(z => z.id === id); if (q) q.ogG0 = null; }); if (useZ) { K.ogZc = r; K.ogZn = (K.ogZn || 0) + 1; K.ogZh = hand; } else { K.ogIc = r; K.ogIn = (K.ogIn || 0) + 1; K.ogIh = hand; } continue; }
       if (w.ogRh > t - RP.GAP) continue; w.ogRh = t; const side = Math.sign(-(w.x - K.x) * Math.sin(K.ogRA) + (w.y - K.y) / OGY * Math.cos(K.ogRA)) || 1, a = K.ogRA + side * 1.0; w.atk = -1; w.kx += Math.cos(a) * RP.KB; w.ky += Math.sin(a) * RP.KB * 0.6;
       const k0 = K; hurt(w, RP.DMG, ww => slamFx(ww, a)); K = k0; } }
   // the end: once he has stopped and both hands are done
+  if (r0 < RP.T && r >= RP.T) { Object.assign(K, { ou: 0, ouN: (K.ouN || 0) + 1, ouS: 0, ouK: 2, ouC: 2, ouBig: 1, ouA: K.ogRA, ogH: 0.5, ogSl: 0.7 }); if (host) K.ultBase = K.kills; }
   if (r > RP.T && K.ogZc < 0 && K.ogIc < 0) { K.ogR = -1; K.ogRV = 0; if (host) K.ultBase = K.kills; } }
 // ashes thrown aside (every screen, from the host's list): the body comes apart into ash and embers along the throw
 function ogAshFx(e) { const [, x, y, z, vx, vy, ki] = e, k = UKEYS[ki] || 'foot', U = UK[k] || UK.foot, n = 5 + Math.round(U.sc * 3);
@@ -3735,7 +3829,7 @@ function ogFxStep(dt) { for (const p of OGFX.prints) p.t += dt; OGFX.prints = OG
   OGFX.hail = OGFX.hail.filter(h2 => h2.z > 0 || h2.vz > 0 || h2.t < 0.3); for (const s3 of OGFX.strikes) s3.t += dt; OGFX.strikes = OGFX.strikes.filter(s3 => s3.t < 0.6); }
 // where the fists land: ice shards spring up, a ring, dust and a lightning crackle
 // a swing lands: k 0 frost hook, 1 storm hook, 2 smash. Effects on every screen; damage on the host
-function ogSwingHit(k, a, host) { const S = OG.SW, d = [Math.cos(a), Math.sin(a)], f = K.f || 1, inCone = (w, R, A, ox = K.x, oy = K.y) => { const dx = w.x - ox, dy = (w.y - oy) / OGY, r = Math.hypot(dx, dy); if (r > R + UK[w.k].r) return false; let da = Math.atan2(dy, dx) - a; da -= Math.round(da / 6.283) * 6.283; return r < 5 + UK[w.k].r || Math.abs(da) < A; };
+function ogSwingHit(k, a, host, big = 1) { const S = OG.SW, d = [Math.cos(a), Math.sin(a)], f = K.f || 1, inCone = (w, R, A, ox = K.x, oy = K.y) => { const dx = w.x - ox, dy = (w.y - oy) / OGY, r = Math.hypot(dx, dy); if (r > R + UK[w.k].r) return false; let da = Math.atan2(dy, dx) - a; da -= Math.round(da / 6.283) * 6.283; return r < 5 + UK[w.k].r || Math.abs(da) < A; };
   const sideA = a + (k === 0 ? 1 : -1) * f * Math.PI / 2;
   if (k < 2) { const fx = K.x + d[0] * 9, fy = K.y + d[1] * 9 * OGY; ogHookFx(k, fx, fy, a);
     const hitF = []; if (host) for (const w of walkers) { if (w.hp <= 0 || !inCone(w, S.FR, S.FA)) continue; hitF.push(w.id); w.atk = -1; const kd = a * 0.5 + sideA * 0.5; w.kx += Math.cos(kd) * S.FKB; w.ky += Math.sin(kd) * S.FKB * 0.6; ogKill(w, S.FDMG, K, k === 1); }
@@ -3748,12 +3842,15 @@ function ogSwingHit(k, a, host) { const S = OG.SW, d = [Math.cos(a), Math.sin(a)
       for (const w of firsts) { zap(w, S.BDMG, 0, fx, fy - 6); let front = [w];
         for (let g = 1; g <= 1 + S.CJ2 && front.length; g++) { const nxt = []; for (const o of front) { const n2 = g === 1 ? S.SPL : 1; for (const q of near(o.x, o.y, S.SJR, false).slice(0, n2)) { done.add(q.id); zap(q, S.SDMG2, g, o.x, o.y - 5); nxt.push(q); } } front = nxt; } }
       if (seg.length) { K.ogCN = (K.ogCN || 0) + 1; K.ogC = [K.ogCN].concat(seg); } } }
-  else { const cx = K.x + d[0] * S.SO, cy = K.y + d[1] * S.SO * OGY; ogSmashFx(cx, cy, f, 1);
-    if (host) for (const w of walkers) { if (w.hp <= 0) continue; const dd = ogDist(w.x, w.y, cx, cy); if (dd > S.SR + UK[w.k].r) continue; const ka = Math.atan2(w.y - cy, w.x - cx); w.atk = -1; w.kx += Math.cos(ka) * S.SKB; w.ky += Math.sin(ka) * S.SKB * 0.6; w.sl = Math.max(w.sl || 0, 1); ogKill(w, S.SDMG * (1 - 0.4 * Math.min(1, dd / S.SR)), K, dd < S.SR * 0.4); } } }
+  else { const SR = S.SR * big, cx = K.x + d[0] * S.SO * big, cy = K.y + d[1] * S.SO * big * OGY; ogSmashFx(cx, cy, f, big);
+    if (host) for (const w of walkers) { if (w.hp <= 0) continue; const dd = ogDist(w.x, w.y, cx, cy); if (dd > SR + UK[w.k].r) continue; const ka = Math.atan2(w.y - cy, w.x - cx); w.atk = -1; w.kx += Math.cos(ka) * S.SKB * big; w.ky += Math.sin(ka) * S.SKB * big * 0.6; w.sl = Math.max(w.sl || 0, 1); ogKill(w, S.SDMG * (big > 1 ? 1.6 : 1) * (1 - 0.4 * Math.min(1, dd / SR)), K, dd < SR * 0.4); } } }
 function ogHookFx(k, x, y, a) { if (!k) for (let n = 0; n < 7; n++) { const b = a + rr(-0.9, 0.9), v = rr(20, 55); OGFX.chips.push({ x: x + rr(-1, 1), y: y + rr(-1, 1), z: rr(5, 8), vx: Math.cos(b) * v, vy: Math.sin(b) * v * 0.6, vz: rr(5, 25), t: 0, r: rr(0.4, 0.9), sp: rr(-12, 12) }); } FX.push({ k: 'oghk', x, y, a, c: k, f: K.f || 1, t: 0, max: 0.45, sd: Math.random() * 999 }); snd(k ? 'zap' : 'gswing', x, y); shake = Math.max(shake, 0.08); }
-function ogSmashFx(x, y, f, big) { if (big) { for (let n = 0; n < 24; n++) { const a = rr(0, 6.28), v = rr(20, 60); dust.push({ x: x + Math.cos(a) * 4, y: y + Math.sin(a) * 3, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1, 2.2), t: 0, max: rr(0.5, 0.9) }); } FX.push({ k: 'ogrp', x, y, t: 0, max: 0.8, sd: Math.random() * 999 }); shake = Math.max(shake, 0.45); snd('boom', x, y); }
+function ogSmashFx(x, y, f, big) { if (big) { const sc = big; for (let n = 0; n < 24 * sc; n++) { const a = rr(0, 6.28), v = rr(20, 60); dust.push({ x: x + Math.cos(a) * 4, y: y + Math.sin(a) * 3, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1, 2.2), t: 0, max: rr(0.5, 0.9) }); } FX.push({ k: 'ogrp', x, y, t: 0, max: 0.8 * Math.sqrt(sc), sd: Math.random() * 999, sc }); shake = Math.max(shake, 0.45 * Math.sqrt(sc)); snd('boom', x, y); }
  for (let n = 0; n < 10; n++) dust.push({ x: x + rr(-6, 6), y: y + rr(-2, 2), vx: rr(-30, 30), vy: rr(-8, 8), r: rr(0.8, 1.6), t: 0, max: 0.5 }); for (let n = 0; n < 8; n++) sparks.push({ x: x + rr(-3, 3), y: y - rr(0, 4), vx: rr(-40, 40), vy: -rr(10, 50), t: 0, max: 0.3 });
-  FX.push({ k: 'ogsm', x, y, f, t: 0, max: 0.55, sd: Math.random() * 999, big }); shake = Math.max(shake, 0.2); snd('gslam', x, y); }
+  FX.push({ k: 'ogsm', x, y, f, t: 0, max: 0.55 * Math.sqrt(big || 1), sd: Math.random() * 999, big, sc: big || 1 }); shake = Math.max(shake, 0.2); snd('gslam', x, y); }
+// two scratch canvases the size of the screen, for crossfading between his front and back views
+const OGOFF = [];
+function ogOff(i, cv) { let o = OGOFF[i]; if (!o) o = OGOFF[i] = document.createElement('canvas'); if (o.width !== cv.width || o.height !== cv.height) { o.width = cv.width; o.height = cv.height; } return o; }
 function drawStormOgre(c, t) { if (!Number.isFinite(K.ogPh)) K.ogPh = 0; const D = ogD(K), G = OG.DRG, dt = Math.min(0.1, Math.max(0, t - (K.ogDt ?? t))); K.ogDt = t; K.ogAk = lerp(K.ogAk ?? K.ogH, K.ogH || 0, 1 - Math.exp(-dt * 8));
   const w = cl((K.spd || 0) / (RUN * OG.SPD), 0, 1), u = K.ou >= 0 ? Math.min(0.999, K.ou) : -1, f = K.f || 1; let bk = -1, fb = null, aimTo = null;
   if (K.clT < 0 && K.clT > -OG.CLOUD.CAST) { bk = (K.clT + OG.CLOUD.CAST) / OG.CLOUD.CAST; { const MX = ogMix(K); aimTo = [(MX[0] - K.x) / OGSC, (MX[1] - K.y) / OGSC]; } }
@@ -3765,7 +3862,12 @@ function drawStormOgre(c, t) { if (!Number.isFinite(K.ogPh)) K.ogPh = 0; const D
   let h2 = null; if (K.ogR >= 0) { h2 = [null, null]; const zA = ogZArm(K), iA = 1 - zA; if (K.ogZc >= 0) h2[zA] = ogArmK(true, K.ogR - K.ogZc); if (K.ogIc >= 0) h2[iA] = ogArmK(false, K.ogR - K.ogIc);
     const W2 = OG.RAMP.WIND, rk = K.ogR < W2 ? sm(Math.min(1, K.ogR / 0.25)) : 1 - sm(Math.min(1, (K.ogR - W2) / 0.3)); if (rk > 0) for (let i = 0; i < 2; i++) if (!h2[i]) h2[i] = { h: i === 0 ? [5.2, -14.5] : [-4.6, -14.2], k: rk, c: 1 }; }
   c.save(); c.translate(K.x, K.y - (K.z || 0)); c.scale(OGSC, OGSC); OGX.col(K.col || '#3a7bd5'); OGX.arcn(1); OGX.GAIT.RUN = ogRun(K);
-  OGX.drawO2(c, OGX.V, t, f, w, hk0 ? -1 : (u >= 0 && K.ouK === 2 && !K.ouS ? (u < 0.6 ? 0.25 * sm(u / 0.6) : u < 0.7 ? 0.25 + 0.17 * ((u - 0.6) / 0.1) ** 2 : 0.42 + 0.58 * (u - 0.7) / 0.3) : u), bk, bk >= 0 && !fb ? 'both' : 'act', K.ogAk, K.sv >= 0 ? K.sv * OGX.SURF.T / OG.SURF.T : -1, foes, 0, { noTrail: 1, jet: [Math.cos(K.svA || 0) * 9, Math.sin(K.svA || 0) * 9 * OGY - 0.4], aimTo, fb, atype: 2, hk: hk0, yaw: hk0 ? hk0.yaw : 0, noFx: 1, ph: K.ogPh, st: ogStride(K), h2 });
+  // a hook thrown with his near-side arm swings him round so we see his back: the rear view takes over during the fast part of the swing (hidden in the blur),
+  // holds through the follow-through, then crossfades back to his front as he recovers
+  const kb = hk0 && hk0.arm === 1 ? (K.ou < OGHK.F + 0.06 ? (hk0.e >= 0.4 ? 1 : 0) : 1 - sm(cl((K.ou - OGHK.F - 0.06) / 0.14, 0, 1))) : 0;
+  const front = g => { OGX.drawO2(g, OGX.V, t, f, w, hk0 ? -1 : (u >= 0 && K.ouK === 2 && !K.ouS ? (u < 0.6 ? 0.25 * sm(u / 0.6) : u < 0.7 ? 0.25 + 0.17 * ((u - 0.6) / 0.1) ** 2 : 0.42 + 0.58 * (u - 0.7) / 0.3) : u), bk, bk >= 0 && !fb ? 'both' : 'act', K.ogAk, K.sv >= 0 ? K.sv * OGX.SURF.T / OG.SURF.T : -1, foes, 0, { noTrail: 1, jet: [Math.cos(K.svA || 0) * 9, Math.sin(K.svA || 0) * 9 * OGY - 0.4], aimTo, fb, atype: 2, hk: hk0, yaw: hk0 ? hk0.yaw : 0, noFx: 1, ph: K.ogPh, st: ogStride(K), h2, crx: K.ogR >= 0 ? 2.6 * ogStoop(K) : 0, lnx: K.ogR >= 0 ? 0.35 * ogStoop(K) : 0 }); }, back = g => OGX.drawBack(g, OGX.V, t, f, { e: cl((hk0.e - 0.4) / 0.6, 0, 1), pi: K.ouK === 0, cr: hk0.cr, iL: K.ogAk, zL: 1 - K.ogAk });
+  if (kb <= 0) front(c); else if (kb >= 1) back(c); else { const T0 = c.getTransform(), A = ogOff(0, c.canvas), B = ogOff(1, c.canvas); for (const [cv2, fn] of [[A, front], [B, back]]) { const g = cv2.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv2.width, cv2.height); g.setTransform(T0); fn(g); }
+    c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 1 - kb; c.drawImage(A, 0, 0); c.globalAlpha = kb; c.drawImage(B, 0, 0); c.restore(); }
   OGX.GAIT.RUN = 0; OGX.arcn(0); c.restore(); }
 // lightning: a jagged path by midpoint displacement with a few forks, drawn as light (additive): a wide faint blue glow, a brighter halo, a pale blue body and a white-hot core
 function ogBoltPts(a, b, sd, rough = 0.3, lv = 5) { let P = [a, b]; for (let l = 0; l < lv; l++) { const N = [P[0]]; for (let i = 0; i < P.length - 1; i++) { const p = P[i], q = P[i + 1], dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1, o = (OGX.rnd(sd * 1.37 + l * 17.1 + i * 3.3) - 0.5) * L * rough; N.push([(p[0] + q[0]) / 2 - dy / L * o, (p[1] + q[1]) / 2 + dx / L * o], q); } P = N; } return P; }
@@ -3827,7 +3929,7 @@ function ogGround(c, t) { const V0 = OGX.V; OGX.arcn(1);
   for (const kn of LIVE()) { if (kn.kind !== 'ogre') continue; const T2 = kn.ogTr || [];
     // the surf platform: a glassy sheet of new ice, clear blue at its edges, white where it catches the light, cracking and melting away behind him
     if (T2.length > 1) { const TW = OG.SURF.TW, L = [], R = [], N = [];
-      for (let i = 0; i < T2.length; i++) { const a = T2[Math.max(0, i - 1)], b = T2[Math.min(T2.length - 1, i + 1)], dx = b.x - a.x, dy = (b.y - a.y) / OGY, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l, age = T2[i].a, hw = TW * (age < 2.1 ? Math.min(1, 0.55 + age * 4) : Math.max(0, 1 - (age - 2.1) / 1.1)) * (0.9 + 0.1 * Math.sin(i * 0.7));
+      for (let i = 0; i < T2.length; i++) { const a = T2[Math.max(0, i - 1)], b = T2[Math.min(T2.length - 1, i + 1)], dx = b.x - a.x, dy = (b.y - a.y) / OGY, l = Math.hypot(dx, dy) || 1, nx = -dy / l, ny = dx / l, age = T2[i].a, hw = TW * (age < 2.1 ? 1 : Math.max(0, 1 - (age - 2.1) / 1.1)) * (0.9 + 0.1 * Math.sin((T2[i].n || i) * 0.7));
         N.push([nx, ny, hw]); L.push([T2[i].x + nx * hw, T2[i].y + ny * hw * OGY]); R.push([T2[i].x - nx * hw, T2[i].y - ny * hw * OGY]); }
       const poly = (k, dy = 0) => { c.beginPath(); for (let i = 0; i < T2.length; i++) { const p = L2(T2[i], L[i], k); c.lineTo(p[0], p[1] + dy); } for (let i = T2.length - 1; i >= 0; i--) { const p = L2(T2[i], R[i], k); c.lineTo(p[0], p[1] + dy); } c.closePath(); };
       const L2 = (o, p, k) => [o.x + (p[0] - o.x) * k, o.y + (p[1] - o.y) * k];
@@ -3835,12 +3937,12 @@ function ogGround(c, t) { const V0 = OGX.V; OGX.arcn(1);
       poly(1); c.fillStyle = 'rgba(120,195,235,.55)'; c.fill(); poly(0.62, -0.25); c.fillStyle = 'rgba(205,240,255,.42)'; c.fill(); poly(0.22, -0.35); c.fillStyle = 'rgba(250,254,255,.35)'; c.fill();
       c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = 0.32; c.beginPath(); L.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.stroke(); c.strokeStyle = 'rgba(70,150,205,.75)'; c.lineWidth = 0.28; c.beginPath(); R.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.stroke();
       // light running along it, cracks across it, twinkles on it
-      for (let i = 2; i < T2.length - 2; i += 3) { const age = T2[i].a, o = T2[i], [nx, ny, hw] = N[i], j = OGX.rnd(i * 3.3 + (kn.svN || 0)); if (hw < 0.5) continue; const off = (j - 0.5) * hw * 1.2, p0 = [o.x + nx * off, o.y + ny * off * OGY], q = T2[Math.min(T2.length - 1, i + 2)];
-        c.strokeStyle = `rgba(255,255,255,${0.5 * (1 - age / 3.2)})`; c.lineWidth = 0.14; c.beginPath(); c.moveTo(...p0); c.lineTo(q.x + nx * off, q.y + ny * off * OGY); c.stroke();
-        if (i % 6 === 2 && age > 0.4) { c.strokeStyle = `rgba(235,250,255,${0.55 * Math.min(1, (age - 0.4) * 3)})`; c.lineWidth = 0.1; c.beginPath(); c.moveTo(...L[i]); const m1 = [o.x + nx * hw * 0.3 + (j - 0.5) * 2, o.y + ny * hw * 0.3 * OGY], m2 = [o.x - nx * hw * 0.4 + (j - 0.5) * -1.5, o.y - ny * hw * 0.4 * OGY]; c.lineTo(...m1); c.lineTo(...m2); c.lineTo(...R[i]); c.stroke(); }
-        const tw = Math.sin(t * 7 + i * 1.7); if (tw > 0.8) { c.fillStyle = `rgba(255,255,255,${(tw - 0.8) * 5})`; c.fillRect(p0[0] - 0.12, p0[1] - 0.7, 0.24, 1.4); c.fillRect(p0[0] - 0.7, p0[1] - 0.12, 1.4, 0.24); } }
+      for (let i = 2; i < T2.length - 2; i++) { const id = T2[i].n || i; if (id % 3) continue; const age = T2[i].a, o = T2[i], [nx, ny, hw] = N[i], j = OGX.rnd(id * 3.3 + (kn.svN || 0)); if (hw < 0.5) continue; const off = (j - 0.5) * hw * 1.2, p0 = [o.x + nx * off, o.y + ny * off * OGY], q = T2[Math.min(T2.length - 1, i + 2)];
+        c.strokeStyle = `rgba(255,255,255,${0.4 * Math.min(1, hw / TW)})`; c.lineWidth = 0.14; c.beginPath(); c.moveTo(...p0); c.lineTo(q.x + nx * off, q.y + ny * off * OGY); c.stroke();
+        if (id % 6 === 0 && age > 0.4) { c.strokeStyle = `rgba(235,250,255,${0.55 * Math.min(1, (age - 0.4) * 3)})`; c.lineWidth = 0.1; c.beginPath(); c.moveTo(...L[i]); const m1 = [o.x + nx * hw * 0.3 + (j - 0.5) * 2, o.y + ny * hw * 0.3 * OGY], m2 = [o.x - nx * hw * 0.4 + (j - 0.5) * -1.5, o.y - ny * hw * 0.4 * OGY]; c.lineTo(...m1); c.lineTo(...m2); c.lineTo(...R[i]); c.stroke(); }
+        const tw = Math.sin(t * 7 + id * 1.7); if (tw > 0.8) { c.fillStyle = `rgba(255,255,255,${(tw - 0.8) * 5})`; c.fillRect(p0[0] - 0.12, p0[1] - 0.7, 0.24, 1.4); c.fillRect(p0[0] - 0.7, p0[1] - 0.12, 1.4, 0.24); } }
       // ice crystals pushed up along both rims, and cold mist rolling off them
-      for (let i = 4; i < T2.length; i += 5) { const [nx, ny, hw] = N[i], sd = i * 7.1 + (kn.svN || 0), side = OGX.rnd(sd) > 0.5 ? L[i] : R[i], gr = Math.min(1, T2[i].a * 5) * Math.min(1, hw / OG.SURF.TW + 0.1); ogShard(c, side[0], side[1], (1.4 + OGX.rnd(sd + 1) * 2.2) * gr, (OGX.rnd(sd + 2) - 0.5) * 0.6, 0.45 + OGX.rnd(sd + 3) * 0.3, 0.9); }
+      for (let i = 0; i < T2.length; i++) { const id = T2[i].n || i; if (id % 5) continue; const [nx, ny, hw] = N[i], sd = id * 7.1 + (kn.svN || 0), side = OGX.rnd(sd) > 0.5 ? L[i] : R[i], gr = Math.min(1, T2[i].a * 5) * Math.min(1, hw / OG.SURF.TW + 0.1); ogShard(c, side[0], side[1], (1.4 + OGX.rnd(sd + 1) * 2.2) * gr, (OGX.rnd(sd + 2) - 0.5) * 0.6, 0.45 + OGX.rnd(sd + 3) * 0.3, 0.9); }
       c.restore(); }
     // the cloud's shadow: soft and dark, no rim
     const C = OG.CLOUD; if (kn.clT > -C.CAST && kn.clT < C.T) { const k = sm(cl((kn.clT + C.CAST * 0.5) / (C.CAST * 0.5 + C.FORM), 0, 1)) * (1 - sm(Math.max(0, (kn.clT - C.T + 0.8) / 0.8)));
@@ -3866,11 +3968,14 @@ function ogGround(c, t) { const V0 = OGX.V; OGX.arcn(1);
   // frost-wave film (frost hook): a fan of rime spreading over the ground behind the wave front
   for (const f2 of FX) if (f2.k === 'ogfw') { const S = OG.SW, q = cl(f2.t / f2.max, 0, 1), r = 6 + (S.WR - 6) * (1 - (1 - q) * (1 - q)), A = S.WA, P = (rr2, aa) => [f2.x + Math.cos(aa) * rr2, f2.y + Math.sin(aa) * rr2 * OGY];
     c.save(); { const g = c.createRadialGradient(f2.x, f2.y, 0, f2.x, f2.y, Math.max(1, r)); g.addColorStop(0, 'rgba(215,240,255,0)'); g.addColorStop(0.55, `rgba(215,240,255,${0.12 * (1 - q * q)})`); g.addColorStop(0.9, `rgba(230,246,255,${0.3 * (1 - q * q)})`); g.addColorStop(1, 'rgba(230,246,255,0)'); c.fillStyle = g; } c.beginPath(); c.moveTo(...P(4, f2.a - A)); for (let i = 0; i <= 14; i++) c.lineTo(...P(r * (0.92 + 0.08 * OGX.rnd(f2.sd + i)), f2.a - A + 2 * A * i / 14)); c.lineTo(...P(4, f2.a + A)); c.closePath(); c.fill(); c.restore(); }
+  // the freezing cone while he surfs: rime under it, carried along with him
+  for (const kn of LIVE()) { if (kn.kind !== 'ogre' || !(kn.sv >= 0)) continue; const SV2 = OGX.surfK(kn.sv * OGX.SURF.T / OG.SURF.T); if (SV2 < 0.05) continue; const CN = OG.SURF.CONE, A = CN.A, a0 = kn.svA, P = (rr2, aa) => [kn.x + Math.cos(aa) * rr2, kn.y + Math.sin(aa) * rr2 * OGY];
+    c.save(); const g = c.createRadialGradient(kn.x, kn.y, 0, kn.x, kn.y, CN.R); g.addColorStop(0, `rgba(215,240,255,${0.3 * SV2})`); g.addColorStop(0.75, `rgba(215,240,255,${0.16 * SV2})`); g.addColorStop(1, 'rgba(215,240,255,0)'); c.fillStyle = g; c.beginPath(); c.moveTo(...P(3, a0 - A)); for (let i = 0; i <= 16; i++) c.lineTo(...P(CN.R, a0 - A + 2 * A * i / 16)); c.lineTo(...P(3, a0 + A)); c.closePath(); c.fill(); c.restore(); }
   // surf blast (the frost cone that lays the platform): rime fanning out ahead
   for (const f2 of FX) if (f2.k === 'ogsc') { const CN = OG.SURF.CONE, q = cl(f2.t / f2.max, 0, 1), r = CN.R * Math.min(1, (1 - (1 - q * 3.5) ** 2) || 1), A = CN.A, P = (rr2, aa) => [f2.x + Math.cos(aa) * rr2, f2.y + Math.sin(aa) * rr2 * OGY];
     c.save(); { const g = c.createRadialGradient(f2.x, f2.y, 0, f2.x, f2.y, CN.R); g.addColorStop(0, `rgba(210,238,255,${0.35 * (1 - q)})`); g.addColorStop(0.8, `rgba(210,238,255,${0.2 * (1 - q)})`); g.addColorStop(1, 'rgba(210,238,255,0)'); c.fillStyle = g; } c.beginPath(); c.moveTo(...P(3, f2.a - A)); for (let i = 0; i <= 16; i++) c.lineTo(...P((q < 0.28 ? CN.R * (1 - (1 - q / 0.28) ** 2) : CN.R) * (0.9 + 0.1 * OGX.rnd(f2.sd + i)), f2.a - A + 2 * A * i / 16)); c.lineTo(...P(3, f2.a + A)); c.closePath(); c.fill(); c.restore(); }
   // smash: the ground cracks, rime and a dust ring roll out, lightning crawls along the cracks
-  for (const f2 of FX) if (f2.k === 'ogrp') { const S = OG.SW, q = cl(f2.t / f2.max, 0, 1); c.save();
+  for (const f2 of FX) if (f2.k === 'ogrp') { const S0 = OG.SW, S = { SR: S0.SR * (f2.sc || 1) }, q = cl(f2.t / f2.max, 0, 1); c.save();
     { c.save(); c.translate(f2.x, f2.y); c.scale(1, OGY); const g = c.createRadialGradient(0, 0, 0, 0, 0, S.SR * 0.85); g.addColorStop(0, `rgba(225,245,255,${0.38 * (1 - q)})`); g.addColorStop(1, 'rgba(225,245,255,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, S.SR * 0.85, 0, 7); c.fill();
       const rr2 = 4 + S.SR * 1.1 * (1 - (1 - Math.min(1, q * 1.6)) ** 3), g2 = c.createRadialGradient(0, 0, rr2 * 0.82, 0, 0, rr2); g2.addColorStop(0, 'rgba(255,255,255,0)'); g2.addColorStop(0.7, `rgba(235,248,255,${0.5 * (1 - q)})`); g2.addColorStop(1, 'rgba(235,248,255,0)'); c.fillStyle = g2; c.beginPath(); c.arc(0, 0, rr2, 0, 7); c.fill(); c.restore(); }
     c.strokeStyle = `rgba(20,24,34,${0.65 * (1 - q * q)})`; c.lineWidth = 0.35; c.lineCap = 'round'; for (let i = 0; i < 9; i++) { const a = i * 0.7 + OGX.rnd(f2.sd + i) * 0.5; let x = f2.x, y = f2.y; const pts = [[x, y]]; for (let n = 1; n <= 5; n++) { const rr2 = n * S.SR * 0.17 * Math.min(1, q * 6), aa = a + (OGX.rnd(f2.sd + i * 7 + n) - 0.5) * 0.6; x = f2.x + Math.cos(aa) * rr2; y = f2.y + Math.sin(aa) * rr2 * OGY; pts.push([x, y]); }
@@ -3891,6 +3996,9 @@ function ogAir(c, t) { const V0 = OGX.V; OGX.arcn(1); c.save();
   for (const f2 of FX) if (f2.k === 'ogfw') { const S = OG.SW, q = cl(f2.t / f2.max, 0, 1), r = 6 + (S.WR - 6) * (1 - (1 - q) * (1 - q)), A = S.WA, al = 1 - q * q;
     for (let i = 0; i < 12; i++) { const aa = f2.a - A + 2 * A * (i + 0.5) / 12, rr2 = r * (0.9 + 0.1 * OGX.rnd(f2.sd + i)), x = f2.x + Math.cos(aa) * rr2, y = f2.y + Math.sin(aa) * rr2 * OGY; ogPuff(c, OGPF.mist, x, y - 1.5 - q * 2, 3.2 + q * 2.5, 0.42 * al); ogPuff(c, OGPF.mist, x - Math.cos(aa) * 3, y - 2.6 - q * 2, 2.4 + q * 2, 0.22 * al); }
     c.globalAlpha = 1; for (let i = 0; i < 10; i++) { const aa = f2.a - A + 2 * A * (i + 0.5) / 10 + (OGX.rnd(f2.sd + i) - 0.5) * 0.12, rr2 = Math.max(5, r - 3 - OGX.rnd(f2.sd + i * 5) * 6), h = (1.5 + OGX.rnd(f2.sd + i * 3) * 1.8) * Math.min(1, q * 3); ogShard(c, f2.x + Math.cos(aa) * rr2, f2.y + Math.sin(aa) * rr2 * OGY, h, (OGX.rnd(f2.sd + i * 9) - 0.5) * 0.7, 0.45, al); } }
+  // the freezing cone while he surfs: a stream of mist rolling out ahead of him, the whole way
+  for (const kn of LIVE()) { if (kn.kind !== 'ogre' || !(kn.sv >= 0)) continue; const SV2 = OGX.surfK(kn.sv * OGX.SURF.T / OG.SURF.T); if (SV2 < 0.05) continue; const CN = OG.SURF.CONE, N = 26;
+    for (let i = 0; i < N; i++) { const ph = (t * 1.5 + i / N) % 1, aa = kn.svA + (OGX.rnd(i * 7.3) * 2 - 1) * CN.A * Math.min(1, 0.35 + ph), d = 4 + CN.R * ph * 0.95; ogPuff(c, OGPF.mist, kn.x + Math.cos(aa) * d, kn.y + Math.sin(aa) * d * OGY - 4 - ph * 2, 2 + ph * 6, 0.42 * SV2 * Math.sin(Math.PI * ph)); } c.globalAlpha = 1; }
   // surf blast: freezing mist bursting forward from him
   for (const f2 of FX) if (f2.k === 'ogsc') { const CN = OG.SURF.CONE, q = cl(f2.t / f2.max, 0, 1), A = CN.A, al = 1 - q;
     for (let i = 0; i < 22; i++) { const aa = f2.a + (OGX.rnd(f2.sd + i) * 2 - 1) * A, d = CN.R * OGX.rnd(f2.sd + i * 3 + 1) * Math.min(1, q * 3.2 + 0.1), x = f2.x + Math.cos(aa) * d, y = f2.y + Math.sin(aa) * d * OGY - 3 - q * 3; ogPuff(c, OGPF.mist, x, y, 3 + q * 5 + OGX.rnd(f2.sd + i * 7) * 2, 0.4 * al); } c.globalAlpha = 1; }
@@ -3905,7 +4013,7 @@ function ogAir(c, t) { const V0 = OGX.V; OGX.arcn(1); c.save();
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
   // smash: a ring of shards bursting up, a dust ring and frost mist rolling out, a flash
   for (const f2 of FX) if (f2.k === 'ogsm') { const q = cl(f2.t / f2.max, 0, 1);
-    if (f2.big) { const S = OG.SW; if (q < 0.25) { c.globalCompositeOperation = 'lighter'; ogPuff(c, OGPF.glow, f2.x, f2.y - 3, 16 * (1 - q * 2), 0.8 * (1 - q * 4)); c.globalCompositeOperation = 'source-over'; }
+    if (f2.big) { const S = { SR: OG.SW.SR * (f2.sc || 1) }; if (q < 0.25) { c.globalCompositeOperation = 'lighter'; ogPuff(c, OGPF.glow, f2.x, f2.y - 3, 16 * (1 - q * 2), 0.8 * (1 - q * 4)); c.globalCompositeOperation = 'source-over'; }
       for (let i = 0; i < 18; i++) { const a = i / 18 * 6.283, d = S.SR * (0.2 + q * 0.9), x = f2.x + Math.cos(a) * d, y = f2.y + Math.sin(a) * d * OGY; ogPuff(c, i % 2 ? OGPF.dust : OGPF.mist, x, y - 1.5 - q * 2, 3 + q * 4, 0.42 * (1 - q)); }
       c.globalAlpha = 1; for (let i = 0; i < 14; i++) { const a = -Math.PI + i / 14 * 6.283, rd = S.SR * (0.3 + 0.3 * OGX.rnd(f2.sd + i * 5)), h = (2.5 + OGX.rnd(f2.sd + i) * 3.5) * Math.min(1, q * 7) * (q > 0.6 ? 1 - (q - 0.6) / 0.4 : 1); ogShard(c, f2.x + Math.cos(a) * rd, f2.y + Math.sin(a) * rd * OGY, h, Math.cos(a) * 0.45, 0.6, 1 - Math.max(0, q - 0.6) / 0.4); } }
     else if (q < 0.6) for (let i = 0; i < 5; i++) ogShard(c, f2.x + (i - 2) * 1.8, f2.y, (3 + OGX.rnd(f2.sd + i) * 2.5) * Math.min(1, q * 8), (i - 2) * 0.15, 0.55, 1 - q / 0.6); }
@@ -6332,7 +6440,7 @@ function draw() {
   if (K.kind === 'time') { const ab = K.wpS === 2 && K.wpn >= 1 && K.wpn <= 4; document.body.classList.toggle('ttab', ab); if (ab) { const TQ = K.trQ ?? TT.TRAP.N, lb = K.wpn === 3 ? (K.hu >= 1 ? 'move\nalien' : 'toss') : K.wpn === 1 ? 'ship' : K.wpn === 2 ? (HDRAW ? 'cancel' : 'strafe') : `trap\n${TQ} charge${TQ === 1 ? '' : 's'}`, sm2 = AOE.querySelector('small'); if (sm2 && sm2.textContent !== lb) sm2.textContent = lb; AOE.classList.toggle('dim', K.wpn === 3 ? K.hu === 1 || K.hu === 3 || K.huCd > 0 : K.wpn === 1 ? K.sc >= 1 || K.scCd > 0 : K.wpn === 2 ? K.hl >= 0 || K.hlCd > 0 : TQ <= 0); } }
   else if (document.body.classList.contains('ttab')) { document.body.classList.remove('ttab'); const sm2 = AOE.querySelector('small'); if (sm2) sm2.textContent = 'leap'; }
   const cdk = K.kind === 'time' ? (K.wpS === 2 ? (K.bk >= 0 && K.wpT >= TT.PORT.HOLD ? 0.04 : cl(1 - K.wpT / TT.PORT.HOLD, 0, 1)) : K.wpS ? 1 : cl((K.wpCd || 0) / TT.PORT.CD, 0, 1)) : K.kind === 'priest' ? (K.hoT > 0 ? 1 : cl((K.hoCd || 0) / WP.HO.CD, 0, 1)) : K.kind === 'fire' ? (K.lava ? 1 : cl((K.lvCd || 0) / LAVA.CD, 0, 1)) : K.kind === 'ogre' ? cl((K.spCd || 0) / OG.SPK.CD, 0, 1) : K.spin >= 0 || K.preGlow ? 1 : cl(K.spinCd / SPIN_CD, 0, 1); SPI.style.height = (cdk * 100) + '%';
-  { const FV = K.kind === 'fire', WPV = K.kind === 'priest', TV = K.kind === 'time', NV = K.kind === 'ninja', OV = K.kind === 'ogre', live = FV ? K.vPh >= 0 : WPV ? K.pPh >= 0 : TV ? K.cr >= 0 : NV ? K.nPh >= 1 : OV ? K.ogR >= 0 : K.ultPh >= 0, pr = TV && K.ulOn && !(K.cr >= 0) ? 0 : cl((K.kills - (K.ultBase || 0)) / ultNeed(K), 0, 1);
+  { const FV = K.kind === 'fire', WPV = K.kind === 'priest', TV = K.kind === 'time', NV = K.kind === 'ninja', OV = K.kind === 'ogre', live = FV ? K.vPh >= 0 : WPV ? K.pPh >= 0 : TV ? K.cr >= 0 : NV ? K.nPh >= 1 : OV ? K.ogR >= 0 && K.ogR < OG.RAMP.T : K.ultPh >= 0, pr = TV && K.ulOn && !(K.cr >= 0) ? 0 : cl((K.kills - (K.ultBase || 0)) / ultNeed(K), 0, 1);
     document.body.classList.toggle('volc', FV && live); document.body.classList.toggle('drive', TV && carGone(K)); const vOpen = K.vPh === 1 || (K.vPh === 0 && K.vT >= V.RISE - 1); VTAP.classList.toggle('on', FV && vOpen && K.vSh < V.SHOTS && !(K.vBel >= 0)); if (FV && vOpen) { const tx = `Tap the screen to erupt · ${V.SHOTS - K.vSh} left`; if (VTAP.textContent !== tx) VTAP.textContent = tx; }
     if (FV) ULI.style.height = (live ? (K.vPh === 1 ? 1 - K.vT / V.T : K.vPh === 0 ? 1 : 0) : pr) * 100 + '%'; else if (WPV) ULI.style.height = (live ? (K.pPh === 1 ? 1 - K.pT / WP.PEN.T : K.pPh === 0 ? 1 : 0) : pr) * 100 + '%'; else if (TV) ULI.style.height = (live ? (K.cr === 0 ? 1 : K.cr === 1 ? 1 - cl(K.crT / TT.CAR.T, 0, 1) : 0) : pr) * 100 + '%'; else if (NV) ULI.style.height = (live ? (K.nPh === 1 ? 1 - cl(K.nT / NJ.ULT.PLAN, 0, 1) : 1 - cl(K.nT / NJ.ULT.STRIKE, 0, 1)) : pr) * 100 + '%'; else if (OV) { ULI.style.height = (live ? 1 - cl(K.ogR / OG.RAMP.T, 0, 1) : pr) * 100 + '%'; } else ULI.style.height = (live ? (K.ultPh === 1 ? 1 - K.ult / ULT_T : K.ultPh === 0 ? 1 : 0) : pr) * 100 + '%'; ub.classList.toggle('ready', !live && pr >= 1); ub.classList.toggle('live', live); document.body.classList.toggle('ogult', OV && live);
     const lab = live ? (TV ? '' : NV ? (K.nPh === 1 ? 'strike' : '') : FV ? (K.vPh === 1 ? Math.ceil(V.T - K.vT) + 's' : '') : WPV ? (K.pPh === 1 ? Math.ceil(WP.PEN.T - K.pT) + 's' : '') : K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (TV && K.ulOn ? 0 : K.kills - (K.ultBase || 0)) + '/' + ultNeed(K); if (ULS.textContent !== lab) ULS.textContent = lab;
@@ -6623,6 +6731,8 @@ function charPic(kind, w = 96, h = 120) { const col = MYCOL || KCOLS[0], key = k
     if (kind === 'fire') drawFire(g, 1.2); else if (kind === 'priest') drawPriest(g, 1.2); else if (kind === 'time') drawTime(g, 1.2); else if (kind === 'ninja') drawNinja(g, 1.2); else if (kind === 'ogre') drawStormOgre(g, 1.2); else drawKnight(g, 1.2);
   } catch (e) { console.warn('charPic', kind, e); } K = k0; return CPIC[key] = cv.toDataURL(); }
 window.__charPic = charPic;
+// test: the Storm Ogre's rear view (hook follow-through) at a few points, and his front view at the same scale
+window.__ogBack = (list, S = 12) => { const cv = document.createElement('canvas'); cv.width = 300 * list.length; cv.height = 420; const g = cv.getContext('2d'); g.fillStyle = '#5d8f4e'; g.fillRect(0, 0, cv.width, cv.height); list.forEach(([e, pi, f], i) => { g.save(); g.translate(150 + i * 300, 390); g.scale(S, S); OGX.col(MYCOL || KCOLS[0]); OGX.arcn(1); if (e < 0) OGX.drawO2(g, OGX.V, 1.2, f, 0, -1, -1, 'act', 0.5, -1, [], 0, { noFx: 1 }); else OGX.drawBack(g, OGX.V, 1.2, f, { e, pi, iL: 0.5, zL: 0.5 }); OGX.arcn(0); g.restore(); }); return cv.toDataURL(); };
 // test: characters drawn side by side at the same scale (size comparison)
 window.__sizes = (kinds, S = 9, tt = 1.2, ff = 1) => { const cv = document.createElement('canvas'), Wd = 220 * kinds.length + 40; cv.width = Wd; cv.height = 520; const g = cv.getContext('2d'); g.fillStyle = '#5d8f4e'; g.fillRect(0, 0, Wd, 520); const k0 = K, c0 = COL;
   g.strokeStyle = 'rgba(255,255,255,.3)'; g.setLineDash([6, 6]); for (let y = 470; y > 20; y -= 10 * S) { g.beginPath(); g.moveTo(0, y); g.lineTo(Wd, y); g.stroke(); } g.setLineDash([]);
@@ -6803,7 +6913,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '482604';
+const KBUILD = '97db89';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
