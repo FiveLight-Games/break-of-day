@@ -105,6 +105,7 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <div class="ord"><span><span class="tag tA">A</span> <span id="nA"></span></span><div class="seg" id="oA"><button data-v="0">Behind body</button><button data-v="1">Over body</button><button data-v="2">Over all</button></div></div>
       <div class="ord" style="margin-top:6px"><span><span class="tag tB">B</span> <span id="nB"></span></span><div class="seg" id="oB"><button data-v="0">Behind body</button><button data-v="1">Over all</button></div></div>
       <div class="ord" style="margin-top:6px"><span>Legs</span><div class="seg" id="oL"><button data-v="0">Normal</button><button data-v="1">Swapped</button></div></div>
+      <div class="ord" style="margin-top:6px"><span>Hands</span><div class="row"><button id="hdA">A open</button><button id="hdB">B open</button></div></div>
       <div class="ord" style="margin-top:6px"><span>Bends</span><div class="row"><button id="flA">Flip A elbow</button><button id="flB">Flip B elbow</button></div></div>
     </section>
     <section>
@@ -482,7 +483,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
     if (V.st === 'armour') { if (ice) bevel(c, [W(L2(e, h, 0.25), 1.55), W(wb2, 1.75), W(wb2, -1.75), W(L2(e, h, 0.25), -1.55)], '#c4e9ff', { lw: 0.15, k: 0.55, inner: (Q, ox, oy, sz) => iceIn(c, Q, ox, oy, sz, 5, t) }); else { bevel(c, [W(L2(e, h, 0.25), 1.5), W(wb2, 1.7), W(wb2, -1.7), W(L2(e, h, 0.25), -1.5)], '#b8733a', { lw: 0.15, k: 0.55 }); for (const q of [0.38, 0.52, 0.66]) { const p = L2(e, h, q); c.strokeStyle = '#e0a060'; c.lineWidth = 0.18; c.beginPath(); c.moveTo(...W(p, 1.55)); c.lineTo(...W(p, -1.55)); c.stroke(); } } }
     else { path(c, [W(wb, 1.45), W(wb2, 1.55), W(wb2, -1.55), W(wb, -1.45)]); c.fillStyle = COL; c.fill(); c.strokeStyle = OUT; c.lineWidth = 0.15 * OLW; c.stroke(); }
     // the hand: a broad palm, three thick clawed fingers and a thumb; they curl into a fist for the smash
-    const fc = [h[0] + d[0] * 0.2, h[1] + d[1] * 0.2], fa = Math.atan2(dy, dx), curl = WPN ? 0.85 : Math.max(k, wind * 0.6, opts.hCurl || 0, (() => { const q = opts.h2 && opts.h2[side === 'A' ? 0 : 1]; return q ? (q.c || 0) * q.k : 0; })()), sd2 = side === 'B' ? 1 : -1;
+    const fc = [h[0] + d[0] * 0.2, h[1] + d[1] * 0.2], fa = Math.atan2(dy, dx), curl = RG ? (side === 'A' ? RG.cA : RG.cB) || 0 : WPN ? 0.85 : Math.max(k, wind * 0.6, opts.hCurl || 0, (() => { const q = opts.h2 && opts.h2[side === 'A' ? 0 : 1]; return q ? (q.c || 0) * q.k : 0; })()), sd2 = side === 'B' ? 1 : -1; if (opts.outRig) opts.outRig['c' + side] = curl;
     const handParts = [], nails = [], creases = [];
     const finger = j => { const off = (j - 1) * 0.95, base = [fc[0] + d[0] * 0.75 + n[0] * off, fc[1] + d[1] * 0.75 + n[1] * off], a = fa + (j - 1) * 0.22 * (1 - curl) + f * curl * 1.3, L = 1.55 * (1 - 0.5 * curl), tip = [base[0] + Math.cos(a) * L, base[1] + Math.sin(a) * L];
       const FP = limbP(base, tip, 0.52, 0.42, 1.06, 0.4); handParts.push(FP); cel(c, FP, sk, { d: 0.3, hl: 0, noStroke: 1 }); const nl = [tip[0] + Math.cos(a) * 0.32, tip[1] + Math.sin(a) * 0.32]; nails.push([nl, a]); creases.push([L2(base, tip, 0.5), a, 0.42]); };
@@ -805,7 +806,7 @@ const clone = o => JSON.parse(JSON.stringify(o));
 function render(c, P, out) { const o = { rig: P, noFx: 1, noJet: 1, outRig: out || { ord: [] } }; OGX.drawO2(c, OGX.V, T0, P.f, 0, -1, -1, 'act', P.act, -1, [], 0, o); return o.outRig; }
 function fromOut(o, f, act, yf) { const i = s => o.ord.indexOf(s), iT = i('T'), iH = i('H');
   return { f, pel: o.pel, lean: o.lean, yaw: o.yaw, feet: o.feet, kn: [f > 0 ? -1 : 1, f > 0 ? -1 : 1], hA: [o.hA[0] - o.shA[0], o.hA[1] - o.shA[1]], hB: [o.hB[0] - o.shB[0], o.hB[1] - o.shB[1]], eA: o.sA, eB: o.sB,
-    aF: i('A') < iT ? 0 : i('A') < iH ? 1 : 2, bF: i('B') < iT ? 0 : 1, ls: 0, act, yf: yf ?? 0.42 }; }
+    aF: i('A') < iT ? 0 : i('A') < iH ? 1 : 2, bF: i('B') < iT ? 0 : 1, ls: 0, act, yf: yf ?? 0.42, cA: o.cA || 0, cB: o.cB || 0 }; }
 function idlePose(f) { const o = { ord: [] }; OGX.drawO2(scratch, OGX.V, T0, f, 0, -1, -1, 'act', 0, -1, [], 0, { noFx: 1, noJet: 1, outRig: o }); return fromOut(o, f, 0); }
 function gamePose(k2, f, u) { const hk = ogHookPose({ f, ouK: k2, ouA: f > 0 ? 0 : Math.PI }, u), o = { ord: [] }, act = k2 === 0 ? 1 : 0;
   OGX.drawO2(scratch, OGX.V, T0, f, 0, -1, -1, 'act', act, -1, [], 0, { hk, yaw: hk.yaw, noFx: 1, noJet: 1, outRig: o }); return fromOut(o, f, act, hk.yf); }
@@ -839,7 +840,7 @@ function poseAt(t) { const K = keys(); if (!K.length) return idlePose(1); if (t 
   const ang = g => { const v = P.map(g); v[0] = v[1] + wrapA(v[0] - v[1]); v[2] = v[1] + wrapA(v[2] - v[1]); v[3] = v[2] + wrapA(v[3] - v[2]); return e === 'smooth' ? cr(v[0], v[1], v[2], v[3], u) : lerp(v[1], v[2], uu); };
   const pt = g => [num(p => g(p)[0]), num(p => g(p)[1])];
   const hand = g => { const A = ang(p => Math.atan2(g(p)[1], g(p)[0])), R = Math.min(ARM, Math.max(0, num(p => Math.hypot(g(p)[0], g(p)[1])))); return [Math.cos(A) * R, Math.sin(A) * R]; };
-  return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean), yaw: num(p => p.yaw), act: cl(num(p => p.act), 0, 1), yf: a.pose.yf, feet: [pt(p => p.feet[0]), pt(p => p.feet[1])], hA: hand(p => p.hA), hB: hand(p => p.hB) }; }
+  return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean), yaw: num(p => p.yaw), act: cl(num(p => p.act), 0, 1), cA: cl(num(p => p.cA || 0), 0, 1), cB: cl(num(p => p.cB || 0), 0, 1), yf: a.pose.yf, feet: [pt(p => p.feet[0]), pt(p => p.feet[1])], hA: hand(p => p.hA), hB: hand(p => p.hB) }; }
 
 // ---- state ----
 let fr = 0, pose = poseAt(0), dirty = false, playing = false, loop = true, onion = true, pt = 0, last = 0, rig = null;
@@ -943,13 +944,14 @@ function ui() {
   $('fL').classList.toggle('on', pose.f < 0); $('fR').classList.toggle('on', pose.f > 0);
   $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
+  for (const s of ['A', 'B']) { const fist = (pose['c' + s] || 0) > 0.5; $('hd' + s).textContent = s + (fist ? ' fist' : ' open'); $('hd' + s).classList.toggle('on', fist); }
   $('bLoop').classList.toggle('on', loop); $('bOnion').classList.toggle('on', onion);
   const sel = $('clipSel'); if (sel.options.length !== clips.length || [...sel.options].some((o, i) => o.text !== clips[i].name)) sel.innerHTML = clips.map((c, i) => `<option value="${i}">${c.name.replace(/</g, '&lt;')}</option>`).join(''); sel.value = ci;
   if (document.activeElement !== $('clipName')) $('clipName').value = clip().name;
 }
 for (const id of ['lean', 'yaw', 'act']) { $(id).addEventListener('input', e => { pose[id] = +e.target.value; $(id + 'O').textContent = (+e.target.value).toFixed(2); livePreview(); }); $(id).addEventListener('change', edited); }
 for (const [id, key] of [['oA', 'aF'], ['oB', 'bF'], ['oL', 'ls']]) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pose[key] = +b.dataset.v; edited(); });
-$('flA').onclick = () => { pose.eA *= -1; edited(); }; $('flB').onclick = () => { pose.eB *= -1; edited(); };
+$('flA').onclick = () => { pose.eA *= -1; edited(); }; for (const s of ['A', 'B']) $('hd' + s).onclick = () => { pose['c' + s] = (pose['c' + s] || 0) > 0.5 ? 0 : 1; edited(); }; $('flB').onclick = () => { pose.eB *= -1; edited(); };
 $('fL').onclick = () => setFacing(-1); $('fR').onclick = () => setFacing(1);
 function setFacing(f) { if (pose.f === f) return; snap(); for (const k of keys()) k.pose = mirror(k.pose); pose = mirror(pose); save(); ui(); }
 function snapshot() { if (keyAt(fr)) return; snap(); keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); save(); dirty = false; const st = +$('step').value || 0; if (st) { const k0 = clone(pose); fr += st; const k = keyAt(fr); pose = k ? clone(k.pose) : k0; dirty = !k; } ui(); }
