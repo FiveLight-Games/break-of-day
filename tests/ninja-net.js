@@ -19,6 +19,10 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   const g = async (p, i) => p.evaluate(i => { const K = window.__KN()[i]; return K ? { kind: K.kind, nQ: K.nQ, nl: K.nl, nPh: K.nPh, x: Math.round(K.x), kills: K.kills } : null; }, i);
   await B.evaluate(() => window.__leap([1, 0])); await sleep(450); console.log('mid-leap host sees', JSON.stringify(await g(A, 1)), 'guest', JSON.stringify(await g(B, 1)));
   await sleep(900); console.log('after leap host', JSON.stringify(await g(A, 1)));
+  // kamas: the guest throws at the nearest enemy; the host plays the same move (hooked, pulled through) and the kills land on the host
+  await sleep(2600); const k0 = (await g(A, 1)).kills; const pick = await B.evaluate(() => { const K = window.__KN()[window.__NETS().me]; window.__kamas(null); return K.in.dashD; });
+  await sleep(700); const km = await A.evaluate(() => { const K = window.__KN()[1]; return { km: +K.km.toFixed(2), kmH: K.kmH, kmT: K.kmT, z: +(K.z || 0).toFixed(1) }; }), kmG = await B.evaluate(() => { const K = window.__KN()[window.__NETS().me]; return { km: +K.km.toFixed(2), kmH: K.kmH, kmT: K.kmT }; });
+  console.log('kamas pick', JSON.stringify(pick), 'host', JSON.stringify(km), 'guest', JSON.stringify(kmG)); await sleep(1200); console.log('after kamas host', JSON.stringify(await g(A, 1)), 'kills +', (await g(A, 1)).kills - k0);
   await A.evaluate(() => { const K = window.__KN()[1]; K.kills = 5000; }); await sleep(600);
   await B.evaluate(() => window.__ult()); await sleep(500);
   console.log('ult: host speed', await A.evaluate(() => document.getElementById('slow').textContent), 'guest', await B.evaluate(() => document.getElementById('slow').textContent), 'host nPh', (await g(A, 1)).nPh);
