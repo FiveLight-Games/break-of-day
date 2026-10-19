@@ -7,7 +7,7 @@ The previous game (Break of Day) was scrapped on 2026-10-13. Its full code (v0.1
 - Player-facing version is `v0.NN`, +0.01 per shipped build; `v0.00` means nothing shipped yet. Show it in the game's main menu
   (put the internal build id in a tooltip, not on screen).
 - `BUILDS.json` is the build log: version, internal 6-char build id, commit, date, notes.
-- The local branch is a wip branch; GitHub Pages serves `main`, so a ship pushes with `git push origin HEAD:main` (plain `git push` had no upstream and silently pushed nothing from v0.81 to v0.82).
+- Never ship to the live site (`main`, served by GitHub Pages) unless Elijah explicitly says to ship. "Demo" means the built knights.html sent as a file in the chat (copy it to the scratchpad as ninja-demo.html etc. and send it); updating the demo never means pushing live. Day-to-day commits go to the local wip branch (`git push origin HEAD`), never to `main`. When he does say ship: `git push origin HEAD:main`.
 - Normal builds: `python3 build.py`. When shipping (commit + push): `python3 build.py --ship "short notes"` once, then commit,
   then fill the previous entry's `commit` field on the next ship.
 - Main menu: version bottom-left with a Changelog button next to it (`showLog`): build.py inlines every BUILDS.json entry (v, date, notes) as `window.TD_LOG`, shown newest first in the modal (title + Close button stay at the top, only the list scrolls). So ship notes are player-facing: keep them a short summary of the changes.
