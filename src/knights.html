@@ -4462,9 +4462,12 @@ function njKunaiStep(dt) { const KU = NJ.KU; for (let i = NJKU.length - 1; i >= 
     if (k.t >= k.max) { k.fall = 1; k.vz = 20; } } }
 function njEvent(kn, e) { const U = NJ.ULT, P = kn.njPts;
   if (e.k === 'd') { // pick the enemy: round-robin over everyone inside this segment (by id), so the 30 hits are shared among them
-    const inA = walkers.filter(w => w.hp > 0 && njInSeg(P, e.s, w)).sort((a, b) => a.id - b.id), big = inA.filter(w => UK[w.k].heavy), inS = big.length ? big : inA, tg = inS.length ? inS[e.i % inS.length] : null;
+    const inA = walkers.filter(w => w.hp > 0 && njInSeg(P, e.s, w)).sort((a, b) => a.id - b.id), big = inA.filter(w => UK[w.k].heavy), inS = big.length ? big : inA, tg = inS.length ? inS[e.i % inS.length] : null; if (!tg) return; // no afterimage without a target
     const g = { kn, k: 'd', t: 0, x0: e.x, y0: e.y, z0: U.GZ, tx: tg ? tg.x : e.x, ty: tg ? tg.y : e.y, tid: tg ? tg.id : -1, f: tg ? (tg.x >= e.x ? 1 : -1) : (kn.f || 1), hit: 0 }; NJGH.push(g); if (NJGH.length > 120) NJGH.shift(); }
-  else { NJGH.push({ kn, k: 's', t: 0, x0: e.x, y0: e.y, z0: 0, tx: e.x, ty: e.y, f: njRnd(kn.nSd, e.j, e.c) > 0.5 ? 1 : -1, hit: 0 }); } }
+  else { // a swirler only appears where it has someone to cut: at its spot if an enemy is within its swirl, else beside the nearest enemy left in its segment, else not at all
+    const inA = walkers.filter(w => w.hp > 0 && njInSeg(P, e.s, w)); if (!inA.length) return; let x = e.x, y = e.y;
+    if (!inA.some(w => Math.hypot(w.x - x, (w.y - y) * 1.25) < U.SWRR + UK[w.k].r)) { let b = inA[0], bd = 1e9; for (const w of inA) { const d = Math.hypot(w.x - x, (w.y - y) * 1.25); if (d < bd) { bd = d; b = w; } } const a = njRnd(kn.nSd, e.j + 40, e.c) * 6.28; x = b.x + Math.cos(a) * U.SWRR * 0.5; y = b.y + Math.sin(a) * U.SWRR * 0.4; }
+    NJGH.push({ kn, k: 's', t: 0, x0: x, y0: y, z0: 0, tx: x, ty: y, f: njRnd(kn.nSd, e.j, e.c) > 0.5 ? 1 : -1, hit: 0 }); } }
 // each frame: the ghosts dash, strike and fade; the host deals their damage at the moment of the strike
 function njGhostStep(dt) { njKunaiStep(dt); for (let i = NJGH.length - 1; i >= 0; i--) { const g = NJGH[i]; g.t += dt;
     if (g.k === 'd') { if (g.tid >= 0 && g.t < 0.17 * NJ.ULT.GT) { const w = walkers.find(q => q.id === g.tid); if (w) { g.tx = w.x; g.ty = w.y; } }
@@ -7323,7 +7326,7 @@ makePatch(); paintGround(); resize(); setup(); requestAnimationFrame(frame);
 window.__IN = KN[ME].in; window.__clumpN = spawnClump;
 window.__K = () => K;
 window.__adv = (sec) => { for (let i = 0; i < sec * 60; i++) { t += 1 / 60; step(1 / 60, t); } draw(); };
-window.__spr = () => SPR.size; window.__step = d => { t += d; step(d, t); }; window.__poseK = i => { const k0 = K; K = KN[i]; const P = pose(t); K = k0; return { feet: P.feet, pel: P.pel, ks: KS * (KN[i].sz || 1) }; }; window.__draw = () => draw();
+window.__spr = () => SPR.size; window.__step = d => { t += d; step(d, t); }; window.__njGH = () => NJGH.length; window.__poseK = i => { const k0 = K; K = KN[i]; const P = pose(t); K = k0; return { feet: P.feet, pel: P.pel, ks: KS * (KN[i].sz || 1) }; }; window.__draw = () => draw();
 // ---------------- lobby + netcode (Supabase Realtime broadcast; the host runs the enemies and all damage) ----------------
 const SB_URL = 'https://ucdwqexhkglvhilurqti.supabase.co', SB_KEY = 'sb_publishable_E9Iaftt5o7nK4Ph5FeoONw_QSfj7KeE';
 let sbc = null;
