@@ -3078,7 +3078,7 @@ function njPose(kn, t) {
   const L = f * lean, C = add(add(pel, rot([0, -4.1], L)), [f * tw * 0.55, 0]);
   const w = 1.75 * (1 - 0.22 * tw), sd = [Math.cos(L * 0.8), Math.sin(L * 0.8)];
   const sh = [[C[0] - sd[0] * w, C[1] - sd[1] * w + f * tw * 0.18], [C[0] + sd[0] * w, C[1] + sd[1] * w - f * tw * 0.18]];
-  const head = add(C, rot([f * (0.45 + Math.max(0, tw) * 0.2), -2.75], L * 0.55));
+  const head = add(C, rot([f * (0.42 + Math.max(0, tw) * 0.2), -2.4], L * 0.55));
   const hand = (hx, hy) => add(C, rot([f * hx, hy], L * 0.6)), ang = a => f > 0 ? a + L * 0.5 : Math.PI - a + L * 0.5;
   const hips = [[pel[0] - 1.0, pel[1]], [pel[0] + 1.0, pel[1]]];
   // both knees bend forward, the way his toes point (never back against the foot)
@@ -3356,7 +3356,7 @@ function drawNinjaBody(c, t, ghost) {
   if (backB) blade();
   // back limbs behind front limbs: back leg, back (A) arm, front leg, then the body over them
   njLeg(c, P.hips[near], P.knees[near], P.feet[near], f, true); armA(); njLeg(c, P.hips[far], P.knees[far], P.feet[far], f, false);
-  njTorso(c, P, f, t); njKunai(c, P, f, t); njNeck(c, P, f);
+  njNeck(c, P, f); njTorso(c, P, f, t); njKunai(c, P, f, t);
   njHead(c, P, f, t);
   armB(); if (!backB) blade(); c.fillStyle = NJC.TABI; c.beginPath(); c.arc(P.hB[0], P.hB[1], 0.6, 0, 7); c.fill();
   // test hook: where each part sits on the canvas (window.__njLab)
