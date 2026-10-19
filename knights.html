@@ -3551,7 +3551,7 @@ const OG = { SPD: 0.504,
   // to anyone the fist didn't hit); chain lightning from the fist: first target within CR in a cone CA, then CJ jumps of CJR, CDMG each; smash: centre SO ahead, radius SR, SDMG falling to 60%
   // (2026-10-18 rework: slow heavy swings, hit at HIT[k] of each; storm hook: BIG sparks leap from the fist to BIG different enemies within CR in a ±CA cone (BDMG),
   // each splits into SPL smaller sparks that jump to new enemies within SJR of it (SDMG2) and on again CJ2 times; frost wave bigger)
-  SW: { T: [1.25, 1.25, 1.7], HIT: [0.54, 0.54, 0.42], GAP: 0.5, FR: 15, FA: 1.1, FDMG: 190, FKB: 80, WR: 64, WA: 1.0, WDMG: 90, WSL: 3, CR: 110, CA: 0.75, BIG: 4, BDMG: 170, SPL: 5, SJR: 40, CJ2: 1, SDMG2: 80, SO: 12, SR: 28, SDMG: 280, SKB: 130 },
+  SW: { T: [1.3, 1.3, 1.8], HIT: [0.61, 0.61, 0.7], GAP: 0.5, FR: 15, FA: 1.1, FDMG: 190, FKB: 80, WR: 64, WA: 1.0, WDMG: 90, WSL: 3, CR: 110, CA: 0.75, BIG: 4, BDMG: 170, SPL: 5, SJR: 40, CJ2: 1, SDMG2: 80, SO: 12, SR: 28, SDMG: 280, SKB: 130 },
   // abilities x1.7 size and damage (2026-10-18): surf zap reach/dps/trail width, cloud radius/aim range/strike radius/damage, spike line length/width/speed/damage, dragon path/freeze width/strike radius/damage/speed
   SURF: { T: 4.2, V: 92, TURN: 2.4, ZR: 64.6, ZN: 3, ZDPS: 561, TRAIL: 3.2, TW: 7.65, SLOW: 0.15, CD: 9,
     // the frost blast as he lays the platform: a cone (R, ±A) ahead: DMG + slowed SL s; weak enemies (UK hp <= WEAK, not heavy) frozen solid for FZ s;
@@ -3765,7 +3765,7 @@ function drawStormOgre(c, t) { if (!Number.isFinite(K.ogPh)) K.ogPh = 0; const D
   let h2 = null; if (K.ogR >= 0) { h2 = [null, null]; const zA = ogZArm(K), iA = 1 - zA; if (K.ogZc >= 0) h2[zA] = ogArmK(true, K.ogR - K.ogZc); if (K.ogIc >= 0) h2[iA] = ogArmK(false, K.ogR - K.ogIc);
     const W2 = OG.RAMP.WIND, rk = K.ogR < W2 ? sm(Math.min(1, K.ogR / 0.25)) : 1 - sm(Math.min(1, (K.ogR - W2) / 0.3)); if (rk > 0) for (let i = 0; i < 2; i++) if (!h2[i]) h2[i] = { h: i === 0 ? [5.2, -14.5] : [-4.6, -14.2], k: rk, c: 1 }; }
   c.save(); c.translate(K.x, K.y - (K.z || 0)); c.scale(OGSC, OGSC); OGX.col(K.col || '#3a7bd5'); OGX.arcn(1); OGX.GAIT.RUN = ogRun(K);
-  OGX.drawO2(c, OGX.V, t, f, w, hk0 ? -1 : u, bk, bk >= 0 && !fb ? 'both' : 'act', K.ogAk, K.sv >= 0 ? K.sv * OGX.SURF.T / OG.SURF.T : -1, foes, 0, { noTrail: 1, jet: [Math.cos(K.svA || 0) * 9, Math.sin(K.svA || 0) * 9 * OGY - 0.4], aimTo, fb, atype: 2, hk: hk0, yaw: hk0 ? hk0.yaw : 0, noFx: 1, ph: K.ogPh, st: ogStride(K), h2 });
+  OGX.drawO2(c, OGX.V, t, f, w, hk0 ? -1 : (u >= 0 && K.ouK === 2 && !K.ouS ? (u < 0.6 ? 0.25 * sm(u / 0.6) : u < 0.7 ? 0.25 + 0.17 * ((u - 0.6) / 0.1) ** 2 : 0.42 + 0.58 * (u - 0.7) / 0.3) : u), bk, bk >= 0 && !fb ? 'both' : 'act', K.ogAk, K.sv >= 0 ? K.sv * OGX.SURF.T / OG.SURF.T : -1, foes, 0, { noTrail: 1, jet: [Math.cos(K.svA || 0) * 9, Math.sin(K.svA || 0) * 9 * OGY - 0.4], aimTo, fb, atype: 2, hk: hk0, yaw: hk0 ? hk0.yaw : 0, noFx: 1, ph: K.ogPh, st: ogStride(K), h2 });
   OGX.GAIT.RUN = 0; OGX.arcn(0); c.restore(); }
 // lightning: a jagged path by midpoint displacement with a few forks, drawn as light (additive): a wide faint blue glow, a brighter halo, a pale blue body and a white-hot core
 function ogBoltPts(a, b, sd, rough = 0.3, lv = 5) { let P = [a, b]; for (let l = 0; l < lv; l++) { const N = [P[0]]; for (let i = 0; i < P.length - 1; i++) { const p = P[i], q = P[i + 1], dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1, o = (OGX.rnd(sd * 1.37 + l * 17.1 + i * 3.3) - 0.5) * L * rough; N.push([(p[0] + q[0]) / 2 - dy / L * o, (p[1] + q[1]) / 2 + dx / L * o], q); } P = N; } return P; }
@@ -3801,8 +3801,9 @@ function ogIceBlock(c, w, t) { const U = UK[w.k], s = U.sc, x = w.x, y = w.y, hw
 // his two mouths (storm head on screen-right, frost head on screen-left, both turned the way he faces) and the point just in front of him where their breaths meet
 const ogMouths = kn => { const f = kn.f || 1; return [[kn.x + (2.45 + f * 1.3) * OGSC, kn.y - 20.0 * OGSC], [kn.x + (-2.45 + f * 1.3) * OGSC, kn.y - 19.7 * OGSC]]; }, ogMix = kn => [kn.x + (kn.f || 1) * 9 * OGSC, kn.y - 22.5 * OGSC];
 // the frost hook's / storm hook's fist path: angle round him (ground space) and how far through the swing (0 before the launch .. 1 at its end)
-const OGHK = { W: 0.36, F: 0.72 };
-function ogHookTh(k2, a, u) { const s = k2 === 0 ? 1 : -1, th0 = a + s * 2.09, th1 = a - s * 1.05, W = OGHK.W, F = OGHK.F; if (u <= W) return [th0, 0]; const e = cl((u - W) / (F - W), 0, 1), q = e * e * (3 - 2 * e); return [lerp(th0, th1, q), e]; }
+// a long slow coil (to W), then the fist explodes round the arc in (F - W) x T, about 0.16s, accelerating into the hit
+const OGHK = { W: 0.55, F: 0.67 };
+function ogHookTh(k2, a, u) { const s = k2 === 0 ? 1 : -1, th0 = a + s * 2.09, th1 = a - s * 1.05, W = OGHK.W, F = OGHK.F; if (u <= W) return [th0, 0]; const e = cl((u - W) / (F - W), 0, 1), q = e < 0.5 ? 2 * e * e : 1 - 2 * (1 - e) * (1 - e); return [lerp(th0, th1, q), e]; }
 // the hook's pose for drawO2 (opts.hk): crouch for leverage on the wind-up, spring up as the fist is launched round the arc, other fist up guarding
 function ogHookPose(kn, u) { const f = kn.f || 1, k2 = kn.ouK, frost = k2 === 0, arm = frost ? (f > 0 ? 1 : 0) : (f > 0 ? 0 : 1), sB = arm === 1 ? 1 : -1, W = OGHK.W, F = OGHK.F;
   const [th, e] = ogHookTh(k2, kn.ouA, u), wk = sm(cl(u / W, 0, 1)), rec = u > F ? sm(cl((u - F) / (1 - F), 0, 1)) : 0, k = (u < W ? wk : 1) * (1 - rec), R = u < W ? 5.6 : 5.6 + 1.1 * Math.sin(Math.PI * Math.min(1, e * 1.2));
@@ -6802,7 +6803,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '161108';
+const KBUILD = '482604';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
