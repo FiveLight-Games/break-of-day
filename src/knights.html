@@ -384,11 +384,13 @@ const r1 = v => Math.round(v * 10) / 10;
 const dashFx = (w, a) => { EV.push([w.id, 2, Math.round(a * 100) / 100, K.i, r1(w.x), r1(w.y)]); dashKill(w, a); };
 const slamFx = (w, a) => { EV.push([w.id, 3, Math.round(a * 100) / 100, K.i, r1(w.x), r1(w.y)]); slamKill(w, a); };
 function dashKill(w, a) { // cut clean through: everything flies the way he was going
+  if (ogFrozenKill(w, a, 1.3)) return;
   killSnd(w); w.dead = 1; const dx = Math.cos(a), dy = Math.sin(a), s = Math.sign(dx) || 1; wolfBits(w, s);
   const pw = rr(50, 80); for (const kd of ['head', 'torso', 'legs', 'arm']) gib(w, kd, dx * pw * rr(0.7, 1.2) + rr(-10, 10), dy * pw * 0.6 * rr(0.7, 1.2) + rr(-8, 8), rr(18, 34), rr(-20, 20));
   spray(w.x, w.y, 7, s, 20, 1.3);
 }
 function slamKill(w, a) { // blown apart outward from the impact, guts and all
+  if (ogFrozenKill(w, a, 2)) return;
   killSnd(w, 1); w.dead = 1; const dx = Math.cos(a), dy = Math.sin(a), s = Math.sign(dx) || 1; wolfBits(w, s);
   const pw = rr(80, 120); for (const kd of ['head', 'torso', 'legs', 'arm', 'arm']) gib(w, kd, dx * pw * rr(0.7, 1.3) + rr(-14, 14), dy * pw * 0.7 * rr(0.7, 1.3) + rr(-10, 10), rr(40, 62), rr(-24, 24));
   for (let i = 0; i < 4; i++) gib(w, 'gut', dx * pw * rr(0.5, 1.4) + rr(-25, 25), dy * pw * 0.7 * rr(0.5, 1.4) + rr(-18, 18), rr(30, 60), rr(-18, 18));
@@ -1358,6 +1360,7 @@ function gib(w, kind, vx, vy, vz, spin) { if (UK[w.k] && UK[w.k].heavy && kind !
 const wolfBits = (w, dir) => { if (w.k !== 'warg') return; gib(w, 'wolfhead', dir * rr(14, 24), rr(-5, 5), rr(12, 20), rr(-12, 12)); for (let i = 0; i < 3; i++) gib(w, 'chunk', dir * rr(4, 18), rr(-6, 6), rr(8, 18), rr(-14, 14)); };
 function spray(px, py, pz, dx, n, pow) { for (let i = 0; i < n; i++) blood.push({ x: px, y: py, z: pz, vx: dx * rr(8, 26) * pow + rr(-8, 8), vy: rr(-6, 6), vz: rr(6, 24) * pow, t: 0 }); }
 function cleaveKill(w, dir) {
+  if (ogFrozenKill(w, Math.atan2(w.y - K.y, w.x - K.x), 1)) return;
   killSnd(w); w.dead = 1; const h = Math.random(); wolfBits(w, dir);
   // the cut: head off, an arm off, or cut through the middle
   if (h < 0.4) { gib(w, 'head', dir * rr(22, 36), rr(-6, 6), rr(22, 34), rr(-14, 14)); gib(w, 'torso', dir * rr(8, 14), rr(-3, 3), 6, dir * rr(3, 6)); gib(w, 'legs', dir * 3, 0, 2, dir * 2); spray(w.x, w.y, 8, dir, 14, 1); }
@@ -1365,6 +1368,7 @@ function cleaveKill(w, dir) {
   else { gib(w, 'torso', dir * rr(18, 28), rr(-4, 4), rr(14, 22), dir * rr(6, 10)); gib(w, 'legs', dir * rr(2, 5), 0, 3, -dir * 2); gib(w, 'arm', dir * rr(10, 20), rr(-8, 8), rr(14, 22), rr(-16, 16)); spray(w.x, w.y, 4, dir, 16, 0.9); }
 }
 function spinKill(w) {
+  if (ogFrozenKill(w, Math.atan2(w.y - K.y, w.x - K.x), 1.1)) return;
   killSnd(w); w.dead = 1; const a = Math.atan2(w.y - K.y, w.x - K.x), dx = Math.cos(a), dy = Math.sin(a), tang = [-dy, dx];
   const pw = rr(45, 70);
   for (const kd of ['torso', 'head', 'arm', 'arm', 'legs']) { const j = kd === 'torso' ? 1 : rr(0.7, 1.25); gib(w, kd, (dx * pw + tang[0] * pw * 0.5) * j + rr(-8, 8), (dy * pw * 0.6 + tang[1] * pw * 0.3) * j + rr(-6, 6), rr(28, 44) * (kd === 'torso' ? 0.9 : 1.1), rr(-22, 22)); }
@@ -2116,6 +2120,7 @@ function drawLick(c, f, t) {
 // burnt to a crisp: charred chunks, ash, smoke and embers
 const burnFx = w => { EV.push([w.id, 5, 0, K.i, r1(w.x), r1(w.y)]); burnKill(w); };
 function burnKill(w) {
+  if (ogFrozenKill(w, Math.atan2(w.y - K.y, w.x - K.x), 0.4)) return;
   w.dead = 1; killSnd(w); const U = UK[w.k] || UK.foot, n = 3 + Math.round(U.sc * 2);
   for (let i = 0; i < n; i++) parts.push({ kind: 'ash', uk: w.k, sc: U.sc * rr(0.7, 1.2), x: w.x + rr(-2, 2), y: w.y + rr(-1, 1), z: rr(2, 8) * U.sc, vx: rr(-14, 14), vy: rr(-6, 6), vz: rr(8, 22), rot: rr(0, 6), spin: rr(-8, 8), t: 0, rest: 0, side: 1 });
   for (let i = 0; i < 4; i++) dust.push({ x: w.x + rr(-2, 2), y: w.y - rr(2, 8) * U.sc, vx: rr(-4, 4), vy: -rr(6, 14), r: rr(1.2, 2.4), t: 0, max: rr(0.6, 1.2) });
@@ -2470,6 +2475,7 @@ function penSmash() {
 // impaled: the body is stuck on the flail's spikes and rides along on it for a few seconds before sliding off
 const impaleFx = (w, a) => { EV.push([w.id, 6, Math.round(a * 100) / 100, K.i, r1(w.x), r1(w.y)]); impaleKill(w, a); };
 function impaleKill(w, a) {
+  if (ogFrozenKill(w, a, 0.6)) return;
   killSnd(w); w.dead = 1; let b = Math.atan2(Math.sin(a + Math.PI / 2), Math.cos(a + Math.PI / 2)); b = cl(b, -1.25, 1.25);
   const kn = K; (kn.stuck = kn.stuck || []).push({ uk: w.k, a: b - Math.PI / 2, t: 0, ph: Math.random() * 6, sd: b > 0.3 ? 1 : b < -0.3 ? -1 : Math.random() < 0.5 ? 1 : -1 });
   spray(w.x, w.y, 6, Math.cos(a) >= 0 ? 1 : -1, 14, 1.1); if (kn.stuck.length > 6) stuckOff(kn, kn.stuck.shift());
@@ -2477,7 +2483,7 @@ function impaleKill(w, a) {
 // thrown aside whole (his pull along the chain): the body tumbles away in one piece
 const flingFx = (w, a, sp = 1) => { EV.push([w.id, 7, Math.round(a * 100) / 100, K.i, r1(w.x), r1(w.y), Math.round(sp * 100) / 100]); flingKill(w, a, sp); };
 // sp scales the throw: 0 = he just falls over where he stood
-function flingKill(w, a, sp = 1) { killSnd(w); w.dead = 1; const U = UK[w.k] || UK.foot, ca = Math.cos(a), sa = Math.sin(a);
+function flingKill(w, a, sp = 1) { if (ogFrozenKill(w, a, 0.35 + sp * 0.8)) return; killSnd(w); w.dead = 1; const U = UK[w.k] || UK.foot, ca = Math.cos(a), sa = Math.sin(a);
   if (U.sc > 1.05) { gib(w, 'torso', ca * 60 * sp, sa * 35 * sp, 4 + 22 * Math.min(1, sp), rr(-8, 8) * sp); gib(w, 'legs', ca * 45 * sp, sa * 25 * sp, 3 + 15 * Math.min(1, sp), rr(-8, 8) * sp); gib(w, 'head', ca * 55 * sp, sa * 30 * sp, 5 + 25 * Math.min(1, sp), rr(-10, 10) * sp); spray(w.x, w.y, 5, Math.sign(ca) || 1, 6 + 4 * sp, 0.5 + 0.5 * sp); return; }
   const fall = sp < 0.05, dir = Math.cos(a) >= 0 ? 1 : -1;
   parts.push({ kind: 'corpse', uk: w.k, sc: 1, x: w.x, y: w.y, z: fall ? 0.2 : 1, vx: fall ? dir * 3 : ca * rr(60, 85) * sp, vy: fall ? 0 : sa * rr(35, 50) * sp, vz: fall ? 6 : 8 + rr(18, 30) * Math.min(1, sp), rot: 0, spin: dir * (fall ? 5 : rr(6, 10) * Math.min(1.3, 0.4 + sp)), t: 0, rest: 0, side: 1 });
@@ -3929,10 +3935,12 @@ function ogShatter(w, a) { const CN = OG.SURF.CONE, n = (K.ogXN = (K.ogXN || 0) 
   for (const o of walkers) { if (o === w || o.hp <= 0) continue; const d = ogDist(o.x, o.y, w.x, w.y); if (d > CN.SR + UK[o.k].r) continue; const ka = Math.atan2(o.y - w.y, o.x - w.x); o.atk = -1; o.kx += Math.cos(ka) * CN.SKB; o.ky += Math.sin(ka) * CN.SKB * 0.6; ogKill(o, CN.SDMG, K); }
   const k0 = K; hurt(w, w.hp + 1, ww => { ww.dead = 1; killSnd(ww); }); K = k0; }
 // frozen solid and shattered: the body breaks into its pieces, each one ice (frosted, glassy, no blood), flung out the way he hit it
-function ogFrozenBits(x, y, a, ki) { const k = UKEYS[ki] || 'foot', w = { k, x, y, id: -1 }, dx = Math.cos(a), dy = Math.sin(a), pw = rr(70, 110), n0 = parts.length;
-  if (!(UK[k] && UK[k].heavy)) for (const kd of ['head', 'torso', 'legs', 'arm', 'arm']) gib(w, kd, dx * pw * rr(0.6, 1.3) + rr(-22, 22), dy * pw * 0.7 * rr(0.6, 1.3) + rr(-16, 16), rr(35, 60), rr(-26, 26));
+function ogFrozenBits(x, y, a, ki, p = 1) { const k = UKEYS[ki] || 'foot', w = { k, x, y, id: -1 }, dx = Math.cos(a), dy = Math.sin(a), pw = rr(70, 110) * p, sc = 0.5 + 0.5 * Math.min(p, 2), n0 = parts.length;
+  if (!(UK[k] && UK[k].heavy)) for (const kd of ['head', 'torso', 'legs', 'arm', 'arm']) gib(w, kd, dx * pw * rr(0.6, 1.3) + rr(-22, 22) * sc, dy * pw * 0.7 * rr(0.6, 1.3) + rr(-16, 16) * sc, rr(35, 60) * sc, rr(-26, 26) * sc);
   for (let i = n0; i < parts.length; i++) parts[i].frz = 1; }
-function ogShatterFx(x, y, a, ki) { if (ki !== undefined && ki >= 0) ogFrozenBits(x, y, a, ki); for (let n = 0; n < 16; n++) { const b = a + rr(-1.4, 1.4), v = rr(25, 70); OGFX.chips.push({ x: x + rr(-1.5, 1.5), y: y + rr(-1, 1), z: rr(2, 9), vx: Math.cos(b) * v, vy: Math.sin(b) * v * 0.6, vz: rr(10, 45), t: 0, r: rr(0.5, 1.3), sp: rr(-14, 14) }); }
+// any kill of an enemy frozen solid shatters it instead of the normal death: the ice pieces fly with the killing blow, harder the more knockback it had (p ~ 0.4 a burn .. 2 a slam); host and guests alike (host: ogFz, guests: frzF from the snapshot)
+function ogFrozenKill(w, a, p) { if (!(w.ogFz > 0 || w.frzF) || (UK[w.k] && UK[w.k].heavy)) return false; w.dead = 1; w.ogFz = 0; w.frzF = 0; killSnd(w); ogShatterFx(w.x, w.y, a, UKEYS.indexOf(w.k), p); return true; }
+function ogShatterFx(x, y, a, ki, p = 1) { if (ki !== undefined && ki >= 0) ogFrozenBits(x, y, a, ki, p); for (let n = 0; n < 16; n++) { const b = a + rr(-1.4, 1.4) / Math.max(0.7, p), v = rr(25, 70) * p; OGFX.chips.push({ x: x + rr(-1.5, 1.5), y: y + rr(-1, 1), z: rr(2, 9), vx: Math.cos(b) * v, vy: Math.sin(b) * v * 0.6, vz: rr(10, 45), t: 0, r: rr(0.5, 1.3), sp: rr(-14, 14) }); }
   FX.push({ k: 'ogsh', x, y, t: 0, max: 0.6 }); shake = Math.max(shake, 0.12); snd('gslam', x, y); }
 // frost wave, hook smears, surf blast, chain lightning, smash: drawn on the ground (under everyone)
 function ogGround(c, t) { const V0 = OGX.V; OGX.arcn(1);
@@ -5049,7 +5057,7 @@ function ttRunDown(t, X = K.x, Y = K.y, bv = K.bv) { const B = TT.BIKE, d = gDir
     w.atk = -1; w.kx += px * B.KB * k / Math.max(0.5, U.kb); w.ky += py * B.KB * k * 0.7 / Math.max(0.5, U.kb); hurt(w, B.DMG * (0.35 + 0.65 * k), ww => flingFx(ww, a, 1.1 + k * 1.2)); } }
 // ---------- kills: lightsaber (0, cut and seared), shotgun (1, blown apart), constricted (2, burst), saw (3, cut through at the waist) ----------
 const ttKillFx = (w, a, m) => { EV.push([w.id, 8, Math.round(a * 100) / 100, K.i, r1(w.x), r1(w.y), m]); ttKill(w, a, m); };
-function ttKill(w, a, m) { killSnd(w, m >= 1);
+function ttKill(w, a, m) { if (ogFrozenKill(w, a, [1, 2, 0.5, 1.2, 0.6][m] ?? 1)) return; killSnd(w, m >= 1);
   if (m === 4) { w.dead = 1; const ca = Math.cos(a), sa = Math.sin(a); for (let i = 0; i < 18; i++) blood.push({ x: w.x, y: w.y, z: rr(5, 8), vx: ca * rr(10, 40) + rr(-12, 12), vy: sa * rr(6, 24) + rr(-8, 8), vz: rr(6, 24), t: 0 }); if (Math.random() < 0.5) gib(w, Math.random() < 0.5 ? 'head' : 'arm', ca * rr(20, 40), sa * rr(10, 24), rr(14, 24), rr(-16, 16)); return; } w.dead = 1; const ca = Math.cos(a), sa = Math.sin(a), s = Math.sign(ca) || 1; wolfBits(w, s);
   if (m === 0) { const h = Math.random();
     if (h < 0.5) { gib(w, 'head', ca * rr(18, 28), sa * rr(10, 16) + rr(-4, 4), rr(18, 28), rr(-12, 12)); gib(w, 'torso', ca * rr(6, 12), sa * 5, 6, s * rr(3, 6)); gib(w, 'legs', ca * 2, 0, 2, s * 2); }
