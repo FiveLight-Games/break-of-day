@@ -3659,7 +3659,7 @@ const OG = { SPD: 0.504,
   // to anyone the fist didn't hit); chain lightning from the fist: first target within CR in a cone CA, then CJ jumps of CJR, CDMG each; smash: centre SO ahead, radius SR, SDMG falling to 60%
   // (2026-10-18 rework: slow heavy swings, hit at HIT[k] of each; storm hook: BIG sparks leap from the fist to BIG different enemies within CR in a ±CA cone (BDMG),
   // each splits into SPL smaller sparks that jump to new enemies within SJR of it (SDMG2) and on again CJ2 times; frost wave bigger)
-  SW: { T: [1.3, 1.3, 1.8], HIT: [0.61, 0.61, 0.7], GAP: 0.5, FR: 15, FA: 1.1, FDMG: 190, FKB: 80, WR: 88, WA: 1.25, WDMG: 90, WSL: 3, CR: 110, CA: 0.75, BIG: 4, BDMG: 255, SPL: 5, SJR: 40, CJ2: 3, SDMG2: 120, SO: 12, SR: 28, SDMG: 280, SKB: 130 },
+  SW: { T: [1.3, 1.3, 1.8], HIT: [0.61, 0.61, 0.7], GAP: 0.5, FR: 15, FA: 1.1, FDMG: 190, FKB: 80, WR: 88, WA: 1.25, WDMG: 90, WSL: 3, CR: 110, CA: 0.75, BIG: 7, BDMG: 255, SPL: 5, SJR: 40, CJ2: 3, SDMG2: 120, SO: 12, SR: 28, SDMG: 280, SKB: 130 },
   // abilities x1.7 size and damage (2026-10-18): surf zap reach/dps/trail width, cloud radius/aim range/strike radius/damage, spike line length/width/speed/damage, dragon path/freeze width/strike radius/damage/speed
   SURF: { T: 4.2, V: 92, TURN: 2.4, ZR: 64.6, ZN: 3, ZDPS: 561, TRAIL: 3.4, AHEAD: 22, TW: 7.65, SLOW: 0.15, CD: 9,
     // the frost blast as he lays the platform: a cone (R, ±A) ahead: DMG + slowed SL s; weak enemies (UK hp <= WEAK, not heavy) frozen solid for FZ s;
@@ -3971,11 +3971,11 @@ function ogHammerDraw(c, G, Hd, vis, t, kn, chg) { const dx = Hd[0] - G[0], dy =
   c.restore(); }
 // lightning: a jagged path by midpoint displacement with a few forks, drawn as light (additive): a wide faint blue glow, a brighter halo, a pale blue body and a white-hot core
 function ogBoltPts(a, b, sd, rough = 0.3, lv = 5) { let P = [a, b]; for (let l = 0; l < lv; l++) { const N = [P[0]]; for (let i = 0; i < P.length - 1; i++) { const p = P[i], q = P[i + 1], dx = q[0] - p[0], dy = q[1] - p[1], L = Math.hypot(dx, dy) || 1, o = (OGX.rnd(sd * 1.37 + l * 17.1 + i * 3.3) - 0.5) * L * rough; N.push([(p[0] + q[0]) / 2 - dy / L * o, (p[1] + q[1]) / 2 + dx / L * o], q); } P = N; } return P; }
-function ogBolt(c, a, b, sd, w = 1, al = 1, br = 2) { if (al <= 0.01) return; const P = ogBoltPts(a, b, sd), dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, paths = [[P, w, 1]];
+function ogBolt(c, a, b, sd, w = 1, al = 1, br = 2, gl = 1) { if (al <= 0.01) return; const P = ogBoltPts(a, b, sd), dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, paths = [[P, w, 1]];
   for (let k = 0; k < br; k++) { const i = Math.floor(P.length * (0.2 + 0.6 * OGX.rnd(sd + k * 9.1))), p = P[i], ang = Math.atan2(dy, dx) + (OGX.rnd(sd + k * 5.3) - 0.5) * 1.8, l = L * (0.15 + 0.25 * OGX.rnd(sd + k * 7.7)); paths.push([ogBoltPts(p, [p[0] + Math.cos(ang) * l, p[1] + Math.sin(ang) * l], sd + k * 31, 0.4, 4), w * 0.45, 0.65]); }
   c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; c.lineJoin = 'round';
   for (const [Q, ww, aa] of paths) { const st = (col, lw) => { c.strokeStyle = col; c.lineWidth = lw; c.beginPath(); Q.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.stroke(); };
-    st(`rgba(70,120,255,${0.06 * al * aa})`, ww * 9); st(`rgba(110,165,255,${0.13 * al * aa})`, ww * 4); st(`rgba(175,215,255,${0.7 * al * aa})`, ww * 1.3); st(`rgba(255,255,255,${0.95 * al * aa})`, ww * 0.45); }
+    if (gl > 0.02) { st(`rgba(70,120,255,${0.06 * al * aa * gl})`, ww * 9); st(`rgba(110,165,255,${0.13 * al * aa * gl})`, ww * 4); } st(`rgba(175,215,255,${0.7 * al * aa})`, ww * 1.3); st(`rgba(255,255,255,${0.95 * al * aa})`, ww * 0.45); }
   c.restore(); }
 // ---- Storm Ogre visuals (redone 2026-10-18: no outlines, translucent ice, particle clouds and mist) ----
 // soft round sprites, made once: every cloud, mist and frost puff is one of these stamped with drawImage
@@ -4140,8 +4140,8 @@ function ogAir(c, t) { const V0 = OGX.V; OGX.arcn(1); c.save();
   // chain lightning (storm hook): bolts from the fist to each enemy in turn, a flare on each
   for (const f2 of FX) if (f2.k === 'ogch') { const sd = Math.floor(t * 30); c.globalCompositeOperation = 'lighter';
     for (let i = 0; i < f2.G.length; i++) { const [g, x0, y0, x1, y1] = f2.G[i], tq = f2.t - g * 0.08; if (tq < 0) continue; const q = cl(tq / 0.45, 0, 1), al = q < 0.4 ? 1 : 1 - (q - 0.4) / 0.6; if (al <= 0) continue; c.globalAlpha = al;
-      const big = g === 0; ogBolt(c, [x0, y0], [x1, y1], sd * 7 + i + f2.sd, (big ? 0.34 : 0.15) * 2.2, 1, 0); if (big && q < 0.35) ogBolt(c, [x0, y0], [x1, y1], sd * 11 + i * 3 + f2.sd, (0.1) * 2.2, 1, 2);
-      ogPuff(c, OGPF.glow, x1, y1, big ? 9 : 5, 0.8 * al); if (big) ogPuff(c, OGPF.glow, x0, y0, 7, 0.6 * al); }
+      const big = g === 0, ln = Math.hypot(x1 - x0, y1 - y0) || 1, o0 = big ? Math.min(ln * 0.3, 4 + (i % 3) * 2) : 0, sx = x0 + (x1 - x0) / ln * o0, sy = y0 + (y1 - y0) / ln * o0; ogBolt(c, [sx, sy], [x1, y1], sd * 7 + i + f2.sd, (big ? 0.34 : 0.15) * 2.2, 1, 0, 0.3);
+      ogPuff(c, OGPF.glow, x1, y1, big ? 5 : 3, 0.3 * al); }
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
   // smash: a ring of shards bursting up, a dust ring and frost mist rolling out, a flash
   for (const f2 of FX) if (f2.k === 'ogsm') { const q = cl(f2.t / f2.max, 0, 1);
@@ -7057,7 +7057,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = 'fd11d9';
+const KBUILD = 'b24a2d';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
