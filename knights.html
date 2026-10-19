@@ -3208,9 +3208,9 @@ function njLeg(c, hip, knee, foot, f, far) { const C = NJC, dk = far ? -0.16 : 0
   const nrm = (a, b) => { const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1; let n = [-dy / l, dx / l]; if (n[0] * f < 0) n = [-n[0], -n[1]]; return [[dx / l, dy / l], n]; };
   const [u1, n1] = nrm(hip, knee), [u2, n2] = nrm(knee, ank); let nk = [n1[0] + n2[0], n1[1] + n2[1]]; const nl = Math.hypot(...nk) || 1; nk = [nk[0] / nl, nk[1] / nl];
   const P = (o, n, w, u = [0, 0], a = 0) => [o[0] + n[0] * w + u[0] * a, o[1] + n[1] * w + u[1] * a];
-  const shape = () => { c.beginPath(); c.moveTo(...P(hip, n1, -1.25, u1, -0.4)); c.quadraticCurveTo(...P(L2(hip, knee, 0.6), n1, -1.1), ...P(knee, nk, -0.78)); c.quadraticCurveTo(...P(L2(knee, ank, 0.35), n2, -0.74), ...P(ank, n2, -0.66));
+  const shape = () => { c.beginPath(); c.moveTo(...P(hip, n1, -1.25, u1, 0.5)); c.quadraticCurveTo(...P(L2(hip, knee, 0.6), n1, -1.1), ...P(knee, nk, -0.78)); c.quadraticCurveTo(...P(L2(knee, ank, 0.35), n2, -0.74), ...P(ank, n2, -0.66));
     c.quadraticCurveTo(X(-0.8), g - 0.1, X(-0.45), g); c.lineTo(X(0.9), g); c.quadraticCurveTo(X(1.34), g, X(1.3), g - 0.38); c.quadraticCurveTo(X(1.15), ank[1] + 0.25, ...P(ank, n2, 0.6));
-    c.lineTo(...P(knee, n2, 0.8, u2, 0.6)); c.quadraticCurveTo(...P(knee, nk, 1.12), ...P(knee, n1, 1.0, u1, -0.6)); c.lineTo(...P(hip, n1, 1.25, u1, -0.4)); c.closePath(); };
+    c.lineTo(...P(knee, n2, 0.8, u2, 0.6)); c.quadraticCurveTo(...P(knee, nk, 1.12), ...P(knee, n1, 1.0, u1, -0.6)); c.lineTo(...P(hip, n1, 1.25, u1, 0.5)); c.quadraticCurveTo(...P(hip, n1, 0, u1, -1.6), ...P(hip, n1, -1.25, u1, 0.5)); c.closePath(); };
   c.lineJoin = 'round'; c.lineCap = 'round'; shape(); c.fillStyle = shade(C.GI, dk); c.fill(); if (NJOLM) return;
   c.save(); shape(); c.clip();
   // a lit fold down the front of the thigh
@@ -3254,8 +3254,9 @@ function njBack(c, P, f, t) { const C = NJC, fl = cl((K.spd || 0) / RUN, 0, 1), 
   for (const [dx, dy, ph] of [[2.6, 0.9, 0], [2.1, 1.8, 1.3]]) { c.beginPath(); c.moveTo(...k); c.quadraticCurveTo(k[0] - f * (dx * 0.6 + fl * 1.2), k[1] + dy * 0.3 + Math.sin(t * 7 + ph) * 0.2, k[0] - f * (dx + fl * 3) + Math.sin(t * 5 + ph) * 0.3, k[1] + dy - fl * 0.8 + Math.sin(t * 6 + ph) * 0.25); c.stroke(); } }
 function njTorso(c, P, f, t) { const C = NJC, hip = P.pel, [Ls, Rs] = P.sh, mx = (Ls[0] + Rs[0]) / 2, my = (Ls[1] + Rs[1]) / 2, hw = 1.65 * (1 - 0.1 * Math.abs(P.tw)), hl = [hip[0] - hw, hip[1]], hr = [hip[0] + hw, hip[1]];
   // the jacket's skirts: a flap over each thigh, following it down a little way and swinging with it, rounded at the hem
-  for (let i = 0; i < 2; i++) { const h0 = P.hips[i], k0 = P.knees[i], d = [k0[0] - h0[0], k0[1] - h0[1]], dl = Math.hypot(...d) || 1, u = [d[0] / dl, d[1] / dl], n = [-u[1], u[0]], e = L2(h0, k0, 0.42), sd = i ? 1 : -1, w0 = [hip[0] + sd * (hw + 0.15), hip[1] - 0.3], w1 = [hip[0] + sd * 0.1, hip[1] - 0.3];
-    const a1 = [e[0] + n[0] * 1.45, e[1] + n[1] * 1.45], a2 = [e[0] - n[0] * 1.45, e[1] - n[1] * 1.45], ends = (a1[0] - e[0]) * sd > 0 ? [a1, a2] : [a2, a1];
+  for (let i = 0; i < 2; i++) { const h0 = P.hips[i], k0 = P.knees[i], d = [k0[0] - h0[0], k0[1] - h0[1]], dl = Math.hypot(...d) || 1, u = [d[0] / dl, d[1] / dl], n = [-u[1], u[0]], e = L2(h0, k0, 0.42), sd = i ? 1 : -1;
+    // the flap hangs along the thigh itself (its top corners sit across the top of the thigh, not out at the hip), so it never juts out past the leg
+    const a1 = [e[0] + n[0] * 1.2, e[1] + n[1] * 1.2], a2 = [e[0] - n[0] * 1.2, e[1] - n[1] * 1.2], ends = (a1[0] - e[0]) * sd > 0 ? [a1, a2] : [a2, a1], t0 = [h0[0] + u[0] * 0.35, h0[1] + u[1] * 0.35], o0 = [t0[0] + (ends[0][0] - e[0]), t0[1] + (ends[0][1] - e[1])], o1 = [t0[0] + (ends[1][0] - e[0]), t0[1] + (ends[1][1] - e[1])], w0 = o0, w1 = o1;
     c.fillStyle = i === (f > 0 ? 1 : 0) ? C.GI : shade(C.GI, -0.12); c.strokeStyle = C.GID; c.lineWidth = 0.32; c.lineJoin = 'round';
     c.beginPath(); c.moveTo(...w0); c.lineTo(...ends[0]); c.quadraticCurveTo(e[0] + u[0] * 0.7, e[1] + u[1] * 0.7, ...ends[1]); c.lineTo(...w1); c.closePath(); c.fill(); if (!NJFLAT) c.stroke();
     c.strokeStyle = C.GIL; c.lineWidth = 0.16; c.beginPath(); c.moveTo(...L2(w0, w1, 0.5)); c.lineTo(...L2(ends[0], ends[1], 0.5)); c.stroke(); }
@@ -5740,7 +5741,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = 'a6e236';
+const KBUILD = 'c55d6c';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
