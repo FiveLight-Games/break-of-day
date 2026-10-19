@@ -958,7 +958,7 @@ function burnFlames(c, w, t) { const sc = UK[w.k].sc;
 function walker(c, w, t) {
   w.zd = lerp(w.zd || 0, w.z || 0, 0.45);
   if (w.zd > 0.25 || w.gr > 0 || w.grF) { const sc = UK[w.k].sc, j = w.gr > 0 || w.grF ? Math.sin(t * 50 + w.id) * 0.25 : 0; c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(w.x, w.y + 0.3, 2.4 * sc, 0.9 * sc, 0, 0, 7); c.fill(); c.save(); c.translate(j, -w.zd); if (w.air && w.tvx) { c.translate(w.x, w.y - 4 * sc); c.rotate((w.vz < 0 ? 1 : 0.4) * Math.sign(w.tvx) * Math.min(1.4, (38 - w.vz) / 60)); c.translate(-w.x, -(w.y - 4 * sc)); } walkerBody(c, w, t); c.restore(); return; }
-  if (w.sl > 0 || w.pSl > 0 || w.slF || w.ogZs > 0.1) slowMark(c, w);
+  if (w.sl > 0 || w.pSl > 0 || w.slF || w.ogZs > 0.1 || w.ogFs > 0) slowMark(c, w);
   if (w.bd > 0) { walkerBody(c, w, t); burnFlames(c, w, t); if (w.ogFz > 0 || w.frzF) ogIceBlock(c, w, t); return; }
   walkerBody(c, w, t); if (w.ogFz > 0 || w.frzF) ogIceBlock(c, w, t);
   if (UK[w.k].regen && w.hp < w.max && w.hp > 0) regenMotes(c, w, t);
@@ -2867,7 +2867,7 @@ function drawSweepPreview(c, t) { const kn = KN[ME]; if (!DASHAIM || !kn || kn.k
   for (let i = 0; i < nC; i++) { const q = ((i + (t * 0.8) % 1) / nC) * 0.92, p = pt(q), p2 = pt(Math.min(1, q + 0.01)), an = Math.atan2(p2[1] - p[1], p2[0] - p[0]); c.save(); c.translate(p[0], p[1]); c.rotate(an); c.globalAlpha = Math.sin(Math.PI * q / 0.92); c.scale(1.9, 1.9); c.beginPath(); c.moveTo(1.6, 0); c.lineTo(-0.9, -1.3); c.lineTo(-0.3, 0); c.lineTo(-0.9, 1.3); c.closePath(); c.fill(); c.strokeStyle = 'rgba(90,60,10,.6)'; c.lineWidth = 0.15; c.stroke(); c.restore(); }
   const e = ring2(kn.x, kn.y, T.a, T.r), pul = 0.5 + 0.5 * Math.sin(t * 8); c.translate(e[0], e[1]); c.scale(1, 0.5); c.fillStyle = `rgba(255,220,120,${0.25 + 0.1 * pul})`; c.beginPath(); c.arc(0, 0, WP.HR + 2, 0, 7); c.fill(); c.strokeStyle = 'rgba(255,240,190,.9)'; c.lineWidth = 0.6; c.stroke(); c.restore(); }
 // guest-side flags for chained / slowed enemies; host keeps the real timers
-function slowMark(c, w) { if (!(w.sl > 0 || w.pSl > 0 || w.slF || w.ogZs > 0.1) || w.hp <= 0) return; const U = UK[w.k]; c.strokeStyle = 'rgba(235,215,150,.6)'; c.lineWidth = 0.35; c.beginPath(); c.ellipse(w.x, w.y + 0.3, 2.6 * U.sc, 0.9 * U.sc, 0, 0, 7); c.stroke(); }
+function slowMark(c, w) { if (!(w.sl > 0 || w.pSl > 0 || w.slF || w.ogZs > 0.1 || w.ogFs > 0) || w.hp <= 0) return; const U = UK[w.k]; c.strokeStyle = 'rgba(235,215,150,.6)'; c.lineWidth = 0.35; c.beginPath(); c.ellipse(w.x, w.y + 0.3, 2.6 * U.sc, 0.9 * U.sc, 0, 0, 7); c.stroke(); }
 // ======================= Swordmaster (kind 'sword') =======================
 // Built on the Knight's rig and view: three-quarter toward the camera, facing f, chest turned partly to us, so both shoulders show.
 // A = the arm on his facing-side shoulder, B = the other one (nearest the camera, drawn last), exactly as the Knight.
@@ -3696,7 +3696,7 @@ const OG = { SPD: 0.504,
   // to anyone the fist didn't hit); chain lightning from the fist: first target within CR in a cone CA, then CJ jumps of CJR, CDMG each; smash: centre SO ahead, radius SR, SDMG falling to 60%
   // (2026-10-18 rework: slow heavy swings, hit at HIT[k] of each; storm hook: BIG sparks leap from the fist to BIG different enemies within CR in a ±CA cone (BDMG),
   // each splits into SPL smaller sparks that jump to new enemies within SJR of it (SDMG2) and on again CJ2 times; frost wave bigger)
-  SW: { T: [1.3, 1.3, 1.8], HIT: [0.61, 0.61, 0.7], GAP: 0.5, FR: 15, FA: 1.1, FDMG: 190, FKB: 80, WR: 88, WA: 1.25, WDMG: 90, WSL: 3, CR: 110, CA: 0.75, BIG: 7, BDMG: 255, SPL: 5, SJR: 40, CJ2: 3, SDMG2: 120, SO: 27.3, SR: 63.7, SDMG: 280, SKB: 130, LN: 10, LT: 0.55, LDMG: 260, LR: 9.45 },
+  SW: { T: [1.625, 1.625, 2.25], HIT: [0.61, 0.61, 0.7], GAP: 0.5, FR: 15, FA: 1.1, FDMG: 190, FKB: 80, WR: 88, WA: 1.25, WDMG: 90, WSL: 1.25, WSLK: 0.9, CR: 110, CA: 0.75, BIG: 7, BDMG: 255, SPL: 5, SJR: 40, CJ2: 3, SDMG2: 120, SO: 27.3, SR: 63.7, SDMG: 280, SKB: 130, LN: 10, LT: 0.55, LDMG: 260, LR: 9.45, LMAX: 3, LSEEK: 1.4 },
   // abilities x1.7 size and damage (2026-10-18): surf zap reach/dps/trail width, cloud radius/aim range/strike radius/damage, spike line length/width/speed/damage, dragon path/freeze width/strike radius/damage/speed
   SURF: { T: 4.2, V: 92, TURN: 2.4, ZR: 64.6, ZN: 3, ZDPS: 561, TRAIL: 3.4, AHEAD: 22, TW: 7.65, SLOW: 0.15, CD: 9,
     // the frost blast as he lays the platform: a cone (R, ±A) ahead: DMG + slowed SL s; weak enemies (UK hp <= WEAK, not heavy) frozen solid for FZ s;
@@ -3744,7 +3744,12 @@ function ogreStep(dt, t) {
   if (K.ou >= 0) { const u0 = K.ou, T0 = K.ouS ? O.AT : SWG.T[K.ouK ?? 2]; K.ou += dt / T0; const HT = K.ouS ? 2 : SWG.HIT[K.ouK ?? 2]; if (u0 < HT && K.ou >= HT && !K.ouS) ogSwingHit(K.ouK, K.ouA, host, K.ouBig ? OG.RAMP.BIG : 1);
     if (K.ou >= 1) { K.ou = -1; K.ouE = t; K.ouBig = 0; } }
   // ---- storm-hook spark hits waiting for their spark to arrive (host) ----
-  if (K.ogLq && K.ogLq.length) { if (!host) K.ogLq = []; else { const S = OG.SW; K.ogLq = K.ogLq.filter(q => { q[1] -= dt; if (q[1] > 0) return true; const w = walkers.find(z => z.id === q[0] && z.hp > 0), px = w ? w.x : q[2], py = w ? w.y : q[3]; ogStrike(px, py); for (const o of walkers) if (o.hp > 0 && ogDist(o.x, o.y, px, py) < S.LR + UK[o.k].r) { o.hit = 0.1; ogKill(o, o === w ? S.LDMG : S.LDMG * 0.5, K, 1); } return false; }); } }
+  if (K.ogLq && K.ogLq.length) { if (!host) K.ogLq = []; else { const S = OG.SW; K.ogLq = K.ogLq.filter(q => { q[1] -= dt; if (q[1] > 0) return true;
+    // each bolt seeks: its own target if still alive and not yet struck LMAX times by this smash, else the nearest such enemy round the smash (within LSEEK x its radius); none = no bolt
+    const [id, , qx, qy, cx, cy, R0, cnt] = q, ok = w => w.hp > 0 && (cnt.get(w.id) || 0) < S.LMAX; let w = walkers.find(z => z.id === id && ok(z));
+    if (!w) { let bd = 1e9; for (const z of walkers) { if (!ok(z) || ogDist(z.x, z.y, cx, cy) > R0 * S.LSEEK + UK[z.k].r) continue; const d = ogDist(z.x, z.y, qx, qy) + Math.random() * 12; if (d < bd) { bd = d; w = z; } } }
+    if (!w) return false; const px = w.x, py = w.y; ogStrike(px, py);
+    for (const o of walkers) if (ok(o) && ogDist(o.x, o.y, px, py) < S.LR + UK[o.k].r) { cnt.set(o.id, (cnt.get(o.id) || 0) + 1); o.hit = 0.1; ogKill(o, o === w ? S.LDMG : S.LDMG * 0.5, K, 1); } return false; }); } }
   if (K.ogQ && K.ogQ.length) { if (!host) K.ogQ = []; else { const due = []; K.ogQ = K.ogQ.filter(q => { q[2] -= dt; if (q[2] > 0) return true; due.push(q); return false; }); for (const [id, dmg] of due) { const w = walkers.find(z => z.id === id && z.hp > 0); if (w) { w.hit = 0.1; ogKill(w, dmg, K, 1); } } } }
   // ---- frost surf: ride the ice the frost head lays down, steering with the move stick; the storm head zaps up to 3 around him ----
   let SV = 0; if (K.sv >= 0) { K.sv += dt; if (K.sv > O.SURF.T) K.sv = -1; else SV = OGX.surfK(K.sv * OGX.SURF.T / O.SURF.T); }
@@ -3944,10 +3949,10 @@ function ogSwingHit(k, a, host, big = 1) { const S = OG.SW, d = [Math.cos(a), Ma
   const sideA = a + (k === 0 ? 1 : -1) * f * Math.PI / 2;
   // the blast comes off the fist itself: its real place on screen at the hit (from the hook pose), and the ground point under it for the frost wave
   if (k < 2) { const hk = K.ou >= 0 && !K.ouS ? ogHookPose(K, K.ou) : null, FS = hk ? ogHandW(K, hk.arm, hk.h) : [K.x + d[0] * 9, K.y + d[1] * 9 * OGY - 6 * OGSC], fx = FS[0], fy = FS[1], gy = K.y + d[1] * 4 * OGY; ogHookFx(k, fx, fy, a);
-    const hitF = []; if (host) for (const w of walkers) { if (w.hp <= 0 || !inCone(w, S.FR, S.FA)) continue; hitF.push(w.id); w.atk = -1; const kd = a * 0.5 + sideA * 0.5; w.kx += Math.cos(kd) * S.FKB; w.ky += Math.sin(kd) * S.FKB * 0.6; ogKill(w, S.FDMG, K, k === 1); }
+    const hitF = []; if (host) for (const w of walkers) { if (w.hp <= 0 || !inCone(w, S.FR, S.FA)) continue; hitF.push(w.id); if (k === 0) w.ogFs = S.WSL; w.atk = -1; const kd = a * 0.5 + sideA * 0.5; w.kx += Math.cos(kd) * S.FKB; w.ky += Math.sin(kd) * S.FKB * 0.6; ogKill(w, S.FDMG, K, k === 1); }
     if (k === 0) { FX.push({ k: 'ogfw', x: fx, y: gy, a, t: 0, max: 0.7, sd: Math.random() * 999, hx: fx, hy: fy }); snd('fwave', K.x, K.y);
       for (let n = 0; n < 14; n++) { const b = a + rr(-S.WA, S.WA) * 0.8, v = rr(40, 110); OGFX.chips.push({ x: fx, y: gy, z: gy - fy, vx: Math.cos(b) * v, vy: Math.sin(b) * v * OGY, vz: rr(-30, 5), t: 0, r: rr(0.4, 1), sp: rr(-14, 14) }); }
-      if (host) for (const w of walkers) { if (w.hp <= 0 || hitF.includes(w.id) || !inCone(w, S.WR, S.WA)) continue; w.sl = Math.max(w.sl || 0, S.WSL); w.ogFr = 0.6; w.kx += d[0] * 25; w.ky += d[1] * 15; ogKill(w, S.WDMG, K); } }
+      if (host) for (const w of walkers) { if (w.hp <= 0 || hitF.includes(w.id) || !inCone(w, S.WR, S.WA)) continue; w.ogFs = S.WSL; w.ogFr = 0.6; w.kx += d[0] * 25; w.ky += d[1] * 15; ogKill(w, S.WDMG, K); } }
     else if (host) { const r1 = v => Math.round(v * 10) / 10, seg = [], done = new Set(hitF), near = (x, y, R, cone) => walkers.filter(w => w.hp > 0 && !done.has(w.id) && (cone ? inCone(w, R, S.CA) : ogDist(w.x, w.y, x, y) < R + UK[w.k].r)).sort((p, q) => ogDist(p.x, p.y, x, y) - ogDist(q.x, q.y, x, y));
       // BIG sparks to different enemies, spread across the cone: take the nearest few in each of BIG slices
       const firsts = []; for (let b = 0; b < S.BIG; b++) { const lo = a - S.CA + 2 * S.CA * b / S.BIG, hi = lo + 2 * S.CA / S.BIG; const c2 = near(fx, fy, S.CR, true).find(w => { let da = Math.atan2((w.y - K.y) / OGY, w.x - K.x) - lo; da -= Math.floor(da / 6.283) * 6.283; return da <= hi - lo || ogDist(w.x, w.y, K.x, K.y) < 8; }) || near(fx, fy, S.CR, true)[0]; if (c2) { done.add(c2.id); firsts.push(c2); } }
@@ -3963,7 +3968,7 @@ function ogSwingHit(k, a, host, big = 1) { const S = OG.SW, d = [Math.cos(a), Ma
     if (host) for (const w of walkers) { if (w.hp <= 0) continue; const dd = ogDist(w.x, w.y, cx, cy); if (dd > SR + UK[w.k].r) continue; const ka = Math.atan2(w.y - cy, w.x - cx); w.atk = -1; w.kx += Math.cos(ka) * S.SKB * big; w.ky += Math.sin(ka) * S.SKB * big * 0.6; w.sl = Math.max(w.sl || 0, 1); ogKill(w, S.SDMG * (big > 1 ? 1.6 : 1) * (1 - 0.4 * Math.min(1, dd / SR)), K, dd < SR * 0.4); }
     // lightning strikes on random enemies in the area, each at its own moment over LT (like the storm hook's sparks)
     if (host) { const inA = walkers.filter(w => w.hp > 0 && ogDist(w.x, w.y, cx, cy) < SR + UK[w.k].r); for (let i = inA.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [inA[i], inA[j]] = [inA[j], inA[i]]; }
-      const n = Math.min(S.LN, inA.length); for (let i = 0; i < S.LN; i++) { const w = inA[i % Math.max(1, n)], dl = 0.05 + (i + Math.random()) / S.LN * S.LT; if (w) K.ogLq = (K.ogLq || []).concat([[w.id, dl, w.x, w.y]]); else { const a2 = Math.random() * 6.283, r2 = Math.sqrt(Math.random()) * SR * 0.9; K.ogLq = (K.ogLq || []).concat([[-1, dl, cx + Math.cos(a2) * r2, cy + Math.sin(a2) * r2 * OGY]]); } } } } }
+      const cnt = new Map(); for (let i = 0; i < S.LN; i++) { const w = inA[i], dl = 0.05 + (i + Math.random()) / S.LN * S.LT; K.ogLq = (K.ogLq || []).concat([[w ? w.id : -1, dl, w ? w.x : cx, w ? w.y : cy, cx, cy, SR, cnt]]); } } } }
 function ogHookFx(k, x, y, a) { if (!k) for (let n = 0; n < 7; n++) { const b = a + rr(-0.9, 0.9), v = rr(20, 55); OGFX.chips.push({ x: x + rr(-1, 1), y: y + rr(-1, 1), z: rr(5, 8), vx: Math.cos(b) * v, vy: Math.sin(b) * v * 0.6, vz: rr(5, 25), t: 0, r: rr(0.4, 0.9), sp: rr(-12, 12) }); } FX.push({ k: 'oghk', x, y, a, c: k, f: K.f || 1, t: 0, max: 0.45, sd: Math.random() * 999 }); snd(k ? 'zap' : 'gswing', x, y); shake = Math.max(shake, 0.08); }
 function ogSmashFx(x, y, f, big) { if (big) { const sc = big; for (let n = 0; n < 24 * sc; n++) { const a = rr(0, 6.28), v = rr(20, 60); dust.push({ x: x + Math.cos(a) * 4, y: y + Math.sin(a) * 3, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1, 2.2), t: 0, max: rr(0.5, 0.9) }); } FX.push({ k: 'ogrp', x, y, t: 0, max: 0.8 * Math.sqrt(sc), sd: Math.random() * 999, sc }); shake = Math.max(shake, 0.45 * Math.sqrt(sc)); snd('boom', x, y); }
  for (let n = 0; n < 10; n++) dust.push({ x: x + rr(-6, 6), y: y + rr(-2, 2), vx: rr(-30, 30), vy: rr(-8, 8), r: rr(0.8, 1.6), t: 0, max: 0.5 }); for (let n = 0; n < 8; n++) sparks.push({ x: x + rr(-3, 3), y: y - rr(0, 4), vx: rr(-40, 40), vy: -rr(10, 50), t: 0, max: 0.3 });
@@ -7234,9 +7239,9 @@ function worldStep(dt, t) {
     const minX = Math.min(...LIVE().map(k2 => k2.x)); walkers = walkers.filter(w => w.x > minX - 420);
   // enemies run at the knight, crowd round him and club him
   for (const w of walkers) {
-    w.hit = Math.max(0, w.hit - dt); w.cd -= dt; if (w.sl > 0) w.sl -= dt; if (w.pSl > 0) w.pSl -= dt;
+    w.hit = Math.max(0, w.hit - dt); w.cd -= dt; if (w.sl > 0) w.sl -= dt; if (w.pSl > 0) w.pSl -= dt; if (w.ogFs > 0) w.ogFs -= dt;
     // big enemies: a ram never catches fire, the tarrasque can't be slowed, trolls regenerate unless burned in the last 3s, and nothing interrupts their swings
-    { const U0 = UK[w.k]; if (U0.heavy) { if (U0.noBurn && !(w.cb > 0)) w.bd = 0; if (U0.unst) { w.sl = 0; w.pSl = 0; } if (w.atkH >= 0 && w.atk < 0 && w.hp > 0) w.atk = w.atkH;
+    { const U0 = UK[w.k]; if (U0.heavy) { if (U0.noBurn && !(w.cb > 0)) w.bd = 0; if (U0.unst) { w.sl = 0; w.pSl = 0; w.ogFs = 0; } if (w.atkH >= 0 && w.atk < 0 && w.hp > 0) w.atk = w.atkH;
       if (U0.regen) { if (w.bd > 0) w.nb = 3; else if ((w.nb = (w.nb || 0) - dt) <= 0 && w.hp > 0 && w.hp < w.max) w.hp = Math.min(w.max, w.hp + w.max * U0.regen * dt); } } }
     // the censer's holy fire (not HOLY's): an extra 5% of max hp per second on top of the afterburn, for as long as it burns; it even burns the siege ram
     if (w.cb > 0) { w.cb -= dt; w.hp -= w.max * WP.CEN.PCT * dt; if (w.hp <= 0 && !w.dead) { const k0 = K; K = KN[w.cbs] || KN[0]; K.kills++; burnFx(w); K = k0; continue; } }
@@ -7254,7 +7259,7 @@ function worldStep(dt, t) {
     const U = UK[w.k], reach = 4.4 + U.r + ((T2.sz || 1) - 1) * 3.5 + (T2.kind === 'priest' ? 1.6 : 0);
     if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5 && !((T2.z || 0) > 4) && !(T2.cr >= 0) && !(T2.nPh >= 1)) { T2.hits += (w.k === 'sapper' ? 3 : U.hw || 1) * (T2.kind !== 'fire' && T2.ultPh >= 0 ? 1 - GIANT_DR : 1); if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
     else if (T2.nPh >= 1) { }
-    else if (d > reach) { const sp = w.sp * Math.min(w.pSl > 0 ? WP.PEN.ASLOW : w.sl > 0 ? WP.SLOWK : 1, 1 - OGHM.ZONE.MAX * (w.ogZs || 0)); w.x += dx / d * sp * dt; w.y += dy / d * sp * dt; }
+    else if (d > reach) { const sp = w.sp * Math.min(w.pSl > 0 ? WP.PEN.ASLOW : w.sl > 0 ? WP.SLOWK : 1, 1 - OGHM.ZONE.MAX * (w.ogZs || 0), w.ogFs > 0 ? 1 - OG.SW.WSLK * w.ogFs / OG.SW.WSL : 1); w.x += dx / d * sp * dt; w.y += dy / d * sp * dt; }
     else if (w.cd <= 0 && T2.st !== 'kneel') w.atk = 0;
     w.x += w.kx * UK[w.k].kb * dt; w.y += w.ky * UK[w.k].kb * dt; w.kx *= 1 - dt * 6; w.ky *= 1 - dt * 6;
     if (U.heavy) w.atkH = w.atk;
@@ -7672,7 +7677,7 @@ const pName = i => { const kn = KN[i], n = cName(kn), same = LIVE().filter(o => 
 // kept small: with 4 players and MAX hordes a snapshot carries ~500 enemies; positions to 0.5 units (guests ease toward them anyway)
 // walkers go out as one flat list, 6 numbers each: id, x, y, hp, attack (x10, -1 idle), bits (1 burn, 2 chained, 4 slowed, 8 grabbed, 16 hit flash, target knight x32, height x128);
 // what kind it is and its max hp only go out when it's new or every 2s (a separate list), which roughly halves a snapshot
-const WN = 6, packW = (w, out, ann, now) => { out.push(w.id, Math.round(w.x), Math.round(w.y), Math.round(w.hp), w.ogFz > 0 ? -2 : w.atk < 0 ? -1 : Math.round(w.atk * 10), (w.bd > 0 ? 1 : 0) | (w.bT > 0 ? 2 : 0) | (w.sl > 0 || w.pSl > 0 || w.ogZs > 0.1 ? 4 : 0) | (w.gr > 0 ? 8 : 0) | (w.hit > 0 ? 16 : 0) | ((w.tk || 0) & 3) * 32 | Math.min(255, Math.round(w.z || 0)) * 128);
+const WN = 6, packW = (w, out, ann, now) => { out.push(w.id, Math.round(w.x), Math.round(w.y), Math.round(w.hp), w.ogFz > 0 ? -2 : w.atk < 0 ? -1 : Math.round(w.atk * 10), (w.bd > 0 ? 1 : 0) | (w.bT > 0 ? 2 : 0) | (w.sl > 0 || w.pSl > 0 || w.ogZs > 0.1 || w.ogFs > 0 ? 4 : 0) | (w.gr > 0 ? 8 : 0) | (w.hit > 0 ? 16 : 0) | ((w.tk || 0) & 3) * 32 | Math.min(255, Math.round(w.z || 0)) * 128);
   if (!(now - (w.ann ?? -1e9) < 2000)) { w.ann = now; ann.push(w.id, UKEYS.indexOf(w.k), w.max); } };
 const LC = document.getElementById('lcard'), LUI = document.getElementById('lobbyUI'), NOTE = document.getElementById('note');
 let noteT = 0; const note = (msg, sec = 3) => { NOTE.textContent = msg; NOTE.style.display = 'block'; noteT = sec; };
