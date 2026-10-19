@@ -80,5 +80,6 @@
   {"v": "0.79", "build": "4d61eb", "commit": "393ab11", "date": "2026-10-18", "notes": "Full screen keeps your phone's orientation"},
   {"v": "0.80", "build": "d11e9b", "commit": "10b16b9", "date": "2026-10-18", "notes": "Warpriest: longer sweep cooldown after a slam, smoother censer arm"},
   {"v": "0.81", "build": "9a3fa9", "commit": "b637be0", "date": "2026-10-18", "notes": "New leg and boot art for the Knight and Warpriest"},
-  {"v": "0.82", "build": "00747b", "commit": "", "date": "2026-10-19", "notes": "Knight Brawl: new Ninja (kama, leap, strike ult), Storm Ogre and Cyborg Rooster drafts, giant knight walk, cooldown timers on ability buttons"}
+  {"v": "0.82", "build": "00747b", "commit": "b1d9865", "date": "2026-10-19", "notes": "Knight Brawl: new Ninja (kama, leap, strike ult), Storm Ogre and Cyborg Rooster drafts, giant knight walk, cooldown timers on ability buttons"},
+  {"v": "0.83", "build": "f6ade8", "commit": "", "date": "2026-10-19", "notes": "Ninja kama: slide momentum carries before he turns"}
 ]
