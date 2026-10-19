@@ -4426,7 +4426,7 @@ function njPose(kn, t) {
   // the kunai throw's hop: a dip to push off, legs split in the air (gait frozen), a dip to land
   const hopOn = cutting && v === 2 && (kn.njHv ? !!(kn.njHv[0] || kn.njHv[1]) : (kn.z || 0) > 0.05), hu = hopOn ? cl(kn.cut / NJ.T[2], 0, 1) : -1, air = hopOn ? cl((kn.z || 0) / NJ.KU.HZ, 0, 1) : 0;
   if (hopOn) cr += 1.3 * (hu < 0.14 ? Math.sin(Math.PI * hu / 0.14) : hu > 0.84 ? Math.sin(Math.PI * (hu - 0.84) / 0.16) : 0);
-  if (kn.hsT >= 0) { const k = Math.sin(Math.PI * cl(kn.hsT / NJ.CL.SEAL, 0, 1)); ax = lerp(ax, 1.0, k); ay = lerp(ay, -1.9, k); af = 1; ef = 1; } // drawn in front of his body, elbow bent the other way (down in front of his chest) // the clone's hand seal: two fingers up in front of his chin
+  if (kn.hsT >= 0) { const k = Math.sin(Math.PI * cl(kn.hsT / NJ.CL.SEAL, 0, 1)); ax = lerp(ax, 0.9, k); ay = lerp(ay, -0.5, k); af = 1; ef = 2; } // drawn in front of his body, elbow bent the other way (down in front of his chest) // the clone's hand seal: two fingers up in front of his chin
   // ---- legs: a wide squat, knees out; the Knight's gait when running ----
   const front = f > 0 ? 1 : 0, stride = lerp(2.2, 4.0, run), wide = 2.5 * (1 - mv * 0.7);
   const loco = [0, 1].map(i => { const ph = gp + i * Math.PI; return [(i ? 0.9 : -0.9) + f * Math.sin(ph) * stride * mv, -Math.max(0, Math.cos(ph)) * lerp(1.0, 2.0, run) * mv]; });
@@ -4740,9 +4740,9 @@ function njLeg(c, hip, knee, foot, f, far) { const C = NJC, dk = far ? -0.16 : 0
   c.restore(); if (!NJFLAT) { shape(); c.strokeStyle = shade(C.GID, dk - 0.2); c.lineWidth = 0.38; c.stroke(); } }
 // the elbow always folds the natural way: down and back (away from where he faces), never bent backwards; it only swaps sides once
 // the other side is clearly better and then swings across (eased bend sign + eased upper-arm angle, like the Warpriest's), so it never jumps
-function njElbow(s, h, f, st, dt, inv) { const e1 = ik(s, h, 2.5, 2.5, 1), e2 = ik(s, h, 2.5, 2.5, -1), sc = e => (e[1] - s[1]) - (e[0] - s[0]) * f * 0.8, want = (sc(e1) >= sc(e2) ? 1 : -1) * (inv ? -1 : 1);
+function njElbow(s, h, f, st, dt, inv) { const e1 = ik(s, h, 2.5, 2.5, 1), e2 = ik(s, h, 2.5, 2.5, -1), sc = inv === 2 ? e => e[1] - s[1] : e => (e[1] - s[1]) - (e[0] - s[0]) * f * 0.8, want = (sc(e1) >= sc(e2) ? 1 : -1) * (inv && inv !== 2 ? -1 : 1); // inv 2: just the lower elbow
   if (!st) return want > 0 ? e1 : e2; if (st.t === undefined) { st.t = want; st.s = want; }
-  if (want !== st.t && Math.abs(sc(e1) - sc(e2)) > 0.6) st.t = want; st.s += (st.t - st.s) * (1 - Math.exp(-dt * 14));
+  if (want !== st.t && (inv === 2 || Math.abs(sc(e1) - sc(e2)) > 0.6)) st.t = want; st.s += (st.t - st.s) * (1 - Math.exp(-dt * 14));
   const e = ik(s, h, 2.5, 2.5, st.s), ta = Math.atan2(e[1] - s[1], e[0] - s[0]); if (st.a === undefined || !dt) st.a = ta; else { let da = ta - st.a; da -= Math.round(da / (2 * Math.PI)) * 2 * Math.PI; st.a += da * (1 - Math.exp(-dt * 22)); }
   return [s[0] + Math.cos(st.a) * 2.5, s[1] + Math.sin(st.a) * 2.5]; }
 function njArm(c, s, h, f, far, st, dt, inv) { const C = NJC, el = njElbow(s, h, f, st, dt, inv), dk = far ? -0.16 : 0, wr = L2(el, h, 0.85); c.lineCap = 'round'; c.lineJoin = 'round';
@@ -7821,7 +7821,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '940bfc';
+const KBUILD = 'ab3389';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
