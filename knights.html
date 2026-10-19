@@ -946,7 +946,7 @@ function burnFlames(c, w, t) { const sc = UK[w.k].sc;
 function walker(c, w, t) {
   w.zd = lerp(w.zd || 0, w.z || 0, 0.45);
   if (w.zd > 0.25 || w.gr > 0 || w.grF) { const sc = UK[w.k].sc, j = w.gr > 0 || w.grF ? Math.sin(t * 50 + w.id) * 0.25 : 0; c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(w.x, w.y + 0.3, 2.4 * sc, 0.9 * sc, 0, 0, 7); c.fill(); c.save(); c.translate(j, -w.zd); if (w.air && w.tvx) { c.translate(w.x, w.y - 4 * sc); c.rotate((w.vz < 0 ? 1 : 0.4) * Math.sign(w.tvx) * Math.min(1.4, (38 - w.vz) / 60)); c.translate(-w.x, -(w.y - 4 * sc)); } walkerBody(c, w, t); c.restore(); return; }
-  if (w.sl > 0 || w.pSl > 0 || w.slF) slowMark(c, w);
+  if (w.sl > 0 || w.pSl > 0 || w.slF || w.ogZs > 0.1) slowMark(c, w);
   if (w.bd > 0) { walkerBody(c, w, t); burnFlames(c, w, t); if (w.ogFz > 0 || w.frzF) ogIceBlock(c, w, t); return; }
   walkerBody(c, w, t); if (w.ogFz > 0 || w.frzF) ogIceBlock(c, w, t);
   if (UK[w.k].regen && w.hp < w.max && w.hp > 0) regenMotes(c, w, t);
@@ -2854,7 +2854,7 @@ function drawSweepPreview(c, t) { const kn = KN[ME]; if (!DASHAIM || !kn || kn.k
   for (let i = 0; i < nC; i++) { const q = ((i + (t * 0.8) % 1) / nC) * 0.92, p = pt(q), p2 = pt(Math.min(1, q + 0.01)), an = Math.atan2(p2[1] - p[1], p2[0] - p[0]); c.save(); c.translate(p[0], p[1]); c.rotate(an); c.globalAlpha = Math.sin(Math.PI * q / 0.92); c.scale(1.9, 1.9); c.beginPath(); c.moveTo(1.6, 0); c.lineTo(-0.9, -1.3); c.lineTo(-0.3, 0); c.lineTo(-0.9, 1.3); c.closePath(); c.fill(); c.strokeStyle = 'rgba(90,60,10,.6)'; c.lineWidth = 0.15; c.stroke(); c.restore(); }
   const e = ring2(kn.x, kn.y, T.a, T.r), pul = 0.5 + 0.5 * Math.sin(t * 8); c.translate(e[0], e[1]); c.scale(1, 0.5); c.fillStyle = `rgba(255,220,120,${0.25 + 0.1 * pul})`; c.beginPath(); c.arc(0, 0, WP.HR + 2, 0, 7); c.fill(); c.strokeStyle = 'rgba(255,240,190,.9)'; c.lineWidth = 0.6; c.stroke(); c.restore(); }
 // guest-side flags for chained / slowed enemies; host keeps the real timers
-function slowMark(c, w) { if (!(w.sl > 0 || w.pSl > 0 || w.slF) || w.hp <= 0) return; const U = UK[w.k]; c.strokeStyle = 'rgba(235,215,150,.6)'; c.lineWidth = 0.35; c.beginPath(); c.ellipse(w.x, w.y + 0.3, 2.6 * U.sc, 0.9 * U.sc, 0, 0, 7); c.stroke(); }
+function slowMark(c, w) { if (!(w.sl > 0 || w.pSl > 0 || w.slF || w.ogZs > 0.1) || w.hp <= 0) return; const U = UK[w.k]; c.strokeStyle = 'rgba(235,215,150,.6)'; c.lineWidth = 0.35; c.beginPath(); c.ellipse(w.x, w.y + 0.3, 2.6 * U.sc, 0.9 * U.sc, 0, 0, 7); c.stroke(); }
 // ======================= Swordmaster (kind 'sword') =======================
 // Built on the Knight's rig and view: three-quarter toward the camera, facing f, chest turned partly to us, so both shoulders show.
 // A = the arm on his facing-side shoulder, B = the other one (nearest the camera, drawn last), exactly as the Knight.
@@ -3662,7 +3662,7 @@ return { drawO2, drawBack, V: VARS[0], ICEM, OUT, arc2, glow, bevel, iceIn, addS
 // knockback KB, the biggest in the game, slowed SL s), now and then a ground smash instead (SMT s, chance SMP, at least every 4th: crater radius SMR, SMDMG, SMKB out from its centre);
 // static licks leap off the head every ZAP s to up to ZN enemies within ZR (ZDMG); the finisher (FIN s, hit at FH): both hands lift it and drive it into the ground beneath him: FR blast
 // (FDMG, FKB) and the hammer bursts into SHN shards flying out at SHV for SHR, piercing everyone they pass (SHDMG each, within SHW + radius)
-const OGHM = { HR: 9, HSP: 70, L: 15, SWT: 0.85, SMT: 1.15, SWH: 0.628, SMH: 0.66, R: 46, A: 1.15, DMG: 320, KB: 560, SL: 2, SMP: 0.3, SMR: 30, SMDMG: 420, SMKB: 620, ZAP: 0.28, ZN: 2, ZR: 48, ZDMG: 60, FIN: 1.5, FH: 0.68, FR: 72, FDMG: 600, FKB: 640, SHN: 22, SHV: 240, SHR: 125, SHDMG: 160, SHW: 4 };
+const OGHM = { ZONE: { R: 34, T: 5, MAX: 0.9, RAMP: 1 }, HR: 9, HSP: 70, L: 15, SWT: 0.85, SMT: 1.15, SWH: 0.628, SMH: 0.66, R: 46, A: 1.15, DMG: 320, KB: 560, SL: 2, SMP: 0.3, SMR: 30, SMDMG: 420, SMKB: 620, ZAP: 0.28, ZN: 2, ZR: 48, ZDMG: 60, FIN: 1.5, FH: 0.68, FR: 72, FDMG: 600, FKB: 640, SHN: 22, SHV: 240, SHR: 125, SHDMG: 160, SHW: 4 };
 const OG = { SPD: 0.504,
   // footfalls: every step shakes the screen and hits everyone within R of the foot (DMG, knockback KB); kills are crushed flat or torn apart
   STEP: { R: 8, DMG: 40, KB: 7, SHK: 0.14 },
@@ -3685,7 +3685,7 @@ const OG = { SPD: 0.504,
   SPK: { LEN: 119, W: 27.2, SPD: 187, GAP: 2.6, HOLD: 0.65, LIFE: 2.4, HIT: 0.48, HDMG: 374, CD: 6 },
   DRG: { BUILD: 1.6, STRIKE: 0.7, RISE: 0.6, SPD: 68, LEN: 323, SEG: 30, GAP: 2.85, R: 25.5, Z: 18, SHAT: 0.35, BR: 7.8, SR: 30.6, HDMG: 1020 } };
 // OGSC: he's drawn 15% bigger than the hand-off's size; ST: his strides are 1.75x longer (and his legs cycle that much slower per distance, so the feet still don't slide)
-const OGSC = KS * 1.15, OGST = 1.75, OGY = 0.8, OGFX = { hail: [], strikes: [], chips: [], prints: [], ash: [], craters: [], hsh: [] };
+const OGSC = KS * 1.15, OGST = 1.75, OGY = 0.8, OGFX = { hail: [], strikes: [], chips: [], prints: [], ash: [], craters: [], hsh: [], zones: [] };
 const ogDist = (ax, ay, bx, by) => Math.hypot(ax - bx, (ay - by) / OGY);
 function makeOgre(kn) { Object.assign(kn, { kind: 'ogre', st: 'fight', cut: -1, ou: -1, ouN: 0, ouS: 0, ouA: 0, sv: -1, svA: 0, svCd: 0, svN: 0, ogX: [], clN: 0, clX: 0, clY: 0, clT: 99, clCd: 0, spN: 0, spX: 0, spY: 0, spA: 0, spCd: 0,
   ogDN: 0, ogDX: 0, ogDY: 0, ogDA: 0, ogDT: -1, ogR: -1, ogRA: 0, ogRV: 0, ogRN: 0, ogHs: -1, ogHk: 0, ogHa: 0, ogHd: 1, ogHn: 0, ogHq: 0, ogFn: -1, ogZc: -1, ogIc: -1, ogZn: 0, ogIn: 0, ogA: [], ogAN: 0, ogH: 0, ogS: [], ogZ: [], ogPh: 0, ogTr: [], ogP: null, z: 0, dashSeen: kn.in.dashN || 0, leapSeen: kn.in.leapN || 0, lvSeen: kn.in.lvN || 0, ultSeen: kn.in.ultN || 0 }); }
@@ -3879,12 +3879,15 @@ function ogHamHit(k, a, s, host) { const H = OGHM, f = K.f || 1;
     for (let n = 0; n < 12; n++) { const b = a + rr(-H.A, H.A), d = rr(10, H.R * 0.8); OGFX.chips.push({ x: K.x + Math.cos(b) * d, y: K.y + Math.sin(b) * d * OGY, z: rr(6, 14), vx: Math.cos(ka) * rr(30, 70), vy: Math.sin(ka) * rr(18, 40), vz: rr(5, 25), t: 0, r: rr(0.4, 1), sp: rr(-14, 14) }); }
     if (host) for (const w of walkers) { if (w.hp <= 0 || w.ogHw === (K.ogHn || 0)) continue; const dx = w.x - K.x, dy = (w.y - K.y) / OGY, r = Math.hypot(dx, dy); if (r > H.R + UK[w.k].r) continue; let da = Math.atan2(dy, dx) - a; da -= Math.round(da / 6.283) * 6.283; if (Math.abs(da) > H.A && r > 6 + UK[w.k].r) continue; w.ogHw = K.ogHn || 0;
       const kd = Math.atan2(dy, dx) * 0.4 + ka * 0.6; w.atk = -1; w.kx += Math.cos(kd) * H.KB; w.ky += Math.sin(kd) * H.KB * 0.6; w.sl = Math.max(w.sl || 0, H.SL); const k0 = K; hurt(w, H.DMG, ww => slamFx(ww, kd)); K = k0; } }
-  else { const g = ogHamGeo(K, { th: a, e: -0.765, gth: a, gd: 5, gh: 9 }), cx = g.wx, cy = g.wy; ogSmashFx(cx, cy, f, 1.25); FX.push({ k: 'ogim', x: cx, y: cy, t: 0, max: 0.9, sd: Math.random() * 999 }); OGFX.craters.push({ x: cx, y: cy, r: 17, t: 0, sd: Math.random() * 999 }); snd('gslam', cx, cy); if (K.i === ME || Math.abs(K.x - camX) < 160) shake = Math.max(shake, 0.6);
+  else { const g = ogHamGeo(K, { th: a, e: -0.765, gth: a, gd: 5, gh: 9 }), cx = g.wx, cy = g.wy; ogHamGroundFx(cx, cy, 17); OGFX.craters.push({ x: cx, y: cy, r: 17, t: 0, sd: Math.random() * 999 }); snd('gslam', cx, cy); if (K.i === ME || Math.abs(K.x - camX) < 160) shake = Math.max(shake, 0.6);
     for (let i = 0; i < 22; i++) { const b = rr(0, 6.28), v = rr(30, 85); OGFX.chips.push({ x: cx, y: cy, z: rr(0.5, 3), vx: Math.cos(b) * v, vy: Math.sin(b) * v * 0.6, vz: rr(20, 55), t: 0, r: rr(0.5, 1.4), sp: rr(-14, 14) }); }
     if (host) for (const w of walkers) { if (w.hp <= 0) continue; const dd = ogDist(w.x, w.y, cx, cy); if (dd > H.SMR + UK[w.k].r) continue; const ka = Math.atan2(w.y - cy, w.x - cx), kk = 1 - 0.4 * Math.min(1, dd / H.SMR); w.atk = -1; w.kx += Math.cos(ka) * H.SMKB * kk; w.ky += Math.sin(ka) * H.SMKB * kk * 0.6; w.sl = Math.max(w.sl || 0, 1.5); const k0 = K; hurt(w, H.SMDMG * kk, ww => slamFx(ww, ka)); K = k0; } } }
+// a hammer impact on the ground (smash and finisher, R = crater radius): flash, a thick rolling ring of dust and frost mist, and real fissures torn out from it (FX 'ogfc', on the ground for 3s)
+function ogHamGroundFx(x, y, R) { FX.push({ k: 'oghw', x, y, R, t: 0, max: 0.7 }); FX.push({ k: 'ogfc', x, y, R, t: 0, max: 3, sd: Math.random() * 999 });
+  for (let n = 0; n < 10 + R; n++) { const a = rr(0, 6.28), v = rr(25, 55) * R / 17; dust.push({ x: x + Math.cos(a) * R * 0.3, y: y + Math.sin(a) * R * 0.25, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1.2, 2.6) * Math.sqrt(R / 17), t: 0, max: rr(0.6, 1.1) }); } }
 // the finisher lands: a huge blast beneath him, and the hammer bursts into shards that fly out and pierce whoever they pass (every screen; damage on the host)
 function ogHamFinish(host) { const H = OGHM, fa = ogFaceA(K), g = ogHamGeo(K, { th: fa, e: -1.29, gth: fa, gd: 3, gh: 12.5 }), cx = g.wx, cy = g.wy, f = K.f || 1;
-  ogSmashFx(cx, cy, f, 2.6); FX.push({ k: 'ogim', x: cx, y: cy, t: 0, max: 1.1, sd: Math.random() * 999 }); OGFX.craters.push({ x: cx, y: cy, r: 34, t: 0, sd: Math.random() * 999 }); snd('boom', cx, cy); snd('gslam', cx, cy); snd('zap', cx, cy); if (K.i === ME || Math.abs(K.x - camX) < 200) shake = Math.max(shake, 0.9);
+  ogHamGroundFx(cx, cy, 34); OGFX.craters.push({ x: cx, y: cy, r: 34, t: 0, sd: Math.random() * 999 }); OGFX.zones.push({ x: cx, y: cy, R: H.ZONE.R, t: 0 }); snd('boom', cx, cy); snd('gslam', cx, cy); snd('zap', cx, cy); if (K.i === ME || Math.abs(K.x - camX) < 200) shake = Math.max(shake, 0.9);
   OGFX.strikes.push({ x: cx, y: cy, t: 0, sd: (K.ogRN || 0) * 17 + K.i, cx: null, cy: null });
   const sd = (K.ogRN || 0) * 13.7 + K.i * 3.3; for (let i = 0; i < H.SHN; i++) OGFX.hsh.push({ x0: cx, y0: cy, a: i / H.SHN * 6.283 + (OGX.rnd(sd + i) - 0.5) * 0.25, v: H.SHV * (0.85 + 0.3 * OGX.rnd(sd + i * 3)), z0: 6 + OGX.rnd(sd + i * 5) * 5, t: 0, own: K.i, hit: new Set(), sd: sd + i, L: H.SHR * (0.85 + 0.3 * OGX.rnd(sd + i * 7)) });
   for (let i = 0; i < 40; i++) { const b = rr(0, 6.28), v = rr(30, 110); OGFX.chips.push({ x: cx, y: cy, z: rr(2, 8), vx: Math.cos(b) * v, vy: Math.sin(b) * v * 0.6, vz: rr(20, 70), t: 0, r: rr(0.5, 1.6), sp: rr(-14, 14) }); }
@@ -3908,7 +3911,9 @@ function ogStep(n, host) { const RP = OG.RAMP, ram = K.ogR >= 0 && K.ogRV > 20, 
   if (host) for (const w of walkers) { if (w.hp <= 0) continue; const d = ogDist(w.x, w.y, x, y); if (d > P.R + UK[w.k].r) continue; const a = Math.atan2(w.y - y, w.x - x); w.kx += Math.cos(a) * P.KB; w.ky += Math.sin(a) * P.KB * 0.6; w.hit = 0.1;
     const k0 = K; hurt(w, P.DMG, ww => Math.random() < 0.5 ? flingFx(ww, a, 0) : flingFx(ww, a, 0.35)); K = k0; } }
 // effects that only look (hail falling and bouncing, strikes fading): every screen, every step
-function ogFxStep(dt) { ogShardStep(dt); for (const p of OGFX.prints) p.t += dt; OGFX.prints = OGFX.prints.filter(p => p.t < 2.6); for (const p of OGFX.chips) { p.t += dt; if (p.z > 0 || p.vz > 0) { p.vz -= 110 * dt; p.z += p.vz * dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.z <= 0) { p.z = 0; p.vz = 0; p.vx *= 0.3; p.vy *= 0.3; } } } OGFX.chips = OGFX.chips.filter(p => p.t < 1).slice(-320); for (const h2 of OGFX.hail) { if (h2.z > 0 || h2.vz > 0) { h2.vz -= 90 * dt; h2.z += h2.vz * dt; h2.sp += dt * 4; if (h2.z <= 0) { h2.z = 0; if (!h2.b) { h2.b = 1; h2.vz = 9; h2.z = 0.01; h2.t = 0; } else h2.vz = 0; } } else h2.t += dt; }
+function ogFxStep(dt) { ogShardStep(dt);
+  // the finisher's frozen crater (ZONE): anyone inside is slowed more the longer they stay, up to MAX after RAMP s; once they leave it wears off over RAMP s whatever it had reached (ogZe = the slow when they left)
+  for (const z of OGFX.zones) z.t += dt; OGFX.zones = OGFX.zones.filter(z => z.t < OGHM.ZONE.T); if (OGFX.zones.length || walkers.some(w => w.ogZs > 0)) for (const w of walkers) { const inZ = OGFX.zones.some(z => ogDist(w.x, w.y, z.x, z.y) < z.R + UK[w.k].r * 0.5); if (inZ) { w.ogZs = Math.min(1, (w.ogZs || 0) + dt / OGHM.ZONE.RAMP); w.ogZe = 0; } else if (w.ogZs > 0) { if (!w.ogZe) w.ogZe = w.ogZs; w.ogZs = Math.max(0, w.ogZs - dt * w.ogZe / OGHM.ZONE.RAMP); if (!w.ogZs) w.ogZe = 0; } } for (const p of OGFX.prints) p.t += dt; OGFX.prints = OGFX.prints.filter(p => p.t < 2.6); for (const p of OGFX.chips) { p.t += dt; if (p.z > 0 || p.vz > 0) { p.vz -= 110 * dt; p.z += p.vz * dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.z <= 0) { p.z = 0; p.vz = 0; p.vx *= 0.3; p.vy *= 0.3; } } } OGFX.chips = OGFX.chips.filter(p => p.t < 1).slice(-320); for (const h2 of OGFX.hail) { if (h2.z > 0 || h2.vz > 0) { h2.vz -= 90 * dt; h2.z += h2.vz * dt; h2.sp += dt * 4; if (h2.z <= 0) { h2.z = 0; if (!h2.b) { h2.b = 1; h2.vz = 9; h2.z = 0.01; h2.t = 0; } else h2.vz = 0; } } else h2.t += dt; }
   OGFX.hail = OGFX.hail.filter(h2 => h2.z > 0 || h2.vz > 0 || h2.t < 0.3); for (const s3 of OGFX.strikes) s3.t += dt; OGFX.strikes = OGFX.strikes.filter(s3 => s3.t < 0.6); }
 // where the fists land: ice shards spring up, a ring, dust and a lightning crackle
 // a swing lands: k 0 frost hook, 1 storm hook, 2 smash. Effects on every screen; damage on the host
@@ -3930,7 +3935,7 @@ function ogSwingHit(k, a, host, big = 1) { const S = OG.SW, d = [Math.cos(a), Ma
         for (let g = 1; g <= 1 + S.CJ2 && front.length; g++) { const nxt = []; for (const o of front) { const n2 = g === 1 ? S.SPL : 1; for (const q of hopTo(o, n2)) { done.add(q.id); zap(q, S.SDMG2, g, o.x, o.y - 5); nxt.push(q); } } front = nxt; } }
       if (seg.length) { K.ogCN = (K.ogCN || 0) + 1; K.ogC = [K.ogCN].concat(seg);
         // each hit lands when its spark is drawn reaching the enemy: the same stagger the drawing uses (ogch: seed ogCN x 13, a random 0..0.15s per big spark, +0.08s per jump)
-        const sd = K.ogCN * 13; let d0 = 0; K.ogQ = (K.ogQ || []).concat(hits.map(([id, dmg, g], i) => { if (g === 0) d0 = OGX.rnd(sd * 3.7 + i * 1.9) * 0.15; return [id, dmg, d0 + g * 0.08]; })); } } }
+        const sd = K.ogCN * 13; let d0 = 0; K.ogQ = (K.ogQ || []).concat(hits.map(([id, dmg, g], i) => { if (g === 0) d0 = OGX.rnd(sd * 3.7 + i * 1.9) * 0.11; return [id, dmg, d0 + g * 0.08]; })); } } }
   else { const SR = S.SR * big, cx = K.x + d[0] * S.SO * big, cy = K.y + d[1] * S.SO * big * OGY; ogSmashFx(cx, cy, f, big);
     if (host) for (const w of walkers) { if (w.hp <= 0) continue; const dd = ogDist(w.x, w.y, cx, cy); if (dd > SR + UK[w.k].r) continue; const ka = Math.atan2(w.y - cy, w.x - cx); w.atk = -1; w.kx += Math.cos(ka) * S.SKB * big; w.ky += Math.sin(ka) * S.SKB * big * 0.6; w.sl = Math.max(w.sl || 0, 1); ogKill(w, S.SDMG * (big > 1 ? 1.6 : 1) * (1 - 0.4 * Math.min(1, dd / SR)), K, dd < SR * 0.4); } } }
 function ogHookFx(k, x, y, a) { if (!k) for (let n = 0; n < 7; n++) { const b = a + rr(-0.9, 0.9), v = rr(20, 55); OGFX.chips.push({ x: x + rr(-1, 1), y: y + rr(-1, 1), z: rr(5, 8), vx: Math.cos(b) * v, vy: Math.sin(b) * v * 0.6, vz: rr(5, 25), t: 0, r: rr(0.4, 0.9), sp: rr(-12, 12) }); } FX.push({ k: 'oghk', x, y, a, c: k, f: K.f || 1, t: 0, max: 0.45, sd: Math.random() * 999 }); snd(k ? 'zap' : 'gswing', x, y); shake = Math.max(shake, 0.08); }
@@ -4107,7 +4112,16 @@ function ogGround(c, t) { const V0 = OGX.V; OGX.arcn(1);
   for (const q of OGFX.craters) { const al = q.t < 0.1 ? q.t / 0.1 : q.t > 4 ? 1 - (q.t - 4) : 1; if (al <= 0) continue; c.save(); c.translate(q.x, q.y); c.scale(1, OGY);
     const g = c.createRadialGradient(0, 0, 0, 0, 0, q.r); g.addColorStop(0, `rgba(30,60,90,${0.5 * al})`); g.addColorStop(0.55, `rgba(120,180,220,${0.4 * al})`); g.addColorStop(0.85, `rgba(225,245,255,${0.6 * al})`); g.addColorStop(1, 'rgba(225,245,255,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, q.r, 0, 7); c.fill();
     c.strokeStyle = `rgba(20,30,45,${0.5 * al})`; c.lineWidth = 0.35; for (let i = 0; i < 8; i++) { const a = i * 0.785 + OGX.rnd(q.sd + i) * 0.5; c.beginPath(); c.moveTo(Math.cos(a) * q.r * 0.25, Math.sin(a) * q.r * 0.25); c.lineTo(Math.cos(a + 0.2) * q.r * 0.6, Math.sin(a + 0.2) * q.r * 0.6); c.lineTo(Math.cos(a - 0.1) * q.r * 0.95, Math.sin(a - 0.1) * q.r * 0.95); c.stroke(); } c.restore();
-    const N = Math.round(q.r / 1.6); for (let i = 0; i < N; i++) { const a = i / N * 6.283 + OGX.rnd(q.sd + i * 3) * 0.3, rd = q.r * (0.72 + 0.12 * OGX.rnd(q.sd + i * 5)); ogShard(c, q.x + Math.cos(a) * rd, q.y + Math.sin(a) * rd * OGY, (1.4 + OGX.rnd(q.sd + i * 7) * 2.6) * Math.min(1, q.t * 6) * (q.t > 4 ? 1 - (q.t - 4) : 1), Math.cos(a) * 0.5, 0.55, al); } }
+    const N = Math.round(q.r / 1.6); for (let i = 0; i < N; i++) { const a = i / N * 6.283 + OGX.rnd(q.sd + i * 3) * 0.3, rd = q.r * (0.72 + 0.12 * OGX.rnd(q.sd + i * 5)); ogShard(c, q.x + Math.cos(a) * rd, q.y + Math.sin(a) * rd * OGY, (1.4 + OGX.rnd(q.sd + i * 7) * 2.6) * (q.r / 17) ** 0.7 * Math.min(1, q.t * 6) * (q.t > 4 ? 1 - (q.t - 4) : 1), Math.cos(a) * 0.5, 0.55 * (q.r / 17) ** 0.8, al); } }
+  // hammer fissures: jagged tapering cracks torn out of the crater, dark with a cold blue glow deep inside, growing out fast and fading
+  for (const f2 of FX) if (f2.k === 'ogfc') { const q = f2.t / f2.max, grow = sm(Math.min(1, f2.t / 0.15)), al = q < 0.7 ? 1 : 1 - (q - 0.7) / 0.3, N = Math.round(6 + f2.R / 5); c.save(); c.lineJoin = 'miter'; c.lineCap = 'round';
+    const crack = (x0, y0, a0, L, W0, sd, M) => { const P = [[x0, y0]]; let x = x0, y = y0; for (let k = 1; k <= M; k++) { const a = a0 + (OGX.rnd(sd + k * 1.7) - 0.5) * 1.1, st = L / M * (0.7 + 0.6 * OGX.rnd(sd + k * 2.3)); x += Math.cos(a) * st; y += Math.sin(a) * st * OGY; P.push([x, y]); }
+      for (let k = 0; k < M; k++) { const w = W0 * (1 - k / M) + 0.12; c.globalAlpha = 0.75 * al; c.strokeStyle = '#211d1a'; c.lineWidth = w; c.beginPath(); c.moveTo(...P[k]); c.lineTo(...P[k + 1]); c.stroke();
+        c.globalCompositeOperation = 'lighter'; c.globalAlpha = al * (1 - q * 0.7) * (0.35 + 0.2 * Math.sin(t * 8 + sd)); c.strokeStyle = '#6fbfff'; c.lineWidth = w * 0.35; c.beginPath(); c.moveTo(...P[k]); c.lineTo(...P[k + 1]); c.stroke(); c.globalCompositeOperation = 'source-over'; } return P; };
+    for (let i = 0; i < N; i++) { const a0 = i / N * 6.283 + (OGX.rnd(f2.sd + i) - 0.5) * 0.6, r0 = f2.R * 0.5, L = f2.R * (0.45 + 0.55 * OGX.rnd(f2.sd + i * 3)) * grow, W0 = 0.45 + f2.R * 0.012;
+      const P = crack(f2.x + Math.cos(a0) * r0, f2.y + Math.sin(a0) * r0 * OGY, a0, L, W0, f2.sd + i * 13, 7);
+      if (OGX.rnd(f2.sd + i * 5) > 0.45) { const k = 2 + Math.floor(OGX.rnd(f2.sd + i * 9) * 3), s2 = OGX.rnd(f2.sd + i * 11) > 0.5 ? 1 : -1; crack(P[k][0], P[k][1], a0 + s2 * 0.7, L * 0.4, W0 * 0.6, f2.sd + i * 29, 4); } }
+    c.restore(); }
   // my ult: while the right stick aims, the hammer's swing cone is shown faintly
   { const me = KN[ME]; if (me && me.kind === 'ogre' && me.ogR >= OG.RAMP.WIND && me.ogR < OG.RAMP.T && me.in && me.in.aim) { const a = Math.atan2(me.in.aim[1] / OGY, me.in.aim[0]), Hh = OGHM; c.save(); c.fillStyle = 'rgba(170,220,255,.1)'; c.strokeStyle = 'rgba(210,240,255,.45)'; c.lineWidth = 0.5; c.setLineDash([2, 1.6]); c.beginPath(); c.moveTo(me.x, me.y); for (let i = 0; i <= 16; i++) { const b = a - Hh.A + 2 * Hh.A * i / 16; c.lineTo(me.x + Math.cos(b) * Hh.R, me.y + Math.sin(b) * Hh.R * OGY); } c.closePath(); c.fill(); c.stroke(); c.setLineDash([]); c.restore(); } }
   // lightning scorches
@@ -4169,7 +4183,7 @@ function ogAir(c, t) { const V0 = OGX.V; OGX.arcn(1); c.save();
   // chain lightning (storm hook): bolts from the fist to each enemy in turn, a flare on each
   for (const f2 of FX) if (f2.k === 'ogch') { const sd = Math.floor(t * 30); c.globalCompositeOperation = 'lighter';
     // each big spark (and the chain that follows it) goes out at its own moment within the first 0.15s, so they crackle out one after another instead of one clack
-    let d0 = 0; for (let i = 0; i < f2.G.length; i++) { const [g, x0, y0, x1, y1] = f2.G[i]; if (g === 0) d0 = OGX.rnd(f2.sd * 3.7 + i * 1.9) * 0.15; const tq = f2.t - d0 - g * 0.08; if (tq < 0) continue; const q = cl(tq / 0.45, 0, 1), al = q < 0.4 ? 1 : 1 - (q - 0.4) / 0.6; if (al <= 0) continue; c.globalAlpha = al;
+    let d0 = 0; for (let i = 0; i < f2.G.length; i++) { const [g, x0, y0, x1, y1] = f2.G[i]; if (g === 0) d0 = OGX.rnd(f2.sd * 3.7 + i * 1.9) * 0.11; const tq = f2.t - d0 - g * 0.08; if (tq < 0) continue; const q = cl(tq / 0.45, 0, 1), al = q < 0.4 ? 1 : 1 - (q - 0.4) / 0.6; if (al <= 0) continue; c.globalAlpha = al;
       const big = g === 0, ln = Math.hypot(x1 - x0, y1 - y0) || 1, o0 = big ? Math.min(ln * 0.3, 4 + (i % 3) * 2) : 0, sx = x0 + (x1 - x0) / ln * o0, sy = y0 + (y1 - y0) / ln * o0; const fl = 0.7 + 0.3 * OGX.rnd(sd + i * 3); ogBolt(c, [sx, sy], [x1, y1], f2.sd + i * 7.3, big ? 0.8 : 0.5, fl, big ? 3 : 1, big ? 0.7 : 0.5);
       ogPuff(c, OGPF.glow, x1, y1, big ? 7 : 4.5, 0.6 * al); }
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
@@ -4179,6 +4193,10 @@ function ogAir(c, t) { const V0 = OGX.V; OGX.arcn(1); c.save();
       for (let i = 0; i < 18; i++) { const a = i / 18 * 6.283, d = S.SR * (0.2 + q * 0.9), x = f2.x + Math.cos(a) * d, y = f2.y + Math.sin(a) * d * OGY; ogPuff(c, i % 2 ? OGPF.dust : OGPF.mist, x, y - 1.5 - q * 2, 3 + q * 4, 0.42 * (1 - q)); }
       c.globalAlpha = 1; for (let i = 0; i < 14; i++) { const a = -Math.PI + i / 14 * 6.283, rd = S.SR * (0.3 + 0.3 * OGX.rnd(f2.sd + i * 5)), h = (2.5 + OGX.rnd(f2.sd + i) * 3.5) * Math.min(1, q * 7) * (q > 0.6 ? 1 - (q - 0.6) / 0.4 : 1); ogShard(c, f2.x + Math.cos(a) * rd, f2.y + Math.sin(a) * rd * OGY, h, Math.cos(a) * 0.45, 0.6, 1 - Math.max(0, q - 0.6) / 0.4); } }
     else if (q < 0.6) for (let i = 0; i < 5; i++) ogShard(c, f2.x + (i - 2) * 1.8, f2.y, (3 + OGX.rnd(f2.sd + i) * 2.5) * Math.min(1, q * 8), (i - 2) * 0.15, 0.55, 1 - q / 0.6); }
+  // hammer impact: a flash at the head, then a thick ring of dust and frost mist rolling out low along the ground
+  for (const f2 of FX) if (f2.k === 'oghw') { const q = cl(f2.t / f2.max, 0, 1), e = 1 - (1 - q) ** 3, rr2 = f2.R * (0.4 + 1.6 * e);
+    if (q < 0.2) { c.globalCompositeOperation = 'lighter'; ogPuff(c, OGPF.glow, f2.x, f2.y - 2, f2.R * 0.8 * (1 - q * 3), 0.7 * (1 - q / 0.2)); c.globalCompositeOperation = 'source-over'; }
+    const N = Math.round(14 + f2.R * 0.6); for (let i = 0; i < N; i++) { const a = i / N * 6.283 + (i % 2) * 0.1, x = f2.x + Math.cos(a) * rr2, y = f2.y + Math.sin(a) * rr2 * OGY; ogPuff(c, i % 3 ? OGPF.dust : OGPF.mist, x, y - 1 - q * 1.5, (2.2 + q * 3.5) * Math.sqrt(f2.R / 17), 0.5 * (1 - q)); } c.globalAlpha = 1; }
   // the hammer's sweep: a band of frost and light round the arc it just cut, lightning along it
   for (const f2 of FX) if (f2.k === 'oghm') { const q = cl(f2.t / f2.max, 0, 1), T0 = f2.a + f2.s * 3.3, T1 = f2.a - f2.s * 1.98, R0 = (3 + OGHM.L) * OGSC, hz = 11 * OGSC, P = (b, rr2) => [f2.x + Math.cos(b) * rr2, f2.y + Math.sin(b) * rr2 * OGY - hz * (0.6 + 0.4 * Math.sin(Math.PI * (b - T0) / (T1 - T0)))];
     const pts = []; for (let i = 0; i <= 24; i++) pts.push(P(lerp(T0, T1, i / 24), R0)); c.save(); c.lineCap = 'round'; c.lineJoin = 'round'; const al = 1 - q;
@@ -6909,7 +6927,7 @@ function worldStep(dt, t) {
     const U = UK[w.k], reach = 4.4 + U.r + ((T2.sz || 1) - 1) * 3.5 + (T2.kind === 'priest' ? 1.6 : 0);
     if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5 && !((T2.z || 0) > 4) && !(T2.cr >= 0) && !(T2.nPh >= 1)) { T2.hits += (w.k === 'sapper' ? 3 : U.hw || 1) * (T2.kind !== 'fire' && T2.ultPh >= 0 ? 1 - GIANT_DR : 1); if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
     else if (T2.nPh >= 1) { }
-    else if (d > reach) { const sp = w.sp * (w.pSl > 0 ? WP.PEN.ASLOW : w.sl > 0 ? WP.SLOWK : 1); w.x += dx / d * sp * dt; w.y += dy / d * sp * dt; }
+    else if (d > reach) { const sp = w.sp * Math.min(w.pSl > 0 ? WP.PEN.ASLOW : w.sl > 0 ? WP.SLOWK : 1, 1 - OGHM.ZONE.MAX * (w.ogZs || 0)); w.x += dx / d * sp * dt; w.y += dy / d * sp * dt; }
     else if (w.cd <= 0 && T2.st !== 'kneel') w.atk = 0;
     w.x += w.kx * UK[w.k].kb * dt; w.y += w.ky * UK[w.k].kb * dt; w.kx *= 1 - dt * 6; w.ky *= 1 - dt * 6;
     if (U.heavy) w.atkH = w.atk;
@@ -7306,7 +7324,7 @@ const pName = i => { const kn = KN[i], n = cName(kn), same = LIVE().filter(o => 
 // kept small: with 4 players and MAX hordes a snapshot carries ~500 enemies; positions to 0.5 units (guests ease toward them anyway)
 // walkers go out as one flat list, 6 numbers each: id, x, y, hp, attack (x10, -1 idle), bits (1 burn, 2 chained, 4 slowed, 8 grabbed, 16 hit flash, target knight x32, height x128);
 // what kind it is and its max hp only go out when it's new or every 2s (a separate list), which roughly halves a snapshot
-const WN = 6, packW = (w, out, ann, now) => { out.push(w.id, Math.round(w.x), Math.round(w.y), Math.round(w.hp), w.ogFz > 0 ? -2 : w.atk < 0 ? -1 : Math.round(w.atk * 10), (w.bd > 0 ? 1 : 0) | (w.bT > 0 ? 2 : 0) | (w.sl > 0 || w.pSl > 0 ? 4 : 0) | (w.gr > 0 ? 8 : 0) | (w.hit > 0 ? 16 : 0) | ((w.tk || 0) & 3) * 32 | Math.min(255, Math.round(w.z || 0)) * 128);
+const WN = 6, packW = (w, out, ann, now) => { out.push(w.id, Math.round(w.x), Math.round(w.y), Math.round(w.hp), w.ogFz > 0 ? -2 : w.atk < 0 ? -1 : Math.round(w.atk * 10), (w.bd > 0 ? 1 : 0) | (w.bT > 0 ? 2 : 0) | (w.sl > 0 || w.pSl > 0 || w.ogZs > 0.1 ? 4 : 0) | (w.gr > 0 ? 8 : 0) | (w.hit > 0 ? 16 : 0) | ((w.tk || 0) & 3) * 32 | Math.min(255, Math.round(w.z || 0)) * 128);
   if (!(now - (w.ann ?? -1e9) < 2000)) { w.ann = now; ann.push(w.id, UKEYS.indexOf(w.k), w.max); } };
 const LC = document.getElementById('lcard'), LUI = document.getElementById('lobbyUI'), NOTE = document.getElementById('note');
 let noteT = 0; const note = (msg, sec = 3) => { NOTE.textContent = msg; NOTE.style.display = 'block'; noteT = sec; };
@@ -7519,7 +7537,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '0664fd';
+const KBUILD = '55c407';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
