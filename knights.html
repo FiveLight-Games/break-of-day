@@ -3592,6 +3592,12 @@ function drawBack(c, V, t, f, o) {
   // (game: o.gx 0..1 throws it out dead straight, down and away from the punch, as in the front view)
   const gxB = o.gx ?? 0, Sg = X([-3.4, py - 8.2]), Ex = X([-3.4 - 0.57 * 3.5, py - 8.2 + 0.82 * 3.5]), Hx = X([-3.4 - 0.57 * 7, py - 8.2 + 0.82 * 7]), Eg = L2(X([-4.9, py - 5.6]), Ex, gxB), Hg = L2(X([-1.6, py - 10.4]), Hx, gxB);
   cel(c, limbP(Sg, Eg, 1.6, 1.25, 1.1, 0.42), skG, { d: 0.16, hl: 0.1 }); cel(c, limbP(Eg, Hg, 1.25, 1.0, 1.12, 0.4), skG, { d: 0.16, hl: 0.08 });
+  // (game) thrown out straight, its hand shows past his back: wrist band and a loose fist at the end of the arm
+  if (gxB > 0.05) { const dx = Hg[0] - Eg[0], dy = Hg[1] - Eg[1], l = Math.hypot(dx, dy) || 1, d = [dx / l, dy / l], n = [-d[1], d[0]], wb = L2(Eg, Hg, 0.66), wb2 = L2(Eg, Hg, 0.84), W = (p, v) => [p[0] + n[0] * v, p[1] + n[1] * v];
+    path(c, [W(wb, 1.15), W(wb2, 1.2), W(wb2, -1.2), W(wb, -1.15)]); c.fillStyle = COL; c.fill(); c.strokeStyle = OUT; c.lineWidth = 0.15 * OLW; c.stroke();
+    const fc = [Hg[0] + d[0] * 0.45, Hg[1] + d[1] * 0.45], FP = [[-0.9, -0.95], [0.4, -1.05], [1.15, -0.7], [1.2, 0.3], [0.9, 0.95], [-0.2, 1.05], [-0.95, 0.65]].map(([u, v]) => [fc[0] + d[0] * u + n[0] * v, fc[1] + d[1] * u + n[1] * v]);
+    cel(c, FP, skG, { d: 0.24, hl: 0.1, lw: 0.17 }); c.strokeStyle = 'rgba(20,12,40,.35)'; c.lineWidth = 0.1; for (const v of [-0.45, 0.15, 0.7]) { c.beginPath(); c.moveTo(fc[0] + d[0] * 0.45 + n[0] * (v - 0.22), fc[1] + d[1] * 0.45 + n[1] * (v - 0.22)); c.quadraticCurveTo(fc[0] + d[0] * 1.05 + n[0] * v, fc[1] + d[1] * 1.05 + n[1] * v, fc[0] + d[0] * 0.45 + n[0] * (v + 0.22), fc[1] + d[1] * 0.45 + n[1] * (v + 0.22)); c.stroke(); }
+    for (const v of [-0.5, 0.15, 0.75]) { const p = [fc[0] + d[0] * 1.2 + n[0] * v, fc[1] + d[1] * 1.2 + n[1] * v]; c.fillStyle = '#efe6cf'; c.strokeStyle = OUT; c.lineWidth = 0.08 * OLW; c.beginPath(); c.ellipse(p[0], p[1], 0.17, 0.12, Math.atan2(d[1], d[0]), 0, 7); c.fill(); c.stroke(); } }
   leg(hipP, [-3.3, -1.7], true, skP, pi, 11);                          // rear leg (punch side), back and across, pivoting on the ball of the foot
   // ---- the back ----
   const TO = XS([[-2.6, 0.6], [-3.5, -1.6], [-3.8, -4.2], [-4.4, -6.6], [-4.5, -8.4], [-3.6, -9.7], [-1.6, -10.4], [0.2, -10.5], [2.3, -10.2], [4.0, -9.4], [4.8, -8.0], [4.6, -6.2], [4.0, -3.8], [3.3, -1.4], [2.4, 0.4], [0, 0.75]].map(([x, y]) => [x, y + py]));
@@ -7067,7 +7073,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '12c3d2';
+const KBUILD = 'bb9747';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
