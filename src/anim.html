@@ -1,0 +1,313 @@
+<meta charset="utf-8">
+<title>Pose Bench</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* layout: a light table (stage) with the inspector beside it and the dope sheet (timeline) under both; stacks to one column on phones */
+:root {
+  --bg: #e9ebe4; --panel: #f6f7f2; --stage: #dfe3d6; --ink: #1d2320; --mute: #66706a; --line: #c6ccbf;
+  --accent: #c2410c; --key: #b45309; --a: #c2410c; --b: #0e7490; --sel: #1d4ed8; --warn: #9f1239;
+  --display: 'Barlow Condensed', 'Arial Narrow', sans-serif; --body: 'Barlow', system-ui, sans-serif; --mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #161a18; --panel: #1e2421; --stage: #252c28; --ink: #e6ebe6; --mute: #95a198; --line: #36403a;
+  --accent: #f97316; --key: #f59e0b; --a: #fb923c; --b: #22d3ee; --sel: #93c5fd; --warn: #fb7185; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #161a18; --panel: #1e2421; --stage: #252c28; --ink: #e6ebe6; --mute: #95a198; --line: #36403a;
+  --accent: #f97316; --key: #f59e0b; --a: #fb923c; --b: #22d3ee; --sel: #93c5fd; --warn: #fb7185; color-scheme: dark }
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.4 var(--body); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 12px; box-sizing: border-box; }
+* { box-sizing: border-box; }
+h1 { font: 700 26px/1 var(--display); letter-spacing: .02em; margin: 0; text-transform: uppercase; }
+.top { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; margin-bottom: 10px; }
+.top p { margin: 0; color: var(--mute); font-size: 13px; }
+.wrap { display: grid; grid-template-columns: minmax(0, 1fr) 300px; grid-template-areas: "stage side" "time side"; grid-template-rows: minmax(0, 1fr) auto; gap: 12px; height: calc(100% - 52px); min-height: 560px; }
+@media (max-width: 820px) { #hint { display: none; } .wrap { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "time" "side"; height: auto; } #stage { height: 58vh; } }
+#stage { grid-area: stage; position: relative; background: var(--stage); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; touch-action: none; min-height: 320px; }
+#cv { position: absolute; inset: 0; width: 100%; height: 100%; }
+#status { position: absolute; left: 10px; top: 8px; font: 500 12px var(--mono); color: var(--mute); pointer-events: none; }
+#status b { color: var(--ink); font-weight: 500; }
+#hint { position: absolute; right: 10px; bottom: 8px; font-size: 12px; color: var(--mute); pointer-events: none; text-align: right; max-width: 60%; }
+.time { grid-area: time; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.side { grid-area: side; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.side h2 { font: 600 13px/1 var(--display); letter-spacing: .12em; text-transform: uppercase; color: var(--mute); margin: 0 0 6px; }
+.row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+button, select, input[type=number], input[type=text], textarea { font: 500 13px var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 6px 9px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--mute); }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--sel); outline-offset: 1px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+button.on { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button.danger { color: var(--warn); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+label.sl { display: grid; grid-template-columns: 74px 1fr 44px; gap: 6px; align-items: center; font-size: 13px; }
+label.sl output { font: 12px var(--mono); text-align: right; color: var(--mute); }
+.tag { font: 600 11px var(--mono); padding: 1px 6px; border-radius: 3px; color: #fff; }
+.tA { background: var(--a); } .tB { background: var(--b); }
+.ord { display: grid; grid-template-columns: 64px 1fr; gap: 6px; align-items: center; font-size: 13px; }
+#track { position: relative; height: 54px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; touch-action: none; cursor: pointer; }
+#track canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.tbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tbar .fr { font: 500 13px var(--mono); min-width: 120px; font-variant-numeric: tabular-nums; }
+input[type=number] { width: 64px; font-family: var(--mono); }
+textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; }
+.note { font-size: 12px; color: var(--mute); margin: 0; }
+.confirm { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+</style>
+
+<div class="top">
+  <h1>Pose Bench</h1>
+  <p>Drag joints to pose the Storm Ogre, snapshot each key, play it back at 60 fps. Copy the clip JSON when it looks right.</p>
+</div>
+
+<div class="wrap">
+  <div id="stage"><canvas id="cv"></canvas><div id="status"></div><div id="hint">Drag hands, feet, hips (square) and chest (diamond) · tap an elbow or knee ring to flip its bend</div></div>
+
+  <div class="time">
+    <div class="tbar">
+      <div class="seg"><button id="bFirst" title="First frame">⏮</button><button id="bPrevK" title="Previous key">◆◀</button><button id="bPrev" title="Back one frame (←)">◀</button><button id="bPlay" title="Play / pause (Space)">▶</button><button id="bNext" title="Forward one frame (→)">▶</button><button id="bNextK" title="Next key">▶◆</button></div>
+      <span class="fr" id="frLbl"></span>
+      <button class="primary" id="bSnap" title="Save this pose as a key at the playhead (S)">Snapshot</button>
+      <label class="note">then advance <input type="number" id="step" min="0" max="60" value="4"> frames</label>
+    </div>
+    <div id="track"><canvas id="tcv"></canvas></div>
+    <div class="tbar">
+      <button id="bDel" class="danger" title="Delete the key at the playhead (Delete)">Delete key</button>
+      <button id="bUndo" title="Undo (Ctrl+Z)">Undo</button>
+      <label class="note">Into next key <select id="ease"><option value="smooth">Smooth</option><option value="ease">Ease in-out</option><option value="linear">Linear</option><option value="hold">Hold</option></select></label>
+      <label class="note">Speed <select id="spd"><option value="0.1">0.1×</option><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select></label>
+      <button id="bLoop" class="on">Loop</button>
+      <button id="bOnion" class="on">Onion skin</button>
+    </div>
+  </div>
+
+  <div class="side">
+    <section>
+      <h2>Clip</h2>
+      <div class="row"><select id="clipSel" style="flex:1;min-width:0"></select></div>
+      <div class="row" style="margin-top:6px"><input type="text" id="clipName" style="flex:1;min-width:0" aria-label="Clip name"><button id="bNew">New</button><button id="bDup">Duplicate</button></div>
+      <div class="row" style="margin-top:6px" id="delRow"><button id="bDelClip" class="danger">Delete clip</button></div>
+      <p class="note" style="margin-top:8px">Start from the game's current punch:</p>
+      <div class="row" style="margin-top:4px"><button id="gStorm">Lightning punch</button><button id="gFrost">Ice punch</button></div>
+    </section>
+    <section>
+      <h2>Body</h2>
+      <div class="row" style="margin-bottom:8px"><span class="note">Facing</span><div class="seg"><button id="fL">◀ Left</button><button id="fR">Right ▶</button></div></div>
+      <label class="sl">Lean <input type="range" id="lean" min="-0.8" max="0.8" step="0.01"><output id="leanO"></output></label>
+      <label class="sl">Torso turn <input type="range" id="yaw" min="-1.6" max="1.6" step="0.01"><output id="yawO"></output></label>
+      <label class="sl">Lit head <input type="range" id="act" min="0" max="1" step="0.01"><output id="actO"></output></label>
+      <p class="note">Torso turn: + brings arm A's shoulder toward you, − brings B's.</p>
+    </section>
+    <section>
+      <h2>Draw order</h2>
+      <div class="ord"><span><span class="tag tA">A</span> <span id="nA"></span></span><div class="seg" id="oA"><button data-v="0">Behind body</button><button data-v="1">Over body</button><button data-v="2">Over all</button></div></div>
+      <div class="ord" style="margin-top:6px"><span><span class="tag tB">B</span> <span id="nB"></span></span><div class="seg" id="oB"><button data-v="0">Behind body</button><button data-v="1">Over all</button></div></div>
+      <div class="ord" style="margin-top:6px"><span>Legs</span><div class="seg" id="oL"><button data-v="0">Normal</button><button data-v="1">Swapped</button></div></div>
+      <div class="ord" style="margin-top:6px"><span>Bends</span><div class="row"><button id="flA">Flip A elbow</button><button id="flB">Flip B elbow</button></div></div>
+    </section>
+    <section>
+      <h2>Share</h2>
+      <div class="row"><button id="bCopy" class="primary">Copy clip JSON</button><span class="note" id="copyMsg"></span></div>
+      <textarea id="io" spellcheck="false" aria-label="Clip JSON"></textarea>
+      <div class="row"><button id="bLoad">Load JSON from box</button></div>
+      <p class="note">Paste a clip here and press Load. Copy sends the clip you're on.</p>
+    </section>
+  </div>
+</div>
+
+<script>
+const cl = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, k) => a + (b - a) * k, sm = k => k * k * (3 - 2 * k);
+/*@OGX@*/
+</script>
+<script>
+(() => {
+const $ = id => document.getElementById(id), T0 = 1.0, FPS = 60, ARM = 6.998;
+const scratch = document.createElement('canvas').getContext('2d');
+const cv = $('cv'), ctx = cv.getContext('2d'), tcv = $('tcv'), tctx = tcv.getContext('2d');
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const clone = o => JSON.parse(JSON.stringify(o));
+
+// ---- poses: what drawO2's rig takes (hands relative to their shoulders) ----
+function render(c, P, out) { const o = { rig: P, noFx: 1, noJet: 1, outRig: out || { ord: [] } }; OGX.drawO2(c, OGX.V, T0, P.f, 0, -1, -1, 'act', P.act, -1, [], 0, o); return o.outRig; }
+function fromOut(o, f, act, yf) { const i = s => o.ord.indexOf(s), iT = i('T'), iH = i('H');
+  return { f, pel: o.pel, lean: o.lean, yaw: o.yaw, feet: o.feet, kn: [f > 0 ? -1 : 1, f > 0 ? -1 : 1], hA: [o.hA[0] - o.shA[0], o.hA[1] - o.shA[1]], hB: [o.hB[0] - o.shB[0], o.hB[1] - o.shB[1]], eA: o.sA, eB: o.sB,
+    aF: i('A') < iT ? 0 : i('A') < iH ? 1 : 2, bF: i('B') < iT ? 0 : 1, ls: 0, act, yf: yf ?? 0.42 }; }
+function idlePose(f) { const o = { ord: [] }; OGX.drawO2(scratch, OGX.V, T0, f, 0, -1, -1, 'act', 0, -1, [], 0, { noFx: 1, noJet: 1, outRig: o }); return fromOut(o, f, 0); }
+function gamePose(k2, f, u) { const hk = ogHookPose({ f, ouK: k2, ouA: f > 0 ? 0 : Math.PI }, u), o = { ord: [] }, act = k2 === 0 ? 1 : 0;
+  OGX.drawO2(scratch, OGX.V, T0, f, 0, -1, -1, 'act', act, -1, [], 0, { hk, yaw: hk.yaw, noFx: 1, noJet: 1, outRig: o }); return fromOut(o, f, act, hk.yf); }
+function mirror(P) { const m = q => [-q[0], q[1]]; return { ...P, f: -P.f, pel: m(P.pel), feet: P.feet.map(m), hA: m(P.hA), hB: m(P.hB), eA: -P.eA, eB: -P.eB, kn: P.kn.map(v => -v) }; }
+
+// ---- clips ----
+const blank = name => ({ name, keys: [{ fr: 0, ease: 'smooth', pose: idlePose(1) }] });
+function gameClip(k2) { const f = k2 === 1 ? 1 : -1, keys = []; for (let fr = 0; fr <= 78; fr += 3) keys.push({ fr, ease: 'smooth', pose: gamePose(k2, f, Math.min(1, fr / 78)) });
+  return { name: (k2 === 1 ? 'Lightning punch' : 'Ice punch') + ' (game, facing ' + (f > 0 ? 'right' : 'left') + ')', keys }; }
+let clips, ci = 0;
+try { const s = JSON.parse(localStorage.getItem('posebench') || 'null'); if (s && s.clips && s.clips.length) { clips = s.clips; ci = cl(s.ci | 0, 0, clips.length - 1); } } catch (e) {}
+if (!clips) clips = [gameClip(1)];
+const save = () => { try { localStorage.setItem('posebench', JSON.stringify({ clips, ci })); } catch (e) {} };
+const clip = () => clips[ci], keys = () => clip().keys;
+const sortKeys = () => keys().sort((a, b) => a.fr - b.fr);
+const keyAt = fr => keys().find(k => k.fr === fr);
+const lastFr = () => keys().length ? keys()[keys().length - 1].fr : 0;
+
+// undo
+const hist = []; const snap = () => { hist.push(JSON.stringify(clips[ci])); if (hist.length > 60) hist.shift(); };
+function undo() { if (!hist.length) return; clips[ci] = JSON.parse(hist.pop()); fr = cl(fr, 0, Math.max(lastFr(), fr)); pose = poseAt(fr); dirty = false; save(); ui(); }
+
+// ---- interpolation ----
+const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
+const cr = (p0, p1, p2, p3, u) => 0.5 * (2 * p1 + (-p0 + p2) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u * u + (-p0 + 3 * p1 - 3 * p2 + p3) * u * u * u);
+function poseAt(t) { const K = keys(); if (!K.length) return idlePose(1); if (t <= K[0].fr) return clone(K[0].pose); if (t >= K[K.length - 1].fr) return clone(K[K.length - 1].pose);
+  let i = 0; while (K[i + 1].fr <= t) i++; const a = K[i], b = K[i + 1], u = (t - a.fr) / (b.fr - a.fr), e = a.ease || 'smooth';
+  if (e === 'hold') return clone(a.pose);
+  const P = [K[Math.max(0, i - 1)].pose, a.pose, b.pose, K[Math.min(K.length - 1, i + 2)].pose], uu = e === 'ease' ? sm(u) : u;
+  const num = g => { const v = P.map(g); return e === 'smooth' ? cr(v[0], v[1], v[2], v[3], u) : lerp(v[1], v[2], uu); };
+  const ang = g => { const v = P.map(g); v[0] = v[1] + wrapA(v[0] - v[1]); v[2] = v[1] + wrapA(v[2] - v[1]); v[3] = v[2] + wrapA(v[3] - v[2]); return e === 'smooth' ? cr(v[0], v[1], v[2], v[3], u) : lerp(v[1], v[2], uu); };
+  const pt = g => [num(p => g(p)[0]), num(p => g(p)[1])];
+  const hand = g => { const A = ang(p => Math.atan2(g(p)[1], g(p)[0])), R = Math.min(ARM, Math.max(0, num(p => Math.hypot(g(p)[0], g(p)[1])))); return [Math.cos(A) * R, Math.sin(A) * R]; };
+  return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean), yaw: num(p => p.yaw), act: cl(num(p => p.act), 0, 1), yf: a.pose.yf, feet: [pt(p => p.feet[0]), pt(p => p.feet[1])], hA: hand(p => p.hA), hB: hand(p => p.hB) }; }
+
+// ---- state ----
+let fr = 0, pose = poseAt(0), dirty = false, playing = false, loop = true, onion = true, pt = 0, last = 0, rig = null;
+const onKey = () => !!keyAt(fr);
+function setFr(n) { fr = Math.max(0, Math.round(n)); pose = poseAt(fr); dirty = false; ui(); }
+function edited() { const k = keyAt(fr); if (k) { if (!dirty) snap(); k.pose = clone(pose); save(); } dirty = !k; ui(); }
+
+// ---- stage ----
+let S = 20, OX = 0, OY = 0, DPR = 1;
+function size() { const r = $('stage').getBoundingClientRect(); DPR = Math.min(2, devicePixelRatio || 1); cv.width = r.width * DPR; cv.height = r.height * DPR; S = Math.min(r.height / 27, r.width / 30); OX = r.width / 2; OY = r.height - r.height * 0.07;
+  const t = $('track').getBoundingClientRect(); tcv.width = t.width * DPR; tcv.height = t.height * DPR; }
+const w2s = p => [OX + p[0] * S, OY + p[1] * S], s2w = (x, y) => [(x - OX) / S, (y - OY) / S];
+const ghost = document.createElement('canvas');
+function drawFig(c, P, alpha) { c.save(); c.globalAlpha = alpha; c.setTransform(DPR * S, 0, 0, DPR * S, DPR * OX, DPR * OY); const o = render(c, P); c.restore(); return o; }
+function chestPt(P) { const L = 8; return [P.pel[0] + Math.sin(P.f * P.lean) * L, P.pel[1] - Math.cos(P.f * P.lean) * L]; }
+function draw() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  // ground: a line at the feet and a faint unit grid
+  ctx.strokeStyle = css('--line'); ctx.lineWidth = 1; ctx.beginPath(); for (let x = -12; x <= 12; x += 2) { const [sx] = w2s([x, 0]); ctx.moveTo(sx, OY - 26 * S); ctx.lineTo(sx, OY); } ctx.globalAlpha = 0.35; ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.strokeStyle = css('--mute'); ctx.beginPath(); ctx.moveTo(0, OY); ctx.lineTo(cv.width, OY); ctx.stroke();
+  if (onion && !playing) { const K = keys(), p = [...K].reverse().find(k => k.fr < fr), n = K.find(k => k.fr > fr);
+    for (const [k, col] of [[p, '--b'], [n, '--a']]) if (k) { const g = ghost; g.width = cv.width; g.height = cv.height; const gc = g.getContext('2d'); gc.clearRect(0, 0, g.width, g.height); drawFig(gc, k.pose, 1); gc.setTransform(1, 0, 0, 1, 0, 0); gc.globalCompositeOperation = 'source-atop'; gc.fillStyle = css(col); gc.globalAlpha = 0.55; gc.fillRect(0, 0, g.width, g.height); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.22; ctx.drawImage(g, 0, 0); ctx.restore(); } }
+  rig = drawFig(ctx, pose, 1);
+  if (!playing) handles();
+}
+const HANDLES = () => { const r = rig, P = pose, ankle = i => [r.feet[i][0], r.feet[i][1] - 0.95];
+  return [
+    { id: 'hA', p: r.hA, k: 'hand', c: '--a', l: 'A' }, { id: 'hB', p: r.hB, k: 'hand', c: '--b', l: 'B' },
+    { id: 'f0', p: r.feet[0], k: 'foot', c: '--ink', i: 0 }, { id: 'f1', p: r.feet[1], k: 'foot', c: '--ink', i: 1 },
+    { id: 'ch', p: chestPt(P), k: 'chest', c: '--ink' }, { id: 'pl', p: r.pel, k: 'pel', c: '--ink' },
+    { id: 'eA', p: r.eA, k: 'elbow', c: '--a', a: 'A' }, { id: 'eB', p: r.eB, k: 'elbow', c: '--b', a: 'B' },
+    { id: 'k0', p: r.knees[0], k: 'knee', c: '--ink', i: 0, an: ankle(0) }, { id: 'k1', p: r.knees[1], k: 'knee', c: '--ink', i: 1, an: ankle(1) } ]; };
+function handles() { const H = HANDLES(), r = rig;
+  // shoulders and arm reach (only the dragged hand's reach is drawn)
+  if (drag && drag.k === 'hand') { const s = w2s(drag.id === 'hA' ? r.shA : r.shB); ctx.setLineDash([4, 4]); ctx.strokeStyle = css(drag.c); ctx.beginPath(); ctx.arc(s[0], s[1], ARM * S, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+  for (const h of H) { const [x, y] = w2s(h.p); ctx.lineWidth = 2; ctx.strokeStyle = css(h.c); ctx.fillStyle = css('--panel');
+    ctx.beginPath();
+    if (h.k === 'pel') ctx.rect(x - 7, y - 7, 14, 14);
+    else if (h.k === 'chest') { ctx.moveTo(x, y - 9); ctx.lineTo(x + 9, y); ctx.lineTo(x, y + 9); ctx.lineTo(x - 9, y); ctx.closePath(); }
+    else if (h.k === 'elbow' || h.k === 'knee') ctx.arc(x, y, 7, 0, 7);
+    else ctx.arc(x, y, 9, 0, 7);
+    if (h.k === 'elbow' || h.k === 'knee') { ctx.globalAlpha = 0.9; ctx.stroke(); ctx.globalAlpha = 1; ctx.font = '600 10px ' + css('--mono'); ctx.fillStyle = css(h.c); ctx.textAlign = 'center'; ctx.fillText('⇄', x, y + 3.5); }
+    else { ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1; ctx.stroke(); if (h.l) { ctx.font = '600 11px ' + css('--mono'); ctx.fillStyle = css(h.c); ctx.textAlign = 'center'; ctx.fillText(h.l, x, y + 4); } } } }
+
+// ---- pointer ----
+let drag = null;
+cv.addEventListener('pointerdown', e => { if (playing) return; const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top, R = e.pointerType === 'touch' ? 24 : 14;
+  let best = null, bd = R; for (const h of HANDLES()) { const [sx, sy] = w2s(h.p), d = Math.hypot(sx - x, sy - y); if (d < bd) { bd = d; best = h; } }
+  if (!best) return; drag = { ...best, x0: x, y0: y, moved: false }; cv.setPointerCapture(e.pointerId); e.preventDefault(); });
+cv.addEventListener('pointermove', e => { if (!drag) return; const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+  if (!drag.moved && Math.hypot(x - drag.x0, y - drag.y0) < 4) return; drag.moved = true; const p = s2w(x, y), r = rig, P = pose;
+  if (drag.k === 'hand') { const s = drag.id === 'hA' ? r.shA : r.shB; let v = [p[0] - s[0], p[1] - s[1]]; const d = Math.hypot(...v); if (d > ARM) v = [v[0] / d * ARM, v[1] / d * ARM]; P[drag.id] = v; }
+  else if (drag.k === 'foot') P.feet[drag.i] = [p[0], Math.min(0.2, p[1])];
+  else if (drag.k === 'pel') P.pel = p;
+  else if (drag.k === 'chest') P.lean = cl(P.f * Math.atan2(p[0] - P.pel[0], -(p[1] - P.pel[1])), -1.2, 1.2);
+  else if (drag.k === 'elbow') { const s = drag.a === 'A' ? r.shA : r.shB, h = drag.a === 'A' ? r.hA : r.hB, cz = (h[0] - s[0]) * (p[1] - s[1]) - (h[1] - s[1]) * (p[0] - s[0]); P['e' + drag.a] = cz > 0 ? 1 : -1; }
+  else if (drag.k === 'knee') { const s = r.hips[drag.i], h = drag.an, cz = (h[0] - s[0]) * (p[1] - s[1]) - (h[1] - s[1]) * (p[0] - s[0]); P.kn[drag.i] = cz > 0 ? 1 : -1; }
+  livePreview(); });
+const endDrag = () => { if (!drag) return; const P = pose;
+  if (!drag.moved) { if (drag.k === 'elbow') P['e' + drag.a] *= -1; else if (drag.k === 'knee') P.kn[drag.i] *= -1; else { drag = null; draw(); return; } }
+  drag = null; edited(); };
+cv.addEventListener('pointerup', endDrag); cv.addEventListener('pointercancel', endDrag);
+let pend = false; function livePreview() { if (pend) return; pend = true; requestAnimationFrame(() => { pend = false; draw(); stat(); }); }
+
+// ---- timeline ----
+const tlLen = () => Math.max(60, lastFr() + 12, fr + 6);
+function drawTrack() { const W = tcv.width / DPR, H = tcv.height / DPR, L = tlLen(), X = f2 => 10 + f2 / L * (W - 20); tctx.setTransform(DPR, 0, 0, DPR, 0, 0); tctx.clearRect(0, 0, W, H);
+  tctx.font = '10px ' + css('--mono'); tctx.fillStyle = css('--mute'); tctx.strokeStyle = css('--line'); tctx.textAlign = 'center';
+  const st = L > 240 ? 30 : L > 120 ? 10 : 6; for (let f2 = 0; f2 <= L; f2++) { const x = X(f2); if (f2 % st === 0) { tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, 12); tctx.stroke(); tctx.fillText(f2, x, 22); } else if (L <= 120) { tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, 4); tctx.stroke(); } }
+  const K = keys(); for (let i = 0; i < K.length; i++) { const k = K[i], x = X(k.fr), y = 39, sel = k.fr === fr;
+    if (i < K.length - 1) { const n = K[i + 1], P = k.pose, Q = n.pose; if (P.eA !== Q.eA || P.eB !== Q.eB || P.aF !== Q.aF || P.bF !== Q.bF || P.ls !== Q.ls || P.kn[0] !== Q.kn[0] || P.kn[1] !== Q.kn[1]) { tctx.fillStyle = css('--warn'); tctx.fillRect(X(n.fr) - 1, 28, 2, 22); } }
+    tctx.fillStyle = sel ? css('--sel') : css('--key'); tctx.beginPath(); tctx.moveTo(x, y - 7); tctx.lineTo(x + 7, y); tctx.lineTo(x, y + 7); tctx.lineTo(x - 7, y); tctx.closePath(); tctx.fill();
+    if (k.ease === 'hold') { tctx.strokeStyle = css('--mute'); tctx.setLineDash([2, 3]); tctx.beginPath(); tctx.moveTo(x + 8, y); tctx.lineTo(i < K.length - 1 ? X(K[i + 1].fr) - 8 : x + 8, y); tctx.stroke(); tctx.setLineDash([]); } }
+  const x = X(fr); tctx.strokeStyle = css('--accent'); tctx.lineWidth = 2; tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, H); tctx.stroke(); tctx.lineWidth = 1; }
+let tdrag = null;
+const tX = e => { const b = tcv.getBoundingClientRect(), L = tlLen(); return (e.clientX - b.left - 10) / (b.width - 20) * L; };
+$('track').addEventListener('pointerdown', e => { stop(); const f2 = tX(e), L = tlLen(), b = tcv.getBoundingClientRect(), px = (b.width - 20) / L, y = e.clientY - b.top;
+  const k = y > 26 ? keys().find(k => Math.abs(k.fr - f2) * px < 10) : null;
+  tdrag = { key: k, fr0: k ? k.fr : 0, moved: false, x0: e.clientX }; $('track').setPointerCapture(e.pointerId); if (!k) setFr(f2); else setFr(k.fr); });
+$('track').addEventListener('pointermove', e => { if (!tdrag) return; if (!tdrag.key) { setFr(tX(e)); return; } if (!tdrag.moved && Math.abs(e.clientX - tdrag.x0) < 5) return; if (!tdrag.moved) snap(); tdrag.moved = true;
+  const n = Math.max(0, Math.round(tX(e))); if (n !== tdrag.key.fr && !keyAt(n)) { tdrag.key.fr = n; sortKeys(); fr = n; pose = poseAt(fr); save(); ui(); } });
+$('track').addEventListener('pointerup', () => { tdrag = null; });
+
+// ---- playback ----
+function tick(ts) { if (!playing) return; const dt = Math.min(0.1, (ts - (last || ts)) / 1000); last = ts; pt += dt * FPS * +$('spd').value; const L = lastFr();
+  if (pt > L) { if (loop && L > 0) pt %= L; else { pt = L; playing = false; } } fr = Math.floor(pt); pose = poseAt(pt); dirty = false; ui(); if (playing) requestAnimationFrame(tick); }
+function play() { if (lastFr() <= 0) return; playing = true; pt = fr >= lastFr() ? 0 : fr; last = 0; requestAnimationFrame(tick); ui(); }
+function stop() { if (!playing) return; playing = false; pose = poseAt(fr); ui(); }
+
+// ---- inspector ----
+const nameOf = s => (pose.f > 0) === (s === 'A') ? 'storm arm' : 'ice arm';
+function stat() { const k = keyAt(fr); $('status').innerHTML = `<b>frame ${fr}</b> · ${(fr / FPS).toFixed(3)}s · ${playing ? 'playing' : k ? 'editing key' : dirty ? '<span style="color:var(--warn)">unsaved pose · Snapshot to keep it</span>' : 'between keys'}`; }
+function ui() {
+  draw(); drawTrack(); stat();
+  $('frLbl').textContent = `frame ${fr} / ${lastFr()}`; $('bPlay').textContent = playing ? '❚❚' : '▶';
+  $('bSnap').textContent = keyAt(fr) ? 'Key saved ✓' : 'Snapshot'; $('bSnap').disabled = !!keyAt(fr);
+  $('bDel').disabled = !keyAt(fr) || keys().length < 2;
+  const K = keys(), seg = [...K].reverse().find(k => k.fr <= fr); $('ease').value = seg ? seg.ease || 'smooth' : 'smooth';
+  for (const [id, v, d] of [['lean', pose.lean, 2], ['yaw', pose.yaw, 2], ['act', pose.act, 2]]) { $(id).value = v; $(id + 'O').textContent = (+v).toFixed(d); }
+  $('fL').classList.toggle('on', pose.f < 0); $('fR').classList.toggle('on', pose.f > 0);
+  $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
+  for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
+  $('bLoop').classList.toggle('on', loop); $('bOnion').classList.toggle('on', onion);
+  const sel = $('clipSel'); if (sel.options.length !== clips.length || [...sel.options].some((o, i) => o.text !== clips[i].name)) sel.innerHTML = clips.map((c, i) => `<option value="${i}">${c.name.replace(/</g, '&lt;')}</option>`).join(''); sel.value = ci;
+  if (document.activeElement !== $('clipName')) $('clipName').value = clip().name;
+}
+for (const id of ['lean', 'yaw', 'act']) { $(id).addEventListener('input', e => { pose[id] = +e.target.value; $(id + 'O').textContent = (+e.target.value).toFixed(2); livePreview(); }); $(id).addEventListener('change', edited); }
+for (const [id, key] of [['oA', 'aF'], ['oB', 'bF'], ['oL', 'ls']]) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pose[key] = +b.dataset.v; edited(); });
+$('flA').onclick = () => { pose.eA *= -1; edited(); }; $('flB').onclick = () => { pose.eB *= -1; edited(); };
+$('fL').onclick = () => setFacing(-1); $('fR').onclick = () => setFacing(1);
+function setFacing(f) { if (pose.f === f) return; snap(); for (const k of keys()) k.pose = mirror(k.pose); pose = mirror(pose); save(); ui(); }
+function snapshot() { if (keyAt(fr)) return; snap(); keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); save(); dirty = false; const st = +$('step').value || 0; if (st) { const k0 = clone(pose); fr += st; const k = keyAt(fr); pose = k ? clone(k.pose) : k0; dirty = !k; } ui(); }
+$('bSnap').onclick = snapshot;
+$('bDel').onclick = () => { const k = keyAt(fr); if (!k || keys().length < 2) return; snap(); clip().keys = keys().filter(q => q !== k); pose = poseAt(fr); save(); ui(); };
+$('bUndo').onclick = undo;
+$('ease').onchange = e => { const seg = [...keys()].reverse().find(k => k.fr <= fr); if (!seg) return; snap(); seg.ease = e.target.value; pose = poseAt(fr); save(); ui(); };
+$('bPlay').onclick = () => playing ? stop() : play();
+$('bFirst').onclick = () => { stop(); setFr(0); }; $('bPrev').onclick = () => { stop(); setFr(fr - 1); }; $('bNext').onclick = () => { stop(); setFr(fr + 1); };
+$('bPrevK').onclick = () => { stop(); const k = [...keys()].reverse().find(k => k.fr < fr); if (k) setFr(k.fr); };
+$('bNextK').onclick = () => { stop(); const k = keys().find(k => k.fr > fr); if (k) setFr(k.fr); };
+$('bLoop').onclick = () => { loop = !loop; ui(); }; $('bOnion').onclick = () => { onion = !onion; ui(); };
+$('clipSel').onchange = e => { stop(); ci = +e.target.value; hist.length = 0; save(); setFr(0); };
+$('clipName').addEventListener('input', e => { clip().name = e.target.value || 'Untitled'; save(); ui(); });
+const addClip = c => { clips.push(c); ci = clips.length - 1; hist.length = 0; save(); setFr(0); };
+$('bNew').onclick = () => addClip(blank('New clip ' + (clips.length + 1)));
+$('bDup').onclick = () => { const c = clone(clip()); c.name += ' copy'; addClip(c); };
+$('gStorm').onclick = () => addClip(gameClip(1)); $('gFrost').onclick = () => addClip(gameClip(0));
+function bindDel() { $('bDelClip').onclick = () => { const r = $('delRow'); r.innerHTML = '<span class="confirm">Delete “' + clip().name.replace(/</g, '&lt;') + '”? <button id="dYes" class="danger">Delete</button><button id="dNo">Keep</button></span>'; $('dNo').onclick = () => { $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete clip</button>'; bindDel(); }; $('dYes').onclick = () => { clips.splice(ci, 1); if (!clips.length) clips.push(blank('New clip')); ci = Math.min(ci, clips.length - 1); hist.length = 0; save(); $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete clip</button>'; bindDel(); setFr(0); }; }; }
+bindDel();
+const clipJSON = () => { const r = q => Array.isArray(q) ? q.map(r) : typeof q === 'number' ? Math.round(q * 1000) / 1000 : q && typeof q === 'object' ? Object.fromEntries(Object.entries(q).map(([k, v]) => [k, r(v)])) : q; return JSON.stringify({ posebench: 1, fps: FPS, ...r(clip()) }); };
+$('bCopy').onclick = () => { const s = clipJSON(); $('io').value = s; const ok = () => { $('copyMsg').textContent = 'Copied'; setTimeout(() => $('copyMsg').textContent = '', 1600); };
+  try { navigator.clipboard.writeText(s).then(ok, () => { $('io').select(); $('copyMsg').textContent = 'Selected, copy it from the box'; }); } catch (e) { $('io').select(); $('copyMsg').textContent = 'Selected, copy it from the box'; } };
+$('bLoad').onclick = () => { try { const c = JSON.parse($('io').value); if (!c.keys || !c.keys.length) throw 0; addClip({ name: c.name || 'Loaded clip', keys: c.keys }); $('copyMsg').textContent = 'Loaded'; } catch (e) { $('copyMsg').textContent = 'That box doesn’t hold a clip. Paste the JSON from Copy clip JSON.'; } };
+addEventListener('keydown', e => { if (e.target.matches('input, textarea, select')) return; const k = e.key;
+  if (k === ' ') { e.preventDefault(); playing ? stop() : play(); } else if (k === 'ArrowLeft') { stop(); setFr(fr - 1); } else if (k === 'ArrowRight') { stop(); setFr(fr + 1); }
+  else if (k === 's' || k === 'S') snapshot(); else if (k === 'Delete' || k === 'Backspace') $('bDel').click(); else if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); undo(); } });
+addEventListener('resize', () => { size(); ui(); });
+new MutationObserver(() => ui()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+size(); setFr(0);
+window.__pb = { clips: () => clips, setFr, pose: () => pose, rig: () => rig };
+})();
+</script>

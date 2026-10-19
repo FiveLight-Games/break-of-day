@@ -23,6 +23,11 @@ assets = 'window.TD_ASSETS = { buildLoop: "data:audio/mpeg;base64,' + base64.b64
 out = tpl.replace('/*__LOG__*/[]', json.dumps([{'v': e['v'], 'date': e['date'], 'notes': e['notes']} for e in log], ensure_ascii=False).replace('</', '<\\/')).replace('__BUILD__', build).replace('__VER__', ver).replace('/*__GAME__*/', assets + '\n' + safe('game.js')).replace('/*__CLIENT__*/', safe('client.js').replace('const TD = window.TD;\n', 'const TD = window.TD;\n' + safe('tribe.js') + '\n', 1))
 (root / 'index.html').write_text(out)
 (root / 'knights.html').write_text((d / 'knights.html').read_text().replace('__BUILD__', build).replace("['__HELI_LIST__']", json.dumps([base64.b64encode((d / 'assets' / f'heli{i}.mp3').read_bytes()).decode() for i in range(1, 11)])))  # Knight Brawl: a separate co-op mode page
+
+# Pose Bench (src/anim.html -> anim.html): the Storm Ogre's art (the OGX closure) and the game's hook poses inlined from knights.html
+_kn = (d / 'knights.html').read_text(); _o0 = _kn.index('const OGX = (() => {'); _o1 = _kn.index('\n})();', _kn.index('return { drawO2', _o0)) + 6
+_h0 = _kn.index('const OGHK = '); _h1 = _kn.index('// where the fist is in the world', _h0)
+(root / 'anim.html').write_text((d / 'anim.html').read_text().replace('/*@OGX@*/', _kn[_o0:_o1] + '\n' + _kn[_h0:_h1]))
 (root / 'audio').mkdir(exist_ok=True); (root / 'audio' / 'baroque-breakdown.mp3').write_bytes((d / 'assets' / 'baroque-breakdown.mp3').read_bytes())  # Knight Brawl music, served as a file (too big to inline)
 (root / 'version.json').write_text(json.dumps({'version': build, 'v': ver}) + '\n')
 print('v' + ver, 'build', build, len(out), 'bytes', '(shipped)' if shipping or known else '(unshipped)')
