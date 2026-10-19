@@ -3406,7 +3406,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
       for (let i = 0; i < 6; i++) { const a = t * 6 + i * 1.047, rr = R * (1.35 + 0.25 * Math.sin(t * 7 + i)), p = [Math.cos(a) * rr, Math.sin(a) * rr * 0.8]; c.fillStyle = `rgba(255,255,255,${0.9 * S})`; c.fillRect(p[0] - 0.07, p[1] - 0.07, 0.14, 0.14); }
       c.restore(); }
     // frost in charge: a swirl of frost spins in the ice hand (it grows in as he takes over, fades as he hands back)
-    if (!WPN && ice && iL > 0.05 && k < 0.5) { const S = iL * (1 - k * 2), o = [fc[0] + d[0] * 1.6 + f * 0.6, fc[1] + d[1] * 1.6 - 0.2], R = 1.75 * S, sp = t * 3.2;
+    if (!WPN && ice && iL > 0.05 && (opts.iSw !== undefined ? opts.iSw > 0.02 : k < 0.5)) { const S = opts.iSw !== undefined ? Math.max(iL, 0.6) * opts.iSw : iL * (1 - k * 2), o = [fc[0] + d[0] * 1.6 + f * 0.6, fc[1] + d[1] * 1.6 - 0.2], R = 1.75 * S, sp = t * 3.2;
       // a little snowstorm: puffs of cloud churning round, wind streaks curling about it and snowflakes riding the wind
       c.save(); c.translate(...o);
       const g = c.createRadialGradient(0, 0, 0, 0, 0, R * 1.6); g.addColorStop(0, `rgba(225,245,255,${0.5 * S})`); g.addColorStop(1, 'rgba(200,235,255,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, R * 1.6, 0, 7); c.fill();
@@ -3933,6 +3933,8 @@ function drawStormOgre(c, t) { if (!Number.isFinite(K.ogPh)) K.ogPh = 0; const D
   const foes = []; for (const id of K.ogZ || []) { const w2 = walkers.find(q => q.id === id); if (w2) foes.push({ id, zap: 1, x: (w2.x - K.x) / OGSC, y: (w2.y - K.y - 6) / OGSC }); }
   const hk0 = K.ou >= 0 && !K.ouS && K.ouK < 2 && !(K.ogR >= 0) ? ogHookPose(K, K.ou) : null;
   // the storm hammer (ult): its pose is eased every frame (fast through a strike, so it never lags the hit), both hands on the haft, drawn behind him while its head is round his far side
+  // the frost swirl in his ice hand only shows while he winds up a frost hook or holds the storm hammer (eased in and out)
+  { const want = (K.ou >= 0 && !K.ouS && K.ouK === 0 && K.ou < OGHK.F) || K.ogR >= 0 ? 1 : 0; K.iSwV = lerp(K.iSwV || 0, want, 1 - Math.exp(-dt * 10)); }
   let h2 = null, hAbs = null, hamO = null, hCr = 0, hLn = 0; const HP = ogHamPose(K);
   if (HP) { if (!K.hmV) K.hmV = HP.p; K.hmV = ogHMix(K.hmV, HP.p, 1 - Math.exp(-dt * (HP.strike ? 70 : 16))); const g = ogHamGeo(K, K.hmV), A = [lerp(g.G[0], g.Hd[0], 0.27), lerp(g.G[1], g.Hd[1], 0.27)];
     hAbs = { A, B: g.G, k: HP.k }; hCr = HP.cr; hLn = HP.ln; const vis = HP.vis, chg = K.ogFn >= 0 ? Math.min(1, K.ogFn / 0.6) : 0;
@@ -3943,7 +3945,7 @@ function drawStormOgre(c, t) { if (!Number.isFinite(K.ogPh)) K.ogPh = 0; const D
   // holds through the follow-through, then crossfades back to his front as he recovers
   // the turn is played as a real turn, not a cut: the front view narrows round his middle as he wheels away, swaps to the rear view at its narrowest, and the rear view widens out (and the same back again as he recovers)
   const kb = hk0 && hk0.arm === 1 ? (K.ou < OGHK.F + 0.04 ? sm(cl(hk0.e / 0.7, 0, 1)) : 1 - sm(cl((K.ou - OGHK.F - 0.04) / 0.2, 0, 1))) : 0;
-  const front = g => { OGX.drawO2(g, OGX.V, t, f, w, hk0 ? -1 : (u >= 0 && K.ouK === 2 && !K.ouS ? (u < 0.6 ? 0.25 * sm(u / 0.6) : u < 0.7 ? 0.25 + 0.17 * ((u - 0.6) / 0.1) ** 2 : 0.42 + 0.58 * (u - 0.7) / 0.3) : u), bk, bk >= 0 && !fb ? 'both' : 'act', K.ogAk, K.sv >= 0 ? K.sv * OGX.SURF.T / OG.SURF.T : -1, foes, 0, { noTrail: 1, jet: [Math.cos(K.svA || 0) * 9, Math.sin(K.svA || 0) * 9 * OGY - 0.4], aimTo, fb, atype: 2, hk: hk0, yaw: hk0 ? hk0.yaw : 0, noFx: 1, noJet: 1, ph: K.ogPh, st: ogStride(K), h2, hAbs, hCurl: hAbs ? hAbs.k : 0, ham: hamO, crx: hCr, lnx: hLn }); }, back = g => OGX.drawBack(g, OGX.V, t, f, { e: cl(hk0.e, 0, 1), pi: K.ouK === 0, cr: hk0.cr, gx: hk0.gx, iL: K.ogAk, zL: 1 - K.ogAk });
+  const front = g => { OGX.drawO2(g, OGX.V, t, f, w, hk0 ? -1 : (u >= 0 && K.ouK === 2 && !K.ouS ? (u < 0.6 ? 0.25 * sm(u / 0.6) : u < 0.7 ? 0.25 + 0.17 * ((u - 0.6) / 0.1) ** 2 : 0.42 + 0.58 * (u - 0.7) / 0.3) : u), bk, bk >= 0 && !fb ? 'both' : 'act', K.ogAk, K.sv >= 0 ? K.sv * OGX.SURF.T / OG.SURF.T : -1, foes, 0, { noTrail: 1, jet: [Math.cos(K.svA || 0) * 9, Math.sin(K.svA || 0) * 9 * OGY - 0.4], aimTo, fb, atype: 2, hk: hk0, yaw: hk0 ? hk0.yaw : 0, noFx: 1, noJet: 1, ph: K.ogPh, st: ogStride(K), h2, hAbs, hCurl: hAbs ? hAbs.k : 0, ham: hamO, crx: hCr, lnx: hLn, iSw: K.iSwV }); }, back = g => OGX.drawBack(g, OGX.V, t, f, { e: cl(hk0.e, 0, 1), pi: K.ouK === 0, cr: hk0.cr, gx: hk0.gx, iL: K.ogAk, zL: 1 - K.ogAk });
   if (kb <= 0) front(c); else { const sx = kb < 0.5 ? 1 - kb : kb; c.save(); c.scale(sx, 1); if (kb < 0.5) front(c); else back(c); c.restore(); }
   OGX.GAIT.RUN = 0; OGX.arcn(0); c.restore(); }
 // the storm hammer itself (body units, from the lower hand G to the head's centre Hd): a dark iron haft bound with ice, a collar in his colour, an ice spike for a pommel,
@@ -7065,7 +7067,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '25ddac';
+const KBUILD = '12c3d2';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
