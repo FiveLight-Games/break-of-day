@@ -3002,7 +3002,7 @@ function drawSword(c, t) {
 // Leap (leap circle / Q): always the same length; flips through the air throwing a stream of shuriken into a circle under the apex,
 // lands with a full circle of the ninjato. 3 charges. Ult (R): the whole game in slow motion for 2s while he lays out a three-segment
 // strip; then afterimages dash down through it.
-const NJ = { RUN: 1.3, ATK: 0.8, T: [0.34, 0.34, 0.4], DMG: 70, KB: 22, LEN: 9.6, FAST: 6, GAP: 0.25,
+const NJ = { RUN: 1.3, ATK: 0.8, T: [0.34, 0.34, 0.42], KU: { N: 5, SPREAD: 0.5, V: 340, RANGE: 125, DMG: 90, KB: 30, REL: 0.42, Z: 7 }, DMG: 70, KB: 22, LEN: 9.6, FAST: 6, GAP: 0.25,
   LEAP: { D: 130, T: 0.95, H: 34, R: 22, AR: 26, DMG: 220, KB: 120, TICK: 0.1, SDMG: 32, N: 3, CD: 2.76, SW: 0.48, CHAIN: 0.4, MIN: 0.5 },
   ULT: { PLAN: 4, SLOW: 0.3, SEG: 72, HW: 11, JR: 17, HITS: 30, DASH: 5, HDMG: 120, SWR: 2, SWRR: 14, SWDMG: 55, STRIKE: 1.6, END: 0.2, GZ: 22, GT: 0.5, BIGSW: 2, BSW: 0.62, BWU: 0.2, GLT: 0.2, REAP: 0.85 } };
 // action keys (chest-relative, facing right, y down): [u, crouch, lean, twist, A hand x, y, B hand x, y, B blade angle, step]
@@ -3022,8 +3022,17 @@ const NJCUTS = [
 // time, carries on past the end (follow-through), then eases back to his guard. Each one starts about where the last ended:
 // 1 rising diagonal (low behind -> up past his head), 2 the downward diagonal back through it (high -> low behind), 3 a flat swathe
 // slash from behind him on the near side, low and wide across his front, finishing pointed ahead past his far side, with a big lunge.
-const NJCUT = [{ k: 'v', a0: 2.55, a1: -1.15, ov: 0.45, tw: [-0.45, 0.55] }, { k: 'v', a0: -1.6, a1: 1.75, ov: 0.35, tw: [0.5, -0.4] }, { k: 'h', a0: 2.5, a1: -0.15, ov: 0.22, tw: [-0.7, 0.75], st: 2.1, ys: 0.45, rd: 1 }];
-function njCutA(v, u, base) { const C = NJCUT[v], q = x => x < 0.5 ? 16 * x ** 5 : 1 - (-2 * x + 2) ** 5 / 2;
+const NJCUT = [{ k: 'v', a0: 2.55, a1: -1.15, ov: 0.45, tw: [-0.45, 0.55] }, { k: 'v', a0: -1.6, a1: 1.75, ov: 0.35, tw: [0.5, -0.4] }, { k: 't' }];
+// the third attack: a fan of kunai thrown with the free hand. He reaches back to his hip (coiled, turned away), whips the hand out
+// ahead at shoulder height letting them go at KU.REL, follows through and settles; the sword hand stays up in his guard
+function njThrowA(u, base) { const KU = NJ.KU, R = KU.REL, k = u < 0.12 ? sm(u / 0.12) : u > 0.7 ? 1 - sm((u - 0.7) / 0.3) : 1;
+  const P0 = [-0.7, 3.3], P1 = [4.5, -0.3], P2 = [4.1, 1.0], w = u < 0.3 ? sm(u / 0.3) : 1, g = u < 0.3 ? 0 : u < R ? (u - 0.3) / (R - 0.3) : 1, g2 = g * g, ft = sm(cl((u - R) / 0.25, 0, 1));
+  const hx = u < 0.3 ? lerp(base[4], P0[0], w) : u < R ? lerp(P0[0], P1[0], g2) : lerp(P1[0], P2[0], ft), hy = u < 0.3 ? lerp(base[5], P0[1], w) : u < R ? lerp(P0[1], P1[1], g2) - Math.sin(Math.PI * g) * 0.8 : lerp(P1[1], P2[1], ft);
+  const coil = u < R ? lerp(0, 1, w) * (1 - g2) : 0, tw = -0.6 * coil + 0.6 * (u < R ? g2 : 1 - ft * 0.5);
+  const cut = [0, 1.6 + 0.4 * coil, 0.05 + 0.3 * (u >= R ? 1 - ft * 0.4 : g2), tw, hx, hy, -0.3, 1.9, 2.95, 0.3 + 0.8 * (u < R ? g2 : 1)];
+  const o = base.map((x, j) => j === 8 ? x + ((((cut[8] - x + Math.PI) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI) - Math.PI) * k : j === 4 || j === 5 ? cut[j] * (u < 0.3 ? 1 : k) + x * (u < 0.3 ? 0 : 1 - k) : lerp(x, cut[j], k));
+  o.kh = u > 0.2 && u < R ? 1 : 0; o.bl = 1; return o; }
+function njCutA(v, u, base) { if (NJCUT[v].k === 't') return njThrowA(u, base); const C = NJCUT[v], q = x => x < 0.5 ? 16 * x ** 5 : 1 - (-2 * x + 2) ** 5 / 2;
   const S = u < 0.18 ? -0.08 * sm(u / 0.18) : u < 0.5 ? -0.08 + 1.08 * q((u - 0.18) / 0.32) : 1 + C.ov * sm(cl((u - 0.5) / 0.22, 0, 1)), a = C.a0 + (C.a1 - C.a0) * S;
   const k = u < 0.14 ? sm(u / 0.14) : u > 0.74 ? 1 - sm((u - 0.74) / 0.26) : 1, sl = cl((u - 0.18) / 0.32, 0, 1), hit = Math.sin(Math.PI * sl), r = 2.9 + 0.8 * sm(cl(S, 0, 1));
   let bx, by, ba, bk; if (C.k === 'v') { bx = 0.2 + Math.cos(a) * r; by = 0.6 + Math.sin(a) * r * 0.9; ba = a; } else { const ys = C.ys || 0.32; bx = Math.cos(a) * r * 1.1; by = 1.3 + Math.sin(a) * r * ys; ba = Math.atan2(Math.sin(a) * ys, Math.cos(a)); bk = Math.sin(a) < -0.25; }
@@ -3045,9 +3054,9 @@ function njPose(kn, t) {
   const f = kn.f || 1, mv = cl((kn.spd || 0) / 10, 0, 1), run = cl((kn.spd || 0) / (RUN * NJ.RUN), 0, 1), gp = kn.gp || 0, br = Math.sin(t * 2.4);
   let A = NJG.map((v, j) => j === 5 || j === 7 ? v + br * 0.1 : j === 1 ? v + br * 0.06 : v);
   const cutting = kn.cut >= 0, v = (kn.cutN || 0) % 3, ul = njLeapU(kn), sw = kn.nw >= 0 && !kn.nwB ? cl(kn.nw / NJ.LEAP.SW, 0, 1) : -1, bw = kn.nw >= 0 && kn.nwB ? cl(kn.nw / NJ.ULT.BSW, 0, 1) : -1, ultP = kn.nPh >= 1;
-  A = A.map((x, j) => j ? lerp(x, NJRUN[j], run) : 0); let bk, bL = 1; if (cutting) { A = njCutA(v, cl(kn.cut / NJ.T[v], 0, 1), A); bk = A.bk; bL = A.bl; }
+  A = A.map((x, j) => j ? lerp(x, NJRUN[j], run) : 0); let bk, bL = 1, kh = 0; if (cutting) { A = njCutA(v, cl(kn.cut / NJ.T[v], 0, 1), A); bk = A.bk; bL = A.bl; kh = A.kh || 0; }
   let [, cr, lean, tw, ax, ay, bx, by, ba, stepA] = A;
-  if (cutting && kn.cutTl) { const u = kn.cut / NJ.T[v], w = (u < 0.35 ? sm(u / 0.35) : u < 0.7 ? 1 : 1 - sm((u - 0.7) / 0.3)) * kn.cutTl, r = rot([bx, by + 0.6], w); bx = r[0]; by = r[1] - 0.6; ba += w; lean += w * 0.4; }
+  if (cutting && kn.cutTl && v !== 2) { const u = kn.cut / NJ.T[v], w = (u < 0.35 ? sm(u / 0.35) : u < 0.7 ? 1 : 1 - sm((u - 0.7) / 0.3)) * kn.cutTl, r = rot([bx, by + 0.6], w); bx = r[0]; by = r[1] - 0.6; ba += w; lean += w * 0.4; }
   // the landing circle: the blade rides round him once, pointing out, low and wide
   // the landing circle: it starts from the wind-up he took on the way down (blade cocked up behind him, NJWU) and sweeps up, over the front
   // and all the way round to the front again, then eases back to his guard
@@ -3083,7 +3092,7 @@ function njPose(kn, t) {
   const hips = [[pel[0] - 1.0, pel[1]], [pel[0] + 1.0, pel[1]]];
   // both knees bend forward, the way his toes point (never back against the foot)
   const knees = hips.map((h, i) => ik(h, feet[i], 3.0, 3.0, f > 0 ? -1 : 1));
-  return { f, pel, hips, feet, knees, C, sh, head, lean, tw, cr, hA: hand(ax, ay), hB: hand(bx, by), aB: ang(ba), run, tuck, bk, bL };
+  return { f, pel, hips, feet, knees, C, sh, head, lean, tw, cr, hA: hand(ax, ay), hB: hand(bx, by), aB: ang(ba), run, tuck, bk, bL, kh };
 }
 function makeNinja(kn) { Object.assign(kn, { kind: 'ninja', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, kn: 0, hold: 1, cut: -1, cutN: 0, cutA: 0, cutTl: 0, cutE: -9, njP: null, nl: -1, nw: -1, nQ: NJ.LEAP.N, nCd: 0, nlN: 0, nlm: 1, nlk: 0, nx0: 0, ny0: 0, nx1: 0, ny1: 0, nPh: -1, nT: 0, nUN: 0, nSd: 1, njJ: null, nSp0: 1, nqL: null, nqU: 0, dashSeen: kn.in.dashN || 0, leapSeen: kn.in.leapN || 0, ultSeen: kn.in.ultN || 0, lvSeen: kn.in.lvN || 0 }); }
 const njWorld = (kn, v) => [kn.x + v[0] * KS, kn.y - (kn.z || 0) + v[1] * KS];
@@ -3114,14 +3123,25 @@ function njEvents(kn) { const U = NJ.ULT, P = kn.njPts, ev = [];
     for (let i = 0; i < U.HITS; i++) { const ts = 0.06 + i * 0.044 + s * 0.013, p = at(0.08 + 0.92 * njRnd(kn.nSd, s, i), (njRnd(kn.nSd, s + 7, i) - 0.5) * U.HW * 1.6); ev.push({ k: 'd', s, i, d: i % U.DASH, t: ts, x: p[0], y: p[1] }); }
     for (let j = 0; j < U.SWR; j++) for (let c = 0; ; c++) { const ts = 0.05 + j * 0.21 + c * 0.42; if (ts > U.STRIKE - 0.3) break; const p = at(njRnd(kn.nSd, s + 20, j * 10 + c), (njRnd(kn.nSd, s + 30, j * 10 + c) - 0.5) * U.HW * 2.8); ev.push({ k: 's', s, j, c, t: ts, x: p[0], y: p[1] }); } }
   return ev.sort((a, b) => a.t - b.t); }
-const NJGH = [], NJSH = [];
+const NJGH = [], NJSH = [], NJKU = [];
+// the kunai fan: N kunai spread across SPREAD round his aim, from his hand, flying flat at height Z; each one stops in the first enemy
+// it meets (every screen, so they vanish where they hit), the host deals the damage
+function njThrow(t) { const KU = NJ.KU, P = njPose(K, t), h = njWorld(K, P.hA), a0 = K.cutA ?? ((K.f || 1) > 0 ? 0 : Math.PI);
+  for (let i = 0; i < KU.N; i++) { const a = a0 + (i / (KU.N - 1) - 0.5) * 2 * KU.SPREAD, vx = Math.cos(a) * KU.V, vy = Math.sin(a) * KU.V * 0.8; NJKU.push({ kn: K, x: h[0], y: K.y, z: K.y - h[1], vx, vy, t: 0, max: KU.RANGE / KU.V }); }
+  snd('shur', K.x, K.y); }
+function njKunaiStep(dt) { const KU = NJ.KU; for (let i = NJKU.length - 1; i >= 0; i--) { const k = NJKU[i], x0 = k.x, y0 = k.y; k.t += dt; k.x += k.vx * dt; k.y += k.vy * dt; k.z = lerp(k.z, KU.Z * 0.6, Math.min(1, dt * 3));
+    let hit = null; for (const w of walkers) { if (w.hp <= 0) continue; const r = UK[w.k].r + 1.4, dx = k.x - x0, dy = k.y - y0, L2d = dx * dx + dy * dy || 1, s = cl(((w.x - x0) * dx + (w.y - y0) * dy) / L2d, 0, 1); if (Math.hypot(x0 + dx * s - w.x, (y0 + dy * s - w.y) * 1.25) < r) { hit = w; break; } }
+    if (hit) { for (let n = 0; n < 3; n++) sparks.push({ x: hit.x, y: hit.y - 5, vx: rr(-30, 30), vy: -rr(5, 30), t: 0, max: 0.2 });
+      if (AUTH()) { const k0 = K; K = k.kn; const l = Math.hypot(k.vx, k.vy) || 1; hit.kx += k.vx / l * KU.KB; hit.ky += k.vy / l * KU.KB; hit.hit = 0.1; hurt(hit, KU.DMG, ww => cleaveFx(ww, k.vx >= 0 ? 1 : -1)); K = k0; }
+      NJKU.splice(i, 1); continue; }
+    if (k.t >= k.max) NJKU.splice(i, 1); } }
 function njEvent(kn, e) { const U = NJ.ULT, P = kn.njPts;
   if (e.k === 'd') { // pick the enemy: round-robin over everyone inside this segment (by id), so the 30 hits are shared among them
     const inA = walkers.filter(w => w.hp > 0 && njInSeg(P, e.s, w)).sort((a, b) => a.id - b.id), big = inA.filter(w => UK[w.k].heavy), inS = big.length ? big : inA, tg = inS.length ? inS[e.i % inS.length] : null;
     const g = { kn, k: 'd', t: 0, x0: e.x, y0: e.y, z0: U.GZ, tx: tg ? tg.x : e.x, ty: tg ? tg.y : e.y, tid: tg ? tg.id : -1, f: tg ? (tg.x >= e.x ? 1 : -1) : (kn.f || 1), hit: 0 }; NJGH.push(g); if (NJGH.length > 120) NJGH.shift(); }
   else { NJGH.push({ kn, k: 's', t: 0, x0: e.x, y0: e.y, z0: 0, tx: e.x, ty: e.y, f: njRnd(kn.nSd, e.j, e.c) > 0.5 ? 1 : -1, hit: 0 }); } }
 // each frame: the ghosts dash, strike and fade; the host deals their damage at the moment of the strike
-function njGhostStep(dt) { for (let i = NJGH.length - 1; i >= 0; i--) { const g = NJGH[i]; g.t += dt;
+function njGhostStep(dt) { njKunaiStep(dt); for (let i = NJGH.length - 1; i >= 0; i--) { const g = NJGH[i]; g.t += dt;
     if (g.k === 'd') { if (g.tid >= 0 && g.t < 0.17 * NJ.ULT.GT) { const w = walkers.find(q => q.id === g.tid); if (w) { g.tx = w.x; g.ty = w.y; } }
       if (!g.hit && g.t >= 0.2 * NJ.ULT.GT) { g.hit = 1; for (let n = 0; n < 5; n++) sparks.push({ x: g.tx + rr(-2, 2), y: g.ty - rr(3, 8), vx: rr(-30, 30), vy: -rr(10, 40), t: 0, max: rr(0.15, 0.3) });
         if (AUTH() && g.tid >= 0) { const w = walkers.find(q => q.id === g.tid && q.hp > 0); if (w) { const k0 = K; K = g.kn; w.atk = -1; w.kx += g.f * 8; hurt(w, NJ.ULT.HDMG, ww => cleaveFx(ww, g.f)); K = k0; } } } }
@@ -3192,6 +3212,7 @@ function ninjaStep(dt, t) {
   // the combo: cut after cut while the stick is held (also out of the landing circle once it's mostly done)
   if (!(K.cut >= 0) && IN.aim && K.st === 'fight' && !(K.nw >= 0 && K.nw < njSwT(K) * 0.55)) { const a = Math.atan2(IN.aim[1], IN.aim[0]); if (t - (K.cutE || -9) > NJ.GAP) K.cutN = (K.cutN || 0) + (3 - (K.cutN || 0) % 3) % 3; K.cut = 0; K.cutA = a; K.nw = -1;
     if (Math.abs(Math.cos(a)) > 0.2) K.f = Math.cos(a) >= 0 ? 1 : -1; K.cutTl = cl(Math.atan2(Math.sin(a), Math.abs(Math.cos(a))), -1.2, 1.2) * 0.85; }
+  if (K.cut >= 0 && (K.cutN || 0) % 3 === 2 && K.cut >= NJ.KU.REL * NJ.T[2] && K.njKT !== K.cutN) { K.njKT = K.cutN; njThrow(t); }
   if (K.cut >= 0) { K.cut += dt; njSweep(t); const v = (K.cutN || 0) % 3; if (K.cut >= NJ.T[v]) { K.cut = -1; K.cutE = t; K.cutN = (K.cutN || 0) + 1; } }
   const v2 = RUN * NJ.RUN * (K.cut >= 0 ? NJ.ATK : 1) * (K.nw >= 0 ? 0.85 : 1);
   if (mvL > 0.12) { const k = Math.min(1, mvL), e = 1 - Math.exp(-dt * 14); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e); } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
@@ -3280,6 +3301,12 @@ function njTorso(c, P, f, t) { const C = NJC, hip = P.pel, [Ls, Rs] = P.sh, mx =
   const kx = wx + f * 0.75, ky = wy + 0.18; c.lineWidth = 0.34; c.beginPath(); c.moveTo(kx, ky); c.quadraticCurveTo(kx + f * 0.35, ky + 0.7, kx + f * 0.15 + Math.sin(t * 5) * 0.08, ky + 1.35); c.moveTo(kx, ky); c.quadraticCurveTo(kx - f * 0.15, ky + 0.8, kx - f * 0.35 + Math.sin(t * 5 + 1) * 0.08, ky + 1.2); c.stroke();
   c.fillStyle = shade(COL, -0.05); c.beginPath(); c.ellipse(kx, ky, 0.36, 0.3, 0, 0, 7); c.fill(); }
 // three kunai hanging from the sash on his near hip, ring pommel up, swinging back with his speed and a little with his step
+// one kunai, ring at (ax, ay), pointing along angle a, x Z
+function njKunaiAt(c, ax, ay, a, Z) { const C = NJC, d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]], P2 = (u, v) => [ax + (d[0] * u + n[0] * v) * Z, ay + (d[1] * u + n[1] * v) * Z];
+  c.lineCap = 'round'; c.strokeStyle = C.GRIP; c.lineWidth = 0.13 * Z / 1.35; c.beginPath(); c.arc(...P2(0.1, 0), 0.23 * Z / 1.35, 0, 7); c.stroke();
+  c.strokeStyle = shade(C.WRAPD, -0.1); c.lineWidth = 0.32 * Z / 1.35; c.beginPath(); c.moveTo(...P2(0.27, 0)); c.lineTo(...P2(0.95, 0)); c.stroke();
+  c.fillStyle = C.STEELD; c.beginPath(); c.moveTo(...P2(0.95, 0)); c.lineTo(...P2(1.3, 0.24)); c.lineTo(...P2(2.05, 0)); c.lineTo(...P2(1.3, -0.24)); c.closePath(); c.fill();
+  if (!NJOLM) { c.strokeStyle = C.STEEL; c.lineWidth = 0.06 * Z / 1.35; c.beginPath(); c.moveTo(...P2(1.0, 0)); c.lineTo(...P2(1.95, 0)); c.stroke(); } }
 function njKunai(c, P, f, t) { const C = NJC, [Ls, Rs] = P.sh, mx = (Ls[0] + Rs[0]) / 2, my = (Ls[1] + Rs[1]) / 2, wy = lerp(my, P.pel[1], 0.82) + 0.45, wx = lerp(mx, P.pel[0], 0.82), fl = cl((K.spd || 0) / RUN, 0, 1);
   for (let i = 0; i < 3; i++) { const ax = wx - f * (0.5 + i * 0.5), ay = wy + i * 0.04, a = Math.PI / 2 + f * (0.15 + i * 0.07 + fl * 0.75) + Math.sin(t * 4.5 + i * 1.7) * (0.06 + fl * 0.1), d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]], Z = 1.35, P2 = (u, v) => [ax + (d[0] * u + n[0] * v) * Z, ay + (d[1] * u + n[1] * v) * Z];
     c.lineCap = 'round'; c.strokeStyle = C.GRIP; c.lineWidth = 0.13; c.beginPath(); c.arc(...P2(0.1, 0), 0.23, 0, 7); c.stroke();
@@ -3287,8 +3314,8 @@ function njKunai(c, P, f, t) { const C = NJC, [Ls, Rs] = P.sh, mx = (Ls[0] + Rs[
     c.fillStyle = C.STEELD; c.beginPath(); c.moveTo(...P2(0.95, 0)); c.lineTo(...P2(1.3, 0.24)); c.lineTo(...P2(2.05, 0)); c.lineTo(...P2(1.3, -0.24)); c.closePath(); c.fill();
     if (!NJOLM) { c.strokeStyle = C.STEEL; c.lineWidth = 0.06; c.beginPath(); c.moveTo(...P2(1.0, 0)); c.lineTo(...P2(1.95, 0)); c.stroke(); } } }
 // his neck: a short wrapped column from between his shoulders up into the hood, leaning with the head, a shadow under the jaw
-function njNeck(c, P, f) { const C = NJC, [Ls, Rs] = P.sh, b = [(Ls[0] + Rs[0]) / 2 + f * 0.15, (Ls[1] + Rs[1]) / 2 - 0.1], h = [P.head[0] - f * 0.1, P.head[1] + 0.9], d = [h[0] - b[0], h[1] - b[1]], l = Math.hypot(...d) || 1, n = [-d[1] / l, d[0] / l];
-  c.fillStyle = C.GI; c.beginPath(); c.moveTo(b[0] + n[0] * 0.95, b[1] + n[1] * 0.95); c.lineTo(h[0] + n[0] * 0.72, h[1] + n[1] * 0.72); c.lineTo(h[0] - n[0] * 0.72, h[1] - n[1] * 0.72); c.lineTo(b[0] - n[0] * 0.95, b[1] - n[1] * 0.95); c.closePath(); c.fill(); if (NJOLM) return;
+function njNeck(c, P, f) { const C = NJC, [Ls, Rs] = P.sh, b = [(Ls[0] + Rs[0]) / 2 + f * 0.1, (Ls[1] + Rs[1]) / 2 + 0.8], h = [P.head[0] - f * 0.1, P.head[1] + 0.9], d = [h[0] - b[0], h[1] - b[1]], l = Math.hypot(...d) || 1, n = [-d[1] / l, d[0] / l];
+  c.fillStyle = C.GI; c.beginPath(); c.moveTo(b[0] + n[0] * 1.6, b[1] + n[1] * 1.6); c.quadraticCurveTo(h[0] + n[0] * 0.9, b[1] - 0.6, h[0] + n[0] * 0.72, h[1] + n[1] * 0.72); c.lineTo(h[0] - n[0] * 0.72, h[1] - n[1] * 0.72); c.quadraticCurveTo(h[0] - n[0] * 0.9, b[1] - 0.6, b[0] - n[0] * 1.6, b[1] - n[1] * 1.6); c.closePath(); c.fill(); if (NJOLM) return;
   c.fillStyle = C.GID; c.beginPath(); c.ellipse(h[0] + f * 0.1, h[1] - 0.15, 0.75, 0.32, 0, 0, 7); c.fill();
   c.strokeStyle = C.GIL; c.lineWidth = 0.14; c.lineCap = 'round'; c.beginPath(); c.moveTo(...L2(b, h, 0.25).map((v, i) => v + n[i] * 0.5 * f)); c.lineTo(...L2(b, h, 0.75).map((v, i) => v + n[i] * 0.42 * f)); c.stroke(); }
 function njHead(c, P, f, t) { const C = NJC, [hx, hy] = P.head, blink = (t % 5.1) < 0.12; c.save(); c.translate(hx, hy); c.rotate(f * (P.lean || 0) * 0.3);
@@ -3351,7 +3378,7 @@ function drawNinjaBody(c, t, ghost) {
   // the slash trail: where the blade has been over the last 0.1s (world space, drawn over him by drawNinja0)
   if (!ghost && !NJOLM) { const tr = K.njTr || (K.njTr = []), d = [Math.cos(P.aB) * (P.bL ?? 1), Math.sin(P.aB) * (P.bL ?? 1)], Wd = v => njWorld(K, v); if (K.cut >= 0) tr.push([Wd([P.hB[0] + d[0] * NJ.LEN, P.hB[1] + d[1] * NJ.LEN]), Wd([P.hB[0] + d[0] * NJ.LEN * 0.4, P.hB[1] + d[1] * NJ.LEN * 0.4]), t]); while (tr.length && t - tr[0][2] > 0.1) tr.shift(); }
   const rB = [(P.hB[0] - P.C[0]) * f, P.hB[1] - P.C[1]], backB = T.bk === true, aBehind = (P.hA[1] - P.C[1]) > 3.6 || (P.hA[0] - P.C[0]) * f < -1.2;
-  K.njEA = K.njEA || {}; K.njEB = K.njEB || {}; const armA = () => njArm(c, sA, P.hA, f, false, ghost ? null : K.njEA, dt), armB = () => njArm(c, sB, P.hB, f, true, ghost ? null : K.njEB, dt), blade = () => njBlade(c, P.hB, P.aB, true, P.bL);
+  K.njEA = K.njEA || {}; K.njEB = K.njEB || {}; const armA = () => { njArm(c, sA, P.hA, f, false, ghost ? null : K.njEA, dt); if (T.kh) for (let i = -1; i <= 1; i++) njKunaiAt(c, P.hA[0] - f * 0.3, P.hA[1], (f > 0 ? 0 : Math.PI) + i * 0.35 * f - f * 0.2, 1.2); }, armB = () => njArm(c, sB, P.hB, f, true, ghost ? null : K.njEB, dt), blade = () => njBlade(c, P.hB, P.aB, true, P.bL);
   njBack(c, P, f, t);
   if (backB) blade();
   // back limbs behind front limbs: back leg, back (A) arm, front leg, then the body over them
@@ -3431,7 +3458,7 @@ function njGround(c, t) { for (const kn of LIVE()) { if (kn.kind !== 'ninja') co
     if (kn.nl >= 0) { const L = NJ.LEAP, ax = (kn.nx0 + kn.nx1) / 2, ay = (kn.ny0 + kn.ny1) / 2; c.save(); c.globalAlpha = 0.5; c.strokeStyle = '#cfe0ff'; c.lineWidth = 0.6; c.setLineDash([2, 1.5]); { const r = njAR(kn.nlm ?? 1); c.beginPath(); c.ellipse(ax, ay, r, r * 0.8, 0, 0, 7); c.stroke(); } c.strokeStyle = '#ffe2a0'; c.beginPath(); c.ellipse(kn.nx1, kn.ny1, L.R, L.R * 0.8, 0, 0, 7); c.stroke(); c.restore(); } } }
 // the strip is drawn over the slow-motion overlay, so it stays in full colour on his screen
 function njTop(c, t) { const kn = njMine(); if (kn) njStrip(c, kn, kn.njJ || njDefJ(kn), 1, t, true); }
-function njAir(c, t) { for (const s of NJSH) { const u = cl(s.t / s.max, 0, 1), x = lerp(s.x, s.tx, u), y = lerp(s.y, s.ty, u), z = s.z * (1 - u); njShuriken(c, x, y - z, s.t * s.sp, 0.8); }
+function njAir(c, t) { for (const k of NJKU) { const a = Math.atan2(k.vy, k.vx); c.save(); c.globalAlpha = 0.25; c.fillStyle = '#000'; c.beginPath(); c.ellipse(k.x, k.y, 1.6, 0.6, 0, 0, 7); c.fill(); c.globalAlpha = 1; c.translate(k.x, k.y - k.z); c.scale(KS, KS); njKunaiAt(c, -1.9, 0, a, 1.8); c.restore(); } for (const s of NJSH) { const u = cl(s.t / s.max, 0, 1), x = lerp(s.x, s.tx, u), y = lerp(s.y, s.ty, u), z = s.z * (1 - u); njShuriken(c, x, y - z, s.t * s.sp, 0.8); }
   for (const g of NJGH) njGhostDraw(c, g, t);
   for (const f of FX) if (f.k === 'njsw') { const u = cl(f.t / f.max, 0, 1), R = NJ.LEAP.R * (f.s || 1) * (0.75 + 0.25 * u); c.save(); c.globalAlpha = (1 - u) * 0.85; c.strokeStyle = '#f4f8ff'; c.lineWidth = 1.6 * (1 - u) + 0.3; c.lineCap = 'round'; c.beginPath(); const a0 = f.f > 0 ? 0 : Math.PI, sp = f.f * Math.PI * 2 * Math.min(1, u * 1.6); c.ellipse(f.x, f.y - 3, R, R * 0.8, 0, Math.min(a0, a0 + sp), Math.max(a0, a0 + sp)); c.stroke(); c.restore(); } }
 // slow motion, seen by everyone: the colour drains, the edges darken and ink streaks drift across while a ninja lays out his strike
@@ -5741,7 +5768,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '35034c';
+const KBUILD = 'a2c7e3';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
