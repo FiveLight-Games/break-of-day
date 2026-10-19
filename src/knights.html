@@ -5041,7 +5041,7 @@ window.__njKU = () => NJKU.map(k => ({ x: Math.round(k.x), y: Math.round(k.y), k
 window.__kama = (c, x, y, a, sc, sd) => { const k0 = COL; COL = KN[0].col; NJOLM = true; c.save(); njKama(njOl(c, 0.17), [x, y], a, sc, sd); c.restore(); NJOLM = false; njKama(c, [x, y], a, sc, sd); njRope(c, [x - 30, y + 10], [x - Math.cos(a) * 0.22 * sc, y - Math.sin(a) * 0.22 * sc], 3, 0, 0); COL = k0; };
 window.__njGhost = (c, g, t, sc) => { const s0 = CAM.s; if (sc) CAM.s = sc; g.kn = g.kn || KN[0]; njGhostDraw(c, g, t); CAM.s = s0; };
 // the strip he lays out during the ult (only on his own screen): three bands with a big circle at each joint, the joints as handles
-function njStrip(c, kn, J, al, t, live) { const U = NJ.ULT, P = njPts(kn, J), cols = ['#ffd27a', '#ff9f6a', '#ff6a8a'];
+function njStrip(c, kn, J, al, t, live, cs) { const U = NJ.ULT, P = njPts(kn, J), cols = cs || ['#ffd27a', '#ff9f6a', '#ff6a8a'];
   c.save(); for (let s = 0; s < 3; s++) { const A = P[s], B = P[s + 1], dx = B[0] - A[0], dy = (B[1] - A[1]) * 1.25, L = Math.hypot(dx, dy) || 1, n = [-dy / L * U.HW, dx / L * U.HW / 1.25];
     c.globalAlpha = al * 0.28; c.fillStyle = cols[s]; c.beginPath(); c.moveTo(A[0] + n[0], A[1] + n[1]); c.lineTo(B[0] + n[0], B[1] + n[1]); c.lineTo(B[0] - n[0], B[1] - n[1]); c.lineTo(A[0] - n[0], A[1] - n[1]); c.closePath(); c.fill();
     c.globalAlpha = al * 0.85; c.strokeStyle = cols[s]; c.lineWidth = 0.6; c.setLineDash([2.2, 1.6]); c.lineDashOffset = -t * 10; c.stroke(); c.setLineDash([]);
@@ -5084,7 +5084,8 @@ function njGround(c, t) { njClAimDraw(c, t); for (const kn of LIVE()) { if (kn.k
     // in flight: the apex circle the shuriken are going into and the landing circle
     if (kn.nl >= 0) { const L = NJ.LEAP, ax = (kn.nx0 + kn.nx1) / 2, ay = (kn.ny0 + kn.ny1) / 2; c.save(); c.globalAlpha = 0.5; c.strokeStyle = '#cfe0ff'; c.lineWidth = 0.6; c.setLineDash([2, 1.5]); { const r = njAR(kn.nlm ?? 1); c.beginPath(); c.ellipse(ax, ay, r, r * 0.8, 0, 0, 7); c.stroke(); } c.strokeStyle = '#ffe2a0'; c.beginPath(); c.ellipse(kn.nx1, kn.ny1, L.R, L.R * 0.8, 0, 0, 7); c.stroke(); c.restore(); } } }
 // the strip is drawn over the slow-motion overlay, so it stays in full colour on his screen
-function njTop(c, t) { const kn = njMine(); if (!kn) return; for (const P of kn.CLS || []) if (P.dying < 0 && P.left > 0) njStrip(c, P, njClJ(kn, P), 0.5, t, false); njStrip(c, kn, kn.njJ || njDefJ(kn), 1, t, true); }
+const NJCLC = ['#9ff6ff', '#5fe4ff', '#3fc6ff']; // the clones' strips: the cyan of their glitch, his stays gold to pink
+function njTop(c, t) { const kn = njMine(); if (!kn) return; for (const P of kn.CLS || []) if (P.dying < 0 && P.left > 0) njStrip(c, P, njClJ(kn, P), 0.5, t, false, NJCLC); njStrip(c, kn, kn.njJ || njDefJ(kn), 1, t, true); }
 function njAir(c, t) { for (const k of NJKU) { const a = k.st ? k.sa : k.fall ? Math.atan2(k.vy - k.vz * 0.6, k.vx) : Math.atan2(k.vy, k.vx), fa = k.st ? 1 - sm(cl((k.lt - NJ.KU.LIE * 0.4) / (NJ.KU.LIE * 0.6), 0, 1)) : 1; if (fa <= 0.01) continue; c.save(); c.globalAlpha = 0.25 * fa; c.fillStyle = '#000'; c.beginPath(); c.ellipse(k.x, k.y, 1.6, 0.6, 0, 0, 7); c.fill(); c.globalAlpha = fa; c.translate(k.x, k.y - k.z); c.scale(KS, KS); njKunaiAt(c, k.st ? -3.0 : -1.9, 0, a, 1.8); c.restore(); } for (const s of NJSH) { const u = cl(s.t / s.max, 0, 1), x = lerp(s.x, s.tx, u), y = lerp(s.y, s.ty, u), z = s.z * (1 - u); njShuriken(c, x, y - z, s.t * s.sp, 0.8); }
   for (const g of NJGH) njGhostDraw(c, g, t);
   // the kama slice: a bright crescent drawn on fast across the target, diagonal to his path, then thinning out
