@@ -41,7 +41,7 @@ function renderMenu() {
     <button class="btn big" data-act="htl">Hold the Line<small>1vX tower defense: defenders build, an attacker sends the horde</small></button>
     <button class="btn ghost" data-act="home">Back</button>`;
   else if (homeScreen === 'home') m.innerHTML = `<div class="eyebrow">Play</div>
-    <button class="btn primary big" data-act="knights">Knight Brawl<small>Co-op vs the horde, up to 4 players</small></button>
+    <button class="btn primary big" data-act="knights" style="font-size:30px;padding:20px 12px;letter-spacing:.04em">Play</button>
     <button class="btn big" data-act="other">Other Modes</button><p class="err">${esc(menuErr)}</p>`;
   else { const on = !!getSB(); m.innerHTML = `<div class="eyebrow">Hold the Line</div>
     <button class="btn primary big" data-act="find" ${on ? '' : 'disabled'}>Find Match<small>Join the next open lobby</small></button>
