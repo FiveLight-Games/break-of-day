@@ -3221,7 +3221,7 @@ function ninjaStep(dt, t) {
   if (K.cut >= 0 && (K.cutN || 0) % 3 === 2 && K.cut >= NJ.KU.REL * NJ.T[2] && K.njKT !== K.cutN) { K.njKT = K.cutN; njThrow(t); }
   // every kunai throw is a small hop the way the move stick points (straight up if it's centred)
   if (K.cut >= 0 && (K.cutN || 0) % 3 === 2) { const u = cl(K.cut / NJ.T[2], 0, 1); if (K.njHN !== K.cutN) { K.njHN = K.cutN; const l = Math.hypot(IN.mv[0], IN.mv[1]); K.njHv = l > 0.2 ? [IN.mv[0] / Math.max(1, l), IN.mv[1] / Math.max(1, l)] : [0, 0]; }
-    const sp = NJ.KU.HOP * Math.sin(Math.PI * u) * Math.PI / 2 / NJ.T[2]; K.x += K.njHv[0] * sp * dt; K.y = cl(K.y + K.njHv[1] * sp * 0.8 * dt, 16, H - 4); K.z = NJ.KU.HZ * Math.sin(Math.PI * u); }
+    const sp = NJ.KU.HOP * Math.sin(Math.PI * u) * Math.PI / 2 / NJ.T[2]; K.x += K.njHv[0] * sp * dt; K.y = cl(K.y + K.njHv[1] * sp * 0.8 * dt, 16, H - 4); K.z = (K.njHv[0] || K.njHv[1]) ? NJ.KU.HZ * Math.sin(Math.PI * u) : 0; }
   if (K.cut >= 0) { K.cut += dt; njSweep(t); const v = (K.cutN || 0) % 3; if (K.cut >= NJ.T[v] || (v === 1 && IN.aim && K.cut >= NJ.T[1] * NJ.KU.EARLY)) { K.cut = -1; K.cutE = t; K.cutN = (K.cutN || 0) + 1; } }
   const v2 = RUN * NJ.RUN * (K.cut >= 0 ? NJ.ATK : 1) * (K.nw >= 0 ? 0.85 : 1);
   if (mvL > 0.12) { const k = Math.min(1, mvL), e = 1 - Math.exp(-dt * 14); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e); } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
@@ -5778,7 +5778,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '159e7b';
+const KBUILD = 'cdd6f2';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
