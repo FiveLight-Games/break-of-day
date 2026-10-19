@@ -4519,8 +4519,8 @@ function njStartLeap(v) { const l = Math.hypot(v[0], v[1]), d = l > 0.05 ? [v[0]
   Object.assign(K, { nl: 0, cut: -1, km: -1, nlm: m, nx0: K.x, ny0: K.y, nx1: K.x + d[0] * D, ny1: cl(K.y + d[1] * D * 0.8, 16, H - 4), nlN: (K.nlN || 0) + 1, nlk: 0, nQ: K.nQ - 1 }); if (!(K.nCd > 0)) K.nCd = L.CD;
   if (Math.abs(d[0]) > 0.15) K.f = d[0] > 0 ? 1 : -1; }
 function njStartUlt() { const U = NJ.ULT; Object.assign(K, { nPh: 1, nT: 0, nUN: (K.nUN || 0) + 1, cut: -1, vx: 0, vy: 0, nqU: 0, njEnd: 0, njTail: 0 }); K.njA = njAimA(K); K.njJ = njDefJ(K);
-  // his clones always join the ult: any already out vanish and 3 new ones appear where the clones stick last aimed (else the square ahead), whatever their cooldown
-  { const o = CLV && K.i === ME ? njClFar(CLV[0], CLV[1]) : njClDef(K); Object.assign(K, { clN: (K.clN || 0) + 1, clP: o.map((v, j) => v + (j % 2 ? K.y : K.x)), clUl: K.nUN }); }
+  // his clones always join the ult: every clone already out vanishes and 3 new ones appear, always on the same square ahead of him (njClDef), whatever their cooldown
+  { const o = njClDef(K); Object.assign(K, { clN: (K.clN || 0) + 1, clP: o.map((v, j) => v + (j % 2 ? K.y : K.x)), clUl: K.nUN }); }
   if (K.i === ME) { K.in.nj = K.njJ.slice(); K.in.njN = K.nUN; markIn(); }
   if (AUTH()) { K.nSp0 = speed; speed = U.SLOW; slowLabel(); } }
 // the landing circle (sc 1) and the big one when the ult ends (sc ULT.BIGSW): ring + dust on every screen, damage + knockback on the host
@@ -7880,7 +7880,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '562bd5';
+const KBUILD = 'd21f35';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
