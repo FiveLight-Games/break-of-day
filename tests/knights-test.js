@@ -7,7 +7,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 (async () => {
   const b = await chromium.launch(); const errs = [], pages = new Set();
   async function mk(tag, vp) { const ctx = await b.newContext({ viewport: vp, hasTouch: true }); const p = await ctx.newPage();
-    p.on('pageerror', e => errs.push(tag + ': ' + e.message + ' ' + (e.stack || '').split('\n')[1]));
+    p.on('pageerror', e => errs.push(tag + ': ' + e.message + ' ' + (e.stack || '').split('\n').slice(1,6).join(' | ')));
     await p.route('**/supabase-js@*/**', r => r.fulfill({ body: fs.readFileSync(ROOT + '/tests/supabase-mock.js', 'utf8'), contentType: 'application/javascript' }));
     await p.exposeFunction('__relayOut', msg => { for (const o of pages) if (o !== p && !o.isClosed()) o.evaluate(m => window.__relayIn && window.__relayIn(m), msg).catch(() => { }); });
     pages.add(p); await p.goto('http://localhost:8781/knights.html'); await sleep(300); return p; }
