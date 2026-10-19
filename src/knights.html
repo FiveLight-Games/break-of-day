@@ -3008,7 +3008,7 @@ const NJ = { RUN: 1.3, ATK: 0.8, T: [0.34, 0.34, 0.4], DMG: 70, KB: 22, LEN: 9.6
 // action keys (chest-relative, facing right, y down): [u, crouch, lean, twist, A hand x, y, B hand x, y, B blade angle, step]
 const NJG = [0, 1.6, 0.2, 0.15, 2.5, 0.7, 0.5, 2.5, 2.75, 0];
 // the ninja run: leaning hard into it, both arms swept straight back behind him, the blade trailing back and a little up
-const NJRUN = [0, 0.3, 0.78, 0.05, -1.4, 3.2, -4.0, 4.7, 3.05, 0];
+const NJRUN = [0, 0.3, 0.78, 0.05, 3.1, 3.0, -4.0, 4.7, 3.05, 0];
 const NJCUTS = [
   // 1: rising diagonal from low behind to high in front
   [NJG, [0.25, 1.4, 0.3, 0.6, 1.4, 1.8, -1.0, 3.0, 2.5, 0.3], [0.5, 0.9, -0.1, -0.6, 0.8, 1.0, 2.6, -2.2, -1.0, 1.2], [0.7, 0.8, -0.15, -0.7, 0.6, 1.2, 2.0, -2.8, -1.6, 1.3], [1, ...NJG.slice(1)]],
@@ -3216,10 +3216,10 @@ function njLeg(c, hip, knee, foot, f, far) { const C = NJC, dk = far ? -0.16 : 0
   // a lit fold down the front of the thigh
   c.strokeStyle = shade(C.GIL, dk - 0.05); c.lineWidth = 0.22; c.beginPath(); c.moveTo(...P(hip, n1, 0.55, u1, 0.2)); c.quadraticCurveTo(...P(L2(hip, knee, 0.55), n1, 0.75), ...P(knee, nk, 0.7, u1, -0.5)); c.stroke();
   // the wraps: from just below the knee to the ankle, banded
-  const k0 = P(knee, u2, 0.7), big = 3; c.fillStyle = shade(C.WRAP, dk); c.beginPath(); c.moveTo(k0[0] + n2[0] * big, k0[1] + n2[1] * big); c.lineTo(k0[0] - n2[0] * big, k0[1] - n2[1] * big); c.lineTo(X(-3), g + 3); c.lineTo(X(3), g + 3); c.closePath(); c.fill();
+  const k0 = P(knee, u2, 0.7), big = 3, a0 = P(ank, u2, -0.25); c.fillStyle = shade(C.WRAP, dk); c.beginPath(); c.moveTo(k0[0] + n2[0] * big, k0[1] + n2[1] * big); c.lineTo(k0[0] - n2[0] * big, k0[1] - n2[1] * big); c.lineTo(a0[0] - n2[0] * big, a0[1] - n2[1] * big); c.lineTo(a0[0] + n2[0] * big, a0[1] + n2[1] * big); c.closePath(); c.fill();
   c.strokeStyle = shade(C.WRAPD, dk); c.lineWidth = 0.15; for (let q = 0.12; q < 0.95; q += 0.16) { const p0 = L2(k0, ank, q); c.beginPath(); c.moveTo(p0[0] - n2[0] * 1.2 - u2[0] * 0.18, p0[1] - n2[1] * 1.2 - u2[1] * 0.18); c.lineTo(p0[0] + n2[0] * 1.2 + u2[0] * 0.18, p0[1] + n2[1] * 1.2 + u2[1] * 0.18); c.stroke(); }
   // the tabi below the ankle, its split toe
-  c.fillStyle = shade(C.TABI, dk); c.beginPath(); c.moveTo(...P(ank, n2, 2, u2, -0.25)); c.lineTo(...P(ank, n2, -2, u2, -0.25)); c.lineTo(X(-3), g + 3); c.lineTo(X(3), g + 3); c.closePath(); c.fill();
+  c.fillStyle = shade(C.TABI, dk); c.beginPath(); c.moveTo(...P(ank, n2, 2, u2, -0.25)); c.lineTo(...P(ank, n2, -2, u2, -0.25)); c.lineTo(X(-3), g + 3); c.lineTo(X(3), g + 3); c.closePath(); c.fill(); c.fillRect(foot[0] - 4, ank[1] + 0.05, 8, 4);
   c.strokeStyle = shade(C.GIL, dk - 0.1); c.lineWidth = 0.14; c.beginPath(); c.moveTo(X(0.95), ank[1] + 0.35); c.lineTo(X(1.0), g - 0.05); c.stroke();
   c.restore(); if (!NJFLAT) { shape(); c.strokeStyle = shade(C.GID, dk - 0.2); c.lineWidth = 0.38; c.stroke(); } }
 // the elbow always folds the natural way: down and back (away from where he faces), never bent backwards; it only swaps sides once
