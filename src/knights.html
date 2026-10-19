@@ -3021,16 +3021,18 @@ const NJCUTS = [
 // and blade always move as one; each cut coils (a small pull back against the cut), whips through most of its arc in a third of its
 // time, carries on past the end (follow-through), then eases back to his guard. Each one starts about where the last ended:
 // 1 rising diagonal (low behind -> up past his head), 2 the downward diagonal back through it (high -> low behind), 3 a flat swathe
-// round him from the near side, across his front, to the far side (blade behind him while it's round the far side).
-const NJCUT = [{ k: 'v', a0: 2.55, a1: -1.15, ov: 0.45, tw: [-0.45, 0.55] }, { k: 'v', a0: -1.6, a1: 1.75, ov: 0.35, tw: [0.5, -0.4] }, { k: 'h', a0: 2.25, a1: -2.0, ov: 0.3, tw: [-0.55, 0.6] }];
+// slash from behind him on the near side, low and wide across his front, finishing pointed ahead past his far side, with a big lunge.
+const NJCUT = [{ k: 'v', a0: 2.55, a1: -1.15, ov: 0.45, tw: [-0.45, 0.55] }, { k: 'v', a0: -1.6, a1: 1.75, ov: 0.35, tw: [0.5, -0.4] }, { k: 'h', a0: 2.5, a1: -0.15, ov: 0.22, tw: [-0.7, 0.75], st: 2.1, ys: 0.45, rd: 1 }];
 function njCutA(v, u, base) { const C = NJCUT[v], q = x => x < 0.5 ? 16 * x ** 5 : 1 - (-2 * x + 2) ** 5 / 2;
   const S = u < 0.18 ? -0.08 * sm(u / 0.18) : u < 0.5 ? -0.08 + 1.08 * q((u - 0.18) / 0.32) : 1 + C.ov * sm(cl((u - 0.5) / 0.22, 0, 1)), a = C.a0 + (C.a1 - C.a0) * S;
   const k = u < 0.14 ? sm(u / 0.14) : u > 0.74 ? 1 - sm((u - 0.74) / 0.26) : 1, sl = cl((u - 0.18) / 0.32, 0, 1), hit = Math.sin(Math.PI * sl), r = 2.9 + 0.8 * sm(cl(S, 0, 1));
-  let bx, by, ba, bk; if (C.k === 'v') { bx = 0.2 + Math.cos(a) * r; by = 0.6 + Math.sin(a) * r * 0.9; ba = a; } else { bx = Math.cos(a) * r * 1.05; by = 1.3 + Math.sin(a) * r * 0.32; ba = Math.atan2(Math.sin(a) * 0.32, Math.cos(a)); bk = Math.sin(a) < -0.25; }
-  const bl = C.k === 'h' ? Math.max(0.38, Math.hypot(Math.cos(a), Math.sin(a) * 0.32)) : 1;
-  const tw = lerp(C.tw[0], C.tw[1], cl(S, 0, 1)), cut = [0, lerp(1.6, 1.1, hit), 0.1 + 0.35 * hit, tw, lerp(1.4, -1.3, cl(S, 0, 1)), lerp(1.2, 2.2, cl(S, 0, 1)), bx, by, ba, 0.3 + 1.2 * cl(S, 0, 1)];
+  let bx, by, ba, bk; if (C.k === 'v') { bx = 0.2 + Math.cos(a) * r; by = 0.6 + Math.sin(a) * r * 0.9; ba = a; } else { const ys = C.ys || 0.32; bx = Math.cos(a) * r * 1.1; by = 1.3 + Math.sin(a) * r * ys; ba = Math.atan2(Math.sin(a) * ys, Math.cos(a)); bk = Math.sin(a) < -0.25; }
+  const bl = C.k === 'h' ? Math.max(0.62, Math.hypot(Math.cos(a), Math.sin(a) * (C.ys || 0.32))) : 1;
+  const tw = lerp(C.tw[0], C.tw[1], cl(S, 0, 1)), cut = [0, lerp(1.6, 1.1, hit), 0.1 + 0.35 * hit, tw, lerp(1.4, -1.3, cl(S, 0, 1)), lerp(1.2, 2.2, cl(S, 0, 1)), bx, by, ba, 0.3 + (C.st || 1.2) * cl(S, 0, 1)];
   // blend with whatever he was doing on the way in and out; the blade angle goes round the short way
-  const o = base.map((x, j) => j === 8 ? x + (((cut[8] - x + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI) * k : lerp(x, cut[j], k)); o.bk = k > 0.5 ? bk : undefined; o.bl = lerp(1, bl, k); return o; }
+  const dA = x => { let d = ((cut[8] - x + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI; if (C.rd && u > 0.5 && d > 0) d -= 2 * Math.PI; return d; };
+  // rd: on the way back to his guard the blade drops down through his front rather than flipping up over his head
+  const o = base.map((x, j) => j === 8 ? x + dA(x) * k : lerp(x, cut[j], k)); o.bk = k > 0.5 ? bk : undefined; o.bl = lerp(1, bl, k); return o; }
 // leap length: the aim's length picks how far (MIN..1 of D)
 const njLm = v => cl(Math.hypot(v[0], v[1]), NJ.LEAP.MIN, 1), njLT = kn => NJ.LEAP.T * (0.5 + 0.5 * (kn.nlm ?? 1));
 // the shuriken circle grows with the leap: AR at the shortest leap (MIN), up to AR x1.4 at full length
