@@ -3770,6 +3770,9 @@ function njPose(kn, t) {
     const wu = sm(cl((ul - 0.66) / 0.32, 0, 1)); if (wu > 0) { bx = lerp(bx, Math.cos(NJWU) * 3.2, wu); by = lerp(by, 1.6 + Math.sin(NJWU) * 1.3, wu); ba = lerp(ba, NJWU + Math.PI * 2, wu); ax = lerp(ax, 2.2, wu); ay = lerp(ay, 0.8, wu); cr = lerp(cr, 1.2, wu); tw += f * Math.sin(NJWU) * 0.4 * wu; } }
   // an afterimage diving at its target: body straight, the blade thrust out ahead, the free arm swept back (the whole figure is pitched in drawNinja)
   const dv = kn.gh ? kn.gh.d : 0; if (dv > 0) { cr = lerp(cr, -0.1, dv); lean = lerp(lean, 0, dv); tw = lerp(tw, 0, dv); ax = lerp(ax, -3.3, dv); ay = lerp(ay, 1.6, dv); bx = lerp(bx, 1.4, dv); by = lerp(by, -4.6, dv); ba = lerp(ba, -1.35, dv); }
+  // the kunai throw's hop: a dip to push off, legs split in the air (gait frozen), a dip to land
+  const hopOn = cutting && v === 2 && (kn.njHv ? !!(kn.njHv[0] || kn.njHv[1]) : (kn.z || 0) > 0.05), hu = hopOn ? cl(kn.cut / NJ.T[2], 0, 1) : -1, air = hopOn ? cl((kn.z || 0) / NJ.KU.HZ, 0, 1) : 0;
+  if (hopOn) cr += 1.3 * (hu < 0.14 ? Math.sin(Math.PI * hu / 0.14) : hu > 0.84 ? Math.sin(Math.PI * (hu - 0.84) / 0.16) : 0);
   // ---- legs: a wide squat, knees out; the Knight's gait when running ----
   const front = f > 0 ? 1 : 0, stride = lerp(2.2, 4.0, run), wide = 2.5 * (1 - mv * 0.7);
   const loco = [0, 1].map(i => { const ph = gp + i * Math.PI; return [(i ? 0.9 : -0.9) + f * Math.sin(ph) * stride * mv, -Math.max(0, Math.cos(ph)) * lerp(1.0, 2.0, run) * mv]; });
@@ -3777,6 +3780,7 @@ function njPose(kn, t) {
   let feet = [0, 1].map(i => L2(stance[i], loco[i], mv));
   const bob = mv * (Math.abs(Math.cos(gp)) * 0.55 - 0.3), pel = [f * (stepA * 0.5 * (1 - mv) + run * 0.4), -6.0 + cr * 1.15 + bob];
   if (tuck > 0) feet = feet.map((p, i) => L2(p, [pel[0] + (i ? 0.9 : -0.9), pel[1] + 2.2], tuck));
+  if (air > 0) { const ak = sm(Math.min(1, air * 1.6)); feet = feet.map((p, i) => L2(p, i === front ? [pel[0] + f * 2.0, pel[1] + 4.4] : [pel[0] - f * 1.9, pel[1] + 3.9], ak)); }
   if (dv > 0) feet = feet.map((p, i) => L2(p, [pel[0] - f * (i ? 0.5 : 1.1), pel[1] + 5.7 - (i ? 0 : 0.4)], dv));
   lean += run * 0.12 * (cutting ? 0.4 : 1); tw += Math.sin(gp) * 0.25 * mv;
   const L = f * lean, C = add(add(pel, rot([0, -4.1], L)), [f * tw * 0.55, 0]);
