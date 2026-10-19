@@ -525,7 +525,7 @@ function kfn(u, keys) { let i = 0; while (i < keys.length - 2 && keys[i + 1][0] 
 const rot = (v, a) => [v[0] * Math.cos(a) - v[1] * Math.sin(a), v[0] * Math.sin(a) + v[1] * Math.cos(a)];
 const add = (a, b) => [a[0] + b[0], a[1] + b[1]];
 function pose(t) {
-  let f = K.f; const kn = K.kn, br = Math.sin(t * 2.1), mv = K.ab ? 0 : cl(K.spd / 10, 0, 1), run = K.ab ? 0 : cl(K.spd / RUN, 0, 1), gp = K.gp;
+  let f = K.f; const kn = K.kn, br = Math.sin(t * 2.1), mv = K.ab ? 0 : cl(K.spd / 10, 0, 1), run = K.ab ? 0 : gRun(K), gp = K.gp, gz = gzOf(K);
   const P = { f, back: false, wscale: 1 };
   // ---- action layer ----
   const combat = K.hold && (K.st === 'charge' || K.st === 'fight');
@@ -566,16 +566,18 @@ function pose(t) {
     P.blade = lerp(1, Math.hypot(Math.cos(thB), Math.sin(thB) * 0.45), kb); }
   // ---- legs: gait when moving, a wide fighting stance when planted ----
   const front = f > 0 ? 1 : 0;
-  const stride = lerp(2.0, 3.6, run);
-  const loco = [0, 1].map(i => { const ph = gp + i * Math.PI; return [(i ? 0.9 : -0.9) + f * Math.sin(ph) * stride * mv, -Math.max(0, Math.cos(ph)) * lerp(1.0, 1.8, run) * mv]; });
+  const stride = lerp(2.0, 3.6, run) * lerp(1, GIANT.ST, gz);
+  const loco = [0, 1].map(i => { const ph = gp + i * Math.PI; return [(i ? 0.9 : -0.9) + f * lerp(Math.sin(ph), gTri(ph), gz) * stride * mv, -Math.max(0, Math.cos(ph)) * lerp(1.0, 1.8, run) * lerp(1, 0.8, gz) * mv]; });
   const stanceW = combat || K.swing >= 0 ? 1 : 0.4;
   let stance = [0, 1].map(i => { const fr = i === front; return [fr ? f * (0.9 + stanceW * 0.6 + stepA * 1.3) : -f * (0.8 + stanceW * 0.7), fr ? 0 : -0.25]; });
   const spinStance = a => { const pp = [-Math.sin(a), Math.cos(a) * 0.45]; return [0, 1].map(i => [(i ? 1 : -1) * pp[0] * 1.9, (i ? 1 : -1) * pp[1] * 1.9]); };
   if (th !== null) stance = spinStance(th); else if (kb || ps) { const ss = spinStance(thB), wb = Math.max(kb, ps); stance = stance.map((p2, i) => L2(p2, ss[i], wb)); }
   const feetS = [0, 1].map(i => L2(stance[i], loco[i], mv));
   if (K.tuck > 0 || K.fallLeg > 0) for (let i = 0; i < 2; i++) { const s2 = i ? 1 : -1, tk = [s2 * 0.7 + f * 1.6, -3.6], fl = [s2 * 0.35 - f * (1.6 + i * 0.5), -0.9 - i * 0.4]; feetS[i] = L2(L2(feetS[i], fl, K.fallLeg || 0), tk, K.tuck || 0); }
-  const bob = mv * (Math.abs(Math.cos(gp)) * 0.55 - 0.3);
+  const bob = mv * (Math.abs(Math.cos(gp)) * 0.55 - 0.3) * (1 - gz);
   const pel = [f * (stepA * 0.55 * (1 - mv) + run * 0.35), -5.9 + cr * 0.95 + bob];
+  // the giant walks like the Storm Ogre: standing tall on almost straight legs, the hips dipping only as far as a long stride needs to reach its foot (lowest at full stride), no bounce
+  if (gz > 0) { let py = -6.05 + cr * 0.95; for (let i = 0; i < 2; i++) { const dx = feetS[i][0] - (pel[0] + (i ? 1.05 : -1.05)), R = 6.2 * 0.975; py = Math.max(py, feetS[i][1] - Math.sqrt(Math.max(0, R * R - dx * dx))); } pel[1] = lerp(pel[1], py, gz); }
   lean += run * 0.28 * (K.swing >= 0 ? 0.4 : 1); tw += Math.sin(gp) * 0.25 * mv;
   // ---- spine, shoulders, head ----
   const L = f * lean;
@@ -631,6 +633,15 @@ function pose(t) {
   if (K.st === 'kneel' || K.st === 'pull' || K.st === 'sheathe') P.away = true; // at the stone he turns 3/4 away from the camera
   return P;
 }
+// the giant (Knight ult): how far grown (0..1), his gait's run (relative to his size, so at full size he takes long heavy walking strides), and stride length (x`GIANT.ST` longer, legs cycle slower per distance so the feet never slide)
+const GIANT = { ST: 1.1, R: 9, DMG: 60, KB: 9, SHK: 0.13 };
+const gzOf = kn => cl(((kn.sz || 1) - 1) / (ULT_SZ - 1), 0, 1), gRun = kn => { const r = cl((kn.spd || 0) / RUN, 0, 1), g = gzOf(kn); return g > 0 ? lerp(r, cl((kn.spd || 0) / (RUN * (kn.sz || 1) * 0.5), 0, 1), g) : r; }, gTri = ph => { const q = ((ph - Math.PI / 2) / Math.PI % 2 + 2) % 2; return q < 1 ? 1 - 2 * q : -1 + 2 * sm(q - 1); }, gStride = kn => lerp(2.0, 3.6, gRun(kn)) * lerp(1, GIANT.ST, gzOf(kn));
+// a giant footfall: dust, a thud and a shake on every screen; on the host it hits everyone under the foot (small knockback, kills crushed flat or knocked over a short way)
+function giantStep(n, dx, dy, host) { const s = K.sz || 1, side = n % 2 ? 1 : -1, st = gStride(K) * KS * s * 0.75, x = K.x + dx * st - dy * side * 1.1 * s, y = K.y + dy * st * 0.7 + dx * side * 0.8 * s;
+  for (let i = 0; i < 8; i++) { const a = rr(0, 6.28), v = rr(10, 26); dust.push({ x: x + Math.cos(a) * 2, y: y + Math.sin(a), vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1, 2), t: 0, max: rr(0.45, 0.8) }); }
+  const me = K.i === ME, near = Math.abs(K.x - camX) < 140; if (me || near) shake = Math.max(shake, me ? GIANT.SHK : GIANT.SHK * 0.5); snd('stomp', x, y);
+  if (host) for (const w of walkers) { if (w.hp <= 0) continue; const d = ogDist(w.x, w.y, x, y); if (d > GIANT.R + UK[w.k].r) continue; const a = Math.atan2(w.y - y, w.x - x); w.kx += Math.cos(a) * GIANT.KB; w.ky += Math.sin(a) * GIANT.KB * 0.6; w.hit = 0.1;
+    const k0 = K; hurt(w, GIANT.DMG, ww => Math.random() < 0.5 ? flingFx(ww, a, 0) : flingFx(ww, a, 0.35)); K = k0; } }
 const plateK = kn => kn.ultPh === 0 ? sm(cl(kn.ult / UT_IN, 0, 1)) : kn.ultPh === 1 || kn.ultPh === 2 ? 1 : kn.ultPh === 3 ? 1 - sm(cl(kn.ult / UT_OUT, 0, 1)) : 0;
 function drawKnight(c, t) {
   const P = pose(t), f = P.f; window.__lastP = { f: P.f, th: P.th, back: P.back, away: P.away };
@@ -6806,7 +6817,8 @@ function knightStep(dt, t) {
     if (Math.random() < 0.5) sparks.push({ x: K.x + rr(-10, 10), y: K.y, vx: rr(-4, 4), vy: -rr(20, 50), t: 0, max: rr(0.4, 0.8) }); if (K.i === ME) shake = Math.max(shake, 0.12 * K.abT); }
   K.post = Math.max(0, (K.post || 0) - dt);
   if (K.xfT > 0) K.xfT -= dt;
-  const ox0 = K.x, oy0 = K.y; stepK(dt, t); if (K.swing >= 0 && AUTH()) swingSweep(t); else K.swSeg = null; const md = Math.hypot(K.x - ox0, K.y - oy0); K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.62;
+  const ox0 = K.x, oy0 = K.y; stepK(dt, t); if (K.swing >= 0 && AUTH()) swingSweep(t); else K.swSeg = null; const md = Math.hypot(K.x - ox0, K.y - oy0); K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); const gp0 = K.gp || 0, gz = gzOf(K); K.gp = gp0 + md * (gz > 0 ? lerp(0.62, Math.PI / (2 * gStride(K) * KS * (K.sz || 1)), gz) : 0.62);
+  if (gz > 0.9 && K.spd > 4 && !K.ab && Math.floor((K.gp - Math.PI / 2) / Math.PI) !== Math.floor((gp0 - Math.PI / 2) / Math.PI)) giantStep(Math.floor((K.gp - Math.PI / 2) / Math.PI), (K.x - ox0) / (md || 1), (K.y - oy0) / (md || 1), AUTH());
   if (K.hold && K.st !== 'pull' && K.st !== 'sheathe') { const P2 = pose(t); if (P2.g) { K.lastG = P2.g; K.lastA = P2.a; K.lastA8 = P2.A8; } }
 }
 // the swing cuts whatever the blade (the glowing one, or the giant's steel) actually passes through, frame to frame
@@ -7311,7 +7323,7 @@ makePatch(); paintGround(); resize(); setup(); requestAnimationFrame(frame);
 window.__IN = KN[ME].in; window.__clumpN = spawnClump;
 window.__K = () => K;
 window.__adv = (sec) => { for (let i = 0; i < sec * 60; i++) { t += 1 / 60; step(1 / 60, t); } draw(); };
-window.__spr = () => SPR.size; window.__step = d => { t += d; step(d, t); }; window.__draw = () => draw();
+window.__spr = () => SPR.size; window.__step = d => { t += d; step(d, t); }; window.__poseK = i => { const k0 = K; K = KN[i]; const P = pose(t); K = k0; return { feet: P.feet, pel: P.pel, ks: KS * (KN[i].sz || 1) }; }; window.__draw = () => draw();
 // ---------------- lobby + netcode (Supabase Realtime broadcast; the host runs the enemies and all damage) ----------------
 const SB_URL = 'https://ucdwqexhkglvhilurqti.supabase.co', SB_KEY = 'sb_publishable_E9Iaftt5o7nK4Ph5FeoONw_QSfj7KeE';
 let sbc = null;
@@ -7545,7 +7557,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = 'dd98d1';
+const KBUILD = '83bf07';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
