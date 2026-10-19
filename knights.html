@@ -3647,7 +3647,7 @@ return { drawO2, drawBack, V: VARS[0], ICEM, OUT, arc2, glow, bevel, iceIn, addS
 // knockback KB, the biggest in the game, slowed SL s), now and then a ground smash instead (SMT s, chance SMP, at least every 4th: crater radius SMR, SMDMG, SMKB out from its centre);
 // static licks leap off the head every ZAP s to up to ZN enemies within ZR (ZDMG); the finisher (FIN s, hit at FH): both hands lift it and drive it into the ground beneath him: FR blast
 // (FDMG, FKB) and the hammer bursts into SHN shards flying out at SHV for SHR, piercing everyone they pass (SHDMG each, within SHW + radius)
-const OGHM = { L: 15, SWT: 0.85, SMT: 1.15, SWH: 0.628, SMH: 0.66, R: 46, A: 1.15, DMG: 320, KB: 560, SL: 2, SMP: 0.3, SMR: 30, SMDMG: 420, SMKB: 620, ZAP: 0.28, ZN: 2, ZR: 48, ZDMG: 60, FIN: 1.5, FH: 0.68, FR: 72, FDMG: 600, FKB: 640, SHN: 22, SHV: 240, SHR: 125, SHDMG: 160, SHW: 4 };
+const OGHM = { HR: 9, HSP: 70, L: 15, SWT: 0.85, SMT: 1.15, SWH: 0.628, SMH: 0.66, R: 46, A: 1.15, DMG: 320, KB: 560, SL: 2, SMP: 0.3, SMR: 30, SMDMG: 420, SMKB: 620, ZAP: 0.28, ZN: 2, ZR: 48, ZDMG: 60, FIN: 1.5, FH: 0.68, FR: 72, FDMG: 600, FKB: 640, SHN: 22, SHV: 240, SHR: 125, SHDMG: 160, SHW: 4 };
 const OG = { SPD: 0.504,
   // footfalls: every step shakes the screen and hits everyone within R of the foot (DMG, knockback KB); kills are crushed flat or torn apart
   STEP: { R: 8, DMG: 40, KB: 22, SHK: 0.14 },
@@ -3809,6 +3809,12 @@ function ogRampStep(dt, t, host, IN, mvL, mine) { const RP = OG.RAMP, HM = OGHM,
   if (mine && r >= RP.WIND && r < RP.T && !(K.ogHs >= 0) && IN.aim) { const a = Math.atan2(IN.aim[1] / OGY, IN.aim[0]), n = (K.ogHn || 0) + 1, q = K.ogHq || 0, smash = q >= 3 || (q >= 1 && OGX.rnd(n * 7.13 + K.i * 3.1) < HM.SMP);
     Object.assign(K, { ogHs: 0, ogHn: n, ogHk: smash ? 1 : 0, ogHa: a, ogHd: -(K.ogHd || 1), ogHq: smash ? 0 : q + 1 }); if (Math.abs(Math.cos(a)) > 0.2) K.f = Math.cos(a) > 0 ? 1 : -1; }
   if (K.ogHs >= 0) { const u0 = K.ogHs, HT = K.ogHk ? HM.SMH : HM.SWH; K.ogHs += dt / (K.ogHk ? HM.SMT : HM.SWT); if (u0 < HT && K.ogHs >= HT) ogHamHit(K.ogHk, K.ogHa, K.ogHd, host); if (u0 < 0.5 && K.ogHs >= 0.5 && !K.ogHk) snd('gswing', K.x, K.y); if (K.ogHs >= 1) K.ogHs = -1; }
+  // the hammer hits whoever its head touches while it's really moving (relative to him): swept between steps, once per swing each (`w.ogHw`), on top of the swing's cone
+  if (host && (K.ogHs >= 0 || (K.ogFn >= 0.55 && K.ogFn < HM.FH))) { const g = ogHamGeo(K, ogHamPose(K).p), rx = g.wx - K.x, ry = g.wy - K.y, pv = K.hmPrev, sw = (K.ogFn >= 0 ? 1e4 : 0) + (K.ogHn || 0);
+    if (pv && pv[3] === sw) { const sp = Math.hypot(rx - pv[0], (ry - pv[1]) / OGY) / Math.max(dt, 1e-3); if (sp > HM.HSP) { const x0 = K.x + pv[0], y0 = K.y + pv[1], dx = g.wx - x0, dy = (g.wy - y0) / OGY, L2 = dx * dx + dy * dy || 1, ka = Math.atan2(dy, dx);
+      for (const w of walkers) { if (w.hp <= 0 || w.ogHw === sw) continue; const U = UK[w.k]; if (g.wz > 18 * U.sc + HM.HR) continue; const px = w.x - x0, py = (w.y - y0) / OGY, q = cl((px * dx + py * dy) / L2, 0, 1), d = Math.hypot(px - dx * q, py - dy * q); if (d > HM.HR + U.r) continue;
+        w.ogHw = sw; w.atk = -1; const kk = Math.min(1, sp / 400); w.kx += Math.cos(ka) * HM.KB * (0.5 + 0.5 * kk); w.ky += Math.sin(ka) * HM.KB * (0.5 + 0.5 * kk) * 0.6; w.sl = Math.max(w.sl || 0, HM.SL); const k0 = K; hurt(w, HM.DMG, ww => slamFx(ww, ka)); K = k0; } } }
+    K.hmPrev = [rx, ry, g.wz, sw]; } else K.hmPrev = null;
   // static: licks leap off the charged head to whoever is near it (the host lists them; every screen draws them)
   if (host && r >= RP.WIND && !(K.ogFn >= HM.FH) && Math.floor(r / HM.ZAP) !== Math.floor(r0 / HM.ZAP)) { const g = ogHamGeo(K, K.hmV || ogHamPose(K).p), hx = g.wx, hy = g.wy - g.wz, seg = [], r1 = v => Math.round(v * 10) / 10;
     const near = walkers.filter(w => w.hp > 0 && ogDist(w.x, w.y, g.wx, g.wy) < HM.ZR + UK[w.k].r); for (let i = 0; i < HM.ZN && near.length; i++) { const w = near.splice(Math.floor(Math.random() * near.length), 1)[0]; seg.push(1, r1(hx), r1(hy), r1(w.x), r1(w.y - 5)); w.hit = 0.1; ogKill(w, HM.ZDMG, K, 1); }
@@ -3837,7 +3843,7 @@ function ogHamPose(kn) { const H = OGHM, C = ogHCarry(kn), r = kn.ogR, out = { p
     else { const q = sm(cl((u - H.FH) / (1 - H.FH), 0, 1)); out.p = dn; out.vis = 0; out.cr = 3.4 * (1 - q); out.ln = 0.45 * (1 - q); out.k = 1 - sm(cl((u - 0.76) / 0.24, 0, 1)); }
     return out; }
   if (kn.ogHs >= 0) { const u = kn.ogHs, a = kn.ogHa, s = kn.ogHd || 1;
-    if (!kn.ogHk) { const T0 = a + s * 2.4, T1 = a - s * 1.35, P0 = { th: T0, e: 0.38, gth: T0, gd: 2.4, gh: 13.2 }, P1 = { th: T1, e: 0.12, gth: T1, gd: 3, gh: 11.4 };
+    if (!kn.ogHk) { const T0 = a + s * 3.96, T1 = a - s * 2.23, P0 = { th: T0, e: 0.22, gth: T0, gd: 2.4, gh: 11.8 }, P1 = { th: T1, e: 0.05, gth: T1, gd: 3, gh: 10.6 };
       if (u < 0.5) { out.p = ogHMix(C, P0, sm(u / 0.5)); out.cr = 2.0 * sm(u / 0.5); out.ln = -0.12 * sm(u / 0.5); }
       else if (u < 0.66) { const q = (u - 0.5) / 0.16, e2 = q * q; out.p = { th: lerp(T0, T1, e2), e: lerp(P0.e, P1.e, e2), gth: lerp(T0, T1, e2), gd: lerp(P0.gd, P1.gd, e2), gh: lerp(P0.gh, P1.gh, e2) }; out.cr = lerp(2.0, -0.5, sm(q)); out.ln = lerp(-0.12, 0.3, q); out.strike = 1; }
       else { const q = sm(cl((u - 0.72) / 0.28, 0, 1)); out.p = ogHMix(P1, C, q); out.cr = -0.5 * (1 - q); out.ln = 0.3 * (1 - q); } }
@@ -3854,7 +3860,7 @@ function ogHamGeo(kn, p) { const L = OGHM.L, hor = L * Math.cos(p.e), ver = L * 
 function ogHamHit(k, a, s, host) { const H = OGHM, f = K.f || 1;
   if (!k) { const ka = a - s * 0.65; FX.push({ k: 'oghm', x: K.x, y: K.y, a, s, t: 0, max: 0.4, sd: Math.random() * 999 }); snd('boom', K.x, K.y); snd('zap', K.x, K.y); shake = Math.max(shake, K.i === ME ? 0.3 : 0.12);
     for (let n = 0; n < 12; n++) { const b = a + rr(-H.A, H.A), d = rr(10, H.R * 0.8); OGFX.chips.push({ x: K.x + Math.cos(b) * d, y: K.y + Math.sin(b) * d * OGY, z: rr(6, 14), vx: Math.cos(ka) * rr(30, 70), vy: Math.sin(ka) * rr(18, 40), vz: rr(5, 25), t: 0, r: rr(0.4, 1), sp: rr(-14, 14) }); }
-    if (host) for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.x, dy = (w.y - K.y) / OGY, r = Math.hypot(dx, dy); if (r > H.R + UK[w.k].r) continue; let da = Math.atan2(dy, dx) - a; da -= Math.round(da / 6.283) * 6.283; if (Math.abs(da) > H.A && r > 6 + UK[w.k].r) continue;
+    if (host) for (const w of walkers) { if (w.hp <= 0 || w.ogHw === (K.ogHn || 0)) continue; const dx = w.x - K.x, dy = (w.y - K.y) / OGY, r = Math.hypot(dx, dy); if (r > H.R + UK[w.k].r) continue; let da = Math.atan2(dy, dx) - a; da -= Math.round(da / 6.283) * 6.283; if (Math.abs(da) > H.A && r > 6 + UK[w.k].r) continue; w.ogHw = K.ogHn || 0;
       const kd = Math.atan2(dy, dx) * 0.4 + ka * 0.6; w.atk = -1; w.kx += Math.cos(kd) * H.KB; w.ky += Math.sin(kd) * H.KB * 0.6; w.sl = Math.max(w.sl || 0, H.SL); const k0 = K; hurt(w, H.DMG, ww => slamFx(ww, kd)); K = k0; } }
   else { const g = ogHamGeo(K, { th: a, e: -0.765, gth: a, gd: 5, gh: 9 }), cx = g.wx, cy = g.wy; ogSmashFx(cx, cy, f, 1.25); FX.push({ k: 'ogim', x: cx, y: cy, t: 0, max: 0.9, sd: Math.random() * 999 }); OGFX.craters.push({ x: cx, y: cy, r: 17, t: 0, sd: Math.random() * 999 }); snd('gslam', cx, cy); if (K.i === ME || Math.abs(K.x - camX) < 160) shake = Math.max(shake, 0.6);
     for (let i = 0; i < 22; i++) { const b = rr(0, 6.28), v = rr(30, 85); OGFX.chips.push({ x: cx, y: cy, z: rr(0.5, 3), vx: Math.cos(b) * v, vy: Math.sin(b) * v * 0.6, vz: rr(20, 55), t: 0, r: rr(0.5, 1.4), sp: rr(-14, 14) }); }
@@ -4144,7 +4150,7 @@ function ogAir(c, t) { const V0 = OGX.V; OGX.arcn(1); c.save();
       c.globalAlpha = 1; for (let i = 0; i < 14; i++) { const a = -Math.PI + i / 14 * 6.283, rd = S.SR * (0.3 + 0.3 * OGX.rnd(f2.sd + i * 5)), h = (2.5 + OGX.rnd(f2.sd + i) * 3.5) * Math.min(1, q * 7) * (q > 0.6 ? 1 - (q - 0.6) / 0.4 : 1); ogShard(c, f2.x + Math.cos(a) * rd, f2.y + Math.sin(a) * rd * OGY, h, Math.cos(a) * 0.45, 0.6, 1 - Math.max(0, q - 0.6) / 0.4); } }
     else if (q < 0.6) for (let i = 0; i < 5; i++) ogShard(c, f2.x + (i - 2) * 1.8, f2.y, (3 + OGX.rnd(f2.sd + i) * 2.5) * Math.min(1, q * 8), (i - 2) * 0.15, 0.55, 1 - q / 0.6); }
   // the hammer's sweep: a band of frost and light round the arc it just cut, lightning along it
-  for (const f2 of FX) if (f2.k === 'oghm') { const q = cl(f2.t / f2.max, 0, 1), T0 = f2.a + f2.s * 2.0, T1 = f2.a - f2.s * 1.2, R0 = (3 + OGHM.L) * OGSC, hz = 11 * OGSC, P = (b, rr2) => [f2.x + Math.cos(b) * rr2, f2.y + Math.sin(b) * rr2 * OGY - hz * (0.6 + 0.4 * Math.sin(Math.PI * (b - T0) / (T1 - T0)))];
+  for (const f2 of FX) if (f2.k === 'oghm') { const q = cl(f2.t / f2.max, 0, 1), T0 = f2.a + f2.s * 3.3, T1 = f2.a - f2.s * 1.98, R0 = (3 + OGHM.L) * OGSC, hz = 11 * OGSC, P = (b, rr2) => [f2.x + Math.cos(b) * rr2, f2.y + Math.sin(b) * rr2 * OGY - hz * (0.6 + 0.4 * Math.sin(Math.PI * (b - T0) / (T1 - T0)))];
     const pts = []; for (let i = 0; i <= 24; i++) pts.push(P(lerp(T0, T1, i / 24), R0)); c.save(); c.lineCap = 'round'; c.lineJoin = 'round'; const al = 1 - q;
     for (const [lw, col] of [[9, `rgba(160,215,255,${0.16 * al})`], [4.5, `rgba(205,238,255,${0.38 * al})`], [1.4, `rgba(255,255,255,${0.85 * al})`]]) { c.strokeStyle = col; c.lineWidth = lw; c.beginPath(); pts.forEach((p, i) => { if (i / 24 < q * 0.8) return; c.lineTo(...p); }); c.stroke(); }
     for (let i = 0; i < 10; i++) { const b = lerp(T0, T1, (i + 0.5) / 10), p = P(b, R0 + rr(-3, 3)); ogPuff(c, OGPF.mist, p[0], p[1], 3 + q * 5, 0.4 * al); } c.globalAlpha = 1;
@@ -7051,7 +7057,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '12eef0';
+const KBUILD = 'b4ca49';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
