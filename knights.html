@@ -5049,9 +5049,10 @@ function njStrip(c, kn, J, al, t, live) { const U = NJ.ULT, P = njPts(kn, J), co
 let CLAIM = null;
 const clK = () => { const kn = KN[ME]; return kn && kn.kind === 'ninja' ? kn : null; };
 // the clones' stick (the third stick, where the Firebreather's plume sits): it aims only the far clone (direction and distance, out to MAXR);
-// the two side clones sit on the square whose diagonal runs from him to it; a tap with no drag puts the square straight ahead of him
+// the two side clones sit on the square whose diagonal runs from him to it; (no deadzone: a stick held dead centre keeps the last aim, `CLV`; before any aim it's the square straight ahead)
 function njClFar(gx, gy) { const mx = gx / 2, my = gy / 2; return [mx - my, (my + mx) / 1.25, gx, gy / 1.25, mx + my, (my - mx) / 1.25]; } // far corner in ground units (y x1.25)
-function njClFromV(kn, v) { const l = v ? Math.hypot(v[0], v[1]) : 0; if (l < 0.3) return njClDef(kn); const M = NJ.CL.MAXR * Math.min(1, l); return njClFar(v[0] / l * M, v[1] / l * M); }
+let CLV = null; // the last far-clone aim (ground units): a stick held dead centre keeps it, no deadzone
+function njClFromV(kn, v) { const l = v ? Math.hypot(v[0], v[1]) : 0; if (l > 1e-3) { const M = NJ.CL.MAXR * Math.min(1, l); CLV = [v[0] / l * M, v[1] / l * M]; } return CLV ? njClFar(CLV[0], CLV[1]) : njClDef(kn); }
 function njClStick(v) { const kn = clK(); if (!kn) return; if (v) { if (kn.clCd > 0 || kn.nPh >= 1) { CLAIM = null; return; } CLAIM = { st: 1, o: njClFromV(kn, v), d: null }; return; }
   if (!CLAIM || !CLAIM.st) return; const IN = kn.in; IN.lvV = CLAIM.o.map(q => Math.round(q * 10) / 10); IN.lvN = (IN.lvN || 0) + 1; markIn(); CLAIM = null; }
 function clPress() { const kn = clK(); if (!kn || kn.clCd > 0 || kn.nPh >= 1) { CLAIM = null; return; } if (!CLAIM) { CLAIM = { o: njClDef(kn), d: null }; return; }
@@ -7875,7 +7876,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '83c110';
+const KBUILD = 'aed3fa';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
