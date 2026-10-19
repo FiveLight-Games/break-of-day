@@ -3770,7 +3770,7 @@ function ogreStep(dt, t) {
   // ---- shatters the host listed: every screen throws the ice ----
   for (const s3 of K.ogX || []) if (s3[0] > (K.ogXs || 0)) { K.ogXs = s3[0]; ogShatterFx(s3[1], s3[2], s3[3] / 100, s3[4]); }
   // ---- chain lightning the host listed (storm hook): every screen draws each new one ----
-  if (K.ogC && K.ogC[0] !== K.ogCs) { K.ogCs = K.ogC[0]; const G2 = []; for (let i = 1; i + 4 < K.ogC.length; i += 5) G2.push(K.ogC.slice(i, i + 5)); if (G2.length) { FX.push({ k: 'ogch', G: G2, t: 0, max: 0.95, sd: K.ogC[0] * 13 }); snd('zap', G2[0][3], G2[0][4]); snd('boom', G2[0][3], G2[0][4]); } }
+  if (K.ogC && K.ogC[0] !== K.ogCs) { K.ogCs = K.ogC[0]; const G2 = []; for (let i = 1; i + 4 < K.ogC.length; i += 5) G2.push(K.ogC.slice(i, i + 5)); if (G2.length) { FX.push({ k: 'ogch', G: G2, t: 0, max: 1.1, sd: K.ogC[0] * 13 }); snd('zap', G2[0][3], G2[0][4]); snd('boom', G2[0][3], G2[0][4]); } }
   // ---- strikes the host listed: every screen draws each new one ----
   for (const s3 of K.ogS || []) if (s3[0] > (K.ogSs || 0)) { K.ogSs = s3[0]; const cl2 = K.clT >= 0 && K.clT < OG.CLOUD.T && ogDist(s3[1], s3[2], K.clX, K.clY) < OG.CLOUD.R + 4; OGFX.strikes.push({ x: s3[1], y: s3[2], t: 0, sd: s3[0] * 37 + K.i, cx: cl2 ? K.clX : null, cy: cl2 ? K.clY : null }); snd('boom', s3[1], s3[2]); }
   // ---- moving ----
@@ -4164,7 +4164,8 @@ function ogAir(c, t) { const V0 = OGX.V; OGX.arcn(1); c.save();
     else for (let i = 0; i < 6; i++) { const b = f2.a + (OGX.rnd(f2.sd + i) - 0.5) * 1.6; ogPuff(c, OGPF.mist, f2.x + Math.cos(b) * q * 9, f2.y - 6 + Math.sin(b) * q * 5, 2.5 + q * 4, 0.5 * al); } c.globalAlpha = 1; }
   // chain lightning (storm hook): bolts from the fist to each enemy in turn, a flare on each
   for (const f2 of FX) if (f2.k === 'ogch') { const sd = Math.floor(t * 30); c.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < f2.G.length; i++) { const [g, x0, y0, x1, y1] = f2.G[i], tq = f2.t - g * 0.08; if (tq < 0) continue; const q = cl(tq / 0.45, 0, 1), al = q < 0.4 ? 1 : 1 - (q - 0.4) / 0.6; if (al <= 0) continue; c.globalAlpha = al;
+    // each big spark (and the chain that follows it) goes out at its own moment within the first 0.15s, so they crackle out one after another instead of one clack
+    let d0 = 0; for (let i = 0; i < f2.G.length; i++) { const [g, x0, y0, x1, y1] = f2.G[i]; if (g === 0) d0 = OGX.rnd(f2.sd * 3.7 + i * 1.9) * 0.15; const tq = f2.t - d0 - g * 0.08; if (tq < 0) continue; const q = cl(tq / 0.45, 0, 1), al = q < 0.4 ? 1 : 1 - (q - 0.4) / 0.6; if (al <= 0) continue; c.globalAlpha = al;
       const big = g === 0, ln = Math.hypot(x1 - x0, y1 - y0) || 1, o0 = big ? Math.min(ln * 0.3, 4 + (i % 3) * 2) : 0, sx = x0 + (x1 - x0) / ln * o0, sy = y0 + (y1 - y0) / ln * o0; const fl = 0.7 + 0.3 * OGX.rnd(sd + i * 3); ogBolt(c, [sx, sy], [x1, y1], f2.sd + i * 7.3, big ? 0.8 : 0.5, fl, big ? 3 : 1, big ? 0.7 : 0.5);
       ogPuff(c, OGPF.glow, x1, y1, big ? 7 : 4.5, 0.6 * al); }
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
@@ -7514,7 +7515,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = 'bf64ee';
+const KBUILD = '83b6e7';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
