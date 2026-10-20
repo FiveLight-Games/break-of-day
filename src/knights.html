@@ -5566,6 +5566,9 @@ function ttKill(w, a, m) { if (ogFrozenKill(w, a, [1, 2, 0.5, 1.2, 0.6][m] ?? 1)
     for (let i = 0; i < 2; i++) gib(w, 'gut', ca * pw * rr(0.4, 1) + rr(-10, 10), sa * pw * 0.6 + rr(-8, 8), rr(12, 26), rr(-14, 14)); for (let i = 0; i < 24; i++) blood.push({ x: w.x, y: w.y, z: rr(3, 8), vx: ca * rr(30, 80) + rr(-14, 14), vy: sa * rr(20, 50) + rr(-10, 10), vz: rr(4, 20), t: 0 }); }
   else if (m === 2) { for (const kd of ['head', 'torso', 'legs', 'arm', 'arm']) { const b = rr(0, 6.28), p = rr(20, 45); gib(w, kd, Math.cos(b) * p, Math.sin(b) * p * 0.6, rr(14, 30), rr(-20, 20)); }
     for (let i = 0; i < 3; i++) { const b = rr(0, 6.28); gib(w, 'gut', Math.cos(b) * 20, Math.sin(b) * 12, rr(10, 22), rr(-14, 14)); } for (let i = 0; i < 26; i++) { const b = rr(0, 6.28), p = rr(10, 40); blood.push({ x: w.x, y: w.y, z: rr(3, 7), vx: Math.cos(b) * p, vy: Math.sin(b) * p * 0.6, vz: rr(6, 22), t: 0 }); } }
+  else if (m === 5) { const pw = rr(16, 30), kd = Math.random() < 0.5 ? ['head', 'torso', 'legs', 'arm'] : Math.random() < 0.5 ? ['torso', 'legs', 'arm', 'arm'] : ['head', 'torso', 'legs']; // bullets: torn apart, but only a short way
+    for (const q of kd) gib(w, q, ca * pw * rr(0.4, 1.1) + rr(-6, 6), sa * pw * 0.6 * rr(0.4, 1.1) + rr(-5, 5), rr(6, 16), rr(-12, 12)); gib(w, 'gut', ca * pw * 0.5 + rr(-5, 5), sa * pw * 0.3 + rr(-4, 4), rr(5, 12), rr(-8, 8));
+    for (let i = 0; i < 16; i++) blood.push({ x: w.x, y: w.y, z: rr(3, 8), vx: ca * rr(8, 30) + rr(-10, 10), vy: sa * rr(5, 18) + rr(-7, 7), vz: rr(4, 18), t: 0 }); }
   else { gib(w, 'torso', ca * rr(30, 45), sa * rr(16, 26), rr(10, 16), s * rr(8, 14)); if (Math.random() < 0.7) gib(w, 'head', ca * rr(26, 40), sa * rr(14, 22), rr(14, 22), rr(-14, 14)); gib(w, 'legs', ca * 2, 0, 1.5, -s * 2); gib(w, 'gut', ca * rr(10, 20), sa * 8, 6, rr(-8, 8)); spray(w.x, w.y, 4, s, 18, 1.2); } }
 // ---------- per frame on every screen: shots, saws, shells, portals' sparks ----------
 let SAWS = [], TTFX = [], SKID = [], TRAPS = [];
@@ -7280,8 +7283,8 @@ return { drawGI };
 // card, cigar and handset keep their own). Swing stick = M16 (hitscan, every round a tracer). ULT = radio call: he yells for a bird, then
 // kneels in sentry and shoots on his own while his player mans the door M60 of a Huey circling him, in first person (move stick aims, FIRE fires).
 const GI = { S: KS * 12 / 62, RUN: 0.9, FIREMV: 0.6, RATE: 0.11, RANGE: 150, W: 2.2, DMG: 55, SPREAD: 0.035, KB: 6,
-  ULT: { RADIO: 1.9, FADE: 0.6, T: 14, R: 170, ALT: 120, OM: 0.2, RATE: 10, SPREAD: 0.012, HR: 3.5, DMG: 140, TRACE: 3, YAW: 1.15, P0: -0.62, PMIN: -1.35, PMAX: -0.18, TURN: [1.5, 1.1],
-    SR: 120, SGAP: 0.16, SDMG: 45, VR: 95, VZ: 40 } };
+  ULT: { RADIO: 0.9, FADE: 0.4, T: 14, R: 170, ALT: 120, OM: 0.2, RATE: 10, SPREAD: 0.012, HR: 3.5, DMG: 140, TRACE: 3, YAW: 1.15, P0: -0.62, PMIN: -1.35, PMAX: -0.18, TURN: [1.1, 0.8], AIMK: 5, V: 330, G: 45, AR: 7, KB: 14,
+    SR: 165, SGAP: 0.14, SDMG: 45, VR: 95, VZ: 40 } };
 let GIFX = [], GIDEC = [];
 const giH = (n, i) => { const v = Math.sin(n * 12.9898 + i * 78.233 + 1.7) * 43758.5453; return v - Math.floor(v); };
 function makeGI(kn) { Object.assign(kn, { kind: 'gi', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, kn: 0, hold: 1, z: 0, gsN: 0, gsA: 0, gsC: 0, gu: -1, guN: kn.guN || 0, guO: 0, gcx: 0, gcy: 0, gtN: 0, gtX: 0, gtY: 0, ghN: 0, ghC: 0, guK: 0,
@@ -7310,28 +7313,27 @@ function giStep(dt, t) {
   const ultP = (IN.ultN || 0) !== (K.ultSeen ?? (IN.ultN || 0)); K.ultSeen = IN.ultN || 0;
   if (K.st === 'kneel') { K.vx = K.vy = 0; K.spd = 0; if (mine && (mvL > 0.2 || IN.aim || ultP)) K.st = 'fight'; else return; }
   // ---- ULT: radio call -> sentry + the door gun ----
-  if (ultP && !(K.gu >= 0) && ultReady(K)) { K.guN = (K.guN || 0) + 1; Object.assign(K, { gu: 0, guO: Math.round(giH(K.guN, K.i + 3) * 628) / 100, gcx: r1(K.x), gcy: r1(K.y), guK: K.kills, ghN: 0, ghC: 0 }); K.gyY = 0; K.gyP = 0; }
+  if (ultP && !(K.gu >= 0) && ultReady(K)) { K.guN = (K.guN || 0) + 1; Object.assign(K, { gu: 0, guO: Math.round(giH(K.guN, K.i + 3) * 628) / 100, gcx: r1(K.x), gcy: r1(K.y), guK: K.kills, ghN: 0, ghC: 0 }); K.gyY = 0; K.gyP = 0; K.gvY = 0; K.gvP = 0; }
   if (K.gu >= 0) { K.gu += dt; K.vx = K.vy = 0; K.spd = lerp(K.spd || 0, 0, Math.min(1, dt * 10));
     // his player aims the M60 with the move stick (his own screen; sent to the host as input gy)
     if (K.i === ME && giFP(K)) { const sx = Math.abs(IN.mv[0]) > 0.08 ? IN.mv[0] : 0, sy = Math.abs(IN.mv[1]) > 0.08 ? IN.mv[1] : 0;
-      K.gyY = cl((K.gyY || 0) + sx * U.TURN[0] * dt * (0.4 + 0.6 * Math.abs(sx)), -U.YAW, U.YAW); K.gyP = cl((K.gyP || 0) - sy * U.TURN[1] * dt * (0.4 + 0.6 * Math.abs(sy)), U.PMIN - U.P0, U.PMAX - U.P0);
+      const e = 1 - Math.exp(-dt * U.AIMK); K.gvY = lerp(K.gvY || 0, sx * U.TURN[0] * (0.4 + 0.6 * Math.abs(sx)), e); K.gvP = lerp(K.gvP || 0, -sy * U.TURN[1] * (0.4 + 0.6 * Math.abs(sy)), e); // a little weight: the gun's swing builds up and runs on
+      const y0 = (K.gyY || 0) + K.gvY * dt, p0 = (K.gyP || 0) + K.gvP * dt; K.gyY = cl(y0, -U.YAW, U.YAW); K.gyP = cl(p0, U.PMIN - U.P0, U.PMAX - U.P0); if (K.gyY !== y0) K.gvY = 0; if (K.gyP !== p0) K.gvP = 0;
       const gy = [Math.round(K.gyY * 1000) / 1000, Math.round(K.gyP * 1000) / 1000]; if (!IN.gy || IN.gy[0] !== gy[0] || IN.gy[1] !== gy[1]) { IN.gy = gy; markIn(); } }
     // the door gun: RATE rounds/s while FIRE is held (or the attack stick / mouse)
     K.ghC = Math.max(-1 / U.RATE, (K.ghC || 0) - dt);
-    if (giFiring(K) && (IN.gf || IN.aim)) while (K.ghC <= 0) { K.ghC += 1 / U.RATE; K.ghN = (K.ghN || 0) + 1;
-      if (AUTH()) { const g = giRound(K, K.ghN); if (g) for (const w of walkers) { if (w.hp <= 0) continue; const R = U.HR + UK[w.k].r; if (Math.abs(w.x - g[0]) > R || Math.hypot(w.x - g[0], (w.y - g[1]) * 1.25) > R) continue; const a = Math.atan2(w.y - K.gcy, w.x - K.gcx);
-          w.atk = -1; w.kx += Math.cos(a) * 10 / Math.max(0.4, UK[w.k].kb); w.ky += Math.sin(a) * 6 / Math.max(0.4, UK[w.k].kb); hurt(w, U.DMG, ww => ttKillFx(ww, a, 1)); } } }
+    if (giFiring(K) && (IN.gf || IN.aim)) while (K.ghC <= 0) { K.ghC += 1 / U.RATE; K.ghN = (K.ghN || 0) + 1; } // each round flies and does its damage where it lands (giFx)
     // sentry: he picks the nearest enemy and shoots short bursts on his own
     if (K.gu > U.RADIO * 0.9 && K.gu < giTE()) { K.gsC = (K.gsC || 0) - dt;
       if (K.gsC <= 0) { let best = null, bd = U.SR; for (const w of walkers) { if (w.hp <= 0) continue; const d = Math.hypot(w.x - K.x, (w.y - K.y) * 1.25); if (d < bd) { bd = d; best = w; } }
         if (best) { K.gtN = (K.gtN || 0) + 1; K.gsC = U.SGAP + (K.gtN % 4 === 0 ? 0.25 : 0); K.gtX = r1(best.x); K.gtY = r1(best.y); if (Math.abs(best.x - K.x) > 1) K.f = best.x > K.x ? 1 : -1;
-          if (AUTH()) { const a = Math.atan2((best.y - K.y) * 1.25, best.x - K.x); best.atk = -1; hurt(best, U.SDMG, ww => ttKillFx(ww, a, 1)); } } else K.gsC = 0.05; } }
+          if (AUTH()) { const a = Math.atan2((best.y - K.y) * 1.25, best.x - K.x); best.atk = -1; hurt(best, U.SDMG, ww => ttKillFx(ww, a, 5)); } } else K.gsC = 0.05; } }
     if (K.gu >= giTE() + U.FADE + 0.2) { K.gu = -1; K.ultBase = K.kills; } // kills made during the call don't count toward the next one
     K.st = 'fight'; return; }
   // ---- M16 on the attack stick: a round every RATE s while held ----
   if (IN.aim) { K.gsC = (K.gsC || 0) - dt; while (K.gsC <= 0) { K.gsC += GI.RATE; K.gsN = (K.gsN || 0) + 1; const a = Math.atan2(IN.aim[1] * 1.25, IN.aim[0]) + (giH(K.gsN, K.i) - 0.5) * 2 * GI.SPREAD; K.gsA = Math.round(a * 1000) / 1000;
       if (Math.abs(Math.cos(a)) > 0.15) K.f = Math.cos(a) > 0 ? 1 : -1;
-      if (AUTH()) { const [w] = giRay(K, a); if (w) { w.atk = -1; w.kx += Math.cos(a) * GI.KB / Math.max(0.4, UK[w.k].kb); w.ky += Math.sin(a) * GI.KB * 0.6 / Math.max(0.4, UK[w.k].kb); hurt(w, GI.DMG, ww => ttKillFx(ww, a, 1)); } } } }
+      if (AUTH()) { const [w] = giRay(K, a); if (w) { w.atk = -1; w.kx += Math.cos(a) * GI.KB / Math.max(0.4, UK[w.k].kb); w.ky += Math.sin(a) * GI.KB * 0.6 / Math.max(0.4, UK[w.k].kb); hurt(w, GI.DMG, ww => ttKillFx(ww, a, 5)); } } } }
   else K.gsC = Math.max(0, (K.gsC || 0) - dt);
   // ---- walking ----
   const v2 = RUN * GI.RUN * (IN.aim ? GI.FIREMV : 1);
@@ -7348,22 +7350,27 @@ function giFx(dt, t) {
   for (const kn of KN) { if (kn.on === 0 || kn.kind !== 'gi') continue; const S = kn.giS || (kn.giS = { gs: kn.gsN || 0, gt: kn.gtN || 0, gh: kn.ghN || 0, gu: kn.gu });
     if ((kn.gsN || 0) !== S.gs) { const n = Math.min(3, ((kn.gsN || 0) - S.gs + 1000) % 1000); S.gs = kn.gsN || 0; kn.gsT = t;
       for (let i = 0; i < n; i++) { const a = kn.gsA || 0, [w, d] = giRay(kn, a), m = giMuzzle(kn), ex = w ? w.x : kn.x + Math.cos(a) * d, ey = w ? w.y - 5 * UK[w.k].sc : kn.y + Math.sin(a) / 1.25 * d - 6;
-        GIFX.push({ k: 'tr', x0: m[0], y0: m[1], x1: ex, y1: ey, t: -i * 0.03, max: 0.07 }); if (w) for (let j = 0; j < 2; j++) sparks.push({ x: ex, y: ey, vx: rr(-25, 25), vy: -rr(5, 30), t: 0, max: rr(0.1, 0.25) });
+        GIFX.push({ k: 'tr', x0: m[0], y0: m[1], g0: kn.y, x1: ex, y1: ey, g1: w ? w.y : ey + 6, t: -i * 0.03, max: 0.08 }); if (w) for (let j = 0; j < 2; j++) sparks.push({ x: ex, y: ey, vx: rr(-25, 25), vy: -rr(5, 30), t: 0, max: rr(0.1, 0.25) });
         GIFX.push({ k: 'brass', x: m[0] - (kn.f || 1) * 6, y: m[1] + 1, vx: -(kn.f || 1) * rr(15, 30), vz: rr(20, 35), z: 0, gy: kn.y + rr(-1, 2), t: 0 }); }
       snd('mg', kn.x, kn.y); }
-    if ((kn.gtN || 0) !== S.gt) { S.gt = kn.gtN || 0; kn.gtT = t; const m = giMuzzle(kn); GIFX.push({ k: 'tr', x0: m[0], y0: m[1], x1: kn.gtX, y1: kn.gtY - 5, t: 0, max: 0.06 }); snd('mg', kn.x, kn.y); }
+    if ((kn.gtN || 0) !== S.gt) { S.gt = kn.gtN || 0; kn.gtT = t; const m = giMuzzle(kn); GIFX.push({ k: 'tr', x0: m[0], y0: m[1], g0: kn.y, x1: kn.gtX, y1: kn.gtY - 5, g1: kn.gtY, t: 0, max: 0.09 }); snd('mg', kn.x, kn.y); }
     if (kn.gu >= 0 && !(S.gu >= 0)) { snd('pull', kn.x, kn.y); } S.gu = kn.gu;
     if ((kn.ghN || 0) !== S.gh) { const n0 = S.gh, n1 = kn.ghN || 0; S.gh = n1; if (n1 > n0 && n1 - n0 < 20) for (let n = n0 + 1; n <= n1; n++) { const g = giRound(kn, n); if (!g) continue;
-        const C = giCam(kn, ...giAimOf(kn)), dist = Math.hypot(g[0] - C.pos[0], g[1] * 1.25 - C.pos[1], C.pos[2]); GIFX.push({ k: 'imp', o: kn.i, x: g[0], y: g[1], n, tr: n % GI.ULT.TRACE === 0, t: 0, max: 0.07 + dist / 2600 }); }
-      if (kn.i === ME) { GIFP.rec = 1; GIFP.shake = Math.min(1.4, GIFP.shake + 0.5); GIFP.rounds++; GIFP.brass.push({ t: 0, x: 0.66 + Math.random() * 0.01, y: 0.8, vx: 260 + Math.random() * 120, vy: -120 - Math.random() * 90, r: Math.random() * 6.28 }); }
+        const C = giCam(kn, ...giAimOf(kn)), dist = Math.hypot(g[0] - C.pos[0], g[1] * 1.25 - C.pos[1], C.pos[2]), f = { k: 'imp', o: kn.i, x: g[0], y: g[1], n, tr: n % GI.ULT.TRACE === 0, t: 0, max: 0.03 + dist / GI.ULT.V };
+        if (kn.i === ME && GIFP.mz && GIFP.foc) { const dx = (GIFP.mz[0] - GIFP.vw / 2) / GIFP.foc, dy = -(GIFP.mz[1] - GIFP.vh / 2) / GIFP.foc, d = 9, p0 = [C.pos[0] + (C.fw[0] + C.rt[0] * dx + C.up[0] * dy) * d, C.pos[1] + (C.fw[1] + C.rt[1] * dx + C.up[1] * dy) * d, C.pos[2] + (C.fw[2] + C.up[2] * dy) * d]; f.s0 = [p0[0], p0[1] / 1.25, p0[2]]; }
+        GIFX.push(f); }
+      if (kn.i === ME) { GIFP.rec = 1; GIFP.shake = Math.min(1, GIFP.shake + 0.35); GIFP.rounds++; if (GIFP.port) GIFP.brass.push({ t: 0, x: GIFP.port[0], y: GIFP.port[1], vx: 260 + Math.random() * 160, vy: -160 - Math.random() * 120, r: Math.random() * 6.28 }); if (GIFP.mz) GIFP.smoke.push({ t: 0, x: GIFP.mz[0], y: GIFP.mz[1], vx: rr(-20, 20), r: rr(6, 12) }); }
       snd('mg', kn.gcx, kn.gcy); } }
   for (const f of GIFX) { f.t += dt;
-    if (f.k === 'imp' && !f.done && f.t >= f.max) { f.done = 1; GIDEC.push({ x: f.x, y: f.y, t: 0, r: 0.8 + Math.random() * 0.6 }); for (let i = 0; i < 3; i++) dust.push({ x: f.x, y: f.y, vx: rr(-14, 14), vy: rr(-6, 6), r: rr(0.8, 1.6), t: 0, max: rr(0.3, 0.6) });
+    if (f.k === 'imp' && !f.done && f.t >= f.max) { f.done = 1; GIFX.push({ k: 'fl', x: f.x, y: f.y, t: 0 }); for (let i = 0; i < 2; i++) sparks.push({ x: f.x, y: f.y - 1, vx: rr(-30, 30), vy: -rr(10, 40), t: 0, max: rr(0.1, 0.25) });
+      if (AUTH() && KN[f.o]) { const U = GI.ULT, k0 = K; K = KN[f.o]; for (const w of walkers) { if (w.hp <= 0) continue; const R = U.AR + UK[w.k].r; if (Math.abs(w.x - f.x) > R) continue; const dx = w.x - f.x, dy = (w.y - f.y) * 1.25, d = Math.hypot(dx, dy); if (d > R) continue;
+          const a = Math.atan2(dy / 1.25, dx), kk = 1 - 0.4 * Math.min(1, d / U.AR), kb = U.KB * kk / Math.max(0.4, UK[w.k].kb); w.atk = -1; w.kx += Math.cos(a) * kb; w.ky += Math.sin(a) * kb * 0.6; hurt(w, U.DMG * kk, ww => ttKillFx(ww, a, 5)); } K = k0; }
+      GIDEC.push({ x: f.x, y: f.y, t: 0, r: 0.8 + Math.random() * 0.6 }); for (let i = 0; i < 3; i++) dust.push({ x: f.x, y: f.y, vx: rr(-14, 14), vy: rr(-6, 6), r: rr(0.8, 1.6), t: 0, max: rr(0.3, 0.6) });
       for (let i = 0; i < 4; i++) GIFX.push({ k: 'dirt', x: f.x, y: f.y, z: 0, vx: rr(-10, 10), vy: rr(-10, 10), vz: rr(18, 40), t: 0 }); }
     if (f.k === 'dirt') { f.vz -= 70 * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.z = Math.max(0, f.z + f.vz * dt); }
     if (f.k === 'brass') { f.vz -= 120 * dt; f.x += f.vx * dt; f.z = Math.max(0, f.z + f.vz * dt); } }
-  GIFX = GIFX.filter(f => f.t < (f.k === 'imp' ? f.max + 0.15 : f.k === 'tr' ? f.max : f.k === 'brass' ? 0.6 : 1)); for (const d of GIDEC) d.t += dt; GIDEC = GIDEC.filter(d => d.t < 4).slice(-400);
-  GIFP.rec = Math.max(0, GIFP.rec - dt * 14); GIFP.shake = Math.max(0, GIFP.shake - dt * 8); for (const b of GIFP.brass) { b.t += dt; b.vy += 900 * dt; b.x += b.vx * dt / 1280; b.y += b.vy * dt / 720; b.r += dt * 20; } GIFP.brass = GIFP.brass.filter(b => b.t < 0.6);
+  GIFX = GIFX.filter(f => f.t < (f.k === 'imp' ? f.max + 0.15 : f.k === 'tr' ? f.max : f.k === 'brass' ? 0.6 : f.k === 'fl' ? 0.18 : 1)); for (const d of GIDEC) d.t += dt; GIDEC = GIDEC.filter(d => d.t < 4).slice(-400);
+  GIFP.rec = Math.max(0, GIFP.rec - dt * 14); GIFP.shake = Math.max(0, GIFP.shake - dt * 8); for (const b of GIFP.brass) { b.t += dt; b.vy += 1400 * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.r += dt * 22; } GIFP.brass = GIFP.brass.filter(b => b.t < 0.7); for (const q of GIFP.smoke) { q.t += dt; q.x += q.vx * dt; q.y -= 40 * dt; } GIFP.smoke = GIFP.smoke.filter(q => q.t < 0.9).slice(-40);
   giHeliAudio(); }
 // the Huey's loop while anyone's G.I. has one overhead (louder for its gunner)
 function giHeliAudio() { const bufs = heliBuf(); for (const kn of KN) { if (kn.kind !== 'gi') continue; const on = kn.on !== 0 && kn.gu >= GI.ULT.RADIO * 0.7 && kn.gu < giTE() + GI.ULT.FADE;
@@ -7374,7 +7381,7 @@ function drawGIK(c, t) { const kn = K, f = kn.f || 1, S = GI.S, U = GI.ULT, dtv 
   const ul = kn.gu >= 0, radio = ul && kn.gu < U.RADIO + 0.15, sentry = ul && !radio && kn.gu < giTE() + U.FADE * 0.6, fire = !ul && (kn.in.aim || t - (kn.gsT ?? -9) < 0.3) && kn.st !== 'kneel';
   let aimT = 0; if (fire) { const a = kn.gsA || (kn.in.aim ? Math.atan2(kn.in.aim[1] * 1.25, kn.in.aim[0]) : 0), sx = Math.cos(a), sy = Math.sin(a) / 1.25; aimT = cl(Math.atan2(sy, Math.abs(sx)), -0.8, 0.8); }
   if (sentry && kn.gtN) { const m = [kn.x, kn.y - 13]; aimT = cl(Math.atan2(kn.gtY - 5 - m[1], Math.abs(kn.gtX - m[0])) * 0.8, -0.5, 0.6); }
-  const e = 1 - Math.exp(-dtv * 12); V.fk = lerp(V.fk, fire || sentry ? 1 : 0, e); V.rk = lerp(V.rk, radio ? 1 : 0, 1 - Math.exp(-dtv * 9)); V.ck = lerp(V.ck, sentry ? 1 : 0, 1 - Math.exp(-dtv * 7)); V.aim = lerp(V.aim, aimT, 1 - Math.exp(-dtv * 18));
+  const e = 1 - Math.exp(-dtv * 12); V.fk = lerp(V.fk, fire || sentry ? 1 : 0, e); V.rk = lerp(V.rk, radio ? 1 : 0, 1 - Math.exp(-dtv * 9)); V.ck = lerp(V.ck, sentry || radio ? 1 : 0, 1 - Math.exp(-dtv * 7)); V.aim = lerp(V.aim, aimT, 1 - Math.exp(-dtv * 18));
   const yT = radio && kn.gu > U.RADIO * 0.3 ? 0.6 + 0.4 * Math.sin(t * 15) : 0; V.yell = lerp(V.yell, yT, 1 - Math.exp(-dtv * 20));
   const rec = sentry ? cl(1 - (t - (kn.gtT ?? -9)) / 0.08, 0, 1) : cl(1 - (t - (kn.gsT ?? -9)) / 0.07, 0, 1), spd = cl((kn.spd || 0) / (RUN * GI.RUN), 0, 1) * (1 - V.ck);
   c.save(); c.translate(kn.x, kn.y - (kn.z || 0)); c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(0, 0.3, 4.2, 1.3, 0, 0, 7); c.fill(); c.scale(S * f, S);
@@ -7393,19 +7400,19 @@ function giAir(c, t) {
       const gx = kn.gcx + Math.cos(o) * R, gy = kn.gcy + Math.sin(o) * R / 1.25, hla = Math.atan2(Math.cos(o), -Math.sin(o) * 1.25 / 1.25), firing = giFiring(kn) && (kn.in.gf || kn.in.aim);
       c.save(); c.globalAlpha = Math.min(sm(arr), 1 - sm(lv)); c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(gx, gy, 16, 5, 0, 0, 7); c.fill();
       const tip = heliDraw(c, { hla }, gx, gy, U.VZ, t, [kn.gcx, kn.gcy], firing, kn.col); c.restore();
-      if (tip) { c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; for (const f of GIFX) if (f.k === 'imp' && f.o === kn.i && f.tr && !f.done) { const k = f.t / f.max, x2 = lerp(tip[0], f.x, k), y2 = lerp(tip[1], f.y, k), x1 = lerp(tip[0], f.x, Math.max(0, k - 0.3)), y1 = lerp(tip[1], f.y, Math.max(0, k - 0.3));
-          c.strokeStyle = 'rgba(255,110,40,.6)'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.strokeStyle = 'rgba(255,240,190,1)'; c.lineWidth = 0.3; c.stroke(); } c.restore(); } }
-    // speech bubble while he yells into the handset
-    if (kn.gu < U.RADIO) { const u = kn.gu / U.RADIO; if (u > 0.25) { const txt = u < 0.62 ? 'THIS IS GHOST SIX!' : 'I NEED A BIRD ON ME, NOW!', bx = kn.x + 4, by = kn.y - 28; c.save(); c.font = '800 3.4px system-ui'; const w = c.measureText(txt).width + 3;
-        c.fillStyle = '#f7f3e6'; c.strokeStyle = '#1a1a1a'; c.lineWidth = 0.35; c.beginPath(); c.roundRect(bx, by - 4, w, 5.4, 1.4); c.fill(); c.stroke(); c.beginPath(); c.moveTo(bx + 2, by + 1.3); c.lineTo(bx - 0.5, by + 4.5); c.lineTo(bx + 4.5, by + 1.3); c.fill(); c.stroke(); c.fillStyle = '#1a1a1a'; c.fillText(txt, bx + 1.5, by); c.restore(); } } } }
+      if (tip) { c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; const at = (f, q) => [lerp(tip[0], f.x, q), lerp(tip[1], f.y, q) - 10 * q * (1 - q)];
+        for (const f of GIFX) if (f.k === 'imp' && f.o === kn.i && !f.done) { const q = f.t / f.max, h = at(f, q), b2 = at(f, Math.max(0, q - (f.tr ? 0.22 : 0.12)));
+          c.strokeStyle = f.tr ? 'rgba(255,90,40,.7)' : 'rgba(255,200,120,.45)'; c.lineWidth = f.tr ? 0.9 : 0.5; c.beginPath(); c.moveTo(...b2); c.lineTo(...h); c.stroke(); c.fillStyle = f.tr ? '#ffe6c0' : '#ffd890'; c.beginPath(); c.arc(h[0], h[1], f.tr ? 0.45 : 0.3, 0, 7); c.fill(); } c.restore(); } }
+    for (const f of GIFX) if (f.k === 'fl' && f.t < 0.18) { const q = f.t / 0.18; c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = `rgba(255,210,140,${0.7 * (1 - q)})`; c.beginPath(); c.ellipse(f.x, f.y, 1.5 + q * 5, (1.5 + q * 5) * 0.5, 0, 0, 7); c.fill(); c.restore(); }
+  } }
 // ---- first person, from the Huey's door (his screen only; drawn over the world) ----
-const GIFP = { rec: 0, shake: 0, rounds: 0, brass: [] };
+const GIFP = { rec: 0, shake: 0, rounds: 0, brass: [], smoke: [] };
 const GITREE = []; for (let i = 0; i < 30; i++) { const a = giH(i, 3.1) * 6.283, r = 90 + giH(i, 5.7) * 260; GITREE.push({ x: Math.cos(a) * r, y: Math.sin(a) * r, s: 0.3 + giH(i, 2.3) * 0.35, k: giH(i, 8.1) > 0.35 ? 0 : 1 }); }
 const GITUFT = []; for (let i = 0; i < 1800; i++) GITUFT.push([(giH(i, 1.37) - 0.5) * 640, (giH(i, 2.71) - 0.5) * 640, giH(i, 9.1)]);
 function drawAnyK(c, t) { if (K.kind === 'fire') drawFire(c, t); else if (K.kind === 'priest') drawPriest(c, t); else if (K.kind === 'ninja') drawNinja(c, t); else if (K.kind === 'ogre') drawStormOgre(c, t); else if (K.kind === 'rooster') drawRooster(c, t); else if (K.kind === 'gi') drawGIK(c, t); else if (K.kind === 'time') { if (!carGone(K)) drawTime(c, t); } else if (K.kind === 'sword') drawSword(c, t); else drawKnight(c, t); }
 function giDrawFP(c, kn, t) { const U = GI.ULT, k = cv.height / 720, VW = cv.width / k, VH = 720, FOC = Math.max(VW * 1.15, VH * 1.4), C = giCam(kn, kn.gyY || 0, kn.gyP || 0, GIFP.shake, t);
   const proj = (x, y, z) => { const d = [x - C.pos[0], y * 1.25 - C.pos[1], z - C.pos[2]], f = d[0] * C.fw[0] + d[1] * C.fw[1] + d[2] * C.fw[2]; if (f < 2) return null; const r = d[0] * C.rt[0] + d[1] * C.rt[1], u = d[0] * C.up[0] + d[1] * C.up[1] + d[2] * C.up[2]; return [VW / 2 + r / f * FOC, VH / 2 - u / f * FOC, FOC / f, f]; };
-  c.setTransform(k, 0, 0, k, 0, 0);
+  c.setTransform(k, 0, 0, k, 0, 0); GIFP.vw = VW; GIFP.vh = VH; GIFP.foc = FOC;
   // sky, ground, tree line, haze
   const hy = VH / 2 + Math.tan(C.p) * FOC, sky = c.createLinearGradient(0, hy - 300, 0, hy); sky.addColorStop(0, '#9fb9c9'); sky.addColorStop(1, '#d9dcc8'); c.fillStyle = sky; c.fillRect(0, 0, VW, Math.max(0, hy));
   const gr = c.createLinearGradient(0, hy, 0, VH); gr.addColorStop(0, '#73865a'); gr.addColorStop(0.15, '#5e8a4a'); gr.addColorStop(1, '#4e8a3a'); c.fillStyle = gr; c.fillRect(0, hy, VW, VH - hy + 10);
@@ -7423,15 +7430,22 @@ function giDrawFP(c, kn, t) { const U = GI.ULT, k = cv.height / 720, VW = cv.wid
       else { c.fillStyle = '#5a4630'; c.fillRect(p[0] - 1.2 * s, p[1] - 8 * s, 2.4 * s, 8 * s); for (const [dx, dy, r, col] of [[0, -14, 9, '#355e2c'], [-6, -10, 7, '#2e5427'], [6, -9, 7, '#3d6a32'], [0, -20, 7, '#447338']]) { c.fillStyle = col; c.beginPath(); c.arc(p[0] + dx * s, p[1] + dy * s, r * s, 0, 7); c.fill(); } } }]); }
   const bb = (p, wx, wy) => c.setTransform(k * p[2], 0, 0, k * p[2], k * (p[0] - wx * p[2]), k * (p[1] - wy * p[2]));
   for (const w of walkers) { if (w.dead) continue; const p = proj(w.x, w.y, 0); if (!p || p[0] < -80 || p[0] > VW + 80) continue; L.push([p[3], () => { bb(p, w.x, w.y); walker(c, w, t); }]); }
-  for (const o of LIVE()) { const p = proj(o.x, o.y, 0); if (!p) continue; L.push([p[3], () => { bb(p, o.x, o.y); const k0 = K; K = o; COL = o.col; drawAnyK(c, t); K = k0; COL = K.col;
-      if (o.kind === 'gi' && o.gu >= 0) for (const f of GIFX) if (f.k === 'tr' && f.t >= 0 && f.t < 0.05) { const m = o.giMz || [o.x, o.y - 13]; c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = 'rgba(255,220,120,.9)'; c.lineWidth = 0.5; c.beginPath(); c.moveTo(m[0], m[1]); c.lineTo(lerp(m[0], f.x1, 0.8), lerp(m[1], f.y1, 0.8)); c.stroke(); c.restore(); } }]); }
+  for (const o of LIVE()) { const p = proj(o.x, o.y, 0); if (!p) continue; L.push([p[3], () => { bb(p, o.x, o.y); const k0 = K; K = o; COL = o.col; drawAnyK(c, t); K = k0; COL = K.col; }]); }
+  // body parts (gibs) and their blood: stamped like the world view does, with the camera numbers set for each one's spot
+  for (const pt of parts) { const p = proj(pt.x, pt.y, 0); if (!p || p[0] < -40 || p[0] > VW + 40) continue; L.push([p[3] + 0.01, () => { const C0 = CAM.s, E0 = CAM.e, F0 = CAM.f; CAM.s = k * p[2]; CAM.e = k * (p[0] - pt.x * p[2]); CAM.f = k * (p[1] - pt.y * p[2]); c.globalAlpha = pt.rest ? pAlpha(pt) : 1; drawPartFast(c, pt); c.globalAlpha = 1; CAM.s = C0; CAM.e = E0; CAM.f = F0; }]); }
   L.sort((a, b) => b[0] - a[0]); const nh = NOHP; NOHP = true; for (const [, fn] of L) fn(); NOHP = nh;
   c.setTransform(k, 0, 0, k, 0, 0);
-  // dirt kicked up, rounds in flight (every third a tracer)
-  for (const f of GIFX) { if (f.k === 'dirt') { const p = proj(f.x, f.y, f.z); if (!p) continue; c.fillStyle = `rgba(120,95,60,${1 - f.t})`; c.beginPath(); c.arc(p[0], p[1], Math.max(1, p[2] * 0.6), 0, 7); c.fill(); c.fillStyle = `rgba(150,130,100,${0.3 * (1 - f.t)})`; c.beginPath(); c.arc(p[0], p[1] - p[2], p[2] * (0.8 + f.t * 2.5), 0, 7); c.fill(); }
-    if (f.k === 'imp' && f.o === kn.i && !f.done && f.tr) { const p = proj(f.x, f.y, 0); if (!p) continue; const q = f.t / f.max, sx0 = VW * 0.505, sy0 = VH * 0.52, x2 = lerp(sx0, p[0], q), y2 = lerp(sy0, p[1], q), x1 = lerp(sx0, p[0], Math.max(0, q - 0.25)), y1 = lerp(sy0, p[1], Math.max(0, q - 0.25));
-      c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = 'rgba(255,90,40,.6)'; c.lineWidth = 7 * (1 - q * 0.7); c.lineCap = 'round'; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.strokeStyle = 'rgba(255,230,180,1)'; c.lineWidth = 2.5 * (1 - q * 0.6); c.stroke(); c.restore(); } }
-  giCabin(c, VW, VH, t); giGun(c, VW, VH, t);
+  c.fillStyle = '#9c1c12'; for (const b2 of blood) { const p = proj(b2.x, b2.y, b2.z); if (!p) continue; const r = Math.max(1, p[2] * 0.4); c.fillRect(p[0] - r / 2, p[1] - r / 2, r, r); }
+  // impact flashes, dirt kicked up, his rifle rounds, the door gun's rounds in flight
+  for (const f of GIFX) { if (f.k === 'fl') { const p = proj(f.x, f.y, 0.5); if (!p) continue; const q = f.t / 0.18; c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = `rgba(255,210,140,${0.75 * (1 - q)})`; c.beginPath(); c.ellipse(p[0], p[1], p[2] * (1.5 + q * 5), p[2] * (1.5 + q * 5) * Math.max(0.3, -GIFP.fz), 0, 0, 7); c.fill(); c.restore(); }
+    if (f.k === 'tr' && f.t >= 0 && f.g0 !== undefined) { const q = Math.min(1, f.t / f.max), P = u => proj(lerp(f.x0, f.x1, u), lerp(f.g0, f.g1, u), lerp(f.g0 - f.y0, f.g1 - f.y1, u)), h = P(q), b2 = P(Math.max(0, q - 0.4)); if (!h || !b2) continue;
+      c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; c.strokeStyle = 'rgba(255,150,60,.7)'; c.lineWidth = Math.max(1.2, h[2] * 0.22); c.beginPath(); c.moveTo(b2[0], b2[1]); c.lineTo(h[0], h[1]); c.stroke(); c.strokeStyle = '#fff3d0'; c.lineWidth = Math.max(0.6, h[2] * 0.09); c.stroke(); c.restore(); } if (f.k === 'dirt') { const p = proj(f.x, f.y, f.z); if (!p) continue; c.fillStyle = `rgba(120,95,60,${1 - f.t})`; c.beginPath(); c.arc(p[0], p[1], Math.max(1, p[2] * 0.6), 0, 7); c.fill(); c.fillStyle = `rgba(150,130,100,${0.3 * (1 - f.t)})`; c.beginPath(); c.arc(p[0], p[1] - p[2], p[2] * (0.8 + f.t * 2.5), 0, 7); c.fill(); }
+    // a door-gun round: leaves the barrel (s0), flies on a shallow arc that drops onto its spot (weight), every third a tracer
+    if (f.k === 'imp' && f.o === kn.i && !f.done && f.s0) { const U = GI.ULT, P = tt => { const q = cl(tt / f.max, 0, 1); return proj(lerp(f.s0[0], f.x, q), lerp(f.s0[1], f.y, q), lerp(f.s0[2], 0, q) + 0.5 * U.G * tt * (f.max - tt)); };
+      const h = P(f.t), b2 = P(Math.max(0, f.t - (f.tr ? 0.05 : 0.03))); if (!h || !b2) continue; const r = Math.max(1.3, h[2] * (f.tr ? 0.32 : 0.2));
+      c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; c.strokeStyle = f.tr ? 'rgba(255,70,30,.55)' : 'rgba(255,190,110,.35)'; c.lineWidth = r * 2.2; c.beginPath(); c.moveTo(b2[0], b2[1]); c.lineTo(h[0], h[1]); c.stroke();
+      c.strokeStyle = f.tr ? '#ffd2a8' : '#ffe9b8'; c.lineWidth = r; c.stroke(); c.fillStyle = '#fffaf0'; c.beginPath(); c.arc(h[0], h[1], r * 0.75, 0, 7); c.fill(); c.restore(); } }
+  GIFP.fz = C.fw[2]; giCabin(c, VW, VH, t); giGun(c, VW, VH, t, kn);
   // crosshair, time left, kills since the call
   const left = cl(1 - (kn.gu - giT0()) / U.T, 0, 1), cx = VW / 2, cy = VH / 2; c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, 16, 0, 7); c.moveTo(cx - 30, cy); c.lineTo(cx - 20, cy); c.moveTo(cx + 20, cy); c.lineTo(cx + 30, cy); c.moveTo(cx, cy - 30); c.lineTo(cx, cy - 20); c.stroke();
   c.fillStyle = 'rgba(0,0,0,.45)'; c.beginPath(); c.roundRect(VW / 2 - 160, 104, 320, 14, 7); c.fill(); c.fillStyle = '#d9b44a'; c.beginPath(); c.roundRect(VW / 2 - 158, 106, 316 * left, 10, 5); c.fill();
@@ -7444,27 +7458,62 @@ function giCabin(c, W, H, t) {
   c.fillStyle = '#262b1d'; c.beginPath(); c.moveTo(0, H - 62); c.lineTo(W, H - 40); c.lineTo(W, H); c.lineTo(0, H); c.closePath(); c.fill(); c.strokeStyle = '#4a5238'; c.lineWidth = 3; c.beginPath(); c.moveTo(0, H - 62); c.lineTo(W, H - 40); c.stroke();
   c.strokeStyle = '#1e2218'; c.lineWidth = 11; c.lineCap = 'round'; c.beginPath(); c.moveTo(80, H - 18); c.lineTo(W - 140, H - 4); c.stroke(); c.strokeStyle = 'rgba(255,255,255,.08)'; c.lineWidth = 3; c.beginPath(); c.moveTo(80, H - 22); c.lineTo(W - 140, H - 8); c.stroke();
   c.fillStyle = 'rgba(255,255,255,.12)'; for (let y = 30; y < H; y += 46) { c.beginPath(); c.arc(W - 40, y, 2.5, 0, 7); c.fill(); } }
-// the M60 on its mount from behind its spade grips, the gunner's gloved hands, the belt, brass
-function giGun(c, W, H, t) { const r = GIFP.rec, sway = Math.sin(t * 2.1) * 3, kx = r * 6, ky = r * 9, ox = W * 0.6 + kx + sway, oy = H * 0.94 + ky, tx = W / 2 + sway * 0.25, ty = H / 2 + ky * 0.15;
-  const L = q => [lerp(ox, tx, q), lerp(oy - 120, ty, q)], wid = q => lerp(30, 7, q);
-  c.fillStyle = '#3c4430'; c.beginPath(); c.roundRect(ox - 300, H - 120, 120, 140, 8); c.fill(); c.fillStyle = 'rgba(255,255,255,.06)'; c.fillRect(ox - 296, H - 116, 112, 10);
-  for (let i = 0; i < 16; i++) { const q = i / 15, x2 = lerp(ox - 240, ox - 56, q) + Math.sin(t * 4 + i * 0.7) * 3 * (1 - q), y2 = lerp(H - 112, oy - 150, Math.pow(q, 0.7)) + Math.sin(q * Math.PI) * -40;
-    c.save(); c.translate(x2, y2); c.rotate(-0.9 + q * 0.7); c.fillStyle = '#5a4a24'; c.fillRect(-15, -5, 30, 10); c.fillStyle = '#d4ad55'; c.beginPath(); c.roundRect(-14, -4, 24, 8, 3); c.fill(); c.fillStyle = '#9a3a24'; c.beginPath(); c.moveTo(10, -4); c.lineTo(17, 0); c.lineTo(10, 4); c.fill(); c.fillStyle = 'rgba(255,255,255,.3)'; c.fillRect(-12, -3, 20, 2); c.restore(); }
-  const B0 = L(0.18), B1 = L(1), n = [-(B1[1] - B0[1]), B1[0] - B0[0]], nl = Math.hypot(n[0], n[1]); n[0] /= nl; n[1] /= nl;
-  const tube = (k0, k1, w0, w1, off, col) => { const a = L(k0), b2 = L(k1); c.fillStyle = col; c.beginPath(); c.moveTo(a[0] + n[0] * (off + w0 / 2), a[1] + n[1] * (off + w0 / 2)); c.lineTo(b2[0] + n[0] * (off * w1 / w0 + w1 / 2), b2[1] + n[1] * (off * w1 / w0 + w1 / 2)); c.lineTo(b2[0] + n[0] * (off * w1 / w0 - w1 / 2), b2[1] + n[1] * (off * w1 / w0 - w1 / 2)); c.lineTo(a[0] + n[0] * (off - w0 / 2), a[1] + n[1] * (off - w0 / 2)); c.closePath(); c.fill(); };
-  tube(0.2, 0.86, 14, 4, 12, '#1d1f1c'); tube(0.1, 1, wid(0.1), wid(1), 0, '#2a2d2a'); tube(0.12, 0.98, wid(0.1) * 0.3, 1.5, -wid(0.1) * 0.22, 'rgba(255,255,255,.14)');
-  { const a = L(0.96); c.fillStyle = '#151715'; c.fillRect(a[0] - 3, a[1] - 16, 6, 14); } tube(0.985, 1.03, 10, 9, 0, '#121412');
-  { const a = L(0.32), b2 = L(0.46); c.strokeStyle = '#1b1d1a'; c.lineWidth = 7; c.lineCap = 'round'; c.beginPath(); c.moveTo(a[0], a[1] - 4); c.lineTo(a[0] + 4, a[1] - 40); c.lineTo(b2[0] + 2, b2[1] - 34); c.lineTo(b2[0], b2[1] - 4); c.stroke(); }
-  c.save(); c.translate(ox, oy); c.fillStyle = '#20231d'; c.fillRect(-14, -40, 28, 140);
-  c.fillStyle = '#2f332d'; c.beginPath(); c.moveTo(-58, -50); c.lineTo(58, -50); c.lineTo(48, -150); c.lineTo(-48, -150); c.closePath(); c.fill(); c.fillStyle = '#3b4039'; c.beginPath(); c.moveTo(-50, -150); c.lineTo(50, -150); c.lineTo(42, -186); c.lineTo(-42, -186); c.closePath(); c.fill();
-  c.fillStyle = 'rgba(255,255,255,.1)'; c.fillRect(-42, -184, 84, 5); c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(-58, -56, 116, 6); c.fillStyle = '#5c6056'; c.fillRect(-10, -196, 20, 12); c.fillStyle = '#121412'; c.fillRect(-4, -214, 8, 20); c.fillRect(-12, -214, 24, 6);
-  for (const s of [-1, 1]) { c.fillStyle = '#1b1d1a'; c.beginPath(); c.roundRect(s * 52 - 11, -46, 22, 76, 10); c.fill(); c.fillStyle = 'rgba(255,255,255,.08)'; c.fillRect(s * 52 - 7, -40, 4, 60); }
-  for (const s of [-1, 1]) { c.fillStyle = '#4c5833'; c.beginPath(); c.moveTo(s * 40, 40); c.lineTo(s * 170, H); c.lineTo(s * 40, H); c.lineTo(s * 20, 46); c.closePath(); c.fill(); c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.moveTo(s * 34, 50); c.lineTo(s * 90, H); c.lineTo(s * 60, H); c.closePath(); c.fill();
-    c.fillStyle = '#3a3124'; c.beginPath(); c.roundRect(s * 52 - 28, -26, 56, 70, 20); c.fill(); for (let i = 0; i < 4; i++) { c.fillStyle = '#463b2b'; c.beginPath(); c.roundRect(s * 52 - 26 + (s < 0 ? 30 : 0), -22 + i * 15, 24, 13, 6); c.fill(); } c.fillStyle = 'rgba(255,255,255,.08)'; c.beginPath(); c.roundRect(s * 52 - 22, -20, 16, 46, 8); c.fill(); }
-  c.restore();
-  if (r > 0.55) { c.save(); c.globalCompositeOperation = 'lighter'; for (const [rr2, col] of [[64, 'rgba(255,150,40,.32)'], [34, 'rgba(255,220,120,.7)'], [14, 'rgba(255,255,230,1)']]) { const g = c.createRadialGradient(tx, ty, 0, tx, ty, rr2 * r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.beginPath(); c.arc(tx, ty, rr2 * r, 0, 7); c.fill(); }
-    for (let i = 0; i < 4; i++) { const a = i / 4 * 6.283 + GIFP.rounds * 0.7; c.strokeStyle = 'rgba(255,230,150,.75)'; c.lineWidth = 3; c.beginPath(); c.moveTo(tx, ty); c.lineTo(tx + Math.cos(a) * 36 * r, ty + Math.sin(a) * 36 * r); c.stroke(); } c.restore(); }
-  for (const b of GIFP.brass) { c.save(); c.translate(b.x * W, b.y * H); c.rotate(b.r); c.fillStyle = '#d6b45a'; c.fillRect(-8, -3, 16, 6); c.fillStyle = 'rgba(0,0,0,.3)'; c.fillRect(-8, 1, 16, 2); c.restore(); } }
+// the M60D on its pintle, seen from behind its spade grips: a small flat-shaded 3D model in camera space (x right, y up, z forward, game units),
+// drawn with its own wider lens (FG) like a view-model; GIFP.mz = where its muzzle lands on screen (the door-gun rounds start there)
+const GIGL = (() => { const v = [0.4, 0.85, -0.45], n = Math.hypot(...v); return v.map(a => a / n); })();
+const giRGB = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+function giGunModel(rec, sx, sy, t) {
+  // a view-model: the gun is posed on its own (seen from behind and above, barrel running up toward the middle), then slid on screen so its muzzle sits on the crosshair
+  const F = [], SC = 3.9, O = [sx * 6, sy * 6 + rec * 0.25, 22 - rec * 1.2], U0 = [-0.62, 0.3, 1], ul = Math.hypot(...U0), U = U0.map(a => a / ul), V0 = [U[2], 0, -U[0]], vl = Math.hypot(...V0), V = V0.map(a => a / vl), Wd = [U[1] * V[2] - U[2] * V[1], U[2] * V[0] - U[0] * V[2], U[0] * V[1] - U[1] * V[0]];
+  const G = (u0, v0, w0) => { const u = u0 * SC, v = v0 * SC, w = w0 * SC; return [O[0] + U[0] * u + V[0] * v + Wd[0] * w, O[1] + U[1] * u + V[1] * v + Wd[1] * w, O[2] + U[2] * u + V[2] * v + Wd[2] * w]; };
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]], crs = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], nrm = a => { const l = Math.hypot(...a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+  const face = (p, col, sp, ctr) => { const cx = (p[0][0] + p[1][0] + p[2][0] + (p[3] ? p[3][0] : p[2][0])) / (p[3] ? 4 : 3), cy = p.reduce((a, q) => a + q[1], 0) / p.length, cz = p.reduce((a, q) => a + q[2], 0) / p.length;
+    let n = nrm(crs(sub(p[1], p[0]), sub(p[2], p[0]))); if (n[0] * (cx - ctr[0]) + n[1] * (cy - ctr[1]) + n[2] * (cz - ctr[2]) < 0) n = [-n[0], -n[1], -n[2]];
+    if (n[0] * cx + n[1] * cy + n[2] * cz > 0.0001) return; F.push({ p, col, sp, n, z: cz, c: [cx, cy, cz] }); };
+  const box = (u0, u1, v0, v1, w0, w1, col, sp = 0.4) => { const q = (a, b, d) => G(a ? u1 : u0, b ? v1 : v0, d ? w1 : w0), ctr = G((u0 + u1) / 2, (v0 + v1) / 2, (w0 + w1) / 2);
+    for (const f of [[q(0, 0, 0), q(0, 1, 0), q(0, 1, 1), q(0, 0, 1)], [q(1, 0, 0), q(1, 0, 1), q(1, 1, 1), q(1, 1, 0)], [q(0, 0, 0), q(0, 0, 1), q(1, 0, 1), q(1, 0, 0)], [q(0, 1, 0), q(1, 1, 0), q(1, 1, 1), q(0, 1, 1)], [q(0, 0, 0), q(1, 0, 0), q(1, 1, 0), q(0, 1, 0)], [q(0, 0, 1), q(0, 1, 1), q(1, 1, 1), q(1, 0, 1)]]) face(f, col, sp, ctr); };
+  const cyl = (A0, B0, r0, r1, col, sp = 0.4, n = 10, cap = 1) => { const a = G(...A0), b = G(...B0), d = nrm(sub(b, a)), e1 = nrm(crs(d, Math.abs(d[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0])), e2 = crs(d, e1), ctr = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+    const ring = (c0, r) => Array.from({ length: n }, (_, i) => { const th = i / n * 6.2832, cs = Math.cos(th) * r, sn = Math.sin(th) * r; return [c0[0] + e1[0] * cs + e2[0] * sn, c0[1] + e1[1] * cs + e2[1] * sn, c0[2] + e1[2] * cs + e2[2] * sn]; });
+    const A = ring(a, r0), B = ring(b, r1); for (let i = 0; i < n; i++) { const j = (i + 1) % n; face([A[i], A[j], B[j], B[i]], col, sp, ctr); } if (cap) { face(B, col, sp, ctr); face(A.slice().reverse(), col, sp, ctr); } };
+  const STEEL = '#4a4f48', DARK = '#2c2f2a', COVER = '#575d53', OD = '#4d5733', BRASS = '#c99a3c', COPPER = '#a8582e', GLOVE = '#3b2f24', GLOVEL = '#4a3b2c', SLEEVE = '#55613a';
+  // pintle post + cradle
+  cyl([1.5, 0, -0.75], [1.5, 0, -5], 0.24, 0.26, DARK, 0.3, 10); box(0.5, 2.4, -0.48, 0.48, -0.8, -0.42, '#30342f', 0.3); cyl([0.8, -0.5, -0.6], [2.1, -0.5, -0.6], 0.07, 0.07, STEEL, 0.6, 6); cyl([0.8, 0.5, -0.6], [2.1, 0.5, -0.6], 0.07, 0.07, STEEL, 0.6, 6);
+  // ammo box hung on the left
+  box(0.85, 2.7, -2.15, -0.55, -2.1, -0.5, OD, 0.15); box(0.8, 2.75, -2.2, -0.5, -0.55, -0.42, '#5a6440', 0.2); box(1.55, 2.0, -2.22, -2.15, -1.6, -0.9, '#2b2f20', 0.1);
+  // receiver, feed cover, latch, rear sight, trunnion block
+  box(0, 2.85, -0.31, 0.31, -0.42, 0.34, STEEL, 0.55); box(0.75, 2.45, -0.34, 0.34, 0.34, 0.58, COVER, 0.6); box(2.2, 2.45, -0.12, 0.12, 0.58, 0.7, '#5c6158', 0.7); box(0.5, 0.66, -0.1, 0.1, 0.58, 0.95, DARK, 0.5);
+  box(2.85, 3.35, -0.27, 0.27, -0.36, 0.26, '#3e423c', 0.5); cyl([1.0, 0.31, -0.1], [1.0, 0.52, -0.1], 0.06, 0.07, '#1b1d1a', 0.5, 6); box(0.85, 2.3, -0.42, -0.31, 0.12, 0.3, COVER, 0.5); for (const u of [0.3, 1.0, 1.8, 2.5]) box(u, u + 0.08, 0.31, 0.33, 0.18, 0.26, '#6a6f66', 0.8); box(1.1, 1.6, 0.31, 0.33, -0.18, 0.12, '#151715', 0.2); // ejection port on the right
+  // barrel, its heavy root, gas cylinder + block, carry handle, front sight, flash hider
+  cyl([3.35, 0, 0], [4.3, 0, 0], 0.21, 0.2, '#3a3d38', 0.7, 14); cyl([4.3, 0, 0], [9.7, 0, 0], 0.15, 0.14, '#33362f', 0.8, 14); cyl([3.6, 0, -0.34], [7.0, 0, -0.34], 0.12, 0.12, DARK, 0.6, 10); box(6.9, 7.2, -0.13, 0.13, -0.45, 0.08, DARK, 0.5);
+  cyl([4.4, 0, 0.12], [4.6, 0, 0.62], 0.06, 0.06, DARK, 0.5, 6); cyl([4.6, 0, 0.62], [5.4, 0, 0.58], 0.09, 0.09, '#1d1f1c', 0.3, 8); cyl([5.4, 0, 0.58], [5.55, 0, 0.12], 0.06, 0.06, DARK, 0.5, 6);
+  box(9.25, 9.4, -0.04, 0.04, 0.08, 0.4, '#1b1d1a', 0.4); cyl([9.7, 0, 0], [10.5, 0, 0], 0.16, 0.15, '#1f211e', 0.5, 12);
+  // spade grips, their back plate, the butterfly trigger
+  box(-0.38, -0.12, -0.8, 0.8, -0.36, -0.06, DARK, 0.4); for (const s of [-1, 1]) cyl([-0.5, s * 0.74, 0.12], [-0.62, s * 0.74, -1.45], 0.12, 0.13, '#1c1c1a', 0.3, 10); box(-0.32, -0.12, -0.36, 0.36, -0.27, -0.15, '#6a6a60', 0.7);
+  // the belt: cartridges rising from the ammo box into the feed tray, links between
+  const BP = q => [1.75 - q * 0.15, lerp(-1.45, -0.36, q), lerp(-0.42, 0.38, Math.sin(q * 1.5708)) + Math.sin(q * 3.14) * 0.12 + Math.sin(t * 5 + q * 9) * 0.015 * (1 - q)];
+  for (let i = 0; i < 16; i++) { const q = i / 15, [u, v, w] = BP(q); cyl([u - 0.26, v, w], [u + 0.18, v, w], 0.075, 0.075, BRASS, 1, 8, 1); cyl([u + 0.18, v, w], [u + 0.36, v, w], 0.058, 0.02, COPPER, 0.8, 6, 0);
+    if (i < 15) { const [u2, v2, w2] = BP((i + 1) / 15); cyl([u - 0.12, v, w - 0.07], [u2 - 0.12, v2, w2 - 0.07], 0.035, 0.035, '#25251f', 0.5, 5, 0); } }
+  // gloved hands round the grips, thumbs on the trigger, sleeves running back out of view
+  for (const s of [-1, 1]) { cyl([-0.55, s * 0.74, -0.3], [-0.62, s * 0.74, -1.25], 0.38, 0.4, GLOVE, 0.15, 10); for (let j = 0; j < 4; j++) cyl([-0.22, s * 0.74 - 0.3, -0.42 - j * 0.22], [-0.22, s * 0.74 + 0.3, -0.42 - j * 0.22], 0.12, 0.12, GLOVEL, 0.15, 8);
+    cyl([-0.75, s * 0.6, -0.35], [-0.32, s * 0.33, -0.2], 0.12, 0.1, GLOVE, 0.15, 8); cyl([-0.8, s * 0.78, -0.8], [-2.4, s * 1.5, -3.4], 0.42, 0.62, SLEEVE, 0.05, 10, 0); cyl([-0.8, s * 0.78, -0.8], [-1.1, s * 0.88, -1.4], 0.44, 0.47, '#4a5532', 0.05, 10, 0); }
+  return { F, mz: G(10.55, 0, 0), port: G(1.35, 0.4, 0) };
+}
+function giGun(c, W, H, t, kn) { const r = GIFP.rec, FG = H * 1.6, sx = Math.sin(t * 2.1) * 0.03 - (kn.gvY || 0) * 0.25, sy = Math.sin(t * 4.2) * 0.015 + (kn.gvP || 0) * 0.2;
+  const M = giGunModel(r, sx, sy, t), m0 = [M.mz[0] / M.mz[2] * FG, -M.mz[1] / M.mz[2] * FG], ox = W / 2 + 6 - m0[0] + r * 4, oy = H / 2 + 22 - m0[1] + r * 7, pr = q => [ox + q[0] / q[2] * FG, oy - q[1] / q[2] * FG];
+  M.F.sort((a, b) => b.z - a.z); c.lineJoin = 'round';
+  for (const f of M.F) { if (f.p.some(q => q[2] < 0.25)) continue; const L = GIGL, nl = Math.max(0, f.n[0] * L[0] + f.n[1] * L[1] + f.n[2] * L[2]), vl = Math.hypot(...f.c), hv = [L[0] - f.c[0] / vl, L[1] - f.c[1] / vl, L[2] - f.c[2] / vl], hl = Math.hypot(...hv) || 1;
+    const spc = Math.pow(Math.max(0, (f.n[0] * hv[0] + f.n[1] * hv[1] + f.n[2] * hv[2]) / hl), 18) * f.sp, rim = Math.pow(1 - Math.abs(f.n[2]), 3) * 0.12, k = 0.5 + 0.7 * nl, b = giRGB(f.col);
+    const col = `rgb(${Math.min(255, b[0] * k + 255 * (spc + rim)) | 0},${Math.min(255, b[1] * k + 255 * (spc + rim)) | 0},${Math.min(255, b[2] * k + 245 * (spc + rim)) | 0})`;
+    c.beginPath(); f.p.forEach((q, i) => { const s2 = pr(q); i ? c.lineTo(s2[0], s2[1]) : c.moveTo(s2[0], s2[1]); }); c.closePath(); c.fillStyle = col; c.fill(); c.strokeStyle = 'rgba(12,14,10,.55)'; c.lineWidth = 0.9; c.stroke(); }
+  const mz = pr(M.mz), port = pr(M.port); GIFP.mz = mz; GIFP.port = port;
+  c.fillStyle = '#050505'; c.beginPath(); c.arc(mz[0], mz[1], FG * 0.06 / M.mz[2], 0, 7); c.fill(); // the bore
+  // muzzle flash: a four-pointed star through the flash hider's prongs, a hot core and a glow; smoke curling off the barrel
+  c.save(); c.globalCompositeOperation = 'lighter'; if (r > 0.45) { const s3 = r * FG * 1.2 / M.mz[2];
+    for (const [rr2, col] of [[3.2, 'rgba(255,140,40,.28)'], [1.7, 'rgba(255,210,110,.6)'], [0.7, 'rgba(255,255,230,1)']]) { const g = c.createRadialGradient(mz[0], mz[1], 0, mz[0], mz[1], rr2 * s3); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.beginPath(); c.arc(mz[0], mz[1], rr2 * s3, 0, 7); c.fill(); }
+    c.fillStyle = 'rgba(255,225,150,.85)'; for (let i = 0; i < 4; i++) { const a = i / 4 * 6.283 + 0.785 + GIFP.rounds * 0.37; c.beginPath(); c.moveTo(mz[0] + Math.cos(a + 1.57) * s3 * 0.18, mz[1] + Math.sin(a + 1.57) * s3 * 0.18); c.lineTo(mz[0] + Math.cos(a) * s3 * 2.4, mz[1] + Math.sin(a) * s3 * 2.4); c.lineTo(mz[0] + Math.cos(a - 1.57) * s3 * 0.18, mz[1] + Math.sin(a - 1.57) * s3 * 0.18); c.fill(); } }
+  c.restore(); for (const q of GIFP.smoke) { const k = q.t / 0.9; c.fillStyle = `rgba(200,200,195,${0.22 * (1 - k)})`; c.beginPath(); c.arc(q.x, q.y, q.r * (1 + k * 2.5), 0, 7); c.fill(); }
+  for (const b of GIFP.brass) { c.save(); c.translate(b.x, b.y); c.rotate(b.r); c.fillStyle = '#d6b45a'; c.fillRect(-7, -2.6, 14, 5.2); c.fillStyle = '#8a6a2a'; c.fillRect(4.5, -2.6, 2.5, 5.2); c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(-6, -2, 10, 1.2); c.restore(); } }
+window.__giGun = (c, W, H, t, rec) => { GIFP.rec = rec || 0; giGun(c, W, H, t, {}); };
 // his screen: the door view over the world, with fades in and out of it
 function giView(t) { const kn = KN[ME]; if (!kn || kn.kind !== 'gi' || !(kn.gu >= 0)) { document.body.classList.remove('gifp'); return; } const U = GI.ULT, fp = giFP(kn) && !window.__noFP; document.body.classList.toggle('gifp', fp);
   if (fp) { x.save(); giDrawFP(x, kn, t); x.restore(); }
