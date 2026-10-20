@@ -99,7 +99,8 @@ details.fold[open] > summary { margin-bottom: 6px; }
       <span id="pbCtl" style="display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap;flex:0 0 auto"><label class="note"><input type="checkbox" id="pbPos" checked> Placement</label><label class="note"><input type="checkbox" id="pbRot" checked> Rotation</label>
         <span class="note">from</span><input type="number" id="pinA" min="0" style="width:56px" aria-label="From frame"><span class="note">to</span><input type="number" id="pinB" min="0" style="width:56px" aria-label="To frame">
         <button id="pinSetA" title="Use the frame you're on as the start">Start = this frame</button><button id="pinSetB" title="Use the frame you're on as the end">End = this frame</button><button id="pinAdd" class="primary">Pin</button></span>
-      <span id="pinList" style="display:flex;gap:6px;flex-wrap:nowrap;flex:0 0 auto"></span></div>
+      </div>
+    <div class="tbar" style="flex-wrap:nowrap;gap:6px;height:34px;overflow-x:auto;overflow-y:hidden;white-space:nowrap"><span class="note" id="pinHd" style="flex:0 0 150px">Its pins:</span><span id="pinList" style="display:flex;gap:6px;flex-wrap:nowrap;flex:0 0 auto"></span></div>
     <div id="track"><canvas id="tcv"></canvas><div id="scrubB" title="Drag to scrub through the frames"></div></div>
     <div class="tbar">
       <button id="bDel" class="danger" title="Delete the key at the current frame (Delete)">Delete key</button>
@@ -455,7 +456,13 @@ function ui() {
     $('pbName').textContent = SEL ? 'Pin ' + pinName({ p: SEL }).toLowerCase() + ':' : 'Pin: —'; $('pbName').title = SEL ? $('pbName').textContent : 'Click a part of him (hand, foot, head or torso) to pin it';
     for (const el of $('pbCtl').querySelectorAll('input, button')) el.disabled = !SEL; $('pbCtl').style.opacity = SEL ? 1 : 0.45; if (!SEL) { $('pinA').value = ''; $('pinB').value = ''; }
     if (SEL) { for (const [k, id] of [['pos', 'pbPos'], ['rot', 'pbRot']]) { const ok = PCAP[SEL].includes(k); $(id).disabled = !ok; $(id).parentElement.style.opacity = ok ? 1 : 0.4; } }
-    const L = (clip().pins || []).map((q, j) => q.p !== SEL ? '' : `<span class="note" style="display:inline-flex;gap:4px;align-items:center">📌 ${q.k === 'pos' ? 'placement' : q.k === 'rot' ? 'rotation' : 'held'} ${q.a}–${q.b}${q.a <= fr && fr <= q.b ? ' (here)' : ''} <button data-pin="${j}" class="danger" style="padding:1px 7px">✕</button></span>`).join(''); if ($('pinList').innerHTML !== L) $('pinList').innerHTML = L; }
+    // the selected part's pins, each editable in place: what it holds, from and to frames (the list is rebuilt only when the set of pins changes, so typing isn't interrupted)
+    const PS = (clip().pins || []).map((q, j) => [q, j]).filter(([q]) => q.p === SEL), shape = PS.map(([q, j]) => j + q.p).join(',') + '|' + ci;
+    $('pinHd').textContent = !SEL ? 'Its pins: —' : PS.length ? 'Its pins (edit here):' : 'Its pins: none yet';
+    if ($('pinList').dataset.s !== shape) { $('pinList').dataset.s = shape; $('pinList').innerHTML = PS.map(([q, j]) => { const caps = PCAP[q.p] || ['pos', 'rot'], opts = [...caps.map(k => [k, k === 'pos' ? 'placement' : 'rotation']), ...(caps.length > 1 ? [['', 'both']] : [])];
+      return `<span class="note pinI" data-j="${j}" style="display:inline-flex;gap:4px;align-items:center;padding:1px 4px;border-radius:4px">📌 <select data-pe="${j}" data-f="k" aria-label="What the pin holds" style="padding:3px 4px">${opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select><input type="number" min="0" data-pe="${j}" data-f="a" style="width:52px" aria-label="Pin from frame">–<input type="number" min="0" data-pe="${j}" data-f="b" style="width:52px" aria-label="Pin to frame"><button data-pin="${j}" class="danger" style="padding:1px 7px" title="Remove this pin">✕</button></span>`; }).join(''); }
+    for (const [q, j] of PS) { const box = $('pinList').querySelector(`[data-j="${j}"]`); if (!box) continue; box.style.background = q.a <= fr && fr <= q.b ? 'rgba(46,125,50,.15)' : ''; box.title = q.a <= fr && fr <= q.b ? 'This pin covers the frame you are on' : '';
+      for (const el of box.querySelectorAll('[data-pe]')) { if (document.activeElement === el) continue; el.value = el.dataset.f === 'k' ? (q.k || '') : q[el.dataset.f]; } } }
   TWS.forEach((q, j) => { $('sqn' + j).textContent = twName(q); const w = sqGet(pose, q); if (document.activeElement !== $('sq' + j)) $('sq' + j).value = w; $('sqo' + j).textContent = w.toFixed(2); }); TWS.forEach((q, j) => { $('twn' + j).textContent = twName(q); const v = twGet(pose, q); if (document.activeElement !== $('tw' + j)) $('tw' + j).value = v; $('two' + j).textContent = v.toFixed(2); });
   $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('bIce').textContent = 'Ice ball in hand: ' + (iceOn ? 'on' : 'off'); $('bIce').classList.toggle('on', iceOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
@@ -617,7 +624,11 @@ $('vF').onclick = () => setView(0); $('vB').onclick = () => setView(1);
 $('pinSetA').onclick = () => { $('pinA').value = fr; }; $('pinSetB').onclick = () => { $('pinB').value = fr; };
 $('pinAdd').onclick = () => { if (!SEL) return; let a = Math.round(+$('pinA').value), b = Math.round(+$('pinB').value); if ($('pinA').value === '' || $('pinB').value === '' || !Number.isFinite(a) || !Number.isFinite(b)) return; if (b < a) [a, b] = [b, a]; if (b === a) return;
   const ks = PCAP[SEL].filter(k => (k === 'pos' ? $('pbPos') : $('pbRot')).checked); if (!ks.length) return; snap(); const c = clip(); c.pins = (c.pins || []).concat(ks.map(k => ({ p: SEL, k, a, b }))); save(); if (!dirty) pose = poseAt(fr); ui(); draw(); };
-$('pinList').addEventListener('click', e => { const j = e.target.dataset && e.target.dataset.pin; if (j === undefined) return; snap(); const c = clip(); c.pins = c.pins.filter((q, i) => i !== +j); if (!c.pins.length) delete c.pins; save(); if (!dirty) pose = poseAt(fr); ui(); draw(); });
+$('pinList').addEventListener('change', e => { const el = e.target, j = el.dataset && el.dataset.pe; if (j === undefined) return; const c = clip(), q = c.pins && c.pins[+j]; if (!q) return; snap();
+  if (el.dataset.f === 'k') { if (el.value) q.k = el.value; else delete q.k; }
+  else { const v = Math.round(+el.value); if (Number.isFinite(v)) q[el.dataset.f] = cl(v, 0, lastFr()); if (q.a > q.b) { const t = q.a; q.a = q.b; q.b = t; } }
+  save(); if (!dirty) pose = poseAt(fr); ui(); draw(); });
+$('pinList').addEventListener('click', e => { const j = e.target.dataset && e.target.dataset.pin; if (j === undefined) return; snap(); const c = clip(); c.pins = c.pins.filter((q, i) => i !== +j); if (!c.pins.length) delete c.pins; $('pinList').dataset.s = ''; save(); if (!dirty) pose = poseAt(fr); ui(); draw(); });
 $('linkOn').onchange = e => { if (clip().game) { e.target.checked = false; lockMsg(); return; } snap(); const c = clip(), was = !!linkSrc(c), on = e.target.checked && !!$('linkSel').value;
   if (on && !was) { for (const k of c.keys) k.fr += 1; c.from = $('linkSel').value; }
   else if (!on && was) { c.from = null; c.keys = c.keys.filter(k => k.fr !== 0); for (const k of c.keys) k.fr -= 1; if (!c.keys.length) c.keys.push({ fr: 0, ease: 'smooth', pose: idlePose(1) }); }
