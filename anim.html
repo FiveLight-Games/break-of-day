@@ -75,6 +75,7 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
     <div id="track"><canvas id="tcv"></canvas></div>
     <div class="tbar">
       <button id="bDel" class="danger" title="Delete the key at the current frame (Delete)">Delete key</button>
+      <button id="bRestore" title="Put back this frame's key from the animation as it was saved: the game's version for a Storm Ogre animation, or how it was when you made it">Reset key to the game's version</button>
       <button id="bUndo" title="Undo (Ctrl+Z)">Undo</button>
       <label class="note">Motion to the next key <select id="ease"><option value="smooth">Smooth curve</option><option value="ease">Slow start and stop</option><option value="linear">Steady speed</option><option value="hold">Freeze, then jump</option></select></label>
       <label class="note">Playback speed <select id="spd"><option value="0.1">0.1×</option><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select></label>
@@ -1071,7 +1072,7 @@ function ui() {
   draw(); drawTrack(); stat();
   $('frLbl').textContent = `Frame ${fr} of ${lastFr()}`; $('bPlay').textContent = playing ? '❚❚' : '▶';
   { const k = keyAt(fr), clean = k && !dirty; $('bSnap').textContent = clean ? 'Key saved ✓' : 'Save key'; $('bSnap').disabled = clean || !!(clip() && clip().game); $('bSnap').classList.toggle('primary', !clean); }
-  $('bDel').disabled = !keyAt(fr) || keys().length < 2 || locked();
+  $('bDel').disabled = !keyAt(fr) || keys().length < 2 || locked(); { const o = origKey(), k = keyAt(fr); $('bRestore').textContent = clip().lib ? "Reset key to the game's version" : 'Reset key to the original'; $('bRestore').disabled = !o || locked() || (!!k && !dirty && JSON.stringify(k.pose) === JSON.stringify(o.pose)); };
   const K = keys(), seg = [...K].reverse().find(k => k.fr <= fr); $('ease').value = seg ? seg.ease || 'smooth' : 'smooth';
   for (const [id, v, d] of [['lean', pose.lean, 2], ['yaw', pose.yaw, 2], ['act', pose.act, 2]]) { $(id).value = v; $(id + 'O').textContent = (+v).toFixed(d); }
   $('fL').classList.toggle('on', pose.f < 0); $('fR').classList.toggle('on', pose.f > 0);
@@ -1131,9 +1132,14 @@ $('bReset').onclick = () => { const c = clip(); if (!c.lib) return; const b = $(
   b.dataset.sure = ''; b.textContent = "Reset to the game's version"; snap(); const o = JSON.parse(LIB0[c.id]); c.keys = o.keys; delete c.legs; delete c.from; save(); setFr(0); };
 $('clipFolder').addEventListener('change', e => { if (clip().lib) return; clip().folder = e.target.value.trim() || undefined; save(); ui(); });
 $('clipName').addEventListener('input', e => { clip().name = e.target.value || 'Untitled'; save(); ui(); });
-const addClip = c => { c.id = rid(); clips.push(c); ci = clips.length - 1; hist.length = 0; save(); setFr(0); };
+// Restore key: the key at this frame in the saved original (a library animation's game version, or an own animation as it was when made;
+// while a link has shifted everything back a frame, the original's frame is one earlier)
+const LIBK = {};
+const origKey = () => { const c = clip(), K = c.lib ? (LIBK[c.id] || (LIBK[c.id] = JSON.parse(LIB0[c.id]).keys)) : c.orig; if (!K) return null; const f0 = fr - (linkSrc(c) ? 1 : 0); return f0 >= 0 ? K.find(k => k.fr === f0) || null : null; };
+$('bRestore').onclick = () => { const o = origKey(); if (!o || locked()) return; snap(); const k = keyAt(fr), n = { fr, ease: o.ease || 'smooth', pose: clone(o.pose) }; if (k) Object.assign(k, n); else { keys().push(n); sortKeys(); } save(); setFr(fr); };
+const addClip = c => { c.id = rid(); c.orig = c.orig || clone(c.keys); clips.push(c); ci = clips.length - 1; hist.length = 0; save(); setFr(0); };
 $('bNew').onclick = () => addClip(blank('New clip ' + (clips.length + 1)));
-$('bDup').onclick = () => { const c = clone(clip()); delete c.game; delete c.lib; if (clip().lib) { delete c.folder; delete c.note; } { const base = clip().lib ? 'My ' + clip().name.toLowerCase() : c.name + ' copy'; let nm = base, i = 2; while (clips.some(q => q.name === nm)) nm = base + ' ' + i++; c.name = nm; } addClip(c); };
+$('bDup').onclick = () => { const c = clone(clip()); delete c.orig; delete c.game; delete c.lib; if (clip().lib) { delete c.folder; delete c.note; } { const base = clip().lib ? 'My ' + clip().name.toLowerCase() : c.name + ' copy'; let nm = base, i = 2; while (clips.some(q => q.name === nm)) nm = base + ' ' + i++; c.name = nm; } addClip(c); };
 const freshCopy = k2 => { const g = gameClip(k2); let i = 2; while (clips.some(c => c.name === g.name + ' ' + i)) i++; g.name += ' ' + i; addClip(g); };
 
 function bindDel() { $('bDelClip').onclick = () => { const r = $('delRow'); r.innerHTML = '<span class="confirm">Delete “' + clip().name.replace(/</g, '&lt;') + '”? <button id="dYes" class="danger">Delete</button><button id="dNo">Keep</button></span>'; $('dNo').onclick = () => { $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete this animation</button>'; bindDel(); }; $('dYes').onclick = () => { clips.splice(ci, 1); if (!clips.length) clips.push(blank('New clip')); ci = Math.min(ci, clips.length - 1); hist.length = 0; save(); $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete this animation</button>'; bindDel(); setFr(0); }; }; }
