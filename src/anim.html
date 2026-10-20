@@ -110,7 +110,7 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <label class="sl" title="Twist the chest toward or away from you">Torso twist <input type="range" id="yaw" min="-1.6" max="1.6" step="0.01"><output id="yawO"></output></label>
       <label class="sl" title="0 = ice head lit, 1 = storm head lit">Ice ↔ storm head <input type="range" id="act" min="0" max="1" step="0.01"><output id="actO"></output></label>
       <p class="note">Torso twist: + turns the far shoulder toward you, − the near one.</p>
-      <div class="row" style="margin-top:8px;display:none"><button id="bOrb" title="Show or hide the lightning in his storm hand">Lightning in hand: on</button></div>
+      <div class="row" style="margin-top:8px"><button id="bOrb" title="Show or hide the crackling lightning in his storm hand (a view setting, not saved in the animation)">Lightning in hand: off</button><button id="bIce" title="Show or hide the swirling ice ball in his ice hand (a view setting, not saved in the animation)">Ice ball in hand: off</button></div>
     </section>
     <section>
       <h2>What's in front</h2>
@@ -149,13 +149,13 @@ const clone = o => JSON.parse(JSON.stringify(o));
 // ---- poses: what drawO2's rig takes (hands relative to their shoulders) ----
 // the storm hand's lightning: shown or not (a view setting, remembered), and always crackling on its own clock
 // (2026-10-20, Elijah: no lightning in his hand in the bench for now; the toggle is hidden, he'll say when it goes back)
-let orbOn = false;
+let orbOn = false, iceOn = false; try { orbOn = localStorage.getItem('posebench-orb2') === '1'; iceOn = localStorage.getItem('posebench-ice') === '1'; } catch (e) {}
 // legs that walk with the player (clip.legs 'walk'): the game's gait draws them; the pose only gives the crouch (pelvis height vs standing)
 let walkPrev = true; try { walkPrev = localStorage.getItem('posebench-walk') !== '0'; } catch (e) {}
 const legWalk = () => typeof clips !== 'undefined' && clips && clips[ci] && clips[ci].legs === 'walk';
 let IDLEY = null;
 function renderFront(c, P, out) { const W = legWalk(), now = performance.now() / 1000; if (W) { if (IDLEY === null) IDLEY = idlePose(1).pel[1]; P = { ...P, walk: { dy: P.pel[1] - IDLEY } }; }
-  const o = { rig: P, noFx: 1, noJet: 1, outRig: out || { ord: [] }, noOrb: !orbOn, fxT: now, ph: now * OGX.GAIT.RATE }; OGX.drawO2(c, OGX.V, T0, P.f, W && walkPrev ? 1 : 0, -1, -1, 'act', P.act, -1, [], 0, o); return o.outRig; }
+  const o = { rig: P, noFx: 1, noJet: 1, outRig: out || { ord: [] }, noOrb: !orbOn, iSw: iceOn ? 1 : 0, fxF: 1, fxT: now, ph: now * OGX.GAIT.RATE }; OGX.drawO2(c, OGX.V, T0, P.f, W && walkPrev ? 1 : 0, -1, -1, 'act', P.act, -1, [], 0, o); return o.outRig; }
 // ---- seen from behind (P.view 1; between keys he turns like the game: the front narrows to half width round his middle, swaps, the back widens out) ----
 // P.bk: pel [x, y], aG/aP ankles (guard leg = far side, punch leg = near side), hG/hP hands relative to their shoulders, eG/eP elbow bends, made by backPose
 const BKD = {}; const backDef = f => BKD[f] || (BKD[f] = backPose(f));
@@ -390,7 +390,7 @@ function ui() {
   { const W = legWalk(); $('legP').classList.toggle('on', !W); $('legW').classList.toggle('on', W); $('walkRow').style.display = W ? '' : 'none'; $('bWalkPrev').textContent = 'Preview: ' + (walkPrev ? 'walking' : 'standing'); }
   for (const s2 of ['A', 'B']) { $('xf' + s2).textContent = 'Flip ' + nameOf(s2).replace(' arm', ' hand'); $('xf' + s2).classList.toggle('on', !!pose['hf' + s2]); $('bk' + s2).textContent = cap(nameOf(s2).replace(' arm', ' hand')) + ': ' + (pose['hb' + s2] ? 'back' : 'palm') + ' showing'; $('bk' + s2).classList.toggle('on', !!pose['hb' + s2]); }
   for (const i of [0, 1]) { $('xf' + i).textContent = 'Flip ' + footName(i) + ' foot'; $('xf' + i).classList.toggle('on', !!(pose.ff || [])[i]); $('xh' + i).classList.toggle('on', !!(pose.hfl || [])[i]); }
-  $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
+  $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('bIce').textContent = 'Ice ball in hand: ' + (iceOn ? 'on' : 'off'); $('bIce').classList.toggle('on', iceOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
   for (const s of ['A', 'B']) { const fist = (pose['c' + s] || 0) > 0.5; $('hd' + s).textContent = cap(nameOf(s).replace(' arm', ' hand')) + (fist ? ': fist' : ': open'); $('fl' + s).textContent = 'Flip ' + nameOf(s).replace(' arm', ' elbow'); $('hd' + s).classList.toggle('on', fist); }
   $('bLoop').classList.toggle('on', loop); $('bOnion').classList.toggle('on', onion);
@@ -426,9 +426,10 @@ $('bPlay').onclick = () => playing ? stop() : play();
 $('bFirst').onclick = () => { stop(); setFr(0); }; $('bPrev').onclick = () => { stop(); setFr(fr - 1); }; $('bNext').onclick = () => { stop(); setFr(fr + 1); };
 $('bPrevK').onclick = () => { stop(); const k = [...keys()].reverse().find(k => k.fr < fr); if (k) setFr(k.fr); };
 $('bNextK').onclick = () => { stop(); const k = keys().find(k => k.fr > fr); if (k) setFr(k.fr); };
-$('bOrb').onclick = () => { orbOn = !orbOn; try { localStorage.setItem('posebench-orb', orbOn ? '1' : '0'); } catch (e) {} ui(); };
+$('bOrb').onclick = () => { orbOn = !orbOn; try { localStorage.setItem('posebench-orb2', orbOn ? '1' : '0'); } catch (e) {} ui(); draw(); };
+$('bIce').onclick = () => { iceOn = !iceOn; try { localStorage.setItem('posebench-ice', iceOn ? '1' : '0'); } catch (e) {} ui(); draw(); };
 // keep redrawing while the lightning shows, so it crackles even when nothing is playing
-(function fxLoop() { if ((orbOn || (legWalk() && walkPrev)) && !playing && !drag) draw(); requestAnimationFrame(fxLoop); })();
+(function fxLoop() { if ((orbOn || iceOn || (legWalk() && walkPrev)) && !playing && !drag) draw(); requestAnimationFrame(fxLoop); })();
 const setLegs = v => { if (clip().game) { lockMsg(); return; } snap(); clip().legs = v; save(); ui(); draw(); };
 $('legP').onclick = () => setLegs('pose'); $('legW').onclick = () => setLegs('walk');
 $('bWalkPrev').onclick = () => { walkPrev = !walkPrev; try { localStorage.setItem('posebench-walk', walkPrev ? '1' : '0'); } catch (e) {} ui(); draw(); };

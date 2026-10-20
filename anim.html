@@ -110,7 +110,7 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <label class="sl" title="Twist the chest toward or away from you">Torso twist <input type="range" id="yaw" min="-1.6" max="1.6" step="0.01"><output id="yawO"></output></label>
       <label class="sl" title="0 = ice head lit, 1 = storm head lit">Ice ↔ storm head <input type="range" id="act" min="0" max="1" step="0.01"><output id="actO"></output></label>
       <p class="note">Torso twist: + turns the far shoulder toward you, − the near one.</p>
-      <div class="row" style="margin-top:8px;display:none"><button id="bOrb" title="Show or hide the lightning in his storm hand">Lightning in hand: on</button></div>
+      <div class="row" style="margin-top:8px"><button id="bOrb" title="Show or hide the crackling lightning in his storm hand (a view setting, not saved in the animation)">Lightning in hand: off</button><button id="bIce" title="Show or hide the swirling ice ball in his ice hand (a view setting, not saved in the animation)">Ice ball in hand: off</button></div>
     </section>
     <section>
       <h2>What's in front</h2>
@@ -559,7 +559,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
     if (!WPN && !ice && !opts.noOrb && (k > 0.3 || rnd(Math.floor(tq * 9) + 7) > 0.45 + 0.5 * (1 - zL)) && V.st !== 'paint') arc2(c, [fc[0] - n[0] * 1.3, fc[1] - n[1] * 1.3], [fc[0] + n[0] * 1.4 + d[0], fc[1] + n[1] * 1.4 + d[1]], SG, V.core, Math.floor(tq * 14), 0.08, 0.7, 5);
     if (k > 0.2) { c.save(); c.globalCompositeOperation = 'lighter'; glow(c, fc[0], fc[1], 2.8 + k, ice ? IG : SG, 0.45 * k); c.restore(); }
     // lightning in charge: a ball of lightning crackles in the storm hand, bolts snapping out of it to the fingertips and the air around
-    if (!WPN && !ice && zL > 0.05 && k < 0.5 && !opts.noOrb) { const S = zL * (1 - k * 2), o = [fc[0] + d[0] * 1.6 + f * 0.6, fc[1] + d[1] * 1.6 - 0.2], R = 1.15 * S, sd = Math.floor(tq * 16), fl = 0.75 + 0.25 * rnd(sd * 3.1);
+    if (!WPN && !ice && (zL > 0.05 || opts.fxF) && k < 0.5 && !opts.noOrb) { const S = (opts.fxF ? Math.max(zL, 0.8) : zL) * (1 - k * 2), o = [fc[0] + d[0] * 1.6 + f * 0.6, fc[1] + d[1] * 1.6 - 0.2], R = 1.15 * S, sd = Math.floor(tq * 16), fl = 0.75 + 0.25 * rnd(sd * 3.1);
       const jag = (a, b, seed, jit, n) => { const P = [a]; for (let i = 1; i < n; i++) { const q = i / n, p = L2(a, b, q), dx = b[0] - a[0], dy = b[1] - a[1], dl = Math.hypot(dx, dy) || 1, o2 = (rnd(seed + i * 7.3) - 0.5) * jit * Math.sin(q * Math.PI) * 2; P.push([p[0] - dy / dl * o2, p[1] + dx / dl * o2]); } P.push(b); return P; };
       const zline = (P, w2, a2 = 1) => { c.lineJoin = 'round'; c.lineCap = 'round'; c.beginPath(); P.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.strokeStyle = `rgba(60,130,230,${0.35 * a2})`; c.lineWidth = w2 * 4; c.stroke(); c.strokeStyle = `rgba(${SG},${0.95 * a2})`; c.lineWidth = w2 * 1.6; c.stroke(); c.strokeStyle = `rgba(255,255,255,${a2})`; c.lineWidth = w2 * 0.6; c.stroke(); };
       c.save(); c.translate(...o); // drawn normally (not additive), so it stays electric blue over the green grass
@@ -575,19 +575,19 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
       for (let i = 0; i < 6; i++) { const a = tq * 6 + i * 1.047, rr = R * (1.35 + 0.25 * Math.sin(tq * 7 + i)), p = [Math.cos(a) * rr, Math.sin(a) * rr * 0.8]; c.fillStyle = `rgba(255,255,255,${0.9 * S})`; c.fillRect(p[0] - 0.07, p[1] - 0.07, 0.14, 0.14); }
       c.restore(); }
     // frost in charge: a swirl of frost spins in the ice hand (it grows in as he takes over, fades as he hands back)
-    if (!WPN && ice && iL > 0.05 && (opts.iSw !== undefined ? opts.iSw > 0.02 : k < 0.5)) { const S = opts.iSw !== undefined ? Math.max(iL, 0.6) * opts.iSw : iL * (1 - k * 2), o = [fc[0] + d[0] * 1.6 + f * 0.6, fc[1] + d[1] * 1.6 - 0.2], R = 1.75 * S, sp = t * 3.2;
+    if (!WPN && ice && (iL > 0.05 || opts.fxF) && (opts.iSw !== undefined ? opts.iSw > 0.02 : k < 0.5)) { const S = opts.iSw !== undefined ? Math.max(iL, opts.fxF ? 1 : 0.6) * opts.iSw : iL * (1 - k * 2), o = [fc[0] + d[0] * 1.6 + f * 0.6, fc[1] + d[1] * 1.6 - 0.2], R = 1.75 * S, sp = tq * 3.2;
       // a little snowstorm: puffs of cloud churning round, wind streaks curling about it and snowflakes riding the wind
       c.save(); c.translate(...o);
       const g = c.createRadialGradient(0, 0, 0, 0, 0, R * 1.6); g.addColorStop(0, `rgba(225,245,255,${0.5 * S})`); g.addColorStop(1, 'rgba(200,235,255,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, R * 1.6, 0, 7); c.fill();
       // cloud puffs, back ones darker, front ones bright
-      const puffs = []; for (let i = 0; i < 9; i++) { const a = sp * 0.9 + i * 0.698, rr = R * (0.45 + 0.25 * Math.sin(i * 2.3 + t * 1.5)), pr = R * (0.38 + 0.12 * Math.sin(i * 1.7 + t * 2)); puffs.push([Math.cos(a) * rr, Math.sin(a) * rr * 0.7, pr, Math.sin(a)]); }
+      const puffs = []; for (let i = 0; i < 9; i++) { const a = sp * 0.9 + i * 0.698, rr = R * (0.45 + 0.25 * Math.sin(i * 2.3 + tq * 1.5)), pr = R * (0.38 + 0.12 * Math.sin(i * 1.7 + tq * 2)); puffs.push([Math.cos(a) * rr, Math.sin(a) * rr * 0.7, pr, Math.sin(a)]); }
       puffs.sort((p1, p2) => p1[3] - p2[3]);
       for (const [x, y, pr, z] of puffs) { const lt = 0.5 + 0.5 * z; c.fillStyle = `rgba(${Math.round(185 + 60 * lt)},${Math.round(215 + 35 * lt)},255,${0.9 * S})`; c.beginPath(); c.arc(x, y, pr, 0, 7); c.fill(); c.fillStyle = `rgba(255,255,255,${0.55 * S * lt})`; c.beginPath(); c.arc(x - pr * 0.3, y - pr * 0.35, pr * 0.45, 0, 7); c.fill(); }
       // wind streaks curling round it
       c.lineCap = 'round'; for (let k2 = 0; k2 < 4; k2++) { const a0 = -sp * 1.3 + k2 * 1.571, rr = R * (1.05 + 0.2 * (k2 % 2)); c.beginPath(); for (let q = 0; q <= 1.0001; q += 0.1) { const a = a0 + q * 1.9, r3 = rr * (1 + 0.12 * q); q ? c.lineTo(Math.cos(a) * r3, Math.sin(a) * r3 * 0.72) : c.moveTo(Math.cos(a) * r3, Math.sin(a) * r3 * 0.72); }
         c.strokeStyle = `rgba(255,255,255,${0.75 * S})`; c.lineWidth = 0.1 * S; c.stroke(); const ea = a0 + 1.9, ep = [Math.cos(ea) * rr * 1.12, Math.sin(ea) * rr * 1.12 * 0.72]; c.beginPath(); c.arc(ep[0], ep[1], 0.18 * S, ea, ea + 4); c.stroke(); }
       // snowflakes swept round in the wind
-      for (let i = 0; i < 5; i++) { const a = -sp * 1.6 + i * 1.257, rr = R * (0.95 + 0.35 * Math.sin(t * 3 + i * 1.3)), p = [Math.cos(a) * rr, Math.sin(a) * rr * 0.72 - 0.2]; snowflake(c, p, 0.32 * S, t, 50 + i); }
+      for (let i = 0; i < 5; i++) { const a = -sp * 1.6 + i * 1.257, rr = R * (0.95 + 0.35 * Math.sin(tq * 3 + i * 1.3)), p = [Math.cos(a) * rr, Math.sin(a) * rr * 0.72 - 0.2]; snowflake(c, p, 0.32 * S, t, 50 + i); }
       c.restore(); } };
   const shoulder = (s, ice) => { if (V.st === 'armour') { if (ice) bevel(c, chunk(s[0], s[1] - 0.4, 2.2, 1.6, f * 0.15, 61, 7), '#c4e9ff', { lw: 0.17, inner: (Q, ox, oy, sz) => iceIn(c, Q, ox, oy, sz, 61, t) }); else { cel(c, ellP(s[0], s[1] - 0.4, 2.1, 1.5, f * 0.1, 10), '#b8733a', { d: 0.25 }); const tp = [s[0] + f * 0.2, s[1] - 1.6]; c.strokeStyle = OUT; c.lineWidth = 0.55 * OLW; c.beginPath(); c.moveTo(...tp); c.lineTo(tp[0] - f * 0.3, tp[1] - 2.0); c.stroke(); c.strokeStyle = '#d99a5a'; c.lineWidth = 0.32; c.stroke(); for (const q of [0.35, 0.6, 0.85]) { const p = [tp[0] - f * 0.3 * q, tp[1] - 2.0 * q]; c.fillStyle = '#e8b070'; c.strokeStyle = OUT; c.lineWidth = 0.1 * OLW; c.beginPath(); c.ellipse(p[0], p[1], 0.45, 0.16, 0, 0, 7); c.fill(); c.stroke(); } const tip = [tp[0] - f * 0.3, tp[1] - 2.2]; c.save(); c.globalCompositeOperation = 'lighter'; glow(c, ...tip, 1.2, SG, 0.8); c.restore(); if (rnd(Math.floor(t * 10)) > 0.4) arc2(c, tip, [tip[0] + (rnd(Math.floor(t * 10) + 1) - 0.5) * 3, tip[1] - 0.5 - rnd(Math.floor(t * 10) + 2) * 1.5], SG, V.core, Math.floor(t * 10), 0.07, 0.6, 5); } return; }
     if (!ice && V.st === 'stone') { if (!SF) s = [shB[0] - f * 0.55, shB[1] - 0.15]; piece(c, chunk(s[0] + f * 0.15, s[1] - 0.75, 0.7, 0.6, f * 0.3, 81, 7), 'stone', 81, t, V, { lw: 0.15 }); piece(c, chunk(s[0] + f * 0.85, s[1] - 0.45, 0.39, 0.33, f * 0.6, 83, 6), 'stone', 83, t, V, { lw: 0.12 }); }
@@ -876,13 +876,13 @@ const clone = o => JSON.parse(JSON.stringify(o));
 // ---- poses: what drawO2's rig takes (hands relative to their shoulders) ----
 // the storm hand's lightning: shown or not (a view setting, remembered), and always crackling on its own clock
 // (2026-10-20, Elijah: no lightning in his hand in the bench for now; the toggle is hidden, he'll say when it goes back)
-let orbOn = false;
+let orbOn = false, iceOn = false; try { orbOn = localStorage.getItem('posebench-orb2') === '1'; iceOn = localStorage.getItem('posebench-ice') === '1'; } catch (e) {}
 // legs that walk with the player (clip.legs 'walk'): the game's gait draws them; the pose only gives the crouch (pelvis height vs standing)
 let walkPrev = true; try { walkPrev = localStorage.getItem('posebench-walk') !== '0'; } catch (e) {}
 const legWalk = () => typeof clips !== 'undefined' && clips && clips[ci] && clips[ci].legs === 'walk';
 let IDLEY = null;
 function renderFront(c, P, out) { const W = legWalk(), now = performance.now() / 1000; if (W) { if (IDLEY === null) IDLEY = idlePose(1).pel[1]; P = { ...P, walk: { dy: P.pel[1] - IDLEY } }; }
-  const o = { rig: P, noFx: 1, noJet: 1, outRig: out || { ord: [] }, noOrb: !orbOn, fxT: now, ph: now * OGX.GAIT.RATE }; OGX.drawO2(c, OGX.V, T0, P.f, W && walkPrev ? 1 : 0, -1, -1, 'act', P.act, -1, [], 0, o); return o.outRig; }
+  const o = { rig: P, noFx: 1, noJet: 1, outRig: out || { ord: [] }, noOrb: !orbOn, iSw: iceOn ? 1 : 0, fxF: 1, fxT: now, ph: now * OGX.GAIT.RATE }; OGX.drawO2(c, OGX.V, T0, P.f, W && walkPrev ? 1 : 0, -1, -1, 'act', P.act, -1, [], 0, o); return o.outRig; }
 // ---- seen from behind (P.view 1; between keys he turns like the game: the front narrows to half width round his middle, swaps, the back widens out) ----
 // P.bk: pel [x, y], aG/aP ankles (guard leg = far side, punch leg = near side), hG/hP hands relative to their shoulders, eG/eP elbow bends, made by backPose
 const BKD = {}; const backDef = f => BKD[f] || (BKD[f] = backPose(f));
@@ -1117,7 +1117,7 @@ function ui() {
   { const W = legWalk(); $('legP').classList.toggle('on', !W); $('legW').classList.toggle('on', W); $('walkRow').style.display = W ? '' : 'none'; $('bWalkPrev').textContent = 'Preview: ' + (walkPrev ? 'walking' : 'standing'); }
   for (const s2 of ['A', 'B']) { $('xf' + s2).textContent = 'Flip ' + nameOf(s2).replace(' arm', ' hand'); $('xf' + s2).classList.toggle('on', !!pose['hf' + s2]); $('bk' + s2).textContent = cap(nameOf(s2).replace(' arm', ' hand')) + ': ' + (pose['hb' + s2] ? 'back' : 'palm') + ' showing'; $('bk' + s2).classList.toggle('on', !!pose['hb' + s2]); }
   for (const i of [0, 1]) { $('xf' + i).textContent = 'Flip ' + footName(i) + ' foot'; $('xf' + i).classList.toggle('on', !!(pose.ff || [])[i]); $('xh' + i).classList.toggle('on', !!(pose.hfl || [])[i]); }
-  $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
+  $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('bIce').textContent = 'Ice ball in hand: ' + (iceOn ? 'on' : 'off'); $('bIce').classList.toggle('on', iceOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
   for (const s of ['A', 'B']) { const fist = (pose['c' + s] || 0) > 0.5; $('hd' + s).textContent = cap(nameOf(s).replace(' arm', ' hand')) + (fist ? ': fist' : ': open'); $('fl' + s).textContent = 'Flip ' + nameOf(s).replace(' arm', ' elbow'); $('hd' + s).classList.toggle('on', fist); }
   $('bLoop').classList.toggle('on', loop); $('bOnion').classList.toggle('on', onion);
@@ -1153,9 +1153,10 @@ $('bPlay').onclick = () => playing ? stop() : play();
 $('bFirst').onclick = () => { stop(); setFr(0); }; $('bPrev').onclick = () => { stop(); setFr(fr - 1); }; $('bNext').onclick = () => { stop(); setFr(fr + 1); };
 $('bPrevK').onclick = () => { stop(); const k = [...keys()].reverse().find(k => k.fr < fr); if (k) setFr(k.fr); };
 $('bNextK').onclick = () => { stop(); const k = keys().find(k => k.fr > fr); if (k) setFr(k.fr); };
-$('bOrb').onclick = () => { orbOn = !orbOn; try { localStorage.setItem('posebench-orb', orbOn ? '1' : '0'); } catch (e) {} ui(); };
+$('bOrb').onclick = () => { orbOn = !orbOn; try { localStorage.setItem('posebench-orb2', orbOn ? '1' : '0'); } catch (e) {} ui(); draw(); };
+$('bIce').onclick = () => { iceOn = !iceOn; try { localStorage.setItem('posebench-ice', iceOn ? '1' : '0'); } catch (e) {} ui(); draw(); };
 // keep redrawing while the lightning shows, so it crackles even when nothing is playing
-(function fxLoop() { if ((orbOn || (legWalk() && walkPrev)) && !playing && !drag) draw(); requestAnimationFrame(fxLoop); })();
+(function fxLoop() { if ((orbOn || iceOn || (legWalk() && walkPrev)) && !playing && !drag) draw(); requestAnimationFrame(fxLoop); })();
 const setLegs = v => { if (clip().game) { lockMsg(); return; } snap(); clip().legs = v; save(); ui(); draw(); };
 $('legP').onclick = () => setLegs('pose'); $('legW').onclick = () => setLegs('walk');
 $('bWalkPrev').onclick = () => { walkPrev = !walkPrev; try { localStorage.setItem('posebench-walk', walkPrev ? '1' : '0'); } catch (e) {} ui(); draw(); };
