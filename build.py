@@ -22,7 +22,7 @@ import base64
 assets = 'window.TD_ASSETS = { buildLoop: "data:audio/mpeg;base64,' + base64.b64encode((d / 'assets' / 'build-loop.mp3').read_bytes()).decode() + '" };'
 out = tpl.replace('/*__LOG__*/[]', json.dumps([{'v': e['v'], 'date': e['date'], 'notes': e['notes']} for e in log], ensure_ascii=False).replace('</', '<\\/')).replace('__BUILD__', build).replace('__VER__', ver).replace('/*__GAME__*/', assets + '\n' + safe('game.js')).replace('/*__CLIENT__*/', safe('client.js').replace('const TD = window.TD;\n', 'const TD = window.TD;\n' + safe('tribe.js') + '\n', 1))
 (root / 'index.html').write_text(out)
-(root / 'knights.html').write_text((d / 'knights.html').read_text().replace('__BUILD__', build).replace("['__HELI_LIST__']", json.dumps([base64.b64encode((d / 'assets' / f'heli{i}.mp3').read_bytes()).decode() for i in range(1, 11)])))  # Knight Brawl: a separate co-op mode page
+(root / 'knights.html').write_text((d / 'knights.html').read_text().replace('__BUILD__', build).replace("['__HELI_LIST__']", json.dumps([base64.b64encode((d / 'assets' / f'heli{i}.mp3').read_bytes()).decode() for i in range(1, 11)])).replace("'__HITMARK__'", json.dumps(base64.b64encode((d / 'assets' / 'hitmarker.mp3').read_bytes()).decode())))  # Knight Brawl: a separate co-op mode page
 
 # Pose Bench (src/anim.html -> anim.html): the Storm Ogre's art (the OGX closure) and the game's hook poses inlined from knights.html
 _kn = (d / 'knights.html').read_text(); _o0 = _kn.index('const OGX = (() => {'); _o1 = _kn.index('\n})();', _kn.index('return { drawO2', _o0)) + 6
