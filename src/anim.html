@@ -93,6 +93,7 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <div class="row" style="margin-top:4px"><select id="linkSel" style="flex:1;min-width:0" aria-label="Animation to start from"></select></div>
       <div class="row" style="margin-top:8px"><span class="note">Legs</span><div class="seg"><button id="legP" title="The legs do what you pose here">Posed here</button><button id="legW" title="In the game the legs keep walking with the player's movement; only the upper body and the crouch come from here">Walk with the player</button></div></div>
       <div class="row" style="margin-top:4px" id="walkRow"><button id="bWalkPrev" title="Preview the legs walking or standing (a view setting)">Preview: walking</button></div>
+      <div class="row" style="margin-top:6px"><button id="bReset" class="danger" title="Throw away your changes to this animation and go back to how it is in the game">Reset to the game's version</button></div>
       <div class="row" style="margin-top:6px" id="delRow"><button id="bDelClip" class="danger">Delete this animation</button></div>
 
     </section>
@@ -179,7 +180,8 @@ function gameClip(k2) { const f = 1, keys = [], F = OGHK.F; for (let fr = 0; fr 
 function oldGameClip(k2) { const f = k2 === 1 ? 1 : -1, keys = []; for (let fr = 0; fr <= HOOKF; fr += (fr + 3 > HOOKF && fr < HOOKF ? HOOKF - fr : 3)) keys.push({ fr, pose: gamePose(k2, f, Math.min(1, fr / HOOKF)) }); return keys; }
 window.__bench = { gamePose, render, gameClip }; // for frame sheets / tests
 let clips, ci = 0;
-let GI0 = null; try { const s = JSON.parse(localStorage.getItem('posebench') || 'null'); if (s && s.clips) { clips = s.clips; ci = cl(s.ci | 0, 0, Math.max(0, clips.length - 1)); GI0 = s.gi || null; } } catch (e) {}
+// 'posebench2' (2026-10-20): a clean start; the old 'posebench' save is left alone but no longer read
+let GI0 = null, LIBO = {}; try { const s = JSON.parse(localStorage.getItem('posebench2') || 'null'); if (s && s.lib) LIBO = s.lib; if (s && s.clips) { clips = s.clips; GI0 = s.cur || null; } } catch (e) {}
 if (!clips) clips = [];
 // the game's two punches are always in the Open list (added if missing; an edited copy keeps its own name)
 // older saves named them '... (game, facing ...)': drop that, then drop exact duplicates (an untouched second copy)
@@ -194,9 +196,12 @@ for (const c of clips) c.name = c.name.replace(/ \(game, facing (left|right)\)/,
   const untouched = c => OLD.some(K => K.length === c.keys.length && K.every((k, i) => { const q = c.keys[i]; return q.fr === k.fr && near(q.pose.pel, k.pose.pel) && near(q.pose.hA, k.pose.hA) && near(q.pose.hB, k.pose.hB) && q.pose.f === k.pose.f; }));
   clips = clips.filter(c => { const m = /^(Lightning|Ice) punch( \d+| \(your copy( \d+)?\))?$/.exec(c.name); if (!m) return true; if (untouched(c)) return false; let nm = 'My ' + m[1].toLowerCase() + ' punch', i = 2; while (clips.some(q => q !== c && q.name === nm)) nm = 'My ' + m[1].toLowerCase() + ' punch ' + i++; c.name = nm; return true; }); }
 // the Storm Ogre library: every animation recorded from the game (tools/record-ogre.js), in folders, read-only (Copy this one to edit)
-const LIB = (typeof OG_LIB !== 'undefined' ? OG_LIB.folders : []).flatMap(F => F.clips.map(c => ({ id: 'lib:' + F.name + ':' + c.name, game: true, lib: 1, folder: 'Storm Ogre › ' + F.name, name: c.name, note: c.note, keys: c.keys })));
-clips = clips.filter(c => !c.game).concat(LIB);
-if (GI0) ci = Math.max(0, clips.findIndex(c => c.id === GI0)); ci = Math.min(ci, clips.length - 1);
+// the library animations are the ones the game uses: edit them directly (changes are saved over them here; 'Reset to the game's version' undoes that)
+const LIB = (typeof OG_LIB !== 'undefined' ? OG_LIB.folders : []).flatMap(F => F.clips.map(c => ({ id: 'lib:' + F.name + ':' + c.name, lib: 1, folder: 'Storm Ogre › ' + F.name, name: c.name, note: c.note, keys: c.keys })));
+const LIB0 = {}; for (const c of LIB) { LIB0[c.id] = JSON.stringify({ keys: c.keys }); const o = LIBO[c.id]; if (o) Object.assign(c, clone(o)); }
+const libChanged = c => c.lib && (JSON.stringify({ keys: c.keys }) !== LIB0[c.id] || c.legs === 'walk' || !!c.from);
+clips = clips.filter(c => !c.game && !c.lib).concat(LIB);
+ci = GI0 ? Math.max(0, clips.findIndex(c => c.id === GI0)) : 0; ci = Math.min(ci, clips.length - 1);
 // linking: an animation can start where another ends (clip.from = that one's id); its frame 0 is a locked copy of that one's last key
 const rid = () => Math.random().toString(36).slice(2, 9);
 for (const c of clips) c.id = c.id || rid();
@@ -205,7 +210,7 @@ function relink() { for (const c of clips) { if (!c.from) continue; const src = 
   const last = src.keys.reduce((a, k) => k.fr > a.fr ? k : a), k0 = c.keys.find(k => k.fr === 0), P = clone(last.pose);
   if (k0) k0.pose = P; else { c.keys.push({ fr: 0, ease: 'smooth', pose: P }); c.keys.sort((a, b) => a.fr - b.fr); } } }
 relink();
-const save = () => { relink(); try { const own = clips.filter(c => !c.game); localStorage.setItem('posebench', JSON.stringify({ clips: own, ci: Math.max(0, own.indexOf(clip())), gi: clip() && clip().game ? clip().id : null })); } catch (e) {} };
+const save = () => { relink(); try { const own = clips.filter(c => !c.lib), lib = {}; for (const c of clips) if (libChanged(c)) lib[c.id] = { keys: c.keys, legs: c.legs, from: c.from }; localStorage.setItem('posebench2', JSON.stringify({ clips: own, lib, cur: clip() ? clip().id : null })); } catch (e) {} };
 const clip = () => clips[ci], keys = () => clip().keys;
 const sortKeys = () => keys().sort((a, b) => a.fr - b.fr);
 const keyAt = fr => keys().find(k => k.fr === fr);
@@ -233,7 +238,7 @@ function poseAt(t) { const K = keys(); if (!K.length) return idlePose(1); if (t 
 let fr = 0, pose = poseAt(0), dirty = false, playing = false, loop = true, onion = true, pt = 0, last = 0, rig = null;
 const onKey = () => !!keyAt(fr);
 function setFr(n) { fr = Math.max(0, Math.round(n)); pose = poseAt(fr); dirty = false; ui(); }
-const locked = () => !!(clip() && clip().game) || (fr === 0 && !!linkSrc(clip()));
+const locked = () => fr === 0 && !!linkSrc(clip());
 let lockMsgT = 0; const lockMsg = () => { lockMsgT = performance.now(); stat(); };
 // a changed pose is only kept when Save key is pressed (it then replaces the key at this frame, or adds one)
 function edited() { if (locked()) { pose = poseAt(fr); dirty = false; lockMsg(); ui(); return; } dirty = true; ui(); }
@@ -271,7 +276,7 @@ const BACKH = (r, P) => [
     { id: 'beG', p: r.eG, k: 'elbowD', c: '--a', b: 'G' }, { id: 'beP', p: r.eP, k: 'elbowD', c: '--b', b: 'P' },
     { id: 'bxG', p: flipB(r.shG, r.hG, r.eG), k: 'elbow', c: '--a', b: 'G' }, { id: 'bxP', p: flipB(r.shP, r.hP, r.eP), k: 'elbow', c: '--b', b: 'P' },
     { id: 'hdI', p: headOf(r, P, 0), k: 'head', c: '--b', i: 0 }, { id: 'hdZ', p: headOf(r, P, 1), k: 'head', c: '--a', i: 1 } ];
-const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || (clip() && clip().game)) return []; if (r.back) return BACKH(r, P); const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.95];
+const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || locked()) return []; if (r.back) return BACKH(r, P); const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.95];
   return [
     { id: 'hA', p: r.hA, k: 'hand', c: '--a', l: 'A' }, { id: 'hB', p: r.hB, k: 'hand', c: '--b', l: 'B' },
     { id: 'f0', p: r.feet[0], k: 'foot', c: '--ink', i: 0 }, { id: 'f1', p: r.feet[1], k: 'foot', c: '--ink', i: 1 },
@@ -333,7 +338,8 @@ function drawTrack() { const W = tcv.width / DPR, H = tcv.height / DPR, L = tlLe
   const st = L > 240 ? 30 : L > 120 ? 10 : 6; for (let f2 = 0; f2 <= L; f2++) { const x = X(f2); if (f2 % st === 0) { tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, 12); tctx.stroke(); tctx.fillText(f2, x, 22); } else if (L <= 120) { tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, 4); tctx.stroke(); } }
   const K = keys(); for (let i = 0; i < K.length; i++) { const k = K[i], x = X(k.fr), y = 39, sel = k.fr === fr;
     if (i < K.length - 1) { const n = K[i + 1], P = k.pose, Q = n.pose; if (P.eA !== Q.eA || P.eB !== Q.eB || P.aF !== Q.aF || P.bF !== Q.bF || P.ls !== Q.ls || P.kn[0] !== Q.kn[0] || P.kn[1] !== Q.kn[1]) { tctx.fillStyle = css('--warn'); tctx.fillRect(X(n.fr) - 1, 28, 2, 22); } }
-    tctx.fillStyle = sel ? css('--sel') : css('--key'); tctx.beginPath(); tctx.moveTo(x, y - 7); tctx.lineTo(x + 7, y); tctx.lineTo(x, y + 7); tctx.lineTo(x - 7, y); tctx.closePath(); tctx.fill();
+    const lk = k.fr === 0 && !!linkSrc(clip()); if (lk) { tctx.save(); tctx.font = '15px sans-serif'; tctx.textAlign = 'left'; tctx.fillText('🔒', x + 9, y + 5); tctx.restore(); }
+    tctx.fillStyle = lk ? css('--mute') : sel ? css('--sel') : css('--key'); tctx.beginPath(); tctx.moveTo(x, y - 7); tctx.lineTo(x + 7, y); tctx.lineTo(x, y + 7); tctx.lineTo(x - 7, y); tctx.closePath(); tctx.fill();
     if (k.ease === 'hold') { tctx.strokeStyle = css('--mute'); tctx.setLineDash([2, 3]); tctx.beginPath(); tctx.moveTo(x + 8, y); tctx.lineTo(i < K.length - 1 ? X(K[i + 1].fr) - 8 : x + 8, y); tctx.stroke(); tctx.setLineDash([]); } }
   const x = X(fr); tctx.strokeStyle = css('--accent'); tctx.lineWidth = 2; tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, H); tctx.stroke(); tctx.lineWidth = 1; }
 let tdrag = null;
@@ -354,7 +360,7 @@ function stop() { if (!playing) return; playing = false; pose = poseAt(fr); ui()
 // ---- inspector ----
 const cap = t => t[0].toUpperCase() + t.slice(1);
 const nameOf = s => (pose.f > 0) === (s === 'A') ? 'storm arm' : 'ice arm';
-function stat() { const k = keyAt(fr), L = linkSrc(clip()); $('status').innerHTML = `<b>frame ${fr}</b> · ${(fr / FPS).toFixed(3)}s · ${playing ? 'playing' : clip().game ? `<span style="color:${performance.now() - lockMsgT < 1500 ? 'var(--warn)' : 'inherit'}">🔒 from the game, read-only · press Copy this one to change it</span>` : fr === 0 && L ? `<span style="color:${performance.now() - lockMsgT < 1500 ? 'var(--warn)' : 'inherit'}">🔒 locked: the last frame of “${L.name.replace(/</g, '&lt;')}”</span>` : dirty ? '<span style="color:var(--warn)">changed, not saved · press Save key to keep it</span>' : k ? 'on a key' : 'in between (filled in)'}`; }
+function stat() { const k = keyAt(fr), L = linkSrc(clip()); $('status').innerHTML = `<b>frame ${fr}</b> · ${(fr / FPS).toFixed(3)}s · ${playing ? 'playing' : fr === 0 && L ? `<span style="color:${performance.now() - lockMsgT < 1500 ? 'var(--warn)' : 'inherit'}">🔒 locked: the last frame of “${L.name.replace(/</g, '&lt;')}”</span>` : dirty ? '<span style="color:var(--warn)">changed, not saved · press Save key to keep it</span>' : k ? 'on a key' : 'in between (filled in)'}`; }
 function ui() {
   draw(); drawTrack(); stat();
   $('frLbl').textContent = `Frame ${fr} of ${lastFr()}`; $('bPlay').textContent = playing ? '❚❚' : '▶';
@@ -363,14 +369,14 @@ function ui() {
   const K = keys(), seg = [...K].reverse().find(k => k.fr <= fr); $('ease').value = seg ? seg.ease || 'smooth' : 'smooth';
   for (const [id, v, d] of [['lean', pose.lean, 2], ['yaw', pose.yaw, 2], ['act', pose.act, 2]]) { $(id).value = v; $(id + 'O').textContent = (+v).toFixed(d); }
   $('fL').classList.toggle('on', pose.f < 0); $('fR').classList.toggle('on', pose.f > 0);
-  { const v = pose.view || 0; $('vF').classList.toggle('on', v < 0.5); $('vB').classList.toggle('on', v >= 0.5); const G = !!clip().game; $('clipName').readOnly = G; $('bDelClip') && ($('bDelClip').disabled = G); $('linkOn').disabled = $('linkOn').disabled || G; }
+  { const v = pose.view || 0; $('vF').classList.toggle('on', v < 0.5); $('vB').classList.toggle('on', v >= 0.5); const G = !!clip().lib; $('clipName').readOnly = G; $('bDelClip') && ($('bDelClip').disabled = G); $('bReset').style.display = libChanged(clip()) ? '' : 'none'; $('linkOn').disabled = $('linkOn').disabled || G; }
   { const W = legWalk(); $('legP').classList.toggle('on', !W); $('legW').classList.toggle('on', W); $('walkRow').style.display = W ? '' : 'none'; $('bWalkPrev').textContent = 'Preview: ' + (walkPrev ? 'walking' : 'standing'); }
   $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
   for (const s of ['A', 'B']) { const fist = (pose['c' + s] || 0) > 0.5; $('hd' + s).textContent = cap(nameOf(s).replace(' arm', ' hand')) + (fist ? ': fist' : ': open'); $('fl' + s).textContent = 'Flip ' + nameOf(s).replace(' arm', ' elbow'); $('hd' + s).classList.toggle('on', fist); }
   $('bLoop').classList.toggle('on', loop); $('bOnion').classList.toggle('on', onion);
-  { const sel = $('clipSel'), h = grouped(clips, c => clips.indexOf(c)); if (sel.dataset.h !== h) { sel.innerHTML = h; sel.dataset.h = h; } sel.value = ci; $('clipNote').textContent = clip().note || ''; $('clipFolder').value = clip().game ? folderOf(clip()) : (document.activeElement === $('clipFolder') ? $('clipFolder').value : clip().folder || ''); $('clipFolder').readOnly = !!clip().game;
-    $('folderList').innerHTML = [...new Set(clips.filter(c => !c.game).map(folderOf))].map(f => `<option value="${esc(f)}">`).join(''); }
+  { const sel = $('clipSel'), h = grouped(clips, c => clips.indexOf(c)); if (sel.dataset.h !== h) { sel.innerHTML = h; sel.dataset.h = h; } sel.value = ci; $('clipNote').textContent = clip().note || ''; $('clipFolder').value = clip().game ? folderOf(clip()) : (document.activeElement === $('clipFolder') ? $('clipFolder').value : clip().folder || ''); $('clipFolder').readOnly = !!clip().lib;
+    $('folderList').innerHTML = [...new Set(clips.filter(c => !c.lib).map(folderOf))].map(f => `<option value="${esc(f)}">`).join(''); }
   { const ls = $('linkSel'), lv = clip().from || ls.value, lo = grouped(clips.filter(c => c !== clip()), c => c.id); if (ls.innerHTML !== lo) ls.innerHTML = lo; if ([...ls.options].some(o => o.value === lv)) ls.value = lv; $('linkOn').checked = !!linkSrc(clip()); $('linkOn').disabled = !ls.options.length; }
   if (document.activeElement !== $('clipName')) $('clipName').value = clip().name;
 }
@@ -405,11 +411,13 @@ $('linkOn').onchange = e => { if (clip().game) { e.target.checked = false; lockM
 $('linkSel').onchange = e => { if (!$('linkOn').checked) return; snap(); clip().from = e.target.value; save(); pose = poseAt(fr); dirty = false; ui(); };
 $('bLoop').onclick = () => { loop = !loop; ui(); }; $('bOnion').onclick = () => { onion = !onion; ui(); };
 $('clipSel').onchange = e => { stop(); ci = +e.target.value; hist.length = 0; save(); setFr(0); };
-$('clipFolder').addEventListener('change', e => { if (clip().game) return; clip().folder = e.target.value.trim() || undefined; save(); ui(); });
+$('bReset').onclick = () => { const c = clip(); if (!c.lib) return; const b = $('bReset'); if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Tap again to throw away your changes'; setTimeout(() => { b.dataset.sure = ''; b.textContent = "Reset to the game's version"; }, 2500); return; }
+  b.dataset.sure = ''; b.textContent = "Reset to the game's version"; snap(); const o = JSON.parse(LIB0[c.id]); c.keys = o.keys; delete c.legs; delete c.from; save(); setFr(0); };
+$('clipFolder').addEventListener('change', e => { if (clip().lib) return; clip().folder = e.target.value.trim() || undefined; save(); ui(); });
 $('clipName').addEventListener('input', e => { clip().name = e.target.value || 'Untitled'; save(); ui(); });
 const addClip = c => { c.id = rid(); clips.push(c); ci = clips.length - 1; hist.length = 0; save(); setFr(0); };
 $('bNew').onclick = () => addClip(blank('New clip ' + (clips.length + 1)));
-$('bDup').onclick = () => { const c = clone(clip()); delete c.game; delete c.lib; if (clip().game) { delete c.folder; delete c.note; } { const base = clip().game ? 'My ' + clip().name.toLowerCase() : c.name + ' copy'; let nm = base, i = 2; while (clips.some(q => q.name === nm)) nm = base + ' ' + i++; c.name = nm; } addClip(c); };
+$('bDup').onclick = () => { const c = clone(clip()); delete c.game; delete c.lib; if (clip().lib) { delete c.folder; delete c.note; } { const base = clip().lib ? 'My ' + clip().name.toLowerCase() : c.name + ' copy'; let nm = base, i = 2; while (clips.some(q => q.name === nm)) nm = base + ' ' + i++; c.name = nm; } addClip(c); };
 const freshCopy = k2 => { const g = gameClip(k2); let i = 2; while (clips.some(c => c.name === g.name + ' ' + i)) i++; g.name += ' ' + i; addClip(g); };
 
 function bindDel() { $('bDelClip').onclick = () => { const r = $('delRow'); r.innerHTML = '<span class="confirm">Delete “' + clip().name.replace(/</g, '&lt;') + '”? <button id="dYes" class="danger">Delete</button><button id="dNo">Keep</button></span>'; $('dNo').onclick = () => { $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete this animation</button>'; bindDel(); }; $('dYes').onclick = () => { clips.splice(ci, 1); if (!clips.length) clips.push(blank('New clip')); ci = Math.min(ci, clips.length - 1); hist.length = 0; save(); $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete this animation</button>'; bindDel(); setFr(0); }; }; }
