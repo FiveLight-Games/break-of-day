@@ -1110,7 +1110,11 @@ $('legP').onclick = () => setLegs('pose'); $('legW').onclick = () => setLegs('wa
 $('bWalkPrev').onclick = () => { walkPrev = !walkPrev; try { localStorage.setItem('posebench-walk', walkPrev ? '1' : '0'); } catch (e) {} ui(); draw(); };
 const setView = v => { if (locked()) { lockMsg(); return; } pose.view = v; if (v && !pose.bk) pose.bk = clone(backDef(pose.f)); edited(); };
 $('vF').onclick = () => setView(0); $('vB').onclick = () => setView(1);
-$('linkOn').onchange = e => { if (clip().game) { e.target.checked = false; lockMsg(); return; } snap(); clip().from = e.target.checked ? $('linkSel').value || null : null; save(); pose = poseAt(fr); dirty = false; ui(); };
+// turning the link on adds the locked key in front of the animation (every key moves back a frame); turning it off takes that key out and moves them all up again
+$('linkOn').onchange = e => { if (clip().game) { e.target.checked = false; lockMsg(); return; } snap(); const c = clip(), was = !!linkSrc(c), on = e.target.checked && !!$('linkSel').value;
+  if (on && !was) { for (const k of c.keys) k.fr += 1; c.from = $('linkSel').value; }
+  else if (!on && was) { c.from = null; c.keys = c.keys.filter(k => k.fr !== 0); for (const k of c.keys) k.fr -= 1; if (!c.keys.length) c.keys.push({ fr: 0, ease: 'smooth', pose: idlePose(1) }); }
+  save(); setFr(on && !was ? fr + 1 : !on && was ? Math.max(0, fr - 1) : fr); };
 $('linkSel').onchange = e => { if (!$('linkOn').checked) return; snap(); clip().from = e.target.value; save(); pose = poseAt(fr); dirty = false; ui(); };
 $('bLoop').onclick = () => { loop = !loop; ui(); }; $('bOnion').onclick = () => { onion = !onion; ui(); };
 $('clipSel').onchange = e => { stop(); ci = +e.target.value; hist.length = 0; save(); setFr(0); };
