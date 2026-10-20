@@ -86,7 +86,8 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
   <div class="side">
     <section>
       <h2>Animation</h2>
-      <p class="note">Open:</p><div class="row" style="margin-top:4px"><select id="clipSel" style="flex:1;min-width:0" aria-label="Open animation"></select></div>
+      <p class="note">Open:</p><div class="row" style="margin-top:4px"><select id="clipSel" style="flex:1;min-width:0" aria-label="Open animation"></select></div><p class="note" id="clipNote" style="margin-top:4px"></p>
+      <div class="row" style="margin-top:6px"><span class="note">Folder</span><input type="text" id="clipFolder" list="folderList" style="flex:1;min-width:0;cursor:text;background:transparent;border:1px solid var(--line);box-shadow:none" placeholder="My animations" title="Put this animation in a folder (type a new name to make one)"><datalist id="folderList"></datalist></div>
       <div class="row" style="margin-top:6px"><span class="note">Name</span><input type="text" id="clipName" style="flex:1;min-width:0;cursor:text;background:transparent;border:1px solid var(--line);box-shadow:none" aria-label="Rename" placeholder="Name" title="Rename this animation"></div><div class="row" style="margin-top:6px"><button id="bNew" title="New animation, ogre standing idle">New blank</button><button id="bDup" title="Copy this animation">Copy this one</button></div>
       <div class="row" style="margin-top:8px"><label class="note" style="display:flex;gap:6px;align-items:center" title="Frame 0 of this animation becomes a locked copy of the last frame of the one you pick, and follows it when that one changes"><input type="checkbox" id="linkOn"> Start where this ends:</label></div>
       <div class="row" style="margin-top:4px"><select id="linkSel" style="flex:1;min-width:0" aria-label="Animation to start from"></select></div>
@@ -126,6 +127,7 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
 <script>
 const cl = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, k) => a + (b - a) * k, sm = k => k * k * (3 - 2 * k);
 /*@OGX@*/
+/*@OGLIB@*/
 </script>
 <script>
 (() => {
@@ -191,7 +193,9 @@ for (const c of clips) c.name = c.name.replace(/ \(game, facing (left|right)\)/,
 { const OLD = [1, 0].map(oldGameClip), near = (a, b) => Math.abs(a[0] - b[0]) < 0.9 && Math.abs(a[1] - b[1]) < 0.9;
   const untouched = c => OLD.some(K => K.length === c.keys.length && K.every((k, i) => { const q = c.keys[i]; return q.fr === k.fr && near(q.pose.pel, k.pose.pel) && near(q.pose.hA, k.pose.hA) && near(q.pose.hB, k.pose.hB) && q.pose.f === k.pose.f; }));
   clips = clips.filter(c => { const m = /^(Lightning|Ice) punch( \d+| \(your copy( \d+)?\))?$/.exec(c.name); if (!m) return true; if (untouched(c)) return false; let nm = 'My ' + m[1].toLowerCase() + ' punch', i = 2; while (clips.some(q => q !== c && q.name === nm)) nm = 'My ' + m[1].toLowerCase() + ' punch ' + i++; c.name = nm; return true; }); }
-clips = clips.filter(c => !c.game).concat([gameClip(1), gameClip(0)]);
+// the Storm Ogre library: every animation recorded from the game (tools/record-ogre.js), in folders, read-only (Copy this one to edit)
+const LIB = (typeof OG_LIB !== 'undefined' ? OG_LIB.folders : []).flatMap(F => F.clips.map(c => ({ id: 'lib:' + F.name + ':' + c.name, game: true, lib: 1, folder: 'Storm Ogre › ' + F.name, name: c.name, note: c.note, keys: c.keys })));
+clips = clips.filter(c => !c.game).concat(LIB);
 if (GI0) ci = Math.max(0, clips.findIndex(c => c.id === GI0)); ci = Math.min(ci, clips.length - 1);
 // linking: an animation can start where another ends (clip.from = that one's id); its frame 0 is a locked copy of that one's last key
 const rid = () => Math.random().toString(36).slice(2, 9);
@@ -231,7 +235,8 @@ const onKey = () => !!keyAt(fr);
 function setFr(n) { fr = Math.max(0, Math.round(n)); pose = poseAt(fr); dirty = false; ui(); }
 const locked = () => !!(clip() && clip().game) || (fr === 0 && !!linkSrc(clip()));
 let lockMsgT = 0; const lockMsg = () => { lockMsgT = performance.now(); stat(); };
-function edited() { if (locked()) { pose = poseAt(fr); dirty = false; lockMsg(); ui(); return; } const k = keyAt(fr); if (k) { if (!dirty) snap(); k.pose = clone(pose); save(); } dirty = !k; ui(); }
+// a changed pose is only kept when Save key is pressed (it then replaces the key at this frame, or adds one)
+function edited() { if (locked()) { pose = poseAt(fr); dirty = false; lockMsg(); ui(); return; } dirty = true; ui(); }
 
 // ---- stage ----
 let S = 20, OX = 0, OY = 0, DPR = 1;
@@ -349,11 +354,11 @@ function stop() { if (!playing) return; playing = false; pose = poseAt(fr); ui()
 // ---- inspector ----
 const cap = t => t[0].toUpperCase() + t.slice(1);
 const nameOf = s => (pose.f > 0) === (s === 'A') ? 'storm arm' : 'ice arm';
-function stat() { const k = keyAt(fr), L = linkSrc(clip()); $('status').innerHTML = `<b>frame ${fr}</b> · ${(fr / FPS).toFixed(3)}s · ${playing ? 'playing' : clip().game ? `<span style="color:${performance.now() - lockMsgT < 1500 ? 'var(--warn)' : 'inherit'}">🔒 the game's punch, read-only · press Copy this one to change it</span>` : fr === 0 && L ? `<span style="color:${performance.now() - lockMsgT < 1500 ? 'var(--warn)' : 'inherit'}">🔒 locked: the last frame of “${L.name.replace(/</g, '&lt;')}”</span>` : k ? 'on a key' : dirty ? '<span style="color:var(--warn)">not saved · press Save key to keep it</span>' : 'in between (filled in)'}`; }
+function stat() { const k = keyAt(fr), L = linkSrc(clip()); $('status').innerHTML = `<b>frame ${fr}</b> · ${(fr / FPS).toFixed(3)}s · ${playing ? 'playing' : clip().game ? `<span style="color:${performance.now() - lockMsgT < 1500 ? 'var(--warn)' : 'inherit'}">🔒 from the game, read-only · press Copy this one to change it</span>` : fr === 0 && L ? `<span style="color:${performance.now() - lockMsgT < 1500 ? 'var(--warn)' : 'inherit'}">🔒 locked: the last frame of “${L.name.replace(/</g, '&lt;')}”</span>` : dirty ? '<span style="color:var(--warn)">changed, not saved · press Save key to keep it</span>' : k ? 'on a key' : 'in between (filled in)'}`; }
 function ui() {
   draw(); drawTrack(); stat();
   $('frLbl').textContent = `Frame ${fr} of ${lastFr()}`; $('bPlay').textContent = playing ? '❚❚' : '▶';
-  $('bSnap').textContent = keyAt(fr) ? 'Key saved ✓' : 'Save key'; $('bSnap').disabled = !!keyAt(fr);
+  { const k = keyAt(fr), clean = k && !dirty; $('bSnap').textContent = clean ? 'Key saved ✓' : 'Save key'; $('bSnap').disabled = clean || !!(clip() && clip().game); $('bSnap').classList.toggle('primary', !clean); }
   $('bDel').disabled = !keyAt(fr) || keys().length < 2 || locked();
   const K = keys(), seg = [...K].reverse().find(k => k.fr <= fr); $('ease').value = seg ? seg.ease || 'smooth' : 'smooth';
   for (const [id, v, d] of [['lean', pose.lean, 2], ['yaw', pose.yaw, 2], ['act', pose.act, 2]]) { $(id).value = v; $(id + 'O').textContent = (+v).toFixed(d); }
@@ -364,8 +369,9 @@ function ui() {
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
   for (const s of ['A', 'B']) { const fist = (pose['c' + s] || 0) > 0.5; $('hd' + s).textContent = cap(nameOf(s).replace(' arm', ' hand')) + (fist ? ': fist' : ': open'); $('fl' + s).textContent = 'Flip ' + nameOf(s).replace(' arm', ' elbow'); $('hd' + s).classList.toggle('on', fist); }
   $('bLoop').classList.toggle('on', loop); $('bOnion').classList.toggle('on', onion);
-  const sel = $('clipSel'); if (sel.options.length !== clips.length || [...sel.options].some((o, i) => o.text !== clips[i].name)) sel.innerHTML = clips.map((c, i) => `<option value="${i}">${c.name.replace(/</g, '&lt;')}</option>`).join(''); sel.value = ci;
-  { const ls = $('linkSel'), lv = clip().from || ls.value, lo = clips.filter(c => c !== clip()).map(c => `<option value="${c.id}">${c.name.replace(/</g, '&lt;')}</option>`).join(''); if (ls.innerHTML !== lo) ls.innerHTML = lo; if ([...ls.options].some(o => o.value === lv)) ls.value = lv; $('linkOn').checked = !!linkSrc(clip()); $('linkOn').disabled = !ls.options.length; }
+  { const sel = $('clipSel'), h = grouped(clips, c => clips.indexOf(c)); if (sel.dataset.h !== h) { sel.innerHTML = h; sel.dataset.h = h; } sel.value = ci; $('clipNote').textContent = clip().note || ''; $('clipFolder').value = clip().game ? folderOf(clip()) : (document.activeElement === $('clipFolder') ? $('clipFolder').value : clip().folder || ''); $('clipFolder').readOnly = !!clip().game;
+    $('folderList').innerHTML = [...new Set(clips.filter(c => !c.game).map(folderOf))].map(f => `<option value="${esc(f)}">`).join(''); }
+  { const ls = $('linkSel'), lv = clip().from || ls.value, lo = grouped(clips.filter(c => c !== clip()), c => c.id); if (ls.innerHTML !== lo) ls.innerHTML = lo; if ([...ls.options].some(o => o.value === lv)) ls.value = lv; $('linkOn').checked = !!linkSrc(clip()); $('linkOn').disabled = !ls.options.length; }
   if (document.activeElement !== $('clipName')) $('clipName').value = clip().name;
 }
 for (const id of ['lean', 'yaw', 'act']) { $(id).addEventListener('input', e => { pose[id] = +e.target.value; $(id + 'O').textContent = (+e.target.value).toFixed(2); livePreview(); }); $(id).addEventListener('change', edited); }
@@ -373,7 +379,12 @@ for (const [id, key] of [['oA', 'aF'], ['oB', 'bF'], ['oL', 'ls']]) $(id).addEve
 $('flA').onclick = () => { pose.eA *= -1; edited(); }; for (const s of ['A', 'B']) $('hd' + s).onclick = () => { pose['c' + s] = (pose['c' + s] || 0) > 0.5 ? 0 : 1; edited(); }; $('flB').onclick = () => { pose.eB *= -1; edited(); };
 $('fL').onclick = () => setFacing(-1); $('fR').onclick = () => setFacing(1);
 function setFacing(f) { if (pose.f === f) return; if (clip().game) { lockMsg(); return; } snap(); for (const k of keys()) k.pose = mirror(k.pose); pose = mirror(pose); save(); ui(); }
-function snapshot() { if (clip().game) { lockMsg(); return; } if (keyAt(fr)) return; snap(); keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); save(); dirty = false; const st = +$('step').value || 0; if (st) { const k0 = clone(pose); fr += st; const k = keyAt(fr); pose = k ? clone(k.pose) : k0; dirty = !k; } ui(); }
+// the Open list: own animations by folder first (no folder = 'My animations'), then the library folders
+const folderOf = c => c.folder || 'My animations', esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+function grouped(list, val) { const G = new Map(); for (const c of list) { const k = folderOf(c); if (!G.has(k)) G.set(k, []); G.get(k).push(c); }
+  const order = [...G.keys()].sort((a, b) => (a.startsWith('Storm Ogre') - b.startsWith('Storm Ogre')) || (a === 'My animations' ? -1 : b === 'My animations' ? 1 : 0));
+  return order.map(k => `<optgroup label="${esc(k)}">` + G.get(k).map(c => `<option value="${val(c)}">${esc(c.name)}</option>`).join('') + '</optgroup>').join(''); }
+function snapshot() { if (clip().game) { lockMsg(); return; } if (locked()) { lockMsg(); return; } const k0 = keyAt(fr); if (k0 && !dirty) return; snap(); if (k0) k0.pose = clone(pose); else keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); save(); dirty = false; const st = +$('step').value || 0; if (st) { const k0 = clone(pose); fr += st; const k = keyAt(fr); pose = k ? clone(k.pose) : k0; dirty = !k; } ui(); }
 $('bSnap').onclick = snapshot;
 $('bDel').onclick = () => { const k = keyAt(fr); if (!k || keys().length < 2) return; if (locked()) { lockMsg(); return; } snap(); clip().keys = keys().filter(q => q !== k); pose = poseAt(fr); save(); ui(); };
 $('bUndo').onclick = undo;
@@ -394,10 +405,11 @@ $('linkOn').onchange = e => { if (clip().game) { e.target.checked = false; lockM
 $('linkSel').onchange = e => { if (!$('linkOn').checked) return; snap(); clip().from = e.target.value; save(); pose = poseAt(fr); dirty = false; ui(); };
 $('bLoop').onclick = () => { loop = !loop; ui(); }; $('bOnion').onclick = () => { onion = !onion; ui(); };
 $('clipSel').onchange = e => { stop(); ci = +e.target.value; hist.length = 0; save(); setFr(0); };
+$('clipFolder').addEventListener('change', e => { if (clip().game) return; clip().folder = e.target.value.trim() || undefined; save(); ui(); });
 $('clipName').addEventListener('input', e => { clip().name = e.target.value || 'Untitled'; save(); ui(); });
 const addClip = c => { c.id = rid(); clips.push(c); ci = clips.length - 1; hist.length = 0; save(); setFr(0); };
 $('bNew').onclick = () => addClip(blank('New clip ' + (clips.length + 1)));
-$('bDup').onclick = () => { const c = clone(clip()); delete c.game; { const base = clip().game ? 'My ' + clip().name.toLowerCase() : c.name + ' copy'; let nm = base, i = 2; while (clips.some(q => q.name === nm)) nm = base + ' ' + i++; c.name = nm; } addClip(c); };
+$('bDup').onclick = () => { const c = clone(clip()); delete c.game; delete c.lib; if (clip().game) { delete c.folder; delete c.note; } { const base = clip().game ? 'My ' + clip().name.toLowerCase() : c.name + ' copy'; let nm = base, i = 2; while (clips.some(q => q.name === nm)) nm = base + ' ' + i++; c.name = nm; } addClip(c); };
 const freshCopy = k2 => { const g = gameClip(k2); let i = 2; while (clips.some(c => c.name === g.name + ' ' + i)) i++; g.name += ' ' + i; addClip(g); };
 
 function bindDel() { $('bDelClip').onclick = () => { const r = $('delRow'); r.innerHTML = '<span class="confirm">Delete “' + clip().name.replace(/</g, '&lt;') + '”? <button id="dYes" class="danger">Delete</button><button id="dNo">Keep</button></span>'; $('dNo').onclick = () => { $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete this animation</button>'; bindDel(); }; $('dYes').onclick = () => { clips.splice(ci, 1); if (!clips.length) clips.push(blank('New clip')); ci = Math.min(ci, clips.length - 1); hist.length = 0; save(); $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete this animation</button>'; bindDel(); setFr(0); }; }; }

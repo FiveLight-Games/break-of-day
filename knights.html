@@ -4031,10 +4031,14 @@ function drawStormOgre(c, t) { if (!Number.isFinite(K.ogPh)) K.ogPh = 0; const D
   // the turn is played as a real turn, not a cut: the front view narrows round his middle as he wheels away, swaps to the rear view at its narrowest, and the rear view widens out (and the same back again as he recovers)
   const kb = hk0 && hk0.arm === 1 ? (K.ou < OGHK.F + 0.04 ? sm(cl(hk0.e / 0.7, 0, 1)) : 1 - sm(cl((K.ou - OGHK.F - 0.04) / 0.2, 0, 1))) : 0;
   const front = g => { OGX.drawO2(g, OGX.V, t, f, w, hk0 ? -1 : (u >= 0 && K.ouK === 2 && !K.ouS ? (u < 0.6 ? 0.25 * sm(u / 0.6) : u < 0.7 ? 0.25 + 0.17 * ((u - 0.6) / 0.1) ** 2 : 0.42 + 0.58 * (u - 0.7) / 0.3) : u), bk, bk >= 0 && !fb ? 'both' : 'act', K.ogAk, K.sv >= 0 ? K.sv * OGX.SURF.T / OG.SURF.T : -1, foes, 0, { noTrail: 1, jet: [Math.cos(K.svA || 0) * 9, Math.sin(K.svA || 0) * 9 * OGY - 0.4], aimTo, fb, atype: 2, hk: hk0, yaw: hk0 ? hk0.yaw : 0, noFx: 1, noJet: 1, ph: K.ogPh, st: ogStride(K), h2, hAbs, hCurl: hAbs ? hAbs.k : 0, ham: hamO, crx: hCr, lnx: hLn, iSw: K.iSwV, outM: OGMO }); }, back = g => OGX.drawBack(g, OGX.V, t, f, { e: cl(hk0.e, 0, 1), pi: K.ouK === 0, cr: hk0.cr, gx: hk0.gx, iL: K.ogAk, zL: 1 - K.ogAk });
+  // test/anim-suite recording (window.__ogRec = []): each frame's front and back rigs, read back from the drawing code, for the Pose Bench's library
+  if (window.__ogRec && K.i === ME) { const g = OGREC || (OGREC = document.createElement('canvas').getContext('2d')), of = { ord: [] }, ob = {}; g.save(); OGX.drawO2(g, OGX.V, t, f, w, hk0 ? -1 : (u >= 0 && K.ouK === 2 && !K.ouS ? (u < 0.6 ? 0.25 * sm(u / 0.6) : u < 0.7 ? 0.25 + 0.17 * ((u - 0.6) / 0.1) ** 2 : 0.42 + 0.58 * (u - 0.7) / 0.3) : u), bk, bk >= 0 && !fb ? 'both' : 'act', K.ogAk, K.sv >= 0 ? K.sv * OGX.SURF.T / OG.SURF.T : -1, foes, 0, { noTrail: 1, aimTo, fb, atype: 2, hk: hk0, yaw: hk0 ? hk0.yaw : 0, noFx: 1, noJet: 1, ph: K.ogPh, st: ogStride(K), h2, hAbs, hCurl: hAbs ? hAbs.k : 0, crx: hCr, lnx: hLn, outRig: of });
+    if (kb > 0) OGX.drawBack(g, OGX.V, t, f, { e: cl(hk0.e, 0, 1), pi: K.ouK === 0, cr: hk0.cr, gx: hk0.gx, iL: K.ogAk, zL: 1 - K.ogAk, outRig: ob }); g.restore();
+    window.__ogRec.push({ f, act: K.ogAk, yf: hk0 ? hk0.yf : 0.55, kb, F: of, B: kb > 0 ? ob : null, ham: !!hamO }); }
   OGMO.Z = OGMO.I = null; if (kb <= 0) front(c); else { const sx = kb < 0.5 ? 1 - kb : kb; c.save(); c.scale(sx, 1); if (kb < 0.5) front(c); else back(c); c.restore(); }
   if (OGMO.Z && kb <= 0) { const zz = K.y - (K.z || 0); K.ogMo = [[K.x + OGMO.Z[0] * OGSC, zz + OGMO.Z[1] * OGSC], [K.x + OGMO.I[0] * OGSC, zz + OGMO.I[1] * OGSC]]; }
   OGX.GAIT.RUN = 0; OGX.arcn(0); c.restore(); }
-const OGMO = {};
+const OGMO = {}; let OGREC = null;
 // the storm hammer itself (body units, from the lower hand G to the head's centre Hd): a dark iron haft bound with ice, a collar in his colour, an ice spike for a pommel,
 // and a huge head of glacier ice with a raised striking slab at each end, a crown of ice spikes, lightning crawling inside it and static leaping off it; chg 0..1 = charging for the finisher
 function ogHammerDraw(c, G, Hd, vis, t, kn, chg) { const dx = Hd[0] - G[0], dy = Hd[1] - G[1], Lp = Math.max(0.5, Math.hypot(dx, dy)), d = [dx / Lp, dy / Lp], n = [-d[1], d[0]], sc = 0.35 + 0.65 * vis;
@@ -8515,7 +8519,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '6b4ae0';
+const KBUILD = '17a021';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }

@@ -27,7 +27,9 @@ out = tpl.replace('/*__LOG__*/[]', json.dumps([{'v': e['v'], 'date': e['date'], 
 # Pose Bench (src/anim.html -> anim.html): the Storm Ogre's art (the OGX closure) and the game's hook poses inlined from knights.html
 _kn = (d / 'knights.html').read_text(); _o0 = _kn.index('const OGX = (() => {'); _o1 = _kn.index('\n})();', _kn.index('return { drawO2', _o0)) + 6
 _h0 = _kn.index('const OGHK = '); _h1 = _kn.index('// where the fist is in the world', _h0)
-(root / 'anim.html').write_text((d / 'anim.html').read_text().replace('/*@OGX@*/', _kn[_o0:_o1] + '\n' + _kn[_h0:_h1]))
+# + the ogre's recorded animation library (src/ogre-anims.json, made by tools/record-ogre.js)
+_lib = (d / 'ogre-anims.json').read_text() if (d / 'ogre-anims.json').exists() else '{"folders": []}'
+(root / 'anim.html').write_text((d / 'anim.html').read_text().replace('/*@OGX@*/', _kn[_o0:_o1] + '\n' + _kn[_h0:_h1]).replace('/*@OGLIB@*/', 'const OG_LIB = ' + _lib + ';'))
 (root / 'audio').mkdir(exist_ok=True); (root / 'audio' / 'baroque-breakdown.mp3').write_bytes((d / 'assets' / 'baroque-breakdown.mp3').read_bytes())  # Knight Brawl music, served as a file (too big to inline)
 (root / 'version.json').write_text(json.dumps({'version': build, 'v': ver}) + '\n')
 print('v' + ver, 'build', build, len(out), 'bytes', '(shipped)' if shipping or known else '(unshipped)')
