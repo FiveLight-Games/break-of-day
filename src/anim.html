@@ -142,8 +142,11 @@ function mirror(P) { const m = q => [-q[0], q[1]]; return { ...P, f: -P.f, pel: 
 
 // ---- clips ----
 const blank = name => ({ name, keys: [{ fr: 0, ease: 'smooth', pose: idlePose(1) }] });
-function gameClip(k2) { const f = k2 === 1 ? 1 : -1, keys = []; for (let fr = 0; fr <= 78; fr += 3) keys.push({ fr, ease: 'smooth', pose: gamePose(k2, f, Math.min(1, fr / 78)) });
+// the hooks now take 1.625s in the game (x1.25 on 2026-10-19): 98 frames at 60fps, a key every 3
+const HOOKF = 98;
+function gameClip(k2) { const f = k2 === 1 ? 1 : -1, keys = []; for (let fr = 0; fr <= HOOKF; fr += (fr + 3 > HOOKF && fr < HOOKF ? HOOKF - fr : 3)) keys.push({ fr, ease: 'smooth', pose: gamePose(k2, f, Math.min(1, fr / HOOKF)) });
   return { name: (k2 === 1 ? 'Lightning punch' : 'Ice punch') + ' (game, facing ' + (f > 0 ? 'right' : 'left') + ')', keys }; }
+window.__bench = { gamePose, render, gameClip }; // for frame sheets / tests
 let clips, ci = 0;
 try { const s = JSON.parse(localStorage.getItem('posebench') || 'null'); if (s && s.clips && s.clips.length) { clips = s.clips; ci = cl(s.ci | 0, 0, clips.length - 1); } } catch (e) {}
 if (!clips) clips = [gameClip(1)];
