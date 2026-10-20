@@ -63,7 +63,7 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
 </div>
 
 <div class="wrap">
-  <div id="stage"><canvas id="cv"></canvas><div id="status"></div><div id="hint">Drag: hands, feet, toes (triangle) to turn a foot, hips (square), chest (diamond), elbow dot to swing the upper arm · Tap a ⇄ ring to bend that elbow or knee the other way</div></div>
+  <div id="stage"><canvas id="cv"></canvas><div id="status"></div><div id="hint">Drag: hands, feet, toes (triangle) to turn a foot, the dot over a head to tilt it, hips (square), chest (diamond), elbow dot to swing the upper arm · Tap a ⇄ ring to bend that elbow or knee the other way</div></div>
 
   <div class="time">
     <div class="tbar">
@@ -146,7 +146,7 @@ function render(c, P, out) { const W = legWalk(), now = performance.now() / 1000
   const o = { rig: P, noFx: 1, noJet: 1, outRig: out || { ord: [] }, noOrb: !orbOn, fxT: now, ph: now * OGX.GAIT.RATE }; OGX.drawO2(c, OGX.V, T0, P.f, W && walkPrev ? 1 : 0, -1, -1, 'act', P.act, -1, [], 0, o); return o.outRig; }
 function fromOut(o, f, act, yf) { const i = s => o.ord.indexOf(s), iT = i('T'), iH = i('H');
   return { f, pel: o.pel, lean: o.lean, yaw: o.yaw, feet: o.feet, kn: [f > 0 ? -1 : 1, f > 0 ? -1 : 1], hA: [o.hA[0] - o.shA[0], o.hA[1] - o.shA[1]], hB: [o.hB[0] - o.shB[0], o.hB[1] - o.shB[1]], eA: o.sA, eB: o.sB,
-    fa: [0, 0], aF: i('A') < iT ? 0 : i('A') < iH ? 1 : 2, bF: i('B') < iT ? 0 : 1, ls: 0, act, yf: yf ?? 0.42, cA: o.cA || 0, cB: o.cB || 0 }; }
+    fa: [0, 0], hr: [0, 0], aF: i('A') < iT ? 0 : i('A') < iH ? 1 : 2, bF: i('B') < iT ? 0 : 1, ls: 0, act, yf: yf ?? 0.42, cA: o.cA || 0, cB: o.cB || 0 }; }
 function idlePose(f) { const o = { ord: [] }; OGX.drawO2(scratch, OGX.V, T0, f, 0, -1, -1, 'act', 0, -1, [], 0, { noFx: 1, noJet: 1, outRig: o }); return fromOut(o, f, 0); }
 function gamePose(k2, f, u) { const hk = ogHookPose({ f, ouK: k2, ouA: f > 0 ? 0 : Math.PI }, u), o = { ord: [] }, act = k2 === 0 ? 1 : 0;
   OGX.drawO2(scratch, OGX.V, T0, f, 0, -1, -1, 'act', act, -1, [], 0, { hk, yaw: hk.yaw, noFx: 1, noJet: 1, outRig: o }); return fromOut(o, f, act, hk.yf); }
@@ -203,7 +203,7 @@ function poseAt(t) { const K = keys(); if (!K.length) return idlePose(1); if (t 
   const ang = g => { const v = P.map(g); v[0] = v[1] + wrapA(v[0] - v[1]); v[2] = v[1] + wrapA(v[2] - v[1]); v[3] = v[2] + wrapA(v[3] - v[2]); return e === 'smooth' ? cr(v[0], v[1], v[2], v[3], u) : lerp(v[1], v[2], uu); };
   const pt = g => [num(p => g(p)[0]), num(p => g(p)[1])];
   const hand = g => { const A = ang(p => Math.atan2(g(p)[1], g(p)[0])), R = Math.min(ARM, Math.max(0, num(p => Math.hypot(g(p)[0], g(p)[1])))); return [Math.cos(A) * R, Math.sin(A) * R]; };
-  return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean), yaw: num(p => p.yaw), act: cl(num(p => p.act), 0, 1), cA: cl(num(p => p.cA || 0), 0, 1), cB: cl(num(p => p.cB || 0), 0, 1), yf: a.pose.yf, feet: [pt(p => p.feet[0]), pt(p => p.feet[1])], fa: [num(p => (p.fa || [0, 0])[0]), num(p => (p.fa || [0, 0])[1])], hA: hand(p => p.hA), hB: hand(p => p.hB) }; }
+  return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean), yaw: num(p => p.yaw), act: cl(num(p => p.act), 0, 1), cA: cl(num(p => p.cA || 0), 0, 1), cB: cl(num(p => p.cB || 0), 0, 1), yf: a.pose.yf, feet: [pt(p => p.feet[0]), pt(p => p.feet[1])], fa: [num(p => (p.fa || [0, 0])[0]), num(p => (p.fa || [0, 0])[1])], hr: [num(p => (p.hr || [0, 0])[0]), num(p => (p.hr || [0, 0])[1])], hA: hand(p => p.hA), hB: hand(p => p.hB) }; }
 
 // ---- state ----
 let fr = 0, pose = poseAt(0), dirty = false, playing = false, loop = true, onion = true, pt = 0, last = 0, rig = null;
@@ -234,6 +234,8 @@ function draw() {
 }
 // where a foot's toe handle sits (the foot turned round its ankle by P.fa), and an elbow's flip bubble (just outside the bend)
 const toeOf = (r, P, i) => { const a = -P.f * ((P.fa || [0, 0])[i] || 0), an = [r.feet[i][0], r.feet[i][1] - 0.95], x = P.f * 2.5, y = 0.45; return [an[0] + x * Math.cos(a) - y * Math.sin(a), an[1] + x * Math.sin(a) + y * Math.cos(a)]; };
+// each head's turn handle: a dot above it that swings with its tilt (P.hr: 0 ice, 1 storm; + tips the face up)
+const headOf = (r, P, i) => { const H = i ? r.HZ : r.HI, a = -P.f * ((P.hr || [0, 0])[i] || 0), d = 4.4; return [H[0] + Math.sin(a) * d, H[1] + 2.2 - Math.cos(a) * d]; };
 const flipOf = (r, s) => { const sh = s === 'A' ? r.shA : r.shB, h = s === 'A' ? r.hA : r.hB, e = s === 'A' ? r.eA : r.eB, m = [(sh[0] + h[0]) / 2, (sh[1] + h[1]) / 2];
   let v = [e[0] - m[0], e[1] - m[1]]; let d = Math.hypot(...v); if (d < 0.3) { v = [-(h[1] - sh[1]), h[0] - sh[0]]; d = Math.hypot(...v) || 1; } return [e[0] + v[0] / d * 20 / S, e[1] + v[1] / d * 20 / S]; };
 const HANDLES = () => { const r = rig, P = pose, ankle = i => [r.feet[i][0], r.feet[i][1] - 0.95];
@@ -243,6 +245,7 @@ const HANDLES = () => { const r = rig, P = pose, ankle = i => [r.feet[i][0], r.f
     { id: 'ch', p: chestPt(P), k: 'chest', c: '--ink' }, { id: 'pl', p: r.pel, k: 'pel', c: '--ink' },
     { id: 'eA', p: r.eA, k: 'elbowD', c: '--a', a: 'A' }, { id: 'eB', p: r.eB, k: 'elbowD', c: '--b', a: 'B' },
     { id: 'xA', p: flipOf(r, 'A'), k: 'elbow', c: '--a', a: 'A' }, { id: 'xB', p: flipOf(r, 'B'), k: 'elbow', c: '--b', a: 'B' },
+    { id: 'hdI', p: headOf(r, P, 0), k: 'head', c: '--b', i: 0 }, { id: 'hdZ', p: headOf(r, P, 1), k: 'head', c: '--a', i: 1 },
     { id: 't0', p: toeOf(r, P, 0), k: 'toe', c: '--accent', i: 0 }, { id: 't1', p: toeOf(r, P, 1), k: 'toe', c: '--accent', i: 1 },
     { id: 'k0', p: r.knees[0], k: 'knee', c: '--ink', i: 0, an: ankle(0) }, { id: 'k1', p: r.knees[1], k: 'knee', c: '--ink', i: 1, an: ankle(1) } ].filter(h => !(legWalk() && /^(f|t|k)\d$/.test(h.id))); };
 function handles() { const H = HANDLES(), r = rig;
@@ -254,6 +257,7 @@ function handles() { const H = HANDLES(), r = rig;
     else if (h.k === 'chest') { ctx.moveTo(x, y - 9); ctx.lineTo(x + 9, y); ctx.lineTo(x, y + 9); ctx.lineTo(x - 9, y); ctx.closePath(); }
     else if (h.k === 'elbow' || h.k === 'knee') ctx.arc(x, y, 7, 0, 7);
     else if (h.k === 'elbowD') ctx.arc(x, y, 6, 0, 7);
+    else if (h.k === 'head') { ctx.arc(x, y, 7, 0, 7); }
     else if (h.k === 'toe') { const a = -pose.f * ((pose.fa || [0, 0])[h.i] || 0) + (pose.f > 0 ? 0 : Math.PI); ctx.moveTo(x + Math.cos(a) * 11, y + Math.sin(a) * 11); ctx.lineTo(x + Math.cos(a + 2.4) * 8, y + Math.sin(a + 2.4) * 8); ctx.lineTo(x + Math.cos(a - 2.4) * 8, y + Math.sin(a - 2.4) * 8); ctx.closePath(); }
     else ctx.arc(x, y, 9, 0, 7);
     if (h.k === 'elbow' || h.k === 'knee') { ctx.globalAlpha = 0.9; ctx.stroke(); ctx.globalAlpha = 1; ctx.font = '600 10px ' + css('--mono'); ctx.fillStyle = css(h.c); ctx.textAlign = 'center'; ctx.fillText('⇄', x, y + 3.5); }
@@ -271,6 +275,7 @@ cv.addEventListener('pointermove', e => { if (!drag) return; const b = cv.getBou
   else if (drag.k === 'pel') P.pel = p;
   else if (drag.k === 'chest') P.lean = cl(P.f * Math.atan2(p[0] - P.pel[0], -(p[1] - P.pel[1])), -1.2, 1.2);
   else if (drag.k === 'elbowD') { const s = drag.a === 'A' ? r.shA : r.shB, e0 = drag.a === 'A' ? r.eA : r.eB, h = P['h' + drag.a], D = Math.atan2(p[1] - s[1], p[0] - s[0]) - Math.atan2(e0[1] - s[1], e0[0] - s[0]), c2 = Math.cos(D), s2 = Math.sin(D); P['h' + drag.a] = [h[0] * c2 - h[1] * s2, h[0] * s2 + h[1] * c2]; }
+  else if (drag.k === 'head') { const H = drag.i ? r.HZ : r.HI, pv = [H[0], H[1] + 2.2], a = Math.atan2(p[0] - pv[0], -(p[1] - pv[1])); P.hr = (P.hr || [0, 0]).slice(); P.hr[drag.i] = cl(-P.f * a, -1.2, 1.2); }
   else if (drag.k === 'toe') { const an = [r.feet[drag.i][0], r.feet[drag.i][1] - 0.95], a = Math.atan2(p[1] - an[1], p[0] - an[0]) - Math.atan2(-0.6, P.f * 3.6); P.fa = (P.fa || [0, 0]).slice(); P.fa[drag.i] = cl(-P.f * Math.atan2(Math.sin(a), Math.cos(a)), -1.3, 1.3); }
   else if (drag.k === 'elbow') { const s = drag.a === 'A' ? r.shA : r.shB, h = drag.a === 'A' ? r.hA : r.hB, cz = (h[0] - s[0]) * (p[1] - s[1]) - (h[1] - s[1]) * (p[0] - s[0]); P['e' + drag.a] = cz > 0 ? 1 : -1; }
   else if (drag.k === 'knee') { const s = r.hips[drag.i], h = drag.an, cz = (h[0] - s[0]) * (p[1] - s[1]) - (h[1] - s[1]) * (p[0] - s[0]); P.kn[drag.i] = cz > 0 ? 1 : -1; }
