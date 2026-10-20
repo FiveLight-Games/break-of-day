@@ -859,7 +859,11 @@ for (const c of clips) c.name = c.name.replace(/ \(game, facing (left|right)\)/,
 { const seen = new Set(); clips = clips.filter(c => { const k = c.name + '|' + JSON.stringify(c.keys); if (seen.has(k)) return false; seen.add(k); return true; }); }
 // a name used more than once gets numbered so every entry in the Open list is different
 { const n = {}; for (const c of clips) { n[c.name] = (n[c.name] || 0) + 1; if (n[c.name] > 1) c.name += ' ' + n[c.name]; } }
-for (const k2 of [1, 0]) { const g = gameClip(k2); if (!clips.some(c => c.name === g.name)) clips.push(g); }
+// 'Lightning punch' and 'Ice punch' are always the game's current punches, rebuilt on every load; a saved animation with one of those
+// names that differs from it (an edit, an older version, or a mix-up) is kept under '<name> (your copy)'
+for (const k2 of [1, 0]) { const g = gameClip(k2), gk = JSON.stringify(g.keys); let have = false;
+  for (const c of clips) if (c.name === g.name) { if (!have && JSON.stringify(c.keys) === gk) { have = true; continue; } let nm = g.name + ' (your copy)', i = 2; while (clips.some(q => q.name === nm)) nm = g.name + ' (your copy ' + i++ + ')'; c.name = nm; }
+  if (!have) clips.push(g); }
 ci = Math.min(ci, clips.length - 1);
 // linking: an animation can start where another ends (clip.from = that one's id); its frame 0 is a locked copy of that one's last key
 const rid = () => Math.random().toString(36).slice(2, 9);
