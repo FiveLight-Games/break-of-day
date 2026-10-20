@@ -91,11 +91,11 @@ details.fold[open] > summary { margin-bottom: 6px; }
       <span class="fr" id="frLbl"></span>
       <button class="primary" id="bSnap" title="Save this pose at the current frame (S)">Save key</button>
     </div>
-    <div class="tbar" id="pinBar" style="flex-wrap:wrap;gap:6px"><span class="note" id="pbName">Click a dot on him to pin that part</span>
-      <span id="pbCtl" style="display:none;align-items:center;gap:6px;flex-wrap:wrap"><label class="note"><input type="checkbox" id="pbPos" checked> Placement</label><label class="note"><input type="checkbox" id="pbRot" checked> Rotation</label>
+    <div class="tbar" id="pinBar" style="flex-wrap:nowrap;gap:6px;height:34px;overflow-x:auto;overflow-y:hidden;white-space:nowrap"><span class="note" id="pbName" style="flex:0 0 150px;overflow:hidden;text-overflow:ellipsis" title="Click a part of him to pin it">Pin: —</span>
+      <span id="pbCtl" style="display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap;flex:0 0 auto"><label class="note"><input type="checkbox" id="pbPos" checked> Placement</label><label class="note"><input type="checkbox" id="pbRot" checked> Rotation</label>
         <span class="note">from</span><input type="number" id="pinA" min="0" style="width:56px" aria-label="From frame"><span class="note">to</span><input type="number" id="pinB" min="0" style="width:56px" aria-label="To frame">
         <button id="pinSetA" title="Use the frame you're on as the start">Start = this frame</button><button id="pinSetB" title="Use the frame you're on as the end">End = this frame</button><button id="pinAdd" class="primary">Pin</button></span>
-      <span id="pinList" style="display:flex;gap:6px;flex-wrap:wrap"></span></div>
+      <span id="pinList" style="display:flex;gap:6px;flex-wrap:nowrap;flex:0 0 auto"></span></div>
     <div id="track"><canvas id="tcv"></canvas><div id="scrubB" title="Drag to scrub through the frames"></div></div>
     <div class="tbar">
       <button id="bDel" class="danger" title="Delete the key at the current frame (Delete)">Delete key</button>
@@ -447,7 +447,8 @@ function ui() {
   for (const s2 of ['A', 'B']) { $('xf' + s2).textContent = 'Flip ' + nameOf(s2).replace(' arm', ' hand'); $('xf' + s2).classList.toggle('on', !!pose['hf' + s2]); $('bk' + s2).textContent = cap(nameOf(s2).replace(' arm', ' hand')) + ': ' + (pose['hb' + s2] ? 'back' : 'palm') + ' showing'; $('bk' + s2).classList.toggle('on', !!pose['hb' + s2]); }
   for (const i of [0, 1]) { $('xf' + i).textContent = 'Flip ' + footName(i) + ' foot'; $('xf' + i).classList.toggle('on', !!(pose.ff || [])[i]); $('xh' + i).classList.toggle('on', !!(pose.hfl || [])[i]); }
   {
-    $('pbName').textContent = SEL ? 'Pin ' + pinName({ p: SEL }).toLowerCase() + ':' : 'Click a dot on him to pin that part'; $('pbCtl').style.display = SEL ? 'inline-flex' : 'none';
+    $('pbName').textContent = SEL ? 'Pin ' + pinName({ p: SEL }).toLowerCase() + ':' : 'Pin: —'; $('pbName').title = SEL ? $('pbName').textContent : 'Click a part of him (hand, foot, head or torso) to pin it';
+    for (const el of $('pbCtl').querySelectorAll('input, button')) el.disabled = !SEL; $('pbCtl').style.opacity = SEL ? 1 : 0.45; if (!SEL) { $('pinA').value = ''; $('pinB').value = ''; }
     if (SEL) { for (const [k, id] of [['pos', 'pbPos'], ['rot', 'pbRot']]) { const ok = PCAP[SEL].includes(k); $(id).disabled = !ok; $(id).parentElement.style.opacity = ok ? 1 : 0.4; } }
     const L = (clip().pins || []).map((q, j) => q.p !== SEL ? '' : `<span class="note" style="display:inline-flex;gap:4px;align-items:center">📌 ${q.k === 'pos' ? 'placement' : q.k === 'rot' ? 'rotation' : 'held'} ${q.a}–${q.b}${q.a <= fr && fr <= q.b ? ' (here)' : ''} <button data-pin="${j}" class="danger" style="padding:1px 7px">✕</button></span>`).join(''); if ($('pinList').innerHTML !== L) $('pinList').innerHTML = L; }
   TWS.forEach((q, j) => { $('sqn' + j).textContent = twName(q); const w = sqGet(pose, q); if (document.activeElement !== $('sq' + j)) $('sq' + j).value = w; $('sqo' + j).textContent = w.toFixed(2); }); TWS.forEach((q, j) => { $('twn' + j).textContent = twName(q); const v = twGet(pose, q); if (document.activeElement !== $('tw' + j)) $('tw' + j).value = v; $('two' + j).textContent = v.toFixed(2); });
