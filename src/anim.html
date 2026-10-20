@@ -125,6 +125,11 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <div id="twBox"></div>
     </section>
     <section>
+      <h2>Squeeze</h2>
+      <p class="note" style="margin-bottom:6px">Squash or stretch a part side to side, always straight across the screen, whatever way it points. 1 = as drawn. Double-click a slider to reset it.</p>
+      <div id="sqBox"></div>
+    </section>
+    <section>
       <h2>What's in front</h2>
       <div class="ord"><span><span class="tag tA">A</span> <span id="nA"></span></span><div class="seg" id="oA"><button data-v="0">Behind body</button><button data-v="1">In front of body</button><button data-v="2">In front of all</button></div></div>
       <div class="ord" style="margin-top:6px"><span><span class="tag tB">B</span> <span id="nB"></span></span><div class="seg" id="oB"><button data-v="0">Behind body</button><button data-v="1">In front of all</button></div></div>
@@ -264,7 +269,7 @@ function poseRaw(t) { const K = keys(); if (!K.length) return idlePose(1); if (t
   const ang = g => { const v = P.map(g); v[0] = v[1] + wrapA(v[0] - v[1]); v[2] = v[1] + wrapA(v[2] - v[1]); v[3] = v[2] + wrapA(v[3] - v[2]); return e === 'smooth' ? cr(v[0], v[1], v[2], v[3], u) : lerp(v[1], v[2], uu); };
   const pt = g => [num(p => g(p)[0]), num(p => g(p)[1])];
   const hand = g => { const A = ang(p => Math.atan2(g(p)[1], g(p)[0])), R = Math.min(ARM, Math.max(0, num(p => Math.hypot(g(p)[0], g(p)[1])))); return [Math.cos(A) * R, Math.sin(A) * R]; };
-  return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean), yaw: num(p => p.yaw), act: cl(num(p => p.act), 0, 1), cA: cl(num(p => p.cA || 0), 0, 1), cB: cl(num(p => p.cB || 0), 0, 1), yf: a.pose.yf, view: cl(num(p => p.view || 0), 0, 1), tw: P.some(p => p.tw) ? (() => { const g = (k, i) => num(p => twGet(p, [k, i])); return { H: [g('H', 0), g('H', 1)], L: [g('L', 0), g('L', 1)], F: [g('F', 0), g('F', 1)], A: g('A'), B: g('B'), hA: g('hA'), hB: g('hB') }; })() : a.pose.tw, bk: P.some(p => (p.view || 0) > 0) ? (() => { const bq = p => p.bk || backDef(p.f), BP = g => pt(p => g(bq(p))), BH = g => hand(p => g(bq(p))); return { pel: BP(b => b.pel), aG: BP(b => b.aG), aP: BP(b => b.aP), hG: BH(b => b.hG), hP: BH(b => b.hP), eG: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eG, eP: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eP }; })() : a.pose.bk,
+  return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean), yaw: num(p => p.yaw), act: cl(num(p => p.act), 0, 1), cA: cl(num(p => p.cA || 0), 0, 1), cB: cl(num(p => p.cB || 0), 0, 1), yf: a.pose.yf, view: cl(num(p => p.view || 0), 0, 1), tw: P.some(p => p.tw) ? (() => { const g = (k, i) => num(p => twGet(p, [k, i])); return { H: [g('H', 0), g('H', 1)], L: [g('L', 0), g('L', 1)], F: [g('F', 0), g('F', 1)], A: g('A'), B: g('B'), hA: g('hA'), hB: g('hB') }; })() : a.pose.tw, sq: P.some(p => p.sq) ? (() => { const g = (k, i) => num(p => sqGet(p, [k, i])); return { H: [g('H', 0), g('H', 1)], L: [g('L', 0), g('L', 1)], F: [g('F', 0), g('F', 1)], A: g('A'), B: g('B'), hA: g('hA'), hB: g('hB') }; })() : a.pose.sq, bk: P.some(p => (p.view || 0) > 0) ? (() => { const bq = p => p.bk || backDef(p.f), BP = g => pt(p => g(bq(p))), BH = g => hand(p => g(bq(p))); return { pel: BP(b => b.pel), aG: BP(b => b.aG), aP: BP(b => b.aP), hG: BH(b => b.hG), hP: BH(b => b.hP), eG: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eG, eP: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eP }; })() : a.pose.bk,
     feet: [pt(p => p.feet[0]), pt(p => p.feet[1])], fa: [num(p => (p.fa || [0, 0])[0]), num(p => (p.fa || [0, 0])[1])], hr: [num(p => (p.hr || [0, 0])[0]), num(p => (p.hr || [0, 0])[1])], hA: hand(p => p.hA), hB: hand(p => p.hB) }; }
 
 // ---- state ----
@@ -429,7 +434,7 @@ function ui() {
     $('pbName').textContent = SEL ? 'Pin ' + pinName({ p: SEL }).toLowerCase() + ':' : 'Click a dot on him to pin that part'; $('pbCtl').style.display = SEL ? 'inline-flex' : 'none';
     if (SEL) { for (const [k, id] of [['pos', 'pbPos'], ['rot', 'pbRot']]) { const ok = PCAP[SEL].includes(k); $(id).disabled = !ok; $(id).parentElement.style.opacity = ok ? 1 : 0.4; } }
     const L = (clip().pins || []).map((q, j) => q.p !== SEL ? '' : `<span class="note" style="display:inline-flex;gap:4px;align-items:center">📌 ${q.k === 'pos' ? 'placement' : q.k === 'rot' ? 'rotation' : 'held'} ${q.a}–${q.b}${q.a <= fr && fr <= q.b ? ' (here)' : ''} <button data-pin="${j}" class="danger" style="padding:1px 7px">✕</button></span>`).join(''); if ($('pinList').innerHTML !== L) $('pinList').innerHTML = L; }
-  TWS.forEach((q, j) => { $('twn' + j).textContent = twName(q); const v = twGet(pose, q); if (document.activeElement !== $('tw' + j)) $('tw' + j).value = v; $('two' + j).textContent = v.toFixed(2); });
+  TWS.forEach((q, j) => { $('sqn' + j).textContent = twName(q); const w = sqGet(pose, q); if (document.activeElement !== $('sq' + j)) $('sq' + j).value = w; $('sqo' + j).textContent = w.toFixed(2); }); TWS.forEach((q, j) => { $('twn' + j).textContent = twName(q); const v = twGet(pose, q); if (document.activeElement !== $('tw' + j)) $('tw' + j).value = v; $('two' + j).textContent = v.toFixed(2); });
   $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('bIce').textContent = 'Ice ball in hand: ' + (iceOn ? 'on' : 'off'); $('bIce').classList.toggle('on', iceOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
   for (const s of ['A', 'B']) { const fist = (pose['c' + s] || 0) > 0.5; $('hd' + s).textContent = cap(nameOf(s).replace(' arm', ' hand')) + (fist ? ': fist' : ': open'); $('fl' + s).textContent = 'Flip ' + nameOf(s).replace(' arm', ' elbow'); $('hd' + s).classList.toggle('on', fist); }
@@ -439,11 +444,15 @@ function ui() {
   { const ls = $('linkSel'), lv = clip().from || ls.value, lo = grouped(clips.filter(c => c !== clip()), c => c.id); if (ls.innerHTML !== lo) ls.innerHTML = lo; if ([...ls.options].some(o => o.value === lv)) ls.value = lv; $('linkOn').checked = !!linkSrc(clip()); $('linkOn').disabled = !ls.options.length; }
   if (document.activeElement !== $('clipName')) $('clipName').value = clip().name;
 }
+// squeeze sliders: pose.sq, same keys as tw, 1 = as drawn (drawO2 scales the part along screen x round its anchor)
+const sqGet = (P, [g, i]) => { const T = P.sq || {}, v = i === undefined ? T[g] : (T[g] || [])[i]; return v === undefined || v === null ? 1 : v; };
 // twist sliders: pose.tw = {L: [leg 0, leg 1], F: [foot 0, foot 1], H: [ice head, storm head], A, B, hA, hB}
 const TWS = [['H', 0], ['H', 1], ['A'], ['B'], ['hA'], ['hB'], ['L', 0], ['L', 1], ['F', 0], ['F', 1]];
 const twName = ([g, i]) => g === 'H' ? (i ? 'Storm head' : 'Ice head') : g === 'A' || g === 'B' ? cap(nameOf(g)) : g === 'hA' || g === 'hB' ? cap(nameOf(g[1]).replace(' arm', ' hand')) : cap(footName(i)) + (g === 'L' ? ' leg' : ' foot');
 const twGet = (P, [g, i]) => { const T = P.tw || {}; return (i === undefined ? T[g] : (T[g] || [])[i]) || 0; };
 $('twBox').innerHTML = TWS.map((q, j) => `<label class="sl"><span id="twn${j}"></span> <input type="range" id="tw${j}" min="-1.5" max="1.5" step="0.01"><output id="two${j}"></output></label>`).join('');
+$('sqBox').innerHTML = TWS.map((q, j) => `<label class="sl"><span id="sqn${j}"></span> <input type="range" id="sq${j}" min="0.3" max="1.6" step="0.01"><output id="sqo${j}"></output></label>`).join('');
+TWS.forEach((q, j) => { const [g, i] = q; $('sq' + j).addEventListener('input', e => { const v = +e.target.value, T = pose.sq = clone(pose.sq || {}); if (i === undefined) T[g] = v; else { T[g] = (T[g] || [1, 1]).slice(); T[g][i] = v; } $('sqo' + j).textContent = v.toFixed(2); livePreview(); }); $('sq' + j).addEventListener('change', edited); $('sq' + j).addEventListener('dblclick', () => { $('sq' + j).value = 1; $('sq' + j).dispatchEvent(new Event('input')); edited(); }); });
 TWS.forEach((q, j) => { const [g, i] = q; $('tw' + j).addEventListener('input', e => { const v = +e.target.value, T = pose.tw = clone(pose.tw || {}); if (i === undefined) T[g] = v; else { T[g] = (T[g] || [0, 0]).slice(); T[g][i] = v; } $('two' + j).textContent = v.toFixed(2); livePreview(); }); $('tw' + j).addEventListener('change', edited); $('tw' + j).addEventListener('dblclick', () => { $('tw' + j).value = 0; $('tw' + j).dispatchEvent(new Event('input')); edited(); }); });
 for (const id of ['lean', 'yaw', 'act']) { $(id).addEventListener('input', e => { pose[id] = +e.target.value; $(id + 'O').textContent = (+e.target.value).toFixed(2); livePreview(); }); $(id).addEventListener('change', edited); }
 for (const [id, key] of [['oA', 'aF'], ['oB', 'bF'], ['oL', 'ls']]) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pose[key] = +b.dataset.v; edited(); });
