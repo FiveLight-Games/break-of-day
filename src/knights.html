@@ -26,8 +26,8 @@ body.fire #dash{left:calc(50% - 48px);right:auto;top:auto;bottom:22px;width:96px
 .off{opacity:.3;pointer-events:none}
 @media (orientation:portrait){.stick{width:110px;height:110px;bottom:18px}.stick .knob{width:46px;height:46px;margin:-23px 0 0 -23px}#lst{left:14px}#rst{right:8vw}#spin{right:12px;bottom:150px;width:64px;height:64px}#top button{padding:6px 9px;font-size:12px}#stats{font-size:11px}}
 #lobbyUI{position:fixed;inset:0;background:radial-gradient(circle at 50% 30%,#2a2620,#0d0c0a);display:flex;align-items:center;justify-content:center;z-index:10;padding:16px;box-sizing:border-box}
-#lobbyUI .card{background:#1a1713;border:1px solid #3a332a;border-radius:16px;padding:20px;max-width:360px;width:100%;display:flex;flex-direction:column;gap:10px;text-align:center}
-#lobbyUI #lChars{display:flex;align-items:center;gap:12px;text-align:left;padding:6px 14px}#lobbyUI #lChars img{width:48px;height:60px;object-fit:contain}#lobbyUI #lChars span{display:flex;flex-direction:column;font-size:17px}#lobbyUI #lChars small{font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:.08em}#lcard{position:relative}#charP .watch{padding:2px 6px;opacity:.55;background:none;border-color:transparent}#charP .watch.on{opacity:1}#lobbyUI #lWatch{position:fixed;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));z-index:5;width:20px;height:20px;padding:0;display:flex;align-items:center;justify-content:center;background:none;border:1px solid transparent;border-radius:50%;opacity:.55}#lobbyUI #lWatch:hover{opacity:.9}#lobbyUI #lWatch.on{opacity:1;border-color:#f0c419;background:#2a2416}#lobbyUI .cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.cdev{font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.7;margin:14px 0 6px;font-weight:700}@media (max-height:520px){.cgrid img{width:54px !important;height:66px !important}.cgrid button{padding:3px 4px 5px !important}}#lobbyUI .cgrid button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px 8px}#lobbyUI .cgrid img{width:72px;height:90px;object-fit:contain}#lobbyUI .cgrid .on{border-color:#f0c419;color:#f0c419;background:#2a2416}#lobbyUI .chars{display:flex;gap:6px}#lobbyUI .chars button{flex:1}#lobbyUI .chars .on{border-color:#f0c419;color:#f0c419;background:#2a2416}
+#lobbyUI .card{background:#1a1713;border:1px solid #3a332a;border-radius:16px;padding:20px;max-width:360px;width:100%;max-height:100%;overflow-y:auto;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;text-align:center}
+#lobbyUI #lChars{display:flex;align-items:center;gap:12px;text-align:left;padding:6px 14px}#lobbyUI #lChars img{width:48px;height:60px;object-fit:contain}#lobbyUI #lChars span{display:flex;flex-direction:column;font-size:17px}#lobbyUI #lChars small{font-size:11px;opacity:.6;text-transform:uppercase;letter-spacing:.08em}#lcard{position:relative}#charP .watch{padding:2px 6px;opacity:.55;background:none;border-color:transparent}#charP .watch.on{opacity:1}#lobbyUI #lWatch{position:fixed;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));z-index:5;width:20px;height:20px;padding:0;display:flex;align-items:center;justify-content:center;background:none;border:1px solid transparent;border-radius:50%;opacity:.55}#lobbyUI #lWatch:hover{opacity:.9}#lobbyUI #lWatch.on{opacity:1;border-color:#f0c419;background:#2a2416}#lobbyUI .cgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.cdev{font-size:13px;letter-spacing:.08em;text-transform:uppercase;opacity:.7;margin:14px 0 6px;font-weight:700}@media (max-height:520px){.cgrid img{width:54px !important;height:66px !important}.cgrid button{padding:3px 4px 5px !important}}#lobbyUI .cgrid button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px 8px}#lobbyUI .cgrid img{width:62px;height:80px;object-fit:contain}#lobbyUI .cgrid .on{border-color:#f0c419;color:#f0c419;background:#2a2416}#lobbyUI .chars{display:flex;gap:6px}#lobbyUI .chars button{flex:1}#lobbyUI .chars .on{border-color:#f0c419;color:#f0c419;background:#2a2416}
 #lobbyUI h1{margin:0;font:800 26px system-ui;color:#f0c419}#lobbyUI p{margin:0;color:#a59c88;font-size:13px}
 #lobbyUI .games{display:flex;flex-direction:column;gap:6px;max-height:34vh;overflow:auto}#lobbyUI .games button{display:flex;justify-content:space-between;align-items:center;text-align:left;padding:10px 12px}#lobbyUI .games small{color:#a59c88}#lobbyUI .gh{display:flex;justify-content:space-between;color:#a59c88;font-size:12px;margin-top:4px}#lobbyUI .big{font-size:16px;padding:12px}#lobbyUI .pri{background:#f0c419;color:#1a1713;border-color:#f0c419}
 #lobbyUI input{background:#0d0c0a;color:#efe7d6;border:1px solid #3a332a;border-radius:10px;padding:12px;font:800 22px system-ui;text-align:center;letter-spacing:6px;text-transform:uppercase}
@@ -54,7 +54,7 @@ body.editing #bring,body.editing #lst,body.editing #rst,body.editing #dash,body.
 .pnl .kgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px 10px}.pnl label{display:flex;align-items:center;gap:6px;font-size:12px;padding:3px 0}.pnl input{width:18px;height:18px;accent-color:#f0c419}
 @media (orientation:portrait){.pnl{top:92px}.pnl .kgrid{grid-template-columns:repeat(2,1fr)}}
 button,.stick,#spin,#dash,#aoe,#top{touch-action:none;-webkit-touch-callout:none}
-body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !important}body.njult #lst,body.njult #rst,body.njult #dash,body.njult #aoe,body.njult #spin{opacity:0 !important;pointer-events:none !important}body.njult #help{opacity:0}#njtap{position:fixed;left:0;right:0;bottom:34px;text-align:center;font:800 17px system-ui;color:#e8f0ff;text-shadow:0 0 10px #4a7cff,0 2px 3px #000;opacity:0;transition:opacity .35s;pointer-events:none;letter-spacing:.5px}#njtap.on{opacity:1}body.drive #rst,body.drive #dash,body.drive #aoe,body.drive #spin,body.drive #ult,body.drive #ttTest,body.drive #bring{display:none !important}body.time #aoe{display:none !important}body.time.ttab #aoe{display:block !important}#ttTest{display:none;position:fixed;left:8px;top:32vh;flex-direction:column;gap:6px;z-index:6}body.time #ttTest{display:flex}body.live #ttTest{display:none !important}body.editing #ttTest,body.volc #ttTest{display:none}#ttTest b{font:800 9px system-ui;color:#ffffff88;letter-spacing:1px;text-align:center}#ttTest button{background:#000a;color:#fff;border:1px solid #ffffff44;border-radius:8px;font:700 12px system-ui;padding:8px 10px;min-width:74px}#pst{display:none;right:10vw;border-color:#ffd34a99;background:#ffd34a1a}#pst .knob{background:#ffd34a66;border-color:#ffe28a}#pst small{color:#ffe28acc}#smash{display:none;position:fixed;left:22px;bottom:22px;width:140px;height:140px;border-radius:50%;padding:0;font:800 20px system-ui;letter-spacing:1px;background:#f0c41933;border:3px solid #ffd34a;color:#fff0b0;overflow:hidden;text-shadow:0 0 8px #ff9a00}#smash i{position:absolute;left:0;right:0;bottom:0;background:#ffd34a66;height:0}#smash span{position:relative}body.pen #pst,body.pen #smash{display:block}body.pen #lst,body.pen #rst,body.pen #dash,body.pen #aoe,body.pen #spin{display:none}body.priest #spin{background:#ffd34a26;border-color:#ffd34a;color:#ffe28a}body.priest #aoe.out{border-color:#fff3c4;box-shadow:0 0 12px #f0c419aa}@media (orientation:portrait){#smash{left:14px;bottom:18px;width:110px;height:110px;font-size:17px}#pst{right:8vw}}
+body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !important}body.gi #dash,body.gi #aoe,body.gi #spin,body.gi #bst{display:none !important}#gfire{display:none;position:fixed;right:8vw;bottom:9vh;width:150px;height:150px;border-radius:50%;padding:0;font:800 26px system-ui;letter-spacing:1px;background:#c83c2899;border:3px solid #ffffffaa;color:#fff;z-index:6;touch-action:none;user-select:none;-webkit-user-select:none}#gfire.on{background:#e65032dd}body.gifp #gfire{display:block}body.gifp #rst,body.gifp #ult,body.gifp #help,body.gifp #ttTest{display:none !important}@media (orientation:portrait){#gfire{width:116px;height:116px;font-size:21px;right:6vw}}body.njult #lst,body.njult #rst,body.njult #dash,body.njult #aoe,body.njult #spin{opacity:0 !important;pointer-events:none !important}body.njult #help{opacity:0}#njtap{position:fixed;left:0;right:0;bottom:34px;text-align:center;font:800 17px system-ui;color:#e8f0ff;text-shadow:0 0 10px #4a7cff,0 2px 3px #000;opacity:0;transition:opacity .35s;pointer-events:none;letter-spacing:.5px}#njtap.on{opacity:1}body.drive #rst,body.drive #dash,body.drive #aoe,body.drive #spin,body.drive #ult,body.drive #ttTest,body.drive #bring{display:none !important}body.time #aoe{display:none !important}body.time.ttab #aoe{display:block !important}#ttTest{display:none;position:fixed;left:8px;top:32vh;flex-direction:column;gap:6px;z-index:6}body.time #ttTest{display:flex}body.live #ttTest{display:none !important}body.editing #ttTest,body.volc #ttTest{display:none}#ttTest b{font:800 9px system-ui;color:#ffffff88;letter-spacing:1px;text-align:center}#ttTest button{background:#000a;color:#fff;border:1px solid #ffffff44;border-radius:8px;font:700 12px system-ui;padding:8px 10px;min-width:74px}#pst{display:none;right:10vw;border-color:#ffd34a99;background:#ffd34a1a}#pst .knob{background:#ffd34a66;border-color:#ffe28a}#pst small{color:#ffe28acc}#smash{display:none;position:fixed;left:22px;bottom:22px;width:140px;height:140px;border-radius:50%;padding:0;font:800 20px system-ui;letter-spacing:1px;background:#f0c41933;border:3px solid #ffd34a;color:#fff0b0;overflow:hidden;text-shadow:0 0 8px #ff9a00}#smash i{position:absolute;left:0;right:0;bottom:0;background:#ffd34a66;height:0}#smash span{position:relative}body.pen #pst,body.pen #smash{display:block}body.pen #lst,body.pen #rst,body.pen #dash,body.pen #aoe,body.pen #spin{display:none}body.priest #spin{background:#ffd34a26;border-color:#ffd34a;color:#ffe28a}body.priest #aoe.out{border-color:#fff3c4;box-shadow:0 0 12px #f0c419aa}@media (orientation:portrait){#smash{left:14px;bottom:18px;width:110px;height:110px;font-size:17px}#pst{right:8vw}}
 #bring{display:none;position:fixed;right:calc(10vw + 128px);bottom:150px;width:62px;height:62px;border-radius:50%;padding:0;font:800 10px/1.1 system-ui;background:#f0c4191a;border:2px solid #f0c41966;color:#f0c41999;opacity:.45;transition:opacity .2s,box-shadow .2s}body.priest #bring{display:block}#recall{display:none;position:fixed;width:64px;height:30px;border-radius:15px;padding:0;font:800 11px/1 system-ui;background:#b05cff33;border:2px solid #d9a6ff;color:#f3e3ff;z-index:5;touch-action:none}body.time.recall #recall{display:block}body.priest #aoe.dim,#dash.dim{opacity:.45;pointer-events:none;transition:none}#bring.ready{opacity:1;background:#f0c41940;border-color:#fff3c4;color:#fff8e0;box-shadow:0 0 12px #f0c419aa}body.pen #bring,body.volc #bring{display:none}@media (orientation:portrait){#bring{right:calc(8vw + 44px);bottom:228px;width:52px;height:52px}}
 #help{position:fixed;left:50%;transform:translateX(-50%);bottom:6px;font-size:11px;color:#fff9;text-align:center;pointer-events:none}
 #fps{display:none;position:fixed;left:8px;bottom:6px;z-index:40;font:12px monospace;color:#fff;background:#000a;padding:2px 6px;border-radius:6px;pointer-events:none}
@@ -63,7 +63,7 @@ body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !
 <div id="lobbyUI"><div class="card" id="lcard"></div></div>
 <div id="note"></div>
 
-<div id="charP" class="pnl"><div class="hrow"><b>Character</b><button data-c="knight">Knight</button><button data-c="fire">Firebreather</button><button data-c="priest">Warpriest</button><button data-c="time">Time Traveler</button></div><div class="hrow"><b>In Development</b><button data-c="ninja">Ninja</button><button data-c="ogre">Storm Ogre</button><button data-c="rooster">Cyborg Rooster</button></div><div class="hrow" id="colRow"><b>Colour</b></div></div>
+<div id="charP" class="pnl"><div class="hrow"><b>Character</b><button data-c="knight">Knight</button><button data-c="fire">Firebreather</button><button data-c="priest">Warpriest</button><button data-c="time">Time Traveler</button></div><div class="hrow"><b>In Development</b><button data-c="ninja">Ninja</button><button data-c="ogre">Storm Ogre</button><button data-c="rooster">Cyborg Rooster</button><button data-c="gi">G.I.</button></div><div class="hrow" id="colRow"><b>Colour</b></div></div>
 <div id="horde" class="pnl"><div class="hrow"><b>Horde</b><button data-r="off" class="on">Off</button><button data-r="few">A few</button><button data-r="dozens">Dozens</button><button data-r="hundreds">Hundreds</button><button data-r="max">Swarm</button><button data-r="thou">Thousands</button><button data-r="apoc">Apocalypse</button></div>
 <div class="kgrid"></div><div class="hrow"><span>Spawn now</span><button data-n="1">+1</button><button data-n="4">+4</button><button data-n="10">+10</button><button data-n="20">+20</button><button data-n="50">+50</button></div><div class="hrow"><span>Test</span><button id="fillUlt">Fill ult</button><button id="clear">Clear all enemies</button></div></div>
 <div id="layEd"><b id="layTitle">Control layout</b><span id="layHint">Drag a button's middle to move it, its rim to resize it.</span><div class="lrow"><span id="layName">Move stick</span><input type="range" id="laySize" min="44" max="230" step="1"><span id="laySizeV" class="lnum"></span></div><span id="layWarn"></span><div class="lrow"><button id="layReset">Reset</button><button id="layDone" class="pri2">Done</button></div></div>
@@ -77,7 +77,7 @@ body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !
 <div class="stick" id="pst"><div class="knob"></div><small>flail</small></div><button id="smash"><i></i><span>SMASH</span></button>
 <div class="stick" id="bst"><div class="knob"></div><small>breath</small><i></i></div>
 <button id="bring">BRING IN</button><button id="recall">RECALL</button><div id="ttTest"><b>TEST</b><button data-tw="1">Saber</button><button data-tw="2">Shotgun</button><button data-tw="3">Alien</button><button data-tw="4">Saw gun</button></div>
-<button id="ult"><i></i><span>ULT</span><small></small></button>
+<button id="ult"><i></i><span>ULT</span><small></small></button><button id="gfire">FIRE</button>
 <div id="dash" class="aim"><i></i><div class="dot"></div><small>dash</small></div>
 <div id="aoe"><i></i><div class="dot"></div><small>leap</small></div>
 <div id="help"></div>
@@ -185,11 +185,11 @@ function switchChar(kn, ch) {
   const keep = { i: kn.i, on: kn.on, col: kn.col, x: kn.x, y: kn.y, f: kn.f || 1, kills: kn.kills || 0, hits: kn.hits || 0, ultBase: kn.ultBase || 0, in: kn.in, chSeen: kn.chSeen, drT: kn.drT };
   for (const k of Object.keys(kn)) delete kn[k];
   Object.assign(kn, mkKnight(keep.i), keep, { T: { x: keep.x - HOME.x, y: keep.y - HOME.y }, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, dashSeen: keep.in.dashN || 0, leapSeen: keep.in.leapN || 0, ultSeen: keep.in.ultN || 0 });
-  const k0 = K; K = kn; if (ch === 'fire') makeFire(kn); else if (ch === 'priest') makePriest(kn); else if (ch === 'sword') makeSword(kn); else if (ch === 'time') makeTime(kn); else if (ch === 'rooster') makeRooster(kn); else if (ch === 'ninja') makeNinja(kn); else if (ch === 'ogre') makeOgre(kn); K = k0;
+  const k0 = K; K = kn; if (ch === 'fire') makeFire(kn); else if (ch === 'priest') makePriest(kn); else if (ch === 'sword') makeSword(kn); else if (ch === 'time') makeTime(kn); else if (ch === 'rooster') makeRooster(kn); else if (ch === 'gi') makeGI(kn); else if (ch === 'ninja') makeNinja(kn); else if (ch === 'ogre') makeOgre(kn); K = k0;
   for (let i = 0; i < 24; i++) { const a = rr(0, 6.28); sparks.push({ x: kn.x + rr(-3, 3), y: kn.y - rr(0, 14), vx: Math.cos(a) * rr(10, 40), vy: -rr(10, 50), t: 0, max: rr(0.4, 0.9) }); }
 }
 function setup() {
-  KN = []; for (let i = 0; i < NP; i++) KN.push(mkKnight(i)); K = KN[ME]; K.in.ch = CHAR; if (MYCOL) K.in.col = K.col = MYCOL; if (CHAR === 'fire') makeFire(K); else if (CHAR === 'priest') makePriest(K, true); else if (CHAR === 'sword') makeSword(K); else if (CHAR === 'time') makeTime(K); else if (CHAR === 'ninja') makeNinja(K); else if (CHAR === 'ogre') makeOgre(K); else if (CHAR === 'rooster') makeRooster(K); GOUGE = []; CRFX = []; SAWS = []; TTFX = []; SKID = [];
+  KN = []; for (let i = 0; i < NP; i++) KN.push(mkKnight(i)); K = KN[ME]; K.in.ch = CHAR; if (MYCOL) K.in.col = K.col = MYCOL; if (CHAR === 'fire') makeFire(K); else if (CHAR === 'priest') makePriest(K, true); else if (CHAR === 'sword') makeSword(K); else if (CHAR === 'time') makeTime(K); else if (CHAR === 'ninja') makeNinja(K); else if (CHAR === 'ogre') makeOgre(K); else if (CHAR === 'rooster') makeRooster(K); else if (CHAR === 'gi') makeGI(K); GOUGE = []; CRFX = []; SAWS = []; TTFX = []; SKID = [];
   // the host keeps empty seats empty after a reset
   if (NET && NET.mode === 'host') { const held = new Set(Object.values(NET.seats)); KN.forEach((kn, i) => { if (i && !held.has(i)) kn.on = 0; }); }
   walkers = []; HDEAD = []; WRECKS = []; parts = []; blood = []; splats = []; dust = []; sparks = []; camX = K.x; camY = K.y - 6;
@@ -1920,7 +1920,7 @@ const CO = { FRONT: 220, SPD: 150, W: 28, SIDE: 24, L0: 40, L1: 75, DMG: 110, DP
 const coW = L => CO.W * Math.pow((CO.L0 + CO.L1) / Math.max(L, 1), 0.53);
 const PL = { T: 4.5, CD: 12, Z: 27, SPD: 90, R: 41.6, HALF: 0.35, OFF: [34, 16], DPS: 320, KB: 140, DOWN: 0.6, REL: 0.38 };
 let MYCOL = null; try { MYCOL = localStorage.getItem('kn_col'); } catch (e) { }
-let CHAR = 'knight'; try { const c0 = localStorage.getItem('kn_char'); CHAR = c0 === 'fire' || c0 === 'priest' || c0 === 'time' || c0 === 'ninja' || c0 === 'ogre' || c0 === 'rooster' ? c0 : 'knight'; } catch (e) { }
+let CHAR = 'knight'; try { const c0 = localStorage.getItem('kn_char'); CHAR = c0 === 'fire' || c0 === 'priest' || c0 === 'time' || c0 === 'ninja' || c0 === 'ogre' || c0 === 'rooster' || c0 === 'gi' ? c0 : 'knight'; } catch (e) { }
 const pitOf = kn => [kn.T.x + STONE.x, kn.T.y + STONE.y + 1.5];
 function makeFire(kn) { Object.assign(kn, { fpos: kn.i * 2.5, brC: FIRE.BR_T, brH: 0, vPh: -1, vBel: -1, vSh: 0, ultSeen: kn.in.ultN || 0, vtSeen: kn.in.vtN || 0, lvSeen: kn.in.lvN || 0, lvC: 0, lvQ: 0, lava: 0, lvCd: 0, lvOn: 0, landT: 0, coSeen: kn.in.coN || 0, coT: -1, coCd: 0, plT: -1, plCd: 0, tsw: -1, tswN: 0, brOn: 0, brUse: 0, brCd: 0, waves: [], kind: 'fire', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, hold: 1, kn: 0, att: 0, cone: 0, aimS: 0, wph: 0, dph: kn.i * 1.7, lvl: 5, half: FIRE.HALF, reach: FIRE.R, fp: [] }); }
 const mouthOf = kn => kn.mouthW || [kn.x + kn.f * 3, kn.y - 12];
@@ -7111,15 +7111,374 @@ window.__cr = m => { const IN = KN[ME].in; if (m === 'bomb') { IN.dashN = (IN.da
 
 
 
+// G.I. art (from scratchpad gi-draft.html; draft units ~62 tall, feet at 0, facing right)
+const GIX = (() => {
+// ===================== helpers =====================
+const TAU = Math.PI * 2, cl = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, k) => a + (b - a) * k, ease = k => k * k * (3 - 2 * k);
+const rgb = h => { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)); };
+const mix = (a, b, k) => { const A = rgb(a), B = rgb(b); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * k).toString(16).padStart(2, '0')).join(''); };
+const dk = (a, k) => mix(a, '#000000', k), lt = (a, k) => mix(a, '#ffffff', k);
+const rnd = s => { const x = Math.sin(s * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+function path(c, P, close = true) { c.beginPath(); P.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); if (close) c.closePath(); }
+function smooth(c, P, close = true) { const n = P.length; c.beginPath(); if (!close) { c.moveTo(P[0][0], P[0][1]); for (let i = 1; i < n - 1; i++) c.quadraticCurveTo(P[i][0], P[i][1], (P[i][0] + P[i + 1][0]) / 2, (P[i][1] + P[i + 1][1]) / 2); c.lineTo(P[n - 1][0], P[n - 1][1]); return; }
+  const m = i => [(P[i % n][0] + P[(i + 1) % n][0]) / 2, (P[i % n][1] + P[(i + 1) % n][1]) / 2], s = m(n - 1); c.moveTo(s[0], s[1]); for (let i = 0; i < n; i++) { const q = m(i); c.quadraticCurveTo(P[i][0], P[i][1], q[0], q[1]); } c.closePath(); }
+const OL = '#1a1c16';
+function limbPts(J, W) { const L = [], R = []; for (let i = 0; i < J.length; i++) { const a = J[Math.max(0, i - 1)], b = J[Math.min(J.length - 1, i + 1)]; let dx = b[0] - a[0], dy = b[1] - a[1]; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d; L.push([J[i][0] - dy * W[i] / 2, J[i][1] + dx * W[i] / 2]); R.push([J[i][0] + dy * W[i] / 2, J[i][1] - dx * W[i] / 2]); }
+  const e1 = J[J.length - 1], d1 = [e1[0] - J[J.length - 2][0], e1[1] - J[J.length - 2][1]], n1 = Math.hypot(...d1) || 1, e0 = J[0], d0 = [J[0][0] - J[1][0], J[0][1] - J[1][1]], n0 = Math.hypot(...d0) || 1;
+  return [...L, [e1[0] + d1[0] / n1 * W[W.length - 1] * 0.3, e1[1] + d1[1] / n1 * W[W.length - 1] * 0.3], ...R.reverse(), [e0[0] + d0[0] / n0 * W[0] * 0.4, e0[1] + d0[1] / n0 * W[0] * 0.4]]; }
+// one-piece look: pass 1 (GIM 1) draws the whole figure as a dark silhouette grown all round, pass 2 (GIM 2) in colour with no part outlines;
+// held items (GITEM) keep their own lines
+let GIM = 0, GITEM = 0;
+function fillO(c, col, lw = 0.7) { c.lineJoin = 'round'; if (GIM === 1) { c.fillStyle = OL; c.fill(); c.lineWidth = 1.0; c.strokeStyle = OL; c.stroke(); return; } c.fillStyle = col; c.fill(); if (GIM === 2 && !GITEM) return; c.lineWidth = lw; c.strokeStyle = OL; c.stroke(); }
+// tapered limb as a capsule outline between two points
+function seg(c, a, b, wa, wb, col, lw = 0.7) { const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d, an = Math.atan2(dy, dx);
+  c.beginPath(); c.moveTo(a[0] + nx * wa, a[1] + ny * wa); c.lineTo(b[0] + nx * wb, b[1] + ny * wb); c.arc(b[0], b[1], wb, an + Math.PI / 2, an - Math.PI / 2, true); c.lineTo(a[0] - nx * wa, a[1] - ny * wa); c.arc(a[0], a[1], wa, an - Math.PI / 2, an + Math.PI / 2, true); c.closePath(); fillO(c, col, lw); }
+function ik(a, b, l1, l2, bend) { const dx = b[0] - a[0], dy = b[1] - a[1], d = cl(Math.hypot(dx, dy), 0.01, l1 + l2 - 0.01), an = Math.atan2(dy, dx), k = Math.acos(cl((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), -1, 1)); const a1 = an + bend * k; return [a[0] + Math.cos(a1) * l1, a[1] + Math.sin(a1) * l1]; }
+
+// ===================== the G.I. (facing right; mirror outside with scale(-1,1)) =====================
+const GC = { skin: '#c89268', skinD: '#a8734f', shirt: '#5b6b3c', shirtD: '#47552f', pants: '#4f5c35', pantsD: '#3e4829', boot: '#26221e', canvasB: '#5a6141', helm: '#5f6b40', helmD: '#4a5432', web: '#6b6a45', metal: '#2a2c2e', metalL: '#4a4e52', radio: '#4e5a37', cig: '#7a4e2c' };
+// P: { t, ph walk phase, spd 0..1, aim (rad, 0 = straight ahead, + down), mode 'idle'|'walk'|'fire'|'radio'|'sentry', u progress 0..1, rec recoil 0..1, yell 0..1 }
+function drawGI(c, P) { GIM = 1; drawGI0(c, P); GIM = 2; const r = drawGI0(c, P); GIM = 0; return r; }
+function drawGI0(c, P) {
+  const t = P.t || 0, mode = P.mode || 'idle', spd = P.spd || 0, ph = P.ph || 0, rec = P.rec || 0;
+  // blends (0..1, eased by the caller so nothing snaps): fk = rifle up at the aim, rk = on the radio, ck = kneeling in sentry
+  const fk = P.fk ?? (mode === 'fire' || mode === 'sentry' ? 1 : 0), rk = P.rk ?? (mode === 'radio' ? 1 : 0), ck = P.ck ?? (mode === 'sentry' ? 1 : 0);
+  const L2 = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k)];
+  const crouch = Math.max(ck, 0.25 * rk * (P.u ?? 1)), br = Math.sin(t * 1.8) * 0.35;
+  const hipY = -27 + crouch * 8 + Math.abs(Math.sin(ph)) * -1.2 * spd, lean = 0.12 * Math.max(fk, ck) + spd * 0.12;
+  const hip = [0, hipY], chest = [Math.sin(lean) * 15, hipY - 15 + br * 0.3], sh = [chest[0], chest[1] - 2], neck = [chest[0] + 0.6, chest[1] - 4.5];
+  const sB = [sh[0] - 5.2, sh[1] + 0.4], sA = [sh[0] + 4.3, sh[1] - 0.2];
+  // ---- legs: facing side (A, right) in front, drawn last ----
+  const legs = [];
+  for (const s of [-1, 1]) { const hx = s * 3.2, fp = ph + (s > 0 ? 0 : Math.PI); let fx = hx + Math.sin(fp) * 7.5 * spd, fy = -Math.max(0, Math.cos(fp)) * 3 * spd;
+    fx = lerp(fx, s > 0 ? 9 : -6, ck); fy = lerp(fy, 0, ck); legs.push({ s, h: [hx * 0.8 + chest[0] * 0.05, hipY], f: [fx, fy - 2.6] }); }
+  const kneel = ck > 0.5;
+  function leg(L, back) { const kI = ik(L.h, L.f, 12.8, 12.8, -1), k = L.s < 0 ? L2(kI, [L.h[0] - 1, -3.2], ck) : kI;
+    const foot = L.s < 0 ? L2(L.f, [k[0] - 9, -1.6], ck) : L.f, pc = back ? GC.pantsD : GC.pants, bc = back ? dk(GC.boot, 0.2) : GC.boot;
+    const bt = [lerp(k[0], foot[0], 0.62), lerp(k[1], foot[1], 0.62)]; smooth(c, limbPts([L.h, k, bt], [7.2, 5.6, 5.2])); fillO(c, pc); // thigh + shin, one shape (bloused into the boot)
+    c.save(); smooth(c, limbPts([L.h, k, bt], [7.2, 5.6, 5.2])); c.clip(); c.fillStyle = 'rgba(0,0,0,.16)'; c.beginPath(); c.ellipse(k[0] - 2, k[1] + 5, 2, 6, 0.1, 0, TAU); c.fill(); c.fillStyle = 'rgba(0,0,0,.12)'; c.fillRect(L.h[0] - 4, L.h[1] + 4, 8, 1.2); c.restore();
+    // jungle boot: canvas upper, leather toe
+    c.save(); const a = Math.atan2(foot[1] - bt[1], foot[0] - bt[0]); seg(c, bt, foot, 2.7, 2.4, back ? dk(GC.canvasB, 0.25) : GC.canvasB);
+    if (!(kneel && L.s < 0)) { path(c, [[foot[0] - 2.4, foot[1] - 1.6], [foot[0] + 4.6, foot[1] - 0.6], [foot[0] + 5.4, foot[1] + 2.4], [foot[0] - 2.8, foot[1] + 2.6]]); fillO(c, bc); c.fillStyle = '#0d0c0b'; c.fillRect(foot[0] - 2.8, foot[1] + 1.8, 8.2, 0.8); }
+    else { path(c, [[foot[0] - 3.5, foot[1] - 2], [foot[0] + 1.5, foot[1] - 2.4], [foot[0] + 2, foot[1] + 1.6], [foot[0] - 3.8, foot[1] + 1.6]]); fillO(c, bc); }
+    c.restore(); c.fillStyle = 'rgba(255,255,255,.08)'; c.beginPath(); c.ellipse(k[0] + 0.8, k[1], 1.2, 2, 0.3, 0, TAU); c.fill(); }
+  // ---- rifle pose ----
+  // gun frame: origin at the butt, x along the barrel; returns world points
+  const gaF = (P.aim || 0) + 0.05 * ck, gBF = [sB[0] + 2.2 - rec * 1.6 * Math.cos(gaF), sB[1] + 1.8 - rec * 1.6 * Math.sin(gaF)];
+  let ga = lerp(0.55 + Math.sin(ph) * 0.05 * spd + br * 0.02, gaF, fk), gB = L2([sB[0] + 1, sB[1] + 7], gBF, fk); // low ready -> up at the aim
+  ga = lerp(ga, 1.15, rk); gB = L2(gB, [sA[0] - 3, sA[1] + 1], rk); // slung across in his far hand while he's on the radio
+  const gs = 0.8, G = (x, y) => [gB[0] + (Math.cos(ga) * x - Math.sin(ga) * y) * gs, gB[1] + (Math.sin(ga) * x + Math.cos(ga) * y) * gs];
+  const gripW = G(11, 3.8), guardW = G(20, 1.4), muzzle = G(31, -0.4);
+  // hands
+  const hB = L2(gripW, [neck[0] - 3.4, neck[1] - 3.6], rk), hA = L2(guardW, G(11, 3.8), rk);
+  // ---- radio pack + antenna (behind everything on his back, screen-left) ----
+  const sway = Math.sin(t * 2.3 + ph) * 0.12 + spd * 0.25;
+  c.save(); c.translate(sh[0] - 6.5, sh[1] + 3); c.rotate(-0.05);
+  { const ax = -2.8, ay = -2; c.strokeStyle = '#222'; c.lineWidth = 0.55; c.beginPath(); c.moveTo(ax, ay); c.quadraticCurveTo(ax - 2 - sway * 6, ay - 14, ax - 4 - sway * 16, ay - 30); c.stroke(); }
+  path(c, [[-4.2, -3], [3.2, -3], [3.6, 9], [-4.4, 9]]); fillO(c, GC.radio); c.fillStyle = dk(GC.radio, 0.25); c.fillRect(-3.6, 5.5, 6.6, 1); c.fillStyle = '#2a2a2a'; c.fillRect(-1.5, -4, 2.4, 1.2); c.restore();
+  // ---- back leg, back (A) upper arm ----
+  leg(legs[0], true);
+  // A arm (far side): upper arm behind the torso
+  const eA = L2(ik(sA, hA, 8.6, 8.4, 1), ik(sA, hA, 8.6, 8.4, -1), rk);
+  seg(c, sA, eA, 2.5, 2.1, dk(GC.skin, 0.12));
+  // ---- front leg ----
+  leg(legs[1], false);
+  // ---- torso: sleeveless shirt, armholes, open collar, dog tags, web belt ----
+  const T = [[sB[0] - 0.6, sB[1] + 0.2], [neck[0] - 3, neck[1] + 2.2], [neck[0] + 2.6, neck[1] + 2.3], [sA[0] + 0.8, sA[1] + 0.3], [sA[0] + 1.6, sA[1] + 5], [hip[0] + 5.2, hipY - 2], [hip[0] + 5.6, hipY + 1.8], [hip[0] - 5.2, hipY + 1.8], [hip[0] - 5.4, hipY - 2], [sB[0] - 1.6, sB[1] + 5.5]];
+  smooth(c, T); fillO(c, GC.shirt);
+  c.save(); smooth(c, T); c.clip(); c.fillStyle = GC.shirtD; c.beginPath(); c.ellipse(sA[0] + 3, sA[1] + 9, 3.6, 9, 0.1, 0, TAU); c.fill(); // shade on the far side
+  c.strokeStyle = 'rgba(0,0,0,.25)'; c.lineWidth = 0.35; c.beginPath(); c.moveTo(neck[0] + 0.2, neck[1] + 2.5); c.lineTo(chest[0] + 0.6, hipY - 2); c.stroke(); // placket
+  for (let i = 0; i < 3; i++) { c.fillStyle = '#2c3020'; c.beginPath(); c.arc(chest[0] + 0.9, neck[1] + 7 + i * 4, 0.35, 0, TAU); c.fill(); }
+  // open collar: skin V + dog tag chain
+  path(c, [[neck[0] - 2.3, neck[1] + 2.1], [neck[0] + 2, neck[1] + 2.2], [neck[0] + 0.2, neck[1] + 6.5]]); c.fillStyle = GC.skin; c.fill();
+  c.restore();
+  c.strokeStyle = '#9aa0a3'; c.lineWidth = 0.25; c.beginPath(); c.moveTo(neck[0] - 1.8, neck[1] + 2.3); c.quadraticCurveTo(neck[0] + 0.1, neck[1] + 6.6, neck[0] + 1.7, neck[1] + 2.3); c.stroke();
+  c.fillStyle = '#c4c9cc'; c.save(); c.translate(neck[0] + 0.2, neck[1] + 6.4); c.rotate(0.2); c.fillRect(-0.6, 0, 1.2, 1.7); c.restore();
+  // web belt with ammo pouches + canteen
+  path(c, [[hip[0] - 5.6, hipY - 2.6], [hip[0] + 5.6, hipY - 2.6], [hip[0] + 5.6, hipY - 0.6], [hip[0] - 5.6, hipY - 0.6]]); fillO(c, GC.web, 0.5);
+  for (const x of [-3.6, 2.2]) { path(c, [[x - 1.6, hipY - 3.4], [x + 1.6, hipY - 3.4], [x + 1.7, hipY + 0.8], [x - 1.7, hipY + 0.8]]); fillO(c, dk(GC.web, 0.22), 0.45); c.fillStyle = 'rgba(0,0,0,.2)'; c.fillRect(x - 1.6, hipY - 3.4, 3.2, 1); }
+  c.fillStyle = '#c8b16a'; c.fillRect(hip[0] - 0.5, hipY - 2.4, 1.3, 1.6);
+  // ---- head: neck, face, cigar, helmet ----
+  const hd = [neck[0] + 0.6, neck[1] - 4.6 + -0.4 * (P.yell || 0) * rk], yell = P.yell || 0;
+  seg(c, [neck[0], neck[1] + 1.5], [neck[0] + 0.4, neck[1] - 2], 2.1, 2.0, GC.skin, 0.6);
+  c.save(); c.translate(hd[0], hd[1]); c.rotate(-0.12 * yell * rk);
+  // face: three-quarter to the right, square jaw, stubble
+  const F = [[-3.6, -2.5], [-1, -4.4], [3.4, -3.6], [4.6, -0.8], [4.4, 2.6], [2.6, 4.7], [-0.6, 5], [-3.2, 3.4], [-4, 0.6]];
+  smooth(c, F); fillO(c, GC.skin, 0.6);
+  c.save(); smooth(c, F); c.clip(); c.fillStyle = 'rgba(60,45,35,.28)'; c.beginPath(); c.ellipse(1.6, 3.6, 4, 2.2, 0, 0, TAU); c.fill(); // stubble
+  c.fillStyle = GC.skinD; c.beginPath(); c.ellipse(-3.2, 0.8, 1.2, 2.6, 0, 0, TAU); c.fill(); c.restore();
+  // ear
+  c.fillStyle = GC.skinD; c.beginPath(); c.ellipse(-2.6, 0.6, 0.9, 1.4, 0, 0, TAU); c.fill();
+  // brow + squinting eyes
+  c.strokeStyle = '#3a2a1e'; c.lineWidth = 0.55; c.lineCap = 'round'; c.beginPath(); c.moveTo(0, -1.2); c.lineTo(2, -1.5); c.moveTo(3, -1.4); c.lineTo(4.4, -1.1); c.stroke();
+  c.strokeStyle = '#1a1410'; c.lineWidth = 0.45; c.beginPath(); c.moveTo(0.5, -0.3); c.lineTo(1.9, -0.4); c.moveTo(3.2, -0.3); c.lineTo(4.1, -0.2); c.stroke();
+  // nose
+  c.strokeStyle = 'rgba(80,50,30,.8)'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(3.4, -0.2); c.lineTo(4.9, 1.6); c.lineTo(3.8, 1.9); c.stroke();
+  // mouth: grim line, or open yelling
+  if (yell > 0.05) { c.fillStyle = '#3a1a14'; c.beginPath(); c.ellipse(2.6, 3.1, 1.4, 0.4 + yell * 1.1, -0.1, 0, TAU); c.fill(); c.fillStyle = '#eee'; c.fillRect(1.6, 2.6 - yell * 0.4, 2, 0.35); }
+  else { c.strokeStyle = '#3a2418'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(1.2, 3.2); c.lineTo(3.8, 3); c.stroke(); }
+  // cigar out of the corner of his mouth, ember + smoke
+  { const ca = 0.28 - yell * 0.25, cx = 3.6, cy = 3.1; c.save(); c.translate(cx, cy); c.rotate(ca); path(c, [[0, -0.55], [4.6, -0.6], [4.8, 0.55], [0, 0.55]]); GITEM = 1; fillO(c, GC.cig, 0.35); GITEM = 0; c.fillStyle = '#c6a37a'; c.fillRect(0.8, -0.55, 0.7, 1.1);
+    const glowA = 0.6 + 0.4 * Math.sin(t * 3.1); c.fillStyle = `rgba(255,${120 + 60 * glowA | 0},40,1)`; c.beginPath(); c.arc(4.8, 0, 0.55, 0, TAU); c.fill(); c.fillStyle = '#777'; c.fillRect(4.3, -0.6, 0.6, 1.2); c.restore();
+    const tipX = cx + Math.cos(ca) * 5, tipY = cy + Math.sin(ca) * 5; if (GIM !== 1) for (let i = 0; i < 6; i++) { const k = ((t * 0.55 + i / 6) % 1), x = tipX + Math.sin(k * 7 + i) * 1.4 * k - k * 2, y = tipY - k * 9; c.fillStyle = `rgba(210,210,205,${0.35 * (1 - k)})`; c.beginPath(); c.arc(x, y, 0.5 + k * 1.4, 0, TAU); c.fill(); } }
+  // M1 helmet: steel pot with camo cover, net, band with the ace of spades, loose chin straps
+  const strap = (x0, y0, sw) => { c.strokeStyle = '#3d4229'; c.lineWidth = 0.55; c.beginPath(); c.moveTo(x0, y0); c.quadraticCurveTo(x0 + sw * 0.4, y0 + 3.5, x0 + sw, y0 + 6 + Math.sin(t * 3 + x0) * 0.4); c.stroke(); c.fillStyle = '#8a8a7a'; c.fillRect(x0 + sw - 0.4, y0 + 5.8 + Math.sin(t * 3 + x0) * 0.4, 0.8, 0.8); };
+  strap(-3.4, -2.2, -0.8 - spd * 0.6);
+  const Hm = [[-5.6, -2.2], [-5.2, -6.2], [-2.6, -8.6], [1.6, -9], [5, -7], [6.4, -3.4], [6.6, -2], [-5.8, -1.6]];
+  smooth(c, Hm); fillO(c, GC.helm, 0.65);
+  c.save(); smooth(c, Hm); c.clip();
+  for (let i = 0; i < 9; i++) { c.fillStyle = i % 3 ? 'rgba(40,52,26,.55)' : 'rgba(110,98,62,.55)'; c.beginPath(); c.ellipse(-5 + rnd(i) * 11, -8 + rnd(i + 9) * 6, 1.4 + rnd(i + 3), 0.8 + rnd(i + 5) * 0.6, rnd(i + 7) * 3, 0, TAU); c.fill(); }
+  c.strokeStyle = 'rgba(20,24,12,.55)'; c.lineWidth = 0.2; for (let i = -8; i < 8; i += 1.5) { c.beginPath(); c.moveTo(i, -10); c.lineTo(i + 5, 0); c.moveTo(i + 5, -10); c.lineTo(i, 0); c.stroke(); }
+  c.fillStyle = 'rgba(255,255,255,.1)'; c.beginPath(); c.ellipse(-1, -7, 3.4, 1.4, -0.2, 0, TAU); c.fill(); c.restore();
+  // brim shadow + band
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(1, -1.6, 6, 0.9, 0, 0, TAU); c.fill();
+  path(c, [[-5.4, -4.2], [6.2, -4.1], [6.3, -3], [-5.6, -3.1]]); fillO(c, '#2e321f', 0.35);
+  // ace of spades tucked in the band
+  c.save(); c.translate(-1.6, -5.2); c.rotate(-0.22); path(c, [[-1.4, -2.4], [1.4, -2.4], [1.4, 1.8], [-1.4, 1.8]]); GITEM = 1; fillO(c, '#f3efe4', 0.35); GITEM = 0;
+  c.fillStyle = '#111'; c.beginPath(); c.moveTo(0, -1.3); c.bezierCurveTo(1, -0.3, 1, 0.6, 0, 0.3); c.bezierCurveTo(-1, 0.6, -1, -0.3, 0, -1.3); c.fill(); c.fillRect(-0.15, 0.2, 0.3, 0.7); c.restore();
+  strap(5.6, -2.4, 0.6 + spd * 0.4);
+  c.restore();
+  // ---- rifle (M16) ----
+  function m16() { GITEM = 1; c.save(); c.translate(gB[0], gB[1]); c.rotate(ga); c.scale(gs, gs);
+    path(c, [[0, -1.6], [7.5, -1.2], [7.5, 1.4], [0, 2.6]]); fillO(c, GC.metal, 0.8); // stock
+    path(c, [[7.4, -1.6], [16.5, -1.6], [16.5, 1.6], [7.4, 1.6]]); fillO(c, GC.metalL, 0.8); // receiver
+    path(c, [[9, -1.6], [9.6, -4.4], [14.6, -4.4], [15, -1.6], [14, -1.6], [13.8, -3.4], [10.4, -3.4], [10, -1.6]]); fillO(c, GC.metal, 0.6); // carry handle
+    path(c, [[10, 1.6], [11.6, 1.6], [11, 5.4], [9.4, 5.2]]); fillO(c, GC.metal, 0.6); // grip
+    path(c, [[12.6, 1.6], [15.4, 1.6], [15.8, 6.6], [13.2, 6.8]]); fillO(c, '#3a3d40', 0.6); // magazine
+    path(c, [[16.4, -1.4], [23.6, -1], [23.6, 1.2], [16.4, 1.6]]); fillO(c, GC.metal, 0.6); // handguard
+    c.strokeStyle = 'rgba(255,255,255,.12)'; c.lineWidth = 0.3; for (let x = 17.4; x < 23; x += 1.2) { c.beginPath(); c.moveTo(x, -0.9); c.lineTo(x, 1.1); c.stroke(); }
+    path(c, [[23.4, -0.5], [30.4, -0.5], [30.4, 0.5], [23.4, 0.5]]); fillO(c, '#1e2022', 0.5); // barrel
+    path(c, [[23.2, -0.4], [23.8, -3.4], [24.6, -3.4], [24.8, -0.4]]); fillO(c, GC.metal, 0.5); // front sight
+    path(c, [[30.2, -0.8], [32.2, -0.8], [32.2, 0.8], [30.2, 0.8]]); fillO(c, '#16181a', 0.45); // flash hider
+    c.restore(); GITEM = 0; }
+  // A forearm: in front of the torso when on the handguard
+  const drawAfore = () => { seg(c, eA, hA, 2.1, 1.7, GC.skin); c.beginPath(); c.arc(hA[0], hA[1], 1.6, 0, TAU); fillO(c, GC.skin, 0.5); };
+  if (rk > 0.5) { drawAfore(); m16(); } else { m16(); drawAfore(); }
+  // muzzle flash
+  if (GIM !== 1 && fk > 0.5 && rec > 0.55) { c.save(); c.translate(muzzle[0], muzzle[1]); c.rotate(ga); c.globalCompositeOperation = 'lighter'; const r = 1.6 + rec * 2.2;
+    for (const [s, col] of [[1.6, 'rgba(255,170,60,.45)'], [1, 'rgba(255,230,140,.9)'], [0.5, 'rgba(255,255,230,1)']]) { c.fillStyle = col; c.beginPath(); c.moveTo(0, 0); c.lineTo(r * 1.6 * s, -r * 0.35 * s); c.lineTo(r * 2.4 * s, 0); c.lineTo(r * 1.6 * s, r * 0.35 * s); c.closePath(); c.fill(); c.beginPath(); c.arc(0, 0, r * 0.5 * s, 0, TAU); c.fill(); } c.restore(); }
+  // ---- B arm (near the camera): bare, muscular, frayed cut-off armhole ----
+  const eB = L2(ik(sB, hB, 8.8, 8.6, 1), [sB[0] - 5.5, sB[1] + 5.5], rk);
+  seg(c, sB, eB, 2.9, 2.4, GC.skin); seg(c, eB, hB, 2.4, 1.8, GC.skin);
+  c.fillStyle = 'rgba(255,255,255,.14)'; c.beginPath(); c.ellipse(lerp(sB[0], eB[0], 0.45) - 0.6, lerp(sB[1], eB[1], 0.45), 1.1, 2.6, Math.atan2(eB[1] - sB[1], eB[0] - sB[0]) + Math.PI / 2, 0, TAU); c.fill();
+  // frayed armhole over the shoulder
+  c.save(); c.translate(sB[0], sB[1]); path(c, [[-3.2, -1.4], [1.8, -2.2], [3, 1.6], [1.4, 1.2], [0.6, 2.4], [-0.6, 1.4], [-1.6, 2.6], [-2.4, 1.2], [-3.4, 1.6]]); fillO(c, GC.shirt, 0.5); c.restore();
+  // hand B: on the grip, or holding the radio handset to his face
+  if (rk > 0.4) { c.save(); c.translate(hB[0] + 1, hB[1] + 0.6); c.rotate(-0.25); path(c, [[-1.2, -3.6], [1.2, -3.6], [1.4, 3.6], [-1.4, 3.6]]); GITEM = 1; fillO(c, '#1a1a1a', 0.4); GITEM = 0; c.fillStyle = '#333'; c.fillRect(-0.9, -3.2, 1.8, 1.4); c.restore();
+    // curly cord back to the pack
+    c.strokeStyle = '#111'; c.lineWidth = 0.35; c.beginPath(); for (let i = 0; i <= 24; i++) { const k = i / 24, x = lerp(hB[0], sh[0] - 7, k) + Math.sin(k * 40) * 0.6, y = lerp(hB[1] + 3, sh[1] + 6, k) + Math.cos(k * 40) * 0.6 + Math.sin(k * Math.PI) * 4; i ? c.lineTo(x, y) : c.moveTo(x, y); } c.stroke(); }
+  c.beginPath(); c.arc(hB[0], hB[1], 1.75, 0, TAU); fillO(c, GC.skin, 0.5);
+  // tattoo on the near shoulder
+  c.fillStyle = 'rgba(40,60,90,.55)'; c.beginPath(); c.ellipse(lerp(sB[0], eB[0], 0.3), lerp(sB[1], eB[1], 0.3) + 0.4, 0.9, 1.3, 0, 0, TAU); c.fill();
+  return { muzzle, ga };
+}
+
+return { drawGI };
+})();
+// ======================= G.I. (kind 'gi'): Vietnam-era rifleman (DRAFT 2026-10-19, not balanced) =======================
+// Art from the approved draft (scratchpad gi-draft.html) in the GIX closure: one-piece look (whole figure outlined once, no part lines; the rifle,
+// card, cigar and handset keep their own). Swing stick = M16 (hitscan, every round a tracer). ULT = radio call: he yells for a bird, then
+// kneels in sentry and shoots on his own while his player mans the door M60 of a Huey circling him, in first person (move stick aims, FIRE fires).
+const GI = { S: KS * 12 / 62, RUN: 0.9, FIREMV: 0.6, RATE: 0.11, RANGE: 150, W: 2.2, DMG: 55, SPREAD: 0.035, KB: 6,
+  ULT: { RADIO: 1.9, FADE: 0.6, T: 14, R: 170, ALT: 120, OM: 0.2, RATE: 10, SPREAD: 0.012, HR: 3.5, DMG: 140, TRACE: 3, YAW: 1.15, P0: -0.62, PMIN: -1.35, PMAX: -0.18, TURN: [1.5, 1.1],
+    SR: 120, SGAP: 0.16, SDMG: 45, VR: 95, VZ: 40 } };
+let GIFX = [], GIDEC = [];
+const giH = (n, i) => { const v = Math.sin(n * 12.9898 + i * 78.233 + 1.7) * 43758.5453; return v - Math.floor(v); };
+function makeGI(kn) { Object.assign(kn, { kind: 'gi', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, kn: 0, hold: 1, z: 0, gsN: 0, gsA: 0, gsC: 0, gu: -1, guN: kn.guN || 0, guO: 0, gcx: 0, gcy: 0, gtN: 0, gtX: 0, gtY: 0, ghN: 0, ghC: 0, guK: 0,
+  dashSeen: kn.in.dashN || 0, leapSeen: kn.in.leapN || 0, ultSeen: kn.in.ultN || 0, lvSeen: kn.in.lvN || 0 }); }
+const giT0 = () => GI.ULT.RADIO + GI.ULT.FADE, giTE = () => giT0() + GI.ULT.T;
+const giFP = kn => kn.gu > GI.ULT.RADIO + GI.ULT.FADE * 0.5 && kn.gu < giTE() + GI.ULT.FADE * 0.5; // the door view is up (his screen)
+const giFiring = kn => kn.gu > GI.ULT.RADIO + GI.ULT.FADE * 0.5 && kn.gu < giTE();
+// the door gunner's camera: Huey circling the spot he called it on; ground plane = (x, y*1.25), z up
+function giCam(kn, yw, pt, sk = 0, t = 0) { const U = GI.ULT, o = kn.guO + U.OM * Math.max(0, kn.gu - U.RADIO), cx = kn.gcx, cy = kn.gcy * 1.25, hx = cx + Math.cos(o) * U.R, hy = cy + Math.sin(o) * U.R;
+  const yaw = Math.atan2(cy - hy, cx - hx) + cl(yw, -U.YAW, U.YAW), p = cl(U.P0 + pt, U.PMIN, U.PMAX), fw = [Math.cos(yaw) * Math.cos(p), Math.sin(yaw) * Math.cos(p), Math.sin(p)], rt = [-Math.sin(yaw), Math.cos(yaw), 0];
+  const up = [fw[1] * rt[2] - fw[2] * rt[1], fw[2] * rt[0] - fw[0] * rt[2], fw[0] * rt[1] - fw[1] * rt[0]];
+  return { pos: [hx + rr(-0.5, 0.5) * sk, hy + rr(-0.5, 0.5) * sk, U.ALT + Math.sin(t * 2.1) * 1.2], fw, rt, up, p, yaw, o }; }
+// where a ray through the crosshair (offset sx, sy) meets the ground, in game coords
+function giGround(C, sx = 0, sy = 0) { const d = [C.fw[0] + C.rt[0] * sx + C.up[0] * sy, C.fw[1] + C.rt[1] * sx + C.up[1] * sy, C.fw[2] + C.up[2] * sy]; if (d[2] >= -0.01) return null; const k = -C.pos[2] / d[2]; return [C.pos[0] + d[0] * k, (C.pos[1] + d[1] * k) / 1.25]; }
+const giAimOf = kn => kn.i === ME ? [kn.gyY || 0, kn.gyP || 0] : (kn.in.gy || [0, 0]);
+// round n of the door gun lands here (worked out the same on every screen from the synced aim)
+const giRound = (kn, n) => { const [yw, pt] = giAimOf(kn), C = giCam(kn, yw, pt), U = GI.ULT; return giGround(C, (giH(n, 1) - 0.5) * U.SPREAD * 2, (giH(n, 2) - 0.5) * U.SPREAD * 2); };
+// first enemy along an M16 round (ground plane), and how far it got
+function giRay(kn, a) { const c = Math.cos(a), s = Math.sin(a); let best = null, bd = GI.RANGE;
+  for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - kn.x, dy = (w.y - kn.y) * 1.25, al = dx * c + dy * s; if (al < 2 || al > bd) continue; if (Math.abs(-dx * s + dy * c) > GI.W + UK[w.k].r) continue; best = w; bd = al; }
+  return [best, bd]; }
+function giStep(dt, t) {
+  if (K.kind !== 'gi') makeGI(K);
+  const IN = K.in, mvL = Math.hypot(IN.mv[0], IN.mv[1]), mine = AUTH() || K.i === ME, U = GI.ULT;
+  for (const k of ['dash', 'leap', 'lv']) K[k + 'Seen'] = IN[k + 'N'] || 0;
+  const ultP = (IN.ultN || 0) !== (K.ultSeen ?? (IN.ultN || 0)); K.ultSeen = IN.ultN || 0;
+  if (K.st === 'kneel') { K.vx = K.vy = 0; K.spd = 0; if (mine && (mvL > 0.2 || IN.aim || ultP)) K.st = 'fight'; else return; }
+  // ---- ULT: radio call -> sentry + the door gun ----
+  if (ultP && !(K.gu >= 0) && ultReady(K)) { K.guN = (K.guN || 0) + 1; Object.assign(K, { gu: 0, guO: Math.round(giH(K.guN, K.i + 3) * 628) / 100, gcx: r1(K.x), gcy: r1(K.y), guK: K.kills, ghN: 0, ghC: 0 }); K.gyY = 0; K.gyP = 0; }
+  if (K.gu >= 0) { K.gu += dt; K.vx = K.vy = 0; K.spd = lerp(K.spd || 0, 0, Math.min(1, dt * 10));
+    // his player aims the M60 with the move stick (his own screen; sent to the host as input gy)
+    if (K.i === ME && giFP(K)) { const sx = Math.abs(IN.mv[0]) > 0.08 ? IN.mv[0] : 0, sy = Math.abs(IN.mv[1]) > 0.08 ? IN.mv[1] : 0;
+      K.gyY = cl((K.gyY || 0) + sx * U.TURN[0] * dt * (0.4 + 0.6 * Math.abs(sx)), -U.YAW, U.YAW); K.gyP = cl((K.gyP || 0) - sy * U.TURN[1] * dt * (0.4 + 0.6 * Math.abs(sy)), U.PMIN - U.P0, U.PMAX - U.P0);
+      const gy = [Math.round(K.gyY * 1000) / 1000, Math.round(K.gyP * 1000) / 1000]; if (!IN.gy || IN.gy[0] !== gy[0] || IN.gy[1] !== gy[1]) { IN.gy = gy; markIn(); } }
+    // the door gun: RATE rounds/s while FIRE is held (or the attack stick / mouse)
+    K.ghC = Math.max(-1 / U.RATE, (K.ghC || 0) - dt);
+    if (giFiring(K) && (IN.gf || IN.aim)) while (K.ghC <= 0) { K.ghC += 1 / U.RATE; K.ghN = (K.ghN || 0) + 1;
+      if (AUTH()) { const g = giRound(K, K.ghN); if (g) for (const w of walkers) { if (w.hp <= 0) continue; const R = U.HR + UK[w.k].r; if (Math.abs(w.x - g[0]) > R || Math.hypot(w.x - g[0], (w.y - g[1]) * 1.25) > R) continue; const a = Math.atan2(w.y - K.gcy, w.x - K.gcx);
+          w.atk = -1; w.kx += Math.cos(a) * 10 / Math.max(0.4, UK[w.k].kb); w.ky += Math.sin(a) * 6 / Math.max(0.4, UK[w.k].kb); hurt(w, U.DMG, ww => ttKillFx(ww, a, 1)); } } }
+    // sentry: he picks the nearest enemy and shoots short bursts on his own
+    if (K.gu > U.RADIO * 0.9 && K.gu < giTE()) { K.gsC = (K.gsC || 0) - dt;
+      if (K.gsC <= 0) { let best = null, bd = U.SR; for (const w of walkers) { if (w.hp <= 0) continue; const d = Math.hypot(w.x - K.x, (w.y - K.y) * 1.25); if (d < bd) { bd = d; best = w; } }
+        if (best) { K.gtN = (K.gtN || 0) + 1; K.gsC = U.SGAP + (K.gtN % 4 === 0 ? 0.25 : 0); K.gtX = r1(best.x); K.gtY = r1(best.y); if (Math.abs(best.x - K.x) > 1) K.f = best.x > K.x ? 1 : -1;
+          if (AUTH()) { const a = Math.atan2((best.y - K.y) * 1.25, best.x - K.x); best.atk = -1; hurt(best, U.SDMG, ww => ttKillFx(ww, a, 1)); } } else K.gsC = 0.05; } }
+    if (K.gu >= giTE() + U.FADE + 0.2) { K.gu = -1; K.ultBase = K.kills; } // kills made during the call don't count toward the next one
+    K.st = 'fight'; return; }
+  // ---- M16 on the attack stick: a round every RATE s while held ----
+  if (IN.aim) { K.gsC = (K.gsC || 0) - dt; while (K.gsC <= 0) { K.gsC += GI.RATE; K.gsN = (K.gsN || 0) + 1; const a = Math.atan2(IN.aim[1] * 1.25, IN.aim[0]) + (giH(K.gsN, K.i) - 0.5) * 2 * GI.SPREAD; K.gsA = Math.round(a * 1000) / 1000;
+      if (Math.abs(Math.cos(a)) > 0.15) K.f = Math.cos(a) > 0 ? 1 : -1;
+      if (AUTH()) { const [w] = giRay(K, a); if (w) { w.atk = -1; w.kx += Math.cos(a) * GI.KB / Math.max(0.4, UK[w.k].kb); w.ky += Math.sin(a) * GI.KB * 0.6 / Math.max(0.4, UK[w.k].kb); hurt(w, GI.DMG, ww => ttKillFx(ww, a, 1)); } } } }
+  else K.gsC = Math.max(0, (K.gsC || 0) - dt);
+  // ---- walking ----
+  const v2 = RUN * GI.RUN * (IN.aim ? GI.FIREMV : 1);
+  if (mvL > 0.12) { const k = Math.min(1, mvL), e = 1 - Math.exp(-dt * 14); K.vx = lerp(K.vx || 0, IN.mv[0] / mvL * k * v2, e); K.vy = lerp(K.vy || 0, IN.mv[1] / mvL * k * v2, e); } else { const dmp = Math.exp(-dt * 11); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
+  const ox = K.x, oy = K.y; K.x += K.vx * dt; K.y = cl(K.y + K.vy * dt, 16, H - 4); const md = Math.hypot(K.x - ox, K.y - oy);
+  K.spd = lerp(K.spd || 0, md / Math.max(dt, 1e-4), Math.min(1, dt * 12)); K.gp = (K.gp || 0) + md * 0.42;
+  if (!IN.aim && mvL > 0.2 && Math.abs(IN.mv[0]) > 0.2) K.f = IN.mv[0] > 0 ? 1 : -1;
+  K.st = 'fight';
+}
+// muzzle in the world (from the last time he was drawn; a fallback before that)
+const giMuzzle = kn => kn.giMz || [kn.x + (kn.f || 1) * 15, kn.y - 13];
+// per frame, every screen: tracers, brass, impacts from the synced counters
+function giFx(dt, t) {
+  for (const kn of KN) { if (kn.on === 0 || kn.kind !== 'gi') continue; const S = kn.giS || (kn.giS = { gs: kn.gsN || 0, gt: kn.gtN || 0, gh: kn.ghN || 0, gu: kn.gu });
+    if ((kn.gsN || 0) !== S.gs) { const n = Math.min(3, ((kn.gsN || 0) - S.gs + 1000) % 1000); S.gs = kn.gsN || 0; kn.gsT = t;
+      for (let i = 0; i < n; i++) { const a = kn.gsA || 0, [w, d] = giRay(kn, a), m = giMuzzle(kn), ex = w ? w.x : kn.x + Math.cos(a) * d, ey = w ? w.y - 5 * UK[w.k].sc : kn.y + Math.sin(a) / 1.25 * d - 6;
+        GIFX.push({ k: 'tr', x0: m[0], y0: m[1], x1: ex, y1: ey, t: -i * 0.03, max: 0.07 }); if (w) for (let j = 0; j < 2; j++) sparks.push({ x: ex, y: ey, vx: rr(-25, 25), vy: -rr(5, 30), t: 0, max: rr(0.1, 0.25) });
+        GIFX.push({ k: 'brass', x: m[0] - (kn.f || 1) * 6, y: m[1] + 1, vx: -(kn.f || 1) * rr(15, 30), vz: rr(20, 35), z: 0, gy: kn.y + rr(-1, 2), t: 0 }); }
+      snd('mg', kn.x, kn.y); }
+    if ((kn.gtN || 0) !== S.gt) { S.gt = kn.gtN || 0; kn.gtT = t; const m = giMuzzle(kn); GIFX.push({ k: 'tr', x0: m[0], y0: m[1], x1: kn.gtX, y1: kn.gtY - 5, t: 0, max: 0.06 }); snd('mg', kn.x, kn.y); }
+    if (kn.gu >= 0 && !(S.gu >= 0)) { snd('pull', kn.x, kn.y); } S.gu = kn.gu;
+    if ((kn.ghN || 0) !== S.gh) { const n0 = S.gh, n1 = kn.ghN || 0; S.gh = n1; if (n1 > n0 && n1 - n0 < 20) for (let n = n0 + 1; n <= n1; n++) { const g = giRound(kn, n); if (!g) continue;
+        const C = giCam(kn, ...giAimOf(kn)), dist = Math.hypot(g[0] - C.pos[0], g[1] * 1.25 - C.pos[1], C.pos[2]); GIFX.push({ k: 'imp', o: kn.i, x: g[0], y: g[1], n, tr: n % GI.ULT.TRACE === 0, t: 0, max: 0.07 + dist / 2600 }); }
+      if (kn.i === ME) { GIFP.rec = 1; GIFP.shake = Math.min(1.4, GIFP.shake + 0.5); GIFP.rounds++; GIFP.brass.push({ t: 0, x: 0.66 + Math.random() * 0.01, y: 0.8, vx: 260 + Math.random() * 120, vy: -120 - Math.random() * 90, r: Math.random() * 6.28 }); }
+      snd('mg', kn.gcx, kn.gcy); } }
+  for (const f of GIFX) { f.t += dt;
+    if (f.k === 'imp' && !f.done && f.t >= f.max) { f.done = 1; GIDEC.push({ x: f.x, y: f.y, t: 0, r: 0.8 + Math.random() * 0.6 }); for (let i = 0; i < 3; i++) dust.push({ x: f.x, y: f.y, vx: rr(-14, 14), vy: rr(-6, 6), r: rr(0.8, 1.6), t: 0, max: rr(0.3, 0.6) });
+      for (let i = 0; i < 4; i++) GIFX.push({ k: 'dirt', x: f.x, y: f.y, z: 0, vx: rr(-10, 10), vy: rr(-10, 10), vz: rr(18, 40), t: 0 }); }
+    if (f.k === 'dirt') { f.vz -= 70 * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.z = Math.max(0, f.z + f.vz * dt); }
+    if (f.k === 'brass') { f.vz -= 120 * dt; f.x += f.vx * dt; f.z = Math.max(0, f.z + f.vz * dt); } }
+  GIFX = GIFX.filter(f => f.t < (f.k === 'imp' ? f.max + 0.15 : f.k === 'tr' ? f.max : f.k === 'brass' ? 0.6 : 1)); for (const d of GIDEC) d.t += dt; GIDEC = GIDEC.filter(d => d.t < 4).slice(-400);
+  GIFP.rec = Math.max(0, GIFP.rec - dt * 14); GIFP.shake = Math.max(0, GIFP.shake - dt * 8); for (const b of GIFP.brass) { b.t += dt; b.vy += 900 * dt; b.x += b.vx * dt / 1280; b.y += b.vy * dt / 720; b.r += dt * 20; } GIFP.brass = GIFP.brass.filter(b => b.t < 0.6);
+  giHeliAudio(); }
+// the Huey's loop while anyone's G.I. has one overhead (louder for its gunner)
+function giHeliAudio() { const bufs = heliBuf(); for (const kn of KN) { if (kn.kind !== 'gi') continue; const on = kn.on !== 0 && kn.gu >= GI.ULT.RADIO * 0.7 && kn.gu < giTE() + GI.ULT.FADE;
+    if (on && !kn.giAu && bufs && AU.ctx && AU.ctx.state === 'running') { const c = AU.ctx, src = c.createBufferSource(), g = c.createGain(), vol = kn.i === ME ? 0.5 : 0.3; src.buffer = bufs[Math.floor(Math.random() * bufs.length)]; src.loop = true; g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.linearRampToValueAtTime(vol, c.currentTime + 0.8); src.connect(g); g.connect(AU.out); src.start(); kn.giAu = { src, g }; }
+    if (!on && kn.giAu) { const c = AU.ctx, A = kn.giAu; kn.giAu = null; try { A.g.gain.cancelScheduledValues(c.currentTime); A.g.gain.setValueAtTime(A.g.gain.value, c.currentTime); A.g.gain.linearRampToValueAtTime(0.0001, c.currentTime + 0.8); A.src.stop(c.currentTime + 0.9); } catch (e) { } } } }
+// ---- drawing in the world ----
+function drawGIK(c, t) { const kn = K, f = kn.f || 1, S = GI.S, U = GI.ULT, dtv = Math.min(0.1, Math.max(0, t - (kn.gVt ?? t))); kn.gVt = t; const V = kn.gV || (kn.gV = { fk: 0, rk: 0, ck: 0, aim: 0, yell: 0 });
+  const ul = kn.gu >= 0, radio = ul && kn.gu < U.RADIO + 0.15, sentry = ul && !radio && kn.gu < giTE() + U.FADE * 0.6, fire = !ul && (kn.in.aim || t - (kn.gsT ?? -9) < 0.3) && kn.st !== 'kneel';
+  let aimT = 0; if (fire) { const a = kn.gsA || (kn.in.aim ? Math.atan2(kn.in.aim[1] * 1.25, kn.in.aim[0]) : 0), sx = Math.cos(a), sy = Math.sin(a) / 1.25; aimT = cl(Math.atan2(sy, Math.abs(sx)), -0.8, 0.8); }
+  if (sentry && kn.gtN) { const m = [kn.x, kn.y - 13]; aimT = cl(Math.atan2(kn.gtY - 5 - m[1], Math.abs(kn.gtX - m[0])) * 0.8, -0.5, 0.6); }
+  const e = 1 - Math.exp(-dtv * 12); V.fk = lerp(V.fk, fire || sentry ? 1 : 0, e); V.rk = lerp(V.rk, radio ? 1 : 0, 1 - Math.exp(-dtv * 9)); V.ck = lerp(V.ck, sentry ? 1 : 0, 1 - Math.exp(-dtv * 7)); V.aim = lerp(V.aim, aimT, 1 - Math.exp(-dtv * 18));
+  const yT = radio && kn.gu > U.RADIO * 0.3 ? 0.6 + 0.4 * Math.sin(t * 15) : 0; V.yell = lerp(V.yell, yT, 1 - Math.exp(-dtv * 20));
+  const rec = sentry ? cl(1 - (t - (kn.gtT ?? -9)) / 0.08, 0, 1) : cl(1 - (t - (kn.gsT ?? -9)) / 0.07, 0, 1), spd = cl((kn.spd || 0) / (RUN * GI.RUN), 0, 1) * (1 - V.ck);
+  c.save(); c.translate(kn.x, kn.y - (kn.z || 0)); c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(0, 0.3, 4.2, 1.3, 0, 0, 7); c.fill(); c.scale(S * f, S);
+  const r = GIX.drawGI(c, { t, mode: 'idle', spd, ph: kn.gp || 0, aim: V.aim, rec, fk: V.fk, rk: V.rk, ck: V.ck, u: cl(kn.gu / 0.5, 0, 1), yell: V.yell }); c.restore();
+  kn.giMz = [kn.x + f * S * r.muzzle[0], kn.y - (kn.z || 0) + S * r.muzzle[1]]; }
+// over everything: tracers, brass, the Huey circling him, the radio call bubble
+function giAir(c, t) {
+  c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
+  for (const f of GIFX) if (f.k === 'tr' && f.t >= 0) { const k = f.t / f.max, a = lerp(f.x0, f.x1, Math.min(1, k)), b = lerp(f.y0, f.y1, Math.min(1, k)), a2 = lerp(f.x0, f.x1, Math.max(0, k - 0.35)), b2 = lerp(f.y0, f.y1, Math.max(0, k - 0.35));
+    c.strokeStyle = 'rgba(255,120,40,.55)'; c.lineWidth = 0.9; c.beginPath(); c.moveTo(a2, b2); c.lineTo(a, b); c.stroke(); c.strokeStyle = 'rgba(255,240,190,1)'; c.lineWidth = 0.35; c.stroke(); }
+  c.restore();
+  c.fillStyle = '#d6b45a'; for (const f of GIFX) if (f.k === 'brass') { c.save(); c.translate(f.x, f.gy - f.z - (f.gy - f.y) * Math.max(0, 1 - f.t * 3)); c.rotate(f.t * 30); c.fillRect(-0.5, -0.2, 1, 0.4); c.restore(); }
+  for (const kn of KN) { if (kn.on === 0 || kn.kind !== 'gi' || !(kn.gu >= 0)) continue; const U = GI.ULT;
+    // the Huey: arrives over the radio call, circles him at a readable radius on everyone's map, leaves after
+    if (kn.gu > U.RADIO * 0.6) { const o = kn.guO + U.OM * Math.max(0, kn.gu - U.RADIO), arr = cl((kn.gu - U.RADIO * 0.6) / 1.2, 0, 1), lv = cl((kn.gu - giTE()) / (U.FADE + 0.2), 0, 1), R = U.VR * (1 + (1 - sm(arr)) * 3 + sm(lv) * 3);
+      const gx = kn.gcx + Math.cos(o) * R, gy = kn.gcy + Math.sin(o) * R / 1.25, hla = Math.atan2(Math.cos(o), -Math.sin(o) * 1.25 / 1.25), firing = giFiring(kn) && (kn.in.gf || kn.in.aim);
+      c.save(); c.globalAlpha = Math.min(sm(arr), 1 - sm(lv)); c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(gx, gy, 16, 5, 0, 0, 7); c.fill();
+      const tip = heliDraw(c, { hla }, gx, gy, U.VZ, t, [kn.gcx, kn.gcy], firing, kn.col); c.restore();
+      if (tip) { c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round'; for (const f of GIFX) if (f.k === 'imp' && f.o === kn.i && f.tr && !f.done) { const k = f.t / f.max, x2 = lerp(tip[0], f.x, k), y2 = lerp(tip[1], f.y, k), x1 = lerp(tip[0], f.x, Math.max(0, k - 0.3)), y1 = lerp(tip[1], f.y, Math.max(0, k - 0.3));
+          c.strokeStyle = 'rgba(255,110,40,.6)'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.strokeStyle = 'rgba(255,240,190,1)'; c.lineWidth = 0.3; c.stroke(); } c.restore(); } }
+    // speech bubble while he yells into the handset
+    if (kn.gu < U.RADIO) { const u = kn.gu / U.RADIO; if (u > 0.25) { const txt = u < 0.62 ? 'THIS IS GHOST SIX!' : 'I NEED A BIRD ON ME, NOW!', bx = kn.x + 4, by = kn.y - 28; c.save(); c.font = '800 3.4px system-ui'; const w = c.measureText(txt).width + 3;
+        c.fillStyle = '#f7f3e6'; c.strokeStyle = '#1a1a1a'; c.lineWidth = 0.35; c.beginPath(); c.roundRect(bx, by - 4, w, 5.4, 1.4); c.fill(); c.stroke(); c.beginPath(); c.moveTo(bx + 2, by + 1.3); c.lineTo(bx - 0.5, by + 4.5); c.lineTo(bx + 4.5, by + 1.3); c.fill(); c.stroke(); c.fillStyle = '#1a1a1a'; c.fillText(txt, bx + 1.5, by); c.restore(); } } } }
+// ---- first person, from the Huey's door (his screen only; drawn over the world) ----
+const GIFP = { rec: 0, shake: 0, rounds: 0, brass: [] };
+const GITREE = []; for (let i = 0; i < 30; i++) { const a = giH(i, 3.1) * 6.283, r = 90 + giH(i, 5.7) * 260; GITREE.push({ x: Math.cos(a) * r, y: Math.sin(a) * r, s: 0.3 + giH(i, 2.3) * 0.35, k: giH(i, 8.1) > 0.35 ? 0 : 1 }); }
+const GITUFT = []; for (let i = 0; i < 1800; i++) GITUFT.push([(giH(i, 1.37) - 0.5) * 640, (giH(i, 2.71) - 0.5) * 640, giH(i, 9.1)]);
+function drawAnyK(c, t) { if (K.kind === 'fire') drawFire(c, t); else if (K.kind === 'priest') drawPriest(c, t); else if (K.kind === 'ninja') drawNinja(c, t); else if (K.kind === 'ogre') drawStormOgre(c, t); else if (K.kind === 'rooster') drawRooster(c, t); else if (K.kind === 'gi') drawGIK(c, t); else if (K.kind === 'time') { if (!carGone(K)) drawTime(c, t); } else if (K.kind === 'sword') drawSword(c, t); else drawKnight(c, t); }
+function giDrawFP(c, kn, t) { const U = GI.ULT, k = cv.height / 720, VW = cv.width / k, VH = 720, FOC = Math.max(VW * 1.15, VH * 1.4), C = giCam(kn, kn.gyY || 0, kn.gyP || 0, GIFP.shake, t);
+  const proj = (x, y, z) => { const d = [x - C.pos[0], y * 1.25 - C.pos[1], z - C.pos[2]], f = d[0] * C.fw[0] + d[1] * C.fw[1] + d[2] * C.fw[2]; if (f < 2) return null; const r = d[0] * C.rt[0] + d[1] * C.rt[1], u = d[0] * C.up[0] + d[1] * C.up[1] + d[2] * C.up[2]; return [VW / 2 + r / f * FOC, VH / 2 - u / f * FOC, FOC / f, f]; };
+  c.setTransform(k, 0, 0, k, 0, 0);
+  // sky, ground, tree line, haze
+  const hy = VH / 2 + Math.tan(C.p) * FOC, sky = c.createLinearGradient(0, hy - 300, 0, hy); sky.addColorStop(0, '#9fb9c9'); sky.addColorStop(1, '#d9dcc8'); c.fillStyle = sky; c.fillRect(0, 0, VW, Math.max(0, hy));
+  const gr = c.createLinearGradient(0, hy, 0, VH); gr.addColorStop(0, '#73865a'); gr.addColorStop(0.15, '#5e8a4a'); gr.addColorStop(1, '#4e8a3a'); c.fillStyle = gr; c.fillRect(0, hy, VW, VH - hy + 10);
+  c.fillStyle = '#4b6a3a'; c.beginPath(); c.moveTo(0, hy + 2); for (let x2 = 0; x2 <= VW + 18; x2 += 18) c.lineTo(x2, hy - 6 - 6 * giH(Math.floor((x2 + C.yaw * 900) / 18), 7)); c.lineTo(VW + 18, hy + 4); c.fill(); c.fillStyle = 'rgba(230,232,215,.35)'; c.fillRect(0, hy - 2, VW, 14);
+  c.fillStyle = 'rgba(30,60,25,.3)'; for (const [tx, ty, s] of GITUFT) { const p = proj(kn.gcx + tx, kn.gcy + ty / 1.25, 0); if (!p || p[2] < 0.12 || p[0] < -20 || p[0] > VW + 20 || p[1] > VH + 10) continue; c.beginPath(); c.ellipse(p[0], p[1], p[2] * (2 + s * 2), p[2] * (0.7 + s * 0.6), 0, 0, 7); c.fill(); }
+  { const edge = yy => { const pts = []; for (let x2 = kn.gcx - 380; x2 <= kn.gcx + 380; x2 += 10) { const p = proj(x2, yy, 0); if (p) pts.push(p); } return pts; }, e1 = edge(LANE_Y - 20), e2 = edge(LANE_Y + 20).reverse(); if (e1.length > 1 && e2.length > 1) { c.fillStyle = '#b08a5a'; c.beginPath(); [...e1, ...e2].forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.closePath(); c.fill(); } }
+  const flat = Math.max(0.2, -C.fw[2]);
+  for (const sp of splats) { const p = proj(sp.x, sp.y, 0); if (!p) continue; c.fillStyle = sp.ash ? `rgba(38,32,28,${0.85 * Math.max(0, 1 - sp.t / 5)})` : `rgba(106,22,16,${0.85 * Math.max(0, 1 - sp.t / 5)})`; c.beginPath(); c.ellipse(p[0], p[1], p[2] * sp.r, p[2] * sp.r * flat, 0, 0, 7); c.fill(); }
+  for (const d of GIDEC) { const p = proj(d.x, d.y, 0); if (!p) continue; c.fillStyle = `rgba(60,45,30,${0.6 * (1 - d.t / 4)})`; c.beginPath(); c.ellipse(p[0], p[1], p[2] * d.r * 1.6, p[2] * d.r * 1.6 * flat, 0, 0, 7); c.fill(); }
+  // the ring under him so you always know where he is
+  { const pts = []; for (let i = 0; i <= 32; i++) { const a = i / 32 * 6.283, p = proj(kn.x + Math.cos(a) * 9, kn.y + Math.sin(a) * 9 / 1.25, 0); if (p) pts.push(p); } c.strokeStyle = 'rgba(120,220,255,.75)'; c.lineWidth = 3; c.setLineDash([10, 8]); c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.stroke(); c.setLineDash([]); }
+  // billboards far to near: trees, enemies, players (the game's own sprites, stood up at their ground spot)
+  const L = [];
+  for (const tr of GITREE) { const p = proj(kn.gcx + tr.x, kn.gcy + tr.y / 1.25, 0); if (p) L.push([p[3], () => { const s = p[2] * tr.s; c.setTransform(k, 0, 0, k, 0, 0); if (tr.k) { c.fillStyle = '#5a4630'; c.fillRect(p[0] - 1.5 * s, p[1] - 30 * s, 3 * s, 30 * s); c.fillStyle = '#2f5a2a'; for (let i = 0; i < 6; i++) { c.save(); c.translate(p[0], p[1] - 30 * s); c.rotate(-1.2 + i * 0.5); c.beginPath(); c.ellipse(10 * s, 0, 12 * s, 3 * s, 0.25, 0, 7); c.fill(); c.restore(); } }
+      else { c.fillStyle = '#5a4630'; c.fillRect(p[0] - 1.2 * s, p[1] - 8 * s, 2.4 * s, 8 * s); for (const [dx, dy, r, col] of [[0, -14, 9, '#355e2c'], [-6, -10, 7, '#2e5427'], [6, -9, 7, '#3d6a32'], [0, -20, 7, '#447338']]) { c.fillStyle = col; c.beginPath(); c.arc(p[0] + dx * s, p[1] + dy * s, r * s, 0, 7); c.fill(); } } }]); }
+  const bb = (p, wx, wy) => c.setTransform(k * p[2], 0, 0, k * p[2], k * (p[0] - wx * p[2]), k * (p[1] - wy * p[2]));
+  for (const w of walkers) { if (w.dead) continue; const p = proj(w.x, w.y, 0); if (!p || p[0] < -80 || p[0] > VW + 80) continue; L.push([p[3], () => { bb(p, w.x, w.y); walker(c, w, t); }]); }
+  for (const o of LIVE()) { const p = proj(o.x, o.y, 0); if (!p) continue; L.push([p[3], () => { bb(p, o.x, o.y); const k0 = K; K = o; COL = o.col; drawAnyK(c, t); K = k0; COL = K.col;
+      if (o.kind === 'gi' && o.gu >= 0) for (const f of GIFX) if (f.k === 'tr' && f.t >= 0 && f.t < 0.05) { const m = o.giMz || [o.x, o.y - 13]; c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = 'rgba(255,220,120,.9)'; c.lineWidth = 0.5; c.beginPath(); c.moveTo(m[0], m[1]); c.lineTo(lerp(m[0], f.x1, 0.8), lerp(m[1], f.y1, 0.8)); c.stroke(); c.restore(); } }]); }
+  L.sort((a, b) => b[0] - a[0]); const nh = NOHP; NOHP = true; for (const [, fn] of L) fn(); NOHP = nh;
+  c.setTransform(k, 0, 0, k, 0, 0);
+  // dirt kicked up, rounds in flight (every third a tracer)
+  for (const f of GIFX) { if (f.k === 'dirt') { const p = proj(f.x, f.y, f.z); if (!p) continue; c.fillStyle = `rgba(120,95,60,${1 - f.t})`; c.beginPath(); c.arc(p[0], p[1], Math.max(1, p[2] * 0.6), 0, 7); c.fill(); c.fillStyle = `rgba(150,130,100,${0.3 * (1 - f.t)})`; c.beginPath(); c.arc(p[0], p[1] - p[2], p[2] * (0.8 + f.t * 2.5), 0, 7); c.fill(); }
+    if (f.k === 'imp' && f.o === kn.i && !f.done && f.tr) { const p = proj(f.x, f.y, 0); if (!p) continue; const q = f.t / f.max, sx0 = VW * 0.505, sy0 = VH * 0.52, x2 = lerp(sx0, p[0], q), y2 = lerp(sy0, p[1], q), x1 = lerp(sx0, p[0], Math.max(0, q - 0.25)), y1 = lerp(sy0, p[1], Math.max(0, q - 0.25));
+      c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = 'rgba(255,90,40,.6)'; c.lineWidth = 7 * (1 - q * 0.7); c.lineCap = 'round'; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.strokeStyle = 'rgba(255,230,180,1)'; c.lineWidth = 2.5 * (1 - q * 0.6); c.stroke(); c.restore(); } }
+  giCabin(c, VW, VH, t); giGun(c, VW, VH, t);
+  // crosshair, time left, kills since the call
+  const left = cl(1 - (kn.gu - giT0()) / U.T, 0, 1), cx = VW / 2, cy = VH / 2; c.strokeStyle = 'rgba(255,255,255,.75)'; c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, 16, 0, 7); c.moveTo(cx - 30, cy); c.lineTo(cx - 20, cy); c.moveTo(cx + 20, cy); c.lineTo(cx + 30, cy); c.moveTo(cx, cy - 30); c.lineTo(cx, cy - 20); c.stroke();
+  c.fillStyle = 'rgba(0,0,0,.45)'; c.beginPath(); c.roundRect(VW / 2 - 160, 104, 320, 14, 7); c.fill(); c.fillStyle = '#d9b44a'; c.beginPath(); c.roundRect(VW / 2 - 158, 106, 316 * left, 10, 5); c.fill();
+  c.fillStyle = '#fff'; c.font = '700 22px system-ui'; c.textAlign = 'center'; c.fillText(`Kills ${kn.kills - (kn.guK || 0)}`, VW / 2, 146); c.textAlign = 'left'; }
+function giCabin(c, W, H, t) {
+  c.fillStyle = '#2b3122'; c.beginPath(); c.moveTo(0, 0); c.lineTo(W, 0); c.lineTo(W, 52); c.quadraticCurveTo(W * 0.5, 88, 0, 58); c.closePath(); c.fill(); c.fillStyle = 'rgba(255,255,255,.05)'; c.fillRect(0, 40, W, 4);
+  const bl = (t * 5.4) % 1; if (bl < 0.22) { c.fillStyle = `rgba(10,12,8,${0.55 - bl * 2})`; c.beginPath(); c.moveTo(-50, 0); c.lineTo(W + 50, 0); c.lineTo(W + 50, 26 + bl * 40); c.lineTo(-50, 14 + bl * 60); c.fill(); }
+  c.fillStyle = '#323a28'; c.beginPath(); c.moveTo(W - 70, 0); c.lineTo(W, 0); c.lineTo(W, H); c.lineTo(W - 120, H); c.closePath(); c.fill(); c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(W - 80, 0, 10, H);
+  c.fillStyle = '#2d3423'; c.beginPath(); c.moveTo(0, 0); c.lineTo(46, 0); c.lineTo(30, H); c.lineTo(0, H); c.closePath(); c.fill();
+  c.fillStyle = '#262b1d'; c.beginPath(); c.moveTo(0, H - 62); c.lineTo(W, H - 40); c.lineTo(W, H); c.lineTo(0, H); c.closePath(); c.fill(); c.strokeStyle = '#4a5238'; c.lineWidth = 3; c.beginPath(); c.moveTo(0, H - 62); c.lineTo(W, H - 40); c.stroke();
+  c.strokeStyle = '#1e2218'; c.lineWidth = 11; c.lineCap = 'round'; c.beginPath(); c.moveTo(80, H - 18); c.lineTo(W - 140, H - 4); c.stroke(); c.strokeStyle = 'rgba(255,255,255,.08)'; c.lineWidth = 3; c.beginPath(); c.moveTo(80, H - 22); c.lineTo(W - 140, H - 8); c.stroke();
+  c.fillStyle = 'rgba(255,255,255,.12)'; for (let y = 30; y < H; y += 46) { c.beginPath(); c.arc(W - 40, y, 2.5, 0, 7); c.fill(); } }
+// the M60 on its mount from behind its spade grips, the gunner's gloved hands, the belt, brass
+function giGun(c, W, H, t) { const r = GIFP.rec, sway = Math.sin(t * 2.1) * 3, kx = r * 6, ky = r * 9, ox = W * 0.6 + kx + sway, oy = H * 0.94 + ky, tx = W / 2 + sway * 0.25, ty = H / 2 + ky * 0.15;
+  const L = q => [lerp(ox, tx, q), lerp(oy - 120, ty, q)], wid = q => lerp(30, 7, q);
+  c.fillStyle = '#3c4430'; c.beginPath(); c.roundRect(ox - 300, H - 120, 120, 140, 8); c.fill(); c.fillStyle = 'rgba(255,255,255,.06)'; c.fillRect(ox - 296, H - 116, 112, 10);
+  for (let i = 0; i < 16; i++) { const q = i / 15, x2 = lerp(ox - 240, ox - 56, q) + Math.sin(t * 4 + i * 0.7) * 3 * (1 - q), y2 = lerp(H - 112, oy - 150, Math.pow(q, 0.7)) + Math.sin(q * Math.PI) * -40;
+    c.save(); c.translate(x2, y2); c.rotate(-0.9 + q * 0.7); c.fillStyle = '#5a4a24'; c.fillRect(-15, -5, 30, 10); c.fillStyle = '#d4ad55'; c.beginPath(); c.roundRect(-14, -4, 24, 8, 3); c.fill(); c.fillStyle = '#9a3a24'; c.beginPath(); c.moveTo(10, -4); c.lineTo(17, 0); c.lineTo(10, 4); c.fill(); c.fillStyle = 'rgba(255,255,255,.3)'; c.fillRect(-12, -3, 20, 2); c.restore(); }
+  const B0 = L(0.18), B1 = L(1), n = [-(B1[1] - B0[1]), B1[0] - B0[0]], nl = Math.hypot(n[0], n[1]); n[0] /= nl; n[1] /= nl;
+  const tube = (k0, k1, w0, w1, off, col) => { const a = L(k0), b2 = L(k1); c.fillStyle = col; c.beginPath(); c.moveTo(a[0] + n[0] * (off + w0 / 2), a[1] + n[1] * (off + w0 / 2)); c.lineTo(b2[0] + n[0] * (off * w1 / w0 + w1 / 2), b2[1] + n[1] * (off * w1 / w0 + w1 / 2)); c.lineTo(b2[0] + n[0] * (off * w1 / w0 - w1 / 2), b2[1] + n[1] * (off * w1 / w0 - w1 / 2)); c.lineTo(a[0] + n[0] * (off - w0 / 2), a[1] + n[1] * (off - w0 / 2)); c.closePath(); c.fill(); };
+  tube(0.2, 0.86, 14, 4, 12, '#1d1f1c'); tube(0.1, 1, wid(0.1), wid(1), 0, '#2a2d2a'); tube(0.12, 0.98, wid(0.1) * 0.3, 1.5, -wid(0.1) * 0.22, 'rgba(255,255,255,.14)');
+  { const a = L(0.96); c.fillStyle = '#151715'; c.fillRect(a[0] - 3, a[1] - 16, 6, 14); } tube(0.985, 1.03, 10, 9, 0, '#121412');
+  { const a = L(0.32), b2 = L(0.46); c.strokeStyle = '#1b1d1a'; c.lineWidth = 7; c.lineCap = 'round'; c.beginPath(); c.moveTo(a[0], a[1] - 4); c.lineTo(a[0] + 4, a[1] - 40); c.lineTo(b2[0] + 2, b2[1] - 34); c.lineTo(b2[0], b2[1] - 4); c.stroke(); }
+  c.save(); c.translate(ox, oy); c.fillStyle = '#20231d'; c.fillRect(-14, -40, 28, 140);
+  c.fillStyle = '#2f332d'; c.beginPath(); c.moveTo(-58, -50); c.lineTo(58, -50); c.lineTo(48, -150); c.lineTo(-48, -150); c.closePath(); c.fill(); c.fillStyle = '#3b4039'; c.beginPath(); c.moveTo(-50, -150); c.lineTo(50, -150); c.lineTo(42, -186); c.lineTo(-42, -186); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(255,255,255,.1)'; c.fillRect(-42, -184, 84, 5); c.fillStyle = 'rgba(0,0,0,.35)'; c.fillRect(-58, -56, 116, 6); c.fillStyle = '#5c6056'; c.fillRect(-10, -196, 20, 12); c.fillStyle = '#121412'; c.fillRect(-4, -214, 8, 20); c.fillRect(-12, -214, 24, 6);
+  for (const s of [-1, 1]) { c.fillStyle = '#1b1d1a'; c.beginPath(); c.roundRect(s * 52 - 11, -46, 22, 76, 10); c.fill(); c.fillStyle = 'rgba(255,255,255,.08)'; c.fillRect(s * 52 - 7, -40, 4, 60); }
+  for (const s of [-1, 1]) { c.fillStyle = '#4c5833'; c.beginPath(); c.moveTo(s * 40, 40); c.lineTo(s * 170, H); c.lineTo(s * 40, H); c.lineTo(s * 20, 46); c.closePath(); c.fill(); c.fillStyle = 'rgba(0,0,0,.18)'; c.beginPath(); c.moveTo(s * 34, 50); c.lineTo(s * 90, H); c.lineTo(s * 60, H); c.closePath(); c.fill();
+    c.fillStyle = '#3a3124'; c.beginPath(); c.roundRect(s * 52 - 28, -26, 56, 70, 20); c.fill(); for (let i = 0; i < 4; i++) { c.fillStyle = '#463b2b'; c.beginPath(); c.roundRect(s * 52 - 26 + (s < 0 ? 30 : 0), -22 + i * 15, 24, 13, 6); c.fill(); } c.fillStyle = 'rgba(255,255,255,.08)'; c.beginPath(); c.roundRect(s * 52 - 22, -20, 16, 46, 8); c.fill(); }
+  c.restore();
+  if (r > 0.55) { c.save(); c.globalCompositeOperation = 'lighter'; for (const [rr2, col] of [[64, 'rgba(255,150,40,.32)'], [34, 'rgba(255,220,120,.7)'], [14, 'rgba(255,255,230,1)']]) { const g = c.createRadialGradient(tx, ty, 0, tx, ty, rr2 * r); g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.beginPath(); c.arc(tx, ty, rr2 * r, 0, 7); c.fill(); }
+    for (let i = 0; i < 4; i++) { const a = i / 4 * 6.283 + GIFP.rounds * 0.7; c.strokeStyle = 'rgba(255,230,150,.75)'; c.lineWidth = 3; c.beginPath(); c.moveTo(tx, ty); c.lineTo(tx + Math.cos(a) * 36 * r, ty + Math.sin(a) * 36 * r); c.stroke(); } c.restore(); }
+  for (const b of GIFP.brass) { c.save(); c.translate(b.x * W, b.y * H); c.rotate(b.r); c.fillStyle = '#d6b45a'; c.fillRect(-8, -3, 16, 6); c.fillStyle = 'rgba(0,0,0,.3)'; c.fillRect(-8, 1, 16, 2); c.restore(); } }
+// his screen: the door view over the world, with fades in and out of it
+function giView(t) { const kn = KN[ME]; if (!kn || kn.kind !== 'gi' || !(kn.gu >= 0)) { document.body.classList.remove('gifp'); return; } const U = GI.ULT, fp = giFP(kn) && !window.__noFP; document.body.classList.toggle('gifp', fp);
+  if (fp) { x.save(); giDrawFP(x, kn, t); x.restore(); }
+  const TE = giTE(), f1 = 1 - Math.abs(kn.gu - (U.RADIO + U.FADE * 0.5)) / (U.FADE * 0.5), f2 = 1 - Math.abs(kn.gu - (TE + U.FADE * 0.5)) / (U.FADE * 0.5), a = Math.max(0, f1, f2);
+  if (a > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(10,12,8,${a})`; x.fillRect(0, 0, cv.width, cv.height); } }
 function hurt(w, d, kill) { if (K && K.isCl) d *= K.ulD > 0 ? NJ.CL.UDM : NJ.CL.DM; w.hp -= d; w.hit = 0.1; if (w.hp <= 0) { K.kills++; kill(w); } else hitSnd(w); }
 const cleaveFx = (w, dir) => { EV.push([w.id, 0, dir, K.i, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10]); cleaveKill(w, dir); };
 const spinFx = w => { EV.push([w.id, 1, 0, K.i, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10]); spinKill(w); };
 function step(dt, t) {
   worldStep(dt, t);
-  for (const kn of KN) { if (kn.on === 0) continue; if (kn.in.col && kn.in.col !== kn.col && /^#[0-9a-f]{6}$/i.test(kn.in.col)) kn.col = kn.in.col; if ((kn.in.chN || 0) !== (kn.chSeen || 0)) { kn.chSeen = kn.in.chN || 0; switchChar(kn, kn.in.ch || 'knight'); } K = kn; if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else if (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) priestStep(dt, t); else if (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) swordStep(dt, t); else if (kn.kind === 'time' || (kn.in && kn.in.ch === 'time')) timeStep(dt, t); else if (kn.kind === 'ninja' || (kn.in && kn.in.ch === 'ninja')) { ninjaStep(dt, t); njCloneStep(kn, dt, t); K = kn; } else if (kn.kind === 'ogre' || (kn.in && kn.in.ch === 'ogre')) ogreStep(dt, t); else if (kn.kind === 'rooster' || (kn.in && kn.in.ch === 'rooster')) roosterStep(dt, t); else knightStep(dt, t);
+  for (const kn of KN) { if (kn.on === 0) continue; if (kn.in.col && kn.in.col !== kn.col && /^#[0-9a-f]{6}$/i.test(kn.in.col)) kn.col = kn.in.col; if ((kn.in.chN || 0) !== (kn.chSeen || 0)) { kn.chSeen = kn.in.chN || 0; switchChar(kn, kn.in.ch || 'knight'); } K = kn; if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else if (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) priestStep(dt, t); else if (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) swordStep(dt, t); else if (kn.kind === 'time' || (kn.in && kn.in.ch === 'time')) timeStep(dt, t); else if (kn.kind === 'ninja' || (kn.in && kn.in.ch === 'ninja')) { ninjaStep(dt, t); njCloneStep(kn, dt, t); K = kn; } else if (kn.kind === 'ogre' || (kn.in && kn.in.ch === 'ogre')) ogreStep(dt, t); else if (kn.kind === 'rooster' || (kn.in && kn.in.ch === 'rooster')) roosterStep(dt, t); else if (kn.kind === 'gi' || (kn.in && kn.in.ch === 'gi')) giStep(dt, t); else knightStep(dt, t);
     { const SB = shipBlockers(); if (SB.length && (kn.z || 0) < 8 && !(kn.vPh >= 0)) shipPush(kn, 3 * (kn.sz || 1), SB); } }
   K = KN[ME];
-  volcFx(dt, t); wpFx(dt, t); ttFx(dt, t); crFx(dt, t); njGhostStep(dt); ogFxStep(dt); njHeliAudio();
+  volcFx(dt, t); wpFx(dt, t); ttFx(dt, t); crFx(dt, t); giFx(dt, t); njGhostStep(dt); ogFxStep(dt); njHeliAudio();
   if (K.hits > lastHits) { hurtT = 0.12; } lastHits = K.hits; hurtT = Math.max(0, hurtT - dt);
   netTick(dt, t);
 }
@@ -7337,10 +7696,10 @@ function draw() {
   for (const [, k, o] of list) {
     if (k < 2) { K = o; COL = o.col; }
     if (k === 4) { COL = o.col; drawFlail(x, o, t); K = KN[ME]; continue; }
-    if (k === 0 && (K.kind === 'priest' || K.kind === 'sword' || K.kind === 'time' || K.kind === 'ninja' || K.kind === 'ogre' || K.kind === 'rooster')) continue;
+    if (k === 0 && (K.kind === 'priest' || K.kind === 'sword' || K.kind === 'time' || K.kind === 'ninja' || K.kind === 'ogre' || K.kind === 'rooster' || K.kind === 'gi')) continue;
     if (k === 0 && K.kind === 'fire') { const pt = pitOf(K); x.save(); x.translate(pt[0], pt[1]); FBX.firePit(x, 5, t, FBX.pal(5)); x.restore(); continue; }
     if (k === 0) { x.save(); x.translate(K.T.x, K.T.y); boulder(x, t, !(K.st === 'kneel' || (K.st === 'pull' && !K.hold) || (K.st === 'sheathe' && !K.hold)), K.slotGlow); if (!K.hold) { x.translate(STONE.x, STONE.y); x.scale(KS, KS); x.beginPath(); x.rect(-20, -30, 40, 30 - 4.3 / KS); x.clip(); sword(x, [0, -4.3 / KS - 1.3 - 1.1], Math.PI / 2, 10.5); } x.restore(); }
-    else if (k === 1) { if (K.kind === 'fire') drawFire(x, t); else if (K.kind === 'priest') drawPriest(x, t); else if (K.kind === 'sword') drawSword(x, t); else if (K.kind === 'ninja') drawNinja(x, t); else if (K.kind === 'ogre') drawStormOgre(x, t); else if (K.kind === 'rooster') drawRooster(x, t); else if (K.kind === 'time') { if (!carGone(K)) { if (K.ctu) { const cy0 = K.y - (K.z || 0) - 9; x.save(); x.translate(K.x, cy0); x.rotate(K.ctu); x.translate(-K.x, -cy0); drawTime(x, t); x.restore(); } else drawTime(x, t); } } else drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; if (K.i !== ME) x.fillText((NET && NET.names && NET.names[K.i]) || pName(K.i), K.x, K.y - (K.kind === 'ogre' ? 34 : K.kind === 'rooster' ? 21 + (K.z || 0) : K.kind === 'priest' ? 23 + (K.z || 0) : K.kind === 'time' ? 22 + (K.z || 0) : 17 * (K.sz || 1))); } }
+    else if (k === 1) { if (K.kind === 'fire') drawFire(x, t); else if (K.kind === 'priest') drawPriest(x, t); else if (K.kind === 'sword') drawSword(x, t); else if (K.kind === 'ninja') drawNinja(x, t); else if (K.kind === 'ogre') drawStormOgre(x, t); else if (K.kind === 'rooster') drawRooster(x, t); else if (K.kind === 'gi') drawGIK(x, t); else if (K.kind === 'time') { if (!carGone(K)) { if (K.ctu) { const cy0 = K.y - (K.z || 0) - 9; x.save(); x.translate(K.x, cy0); x.rotate(K.ctu); x.translate(-K.x, -cy0); drawTime(x, t); x.restore(); } else drawTime(x, t); } } else drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; if (K.i !== ME) x.fillText((NET && NET.names && NET.names[K.i]) || pName(K.i), K.x, K.y - (K.kind === 'ogre' ? 34 : K.kind === 'rooster' ? 21 + (K.z || 0) : K.kind === 'gi' ? 17 : K.kind === 'priest' ? 23 + (K.z || 0) : K.kind === 'time' ? 22 + (K.z || 0) : 17 * (K.sz || 1))); } }
     else if (k === 5) { drawSawP(x, o, t); continue; }
     else if (k === 12) { ogDrawSpike(x, o, t); continue; }
     else if (k === 13) { crDrawP(x, o, t); continue; }
@@ -7367,7 +7726,7 @@ function draw() {
   for (const f of FX) if (f.k === 'lick') drawLick(x, f, t);
   for (const kn of KN) if (kn.kind === 'fire' && kn.fp && kn.fp.length) FBX.drawBreath(x, kn, t);
   for (const kn of KN) if (kn.kind === 'fire') drawLava(x, kn, t);
-  drawFxAir(x); drawVolcAir(x, t); ttAir(x, t); crAir(x, t); njAir(x, t); ogAir(x, t); if (ZONES) ttZones(x);
+  drawFxAir(x); drawVolcAir(x, t); ttAir(x, t); crAir(x, t); giAir(x, t); njAir(x, t); ogAir(x, t); if (ZONES) ttZones(x);
   // blade trail: a short ribbon the length of the light blade, fading behind it
   for (const kn of KN) { K = kn; if (K.trail && K.trail.length > 1) { x.save(); const now = K.trail[K.trail.length - 1].t, TL = 0.11;
     for (let i = K.trail.length - 1; i > 0; i--) { const A2 = K.trail[i], B2 = K.trail[i - 1], age = now - B2.t; if (age > TL) break; const al = 0.42 * (1 - age / TL) ** 1.6;
@@ -7381,7 +7740,7 @@ function draw() {
     x.save(); x.translate(K.x, K.y - 7); x.scale(SPIN_SZ, SPIN_SZ * 12 / 25); const live = K.spin >= 0 && spinSwept() >= SPIN_MOM;
     for (let i = 0; i < 8; i++) { const a0 = (i - 0.5) * Math.PI / 4; const sa = Math.atan2(Math.sin(a0) * 25 / 12, Math.cos(a0)), sb = Math.atan2(Math.sin(a0 + Math.PI / 4) * 25 / 12, Math.cos(a0 + Math.PI / 4)); x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, 25, sa, sb); x.closePath(); x.fillStyle = live && i === K.sec ? 'rgba(255,60,40,.35)' : 'rgba(255,255,255,.06)'; x.fill(); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 0.3; x.stroke(); }
     x.restore(); }
-  njOverlay(x); njTop(x, t);
+  njOverlay(x); njTop(x, t); giView(t);
   if (hurtT > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(200,30,20,${hurtT * 1.2})`; x.fillRect(0, 0, cv.width, cv.height); }
   ST.textContent = (NET ? `Room ${NET.code} · ${LIVE().length}/${MAXP} · ` : '') + (LIVE().length > 1 ? `Enemies ${walkers.length} · ` + LIVE().map(kn => `${kn.i === ME ? 'You' : (NET && NET.names && NET.names[kn.i]) || pName(kn.i)} ${kn.kills}k/${Math.round(kn.hits)}h`).join(' · ') : `Enemies ${walkers.length} · Kills ${K.kills} · Hits taken ${Math.round(K.hits)}`);
   // his leap circle is the weapon ability: only there while he holds the alien (toss) or the saw gun (trap); dim while it can't be used
@@ -7599,6 +7958,12 @@ document.addEventListener('dblclick', e => e.preventDefault());
 window.__horde = (r, k) => setHorde(r, k); window.__dash = v => doDash(typeof v === 'number' ? DIR8[v] : v); window.__aimDash = v => { DASHAIM = v; }; window.__DA = () => DASHAIM; window.__leap = doLeap; window.__aimLeap = v => { LEAPAIM = v; };
 const ub = document.getElementById('ult'), ULI = ub.querySelector('i'), ULS = ub.querySelector('small');
 function doUlt() { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.ultN = (IN.ultN || 0) + 1; markIn(); }
+// G.I. door gun: FIRE button (held) and Space while his ult is up
+{ const GF = document.getElementById('gfire'), set = v => { const kn = KN[ME]; if (!kn) return; if (!!kn.in.gf !== !!v) { kn.in.gf = v ? 1 : 0; markIn(); } GF.classList.toggle('on', !!v); };
+  GF.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); try { GF.setPointerCapture(e.pointerId); } catch (er) { } set(1); });
+  for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) GF.addEventListener(ev, e => { e.stopPropagation(); set(0); });
+  addEventListener('keydown', e => { const kn = KN[ME]; if (e.code === 'Space' && kn && kn.kind === 'gi' && kn.gu >= 0) { e.preventDefault(); e.stopImmediatePropagation(); set(1); } }, true);
+  addEventListener('keyup', e => { const kn = KN[ME]; if (e.code === 'Space' && kn && kn.kind === 'gi') { e.stopImmediatePropagation(); set(0); } }, true); }
 ub.addEventListener('pointerdown', e => { e.preventDefault(); if (isOgre() && ultReady(KN[ME]) && !(KN[ME].ogDT >= 0)) { ogAimStart(e, 'ul', ub); return; } doUlt(); });
 const sb = document.getElementById('spin'), VTAP = document.getElementById('vtap');
 // on the volcano a tap anywhere picks where the next rock lands
@@ -7667,15 +8032,15 @@ const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase
 // the same id every time this device joins, so a player who drops and rejoins gets his own seat (and knight) back instead of a new one
 const myPid = (() => { let id = null; try { id = localStorage.getItem('kn_pid'); } catch (e) { } if (!id) { id = Math.random().toString(36).slice(2, 10); try { localStorage.setItem('kn_pid', id); } catch (e) { } } return id; })();
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plE', 'plD', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'a2T', 'a2s', 'wpM', 'hl', 'hla', 'hlL', 'hlx', 'hly', 'hlN', 'hlCd', 'dn', 'dnf', 'dnx', 'dny', 'dnN', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc', 'cr', 'crT', 'crN', 'crh', 'cv', 'cvx', 'cvy', 'cyr', 'cxp', 'cyp', 'cx0', 'cy0', 'ctx', 'cty', 'cph', 'cHit', 'ulOn', 'cdn', 'ctu', 'cfx', 'cfy', 'cfvx', 'cfvy', 'ckx', 'cky', 'csx', 'csy', 'clx', 'cly', 'uC', 'dg', 'dgN', 'cHitN', 'chd', 'cHT', 'spx', 'spy', 'spz', 'sdx', 'sdy', 'sdz', 'sd0x', 'sd0y', 'sd0z', 'spv', 'sTr', 'cEj', 'cBl', 'ex0', 'ey0', 'ez0', 'cBk', 'nl', 'nw', 'nwB', 'nQ', 'nCd', 'nlN', 'nlm', 'km', 'kmN', 'kmT', 'kmH', 'kmCd', 'kmX0', 'kmY0', 'kmX1', 'kmY1', 'kmTX', 'kmTY', 'kmTZ', 'kmEx', 'kmA', 'clN', 'clP', 'clCd', 'clUl', 'hsT', 'kmZ0', 'kmFr', 'nlBx', 'nlBy', 'nlBT', 'nx0', 'ny0', 'nx1', 'ny1', 'nPh', 'nT', 'nUN', 'nSd', 'njF', 'ou', 'ouN', 'ouS', 'ouA', 'sv', 'svA', 'svCd', 'clN', 'clX', 'clY', 'clT', 'clCd', 'spN', 'spX', 'spY', 'spA', 'spCd', 'ogDN', 'ogDX', 'ogDY', 'ogDA', 'ogDT', 'ogDSX', 'ogDSY', 'ogH', 'ogS', 'ogZ', 'ogSN', 'ouC', 'ouK', 'ogC', 'ogCN', 'svN', 'ogX', 'ogXN', 'lsT', 'lsN', 'lsA', 'lsS', 'brT', 'brN', 'brX', 'brY', 'brCd', 'mtT', 'mtN', 'mnX', 'mnY', 'mnA', 'mnCd', 'bmT', 'bmN', 'bmX', 'bmY', 'bmA', 'bmCd', 'cu', 'cuN', 'egN', 'ogR', 'ogRA', 'ogRV', 'ogRB', 'ogRN', 'ogHs', 'ogHk', 'ogHa', 'ogHd', 'ogHn', 'ogHq', 'ogFn', 'ogZc', 'ogIc', 'ogZn', 'ogIn', 'ogA', 'ogAN'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plE', 'plD', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'a2T', 'a2s', 'wpM', 'hl', 'hla', 'hlL', 'hlx', 'hly', 'hlN', 'hlCd', 'dn', 'dnf', 'dnx', 'dny', 'dnN', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc', 'cr', 'crT', 'crN', 'crh', 'cv', 'cvx', 'cvy', 'cyr', 'cxp', 'cyp', 'cx0', 'cy0', 'ctx', 'cty', 'cph', 'cHit', 'ulOn', 'cdn', 'ctu', 'cfx', 'cfy', 'cfvx', 'cfvy', 'ckx', 'cky', 'csx', 'csy', 'clx', 'cly', 'uC', 'dg', 'dgN', 'cHitN', 'chd', 'cHT', 'spx', 'spy', 'spz', 'sdx', 'sdy', 'sdz', 'sd0x', 'sd0y', 'sd0z', 'spv', 'sTr', 'cEj', 'cBl', 'ex0', 'ey0', 'ez0', 'cBk', 'nl', 'nw', 'nwB', 'nQ', 'nCd', 'nlN', 'nlm', 'km', 'kmN', 'kmT', 'kmH', 'kmCd', 'kmX0', 'kmY0', 'kmX1', 'kmY1', 'kmTX', 'kmTY', 'kmTZ', 'kmEx', 'kmA', 'clN', 'clP', 'clCd', 'clUl', 'hsT', 'kmZ0', 'kmFr', 'nlBx', 'nlBy', 'nlBT', 'nx0', 'ny0', 'nx1', 'ny1', 'nPh', 'nT', 'nUN', 'nSd', 'njF', 'ou', 'ouN', 'ouS', 'ouA', 'sv', 'svA', 'svCd', 'clN', 'clX', 'clY', 'clT', 'clCd', 'spN', 'spX', 'spY', 'spA', 'spCd', 'ogDN', 'ogDX', 'ogDY', 'ogDA', 'ogDT', 'ogDSX', 'ogDSY', 'ogH', 'ogS', 'ogZ', 'ogSN', 'ouC', 'ouK', 'ogC', 'ogCN', 'svN', 'ogX', 'ogXN', 'lsT', 'lsN', 'lsA', 'lsS', 'brT', 'brN', 'brX', 'brY', 'brCd', 'mtT', 'mtN', 'mnX', 'mnY', 'mnA', 'mnCd', 'bmT', 'bmN', 'bmX', 'bmY', 'bmA', 'bmCd', 'cu', 'cuN', 'egN', 'ogR', 'ogRA', 'ogRV', 'ogRB', 'ogRN', 'ogHs', 'ogHk', 'ogHa', 'ogHd', 'ogHn', 'ogHq', 'ogFn', 'ogZc', 'ogIc', 'ogZn', 'ogIn', 'ogA', 'ogAN', 'gsN', 'gsA', 'gu', 'guN', 'guO', 'gcx', 'gcy', 'gtN', 'gtX', 'gtY', 'ghN', 'guK'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
-const packIn = n => ({ mnD: n.mnD || null, mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, hdN: n.hdN || 0, hdP: n.hdP || null, twV: n.twV || 0, la: n.la || null, nj: n.nj || null, njN: n.njN || 0, lvV: n.lvV || null, ulV: n.ulV || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
+const packIn = n => ({ gy: n.gy || null, gf: n.gf ? 1 : 0, mnD: n.mnD || null, mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, hdN: n.hdN || 0, hdP: n.hdP || null, twV: n.twV || 0, la: n.la || null, nj: n.nj || null, njN: n.njN || 0, lvV: n.lvV || null, ulV: n.ulV || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 // a knight's state: the whole list once a second, otherwise only the fields that changed since the last snapshot ([index, value, ...])
 const kfSame = (a, b) => a === b || (a !== null && typeof a === 'object' && JSON.stringify(a) === JSON.stringify(b));
 const packK = (kn, i, full) => { const v = KF.map(k => r3(kn[k])), P = NET.kPrev || (NET.kPrev = []), prev = P[i]; P[i] = v; const o = { in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] };
   if (kn.i !== ME && kn.in && kn.in.ts) o.a = kn.in.ts; if (full || !prev) o.v = v; else { const d = []; for (let j = 0; j < v.length; j++) if (!kfSame(v[j], prev[j])) d.push(j, v[j]); o.d = d; } return o; };
 // a player is called by their character; a second one of the same gets a number (Knight 2)
-const cName = kn => kn && (kn.kind === 'rooster' || (kn.in && kn.in.ch === 'rooster')) ? 'Cyborg Rooster' : kn && (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) ? 'Firebreather' : kn && (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) ? 'Warpriest' : kn && (kn.kind === 'time' || (kn.in && kn.in.ch === 'time')) ? 'Time Traveler' : kn && (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) ? 'Swordmaster' : kn && (kn.kind === 'ninja' || (kn.in && kn.in.ch === 'ninja')) ? 'Ninja' : kn && (kn.kind === 'ogre' || (kn.in && kn.in.ch === 'ogre')) ? 'Storm Ogre' : 'Knight';
+const cName = kn => kn && (kn.kind === 'gi' || (kn.in && kn.in.ch === 'gi')) ? 'G.I.' : kn && (kn.kind === 'rooster' || (kn.in && kn.in.ch === 'rooster')) ? 'Cyborg Rooster' : kn && (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) ? 'Firebreather' : kn && (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) ? 'Warpriest' : kn && (kn.kind === 'time' || (kn.in && kn.in.ch === 'time')) ? 'Time Traveler' : kn && (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) ? 'Swordmaster' : kn && (kn.kind === 'ninja' || (kn.in && kn.in.ch === 'ninja')) ? 'Ninja' : kn && (kn.kind === 'ogre' || (kn.in && kn.in.ch === 'ogre')) ? 'Storm Ogre' : 'Knight';
 const pName = i => { const kn = KN[i], n = cName(kn), same = LIVE().filter(o => cName(o) === n); return same.length > 1 && kn ? n + ' ' + (same.indexOf(kn) + 1) : n; };
 // kept small: with 4 players and MAX hordes a snapshot carries ~500 enemies; positions to 0.5 units (guests ease toward them anyway)
 // walkers go out as one flat list, 6 numbers each: id, x, y, hp, attack (x10, -1 idle), bits (1 burn, 2 chained, 4 slowed, 8 grabbed, 16 hit flash, target knight x32, height x128);
@@ -7693,21 +8058,21 @@ function renderGames() { const el = document.getElementById('lGames'), nt = docu
   el.querySelectorAll('[data-code]').forEach(b => b.onclick = () => join(b.dataset.code)); }
 function browse(on) { if (dirT) clearInterval(dirT); dirT = null; if (on) { fetchGames(); dirT = setInterval(fetchGames, 5000); } }
 // the host lists its game while it has room, the whole time it's running (people can join mid-fight)
-function gameRow() { const L2 = NET.started ? LIVE() : [], j = Math.max(1, L2.length), open = j < MAXP, chars = NET.started ? L2.map(kn => cName(kn)).join(', ') : (CHAR === 'rooster' ? 'Cyborg Rooster' : CHAR === 'fire' ? 'Firebreather' : CHAR === 'priest' ? 'Warpriest' : CHAR === 'time' ? 'Time Traveler' : CHAR === 'sword' ? 'Swordmaster' : CHAR === 'ninja' ? 'Ninja' : CHAR === 'ogre' ? 'Storm Ogre' : 'Knight');
+function gameRow() { const L2 = NET.started ? LIVE() : [], j = Math.max(1, L2.length), open = j < MAXP, chars = NET.started ? L2.map(kn => cName(kn)).join(', ') : (CHAR === 'gi' ? 'G.I.' : CHAR === 'rooster' ? 'Cyborg Rooster' : CHAR === 'fire' ? 'Firebreather' : CHAR === 'priest' ? 'Warpriest' : CHAR === 'time' ? 'Time Traveler' : CHAR === 'sword' ? 'Swordmaster' : CHAR === 'ninja' ? 'Ninja' : CHAR === 'ogre' ? 'Storm Ogre' : 'Knight');
   return { code: 'KN' + NET.code, name: ((myName !== 'Knight' ? myName + "'s" : 'Open') + ' brawl').slice(0, 40), host: myName.slice(0, 20), mode: 'brawl', n: MAXP, joined: open ? Math.min(j, MAXP - 1) : MAXP, heroes: (chars + '|' + j + '/' + MAXP).slice(0, 120), version: DIRV() }; }
 function advertise() { const sb = getSB(); if (!sb || !NET || NET.mode !== 'host') return; advertised = 'KN' + NET.code;
   const beat = () => { if (!NET || NET.mode !== 'host') return unadvertise(); sb.from('bod_lobbies').upsert(gameRow(), { onConflict: 'code' }).then(() => { }, () => { }); }; NET.beat = beat; beat(); if (!beatT) beatT = setInterval(beat, 5000); }
 function unadvertise() { if (beatT) clearInterval(beatT); beatT = null; const sb = getSB(); if (advertised && sb) { const c = advertised; advertised = null; sb.from('bod_lobbies').delete().eq('code', c).then(() => { }, () => { }); } }
 addEventListener('pagehide', () => { if (advertised) unadvertise(); });
 // a picture of a character for the menu: a stand-in drawn once into a small canvas (cached per character + colour)
-const WATCH = '<svg viewBox="0 0 24 28" width="13" height="16" aria-hidden="true"><rect x="10.3" y="1" width="3.4" height="3" rx="1" fill="#c99a3a"/><path d="M12 4v2.4" stroke="#c99a3a" stroke-width="1.6"/><circle cx="12" cy="16.5" r="10" fill="#c99a3a"/><circle cx="12" cy="16.5" r="8.2" fill="#f4ecd8"/><g stroke="#3a2c18" stroke-width=".9"><path d="M12 9.3v1.5" transform="rotate(0 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(30 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(60 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(90 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(120 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(150 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(180 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(210 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(240 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(270 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(300 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(330 12 16.5)"/></g><path d="M12 16.5V11.4M12 16.5l3.4 2" stroke="#2a2016" stroke-width="1.3" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1" fill="#2a2016"/></svg>', CPIC = {}, CNAME = { knight: 'Knight', fire: 'Firebreather', priest: 'Warpriest', time: 'Time Traveler', sword: 'Swordmaster', ninja: 'Ninja', ogre: 'Storm Ogre', rooster: 'Cyborg Rooster' };
+const WATCH = '<svg viewBox="0 0 24 28" width="13" height="16" aria-hidden="true"><rect x="10.3" y="1" width="3.4" height="3" rx="1" fill="#c99a3a"/><path d="M12 4v2.4" stroke="#c99a3a" stroke-width="1.6"/><circle cx="12" cy="16.5" r="10" fill="#c99a3a"/><circle cx="12" cy="16.5" r="8.2" fill="#f4ecd8"/><g stroke="#3a2c18" stroke-width=".9"><path d="M12 9.3v1.5" transform="rotate(0 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(30 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(60 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(90 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(120 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(150 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(180 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(210 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(240 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(270 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(300 12 16.5)"/><path d="M12 9.3v1.5" transform="rotate(330 12 16.5)"/></g><path d="M12 16.5V11.4M12 16.5l3.4 2" stroke="#2a2016" stroke-width="1.3" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1" fill="#2a2016"/></svg>', CPIC = {}, CNAME = { knight: 'Knight', fire: 'Firebreather', priest: 'Warpriest', time: 'Time Traveler', sword: 'Swordmaster', ninja: 'Ninja', ogre: 'Storm Ogre', rooster: 'Cyborg Rooster', gi: 'G.I.' };
 function charPic(kind, w = 96, h = 120) { const col = MYCOL || KCOLS[0], key = kind + '|' + col + '|' + w; if (CPIC[key]) return CPIC[key];
   const cv = document.createElement('canvas'); cv.width = w; cv.height = h; const g = cv.getContext('2d'), k0 = K;
   const kn = mkKnight(0); Object.assign(kn, { col, kind, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, f: 1, x: 0, y: 0 });
-  try { if (kind === 'fire') makeFire(kn); else if (kind === 'priest') makePriest(kn); else if (kind === 'time') makeTime(kn); else if (kind === 'ninja') makeNinja(kn); else if (kind === 'ogre') makeOgre(kn); else if (kind === 'rooster') makeRooster(kn);
+  try { if (kind === 'fire') makeFire(kn); else if (kind === 'priest') makePriest(kn); else if (kind === 'time') makeTime(kn); else if (kind === 'ninja') makeNinja(kn); else if (kind === 'ogre') makeOgre(kn); else if (kind === 'rooster') makeRooster(kn); else if (kind === 'gi') makeGI(kn);
     Object.assign(kn, { st: 'fight', u: 1, kn: 0, hold: 1, x: 0, y: 0, f: 1 }); if (kind === 'priest') Object.assign(kn, { hx: 14, hy: 6, hz: 0 });
-    K = kn; const S = { knight: 4.4, fire: 2.9, priest: 3.1, time: 3.6, ninja: 4.6, ogre: 2.6, rooster: 3.6 }[kind] || 3.6; g.translate(w / 2, h * 0.86); g.scale(S, S);
-    if (kind === 'fire') drawFire(g, 1.2); else if (kind === 'priest') drawPriest(g, 1.2); else if (kind === 'time') drawTime(g, 1.2); else if (kind === 'ninja') drawNinja(g, 1.2); else if (kind === 'rooster') drawRooster(g, 1.2); else if (kind === 'ogre') drawStormOgre(g, 1.2); else drawKnight(g, 1.2);
+    K = kn; const S = { knight: 4.4, fire: 2.9, priest: 3.1, time: 3.6, ninja: 4.6, ogre: 2.6, rooster: 3.6, gi: 5.6 }[kind] || 3.6; g.translate(w / 2, h * 0.86); g.scale(S, S);
+    if (kind === 'fire') drawFire(g, 1.2); else if (kind === 'priest') drawPriest(g, 1.2); else if (kind === 'time') drawTime(g, 1.2); else if (kind === 'ninja') drawNinja(g, 1.2); else if (kind === 'rooster') drawRooster(g, 1.2); else if (kind === 'gi') drawGIK(g, 1.2); else if (kind === 'ogre') drawStormOgre(g, 1.2); else drawKnight(g, 1.2);
   } catch (e) { console.warn('charPic', kind, e); } K = k0; return CPIC[key] = cv.toDataURL(); }
 window.__charPic = charPic;
 // test: the Storm Ogre's rear view (hook follow-through) at a few points, and his front view at the same scale
@@ -7715,9 +8080,9 @@ window.__ogBack = (list, S = 12) => { const cv = document.createElement('canvas'
 // test: characters drawn side by side at the same scale (size comparison)
 window.__sizes = (kinds, S = 9, tt = 1.2, ff = 1) => { const cv = document.createElement('canvas'), Wd = 220 * kinds.length + 40; cv.width = Wd; cv.height = 520; const g = cv.getContext('2d'); g.fillStyle = '#5d8f4e'; g.fillRect(0, 0, Wd, 520); const k0 = K, c0 = COL;
   g.strokeStyle = 'rgba(255,255,255,.3)'; g.setLineDash([6, 6]); for (let y = 470; y > 20; y -= 10 * S) { g.beginPath(); g.moveTo(0, y); g.lineTo(Wd, y); g.stroke(); } g.setLineDash([]);
-  kinds.forEach(([kind, name], i) => { const kn = mkKnight(0); Object.assign(kn, { col: MYCOL || KCOLS[0], kind, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, f: 1, x: 0, y: 0 }); if (kind === 'priest') makePriest(kn); else if (kind === 'ogre') makeOgre(kn); else if (kind === 'rooster') makeRooster(kn); else if (kind === 'ninja') makeNinja(kn); else if (kind === 'fire') makeFire(kn); else if (kind === 'time') makeTime(kn);
+  kinds.forEach(([kind, name], i) => { const kn = mkKnight(0); Object.assign(kn, { col: MYCOL || KCOLS[0], kind, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, f: 1, x: 0, y: 0 }); if (kind === 'priest') makePriest(kn); else if (kind === 'ogre') makeOgre(kn); else if (kind === 'rooster') makeRooster(kn); else if (kind === 'gi') makeGI(kn); else if (kind === 'ninja') makeNinja(kn); else if (kind === 'fire') makeFire(kn); else if (kind === 'time') makeTime(kn);
     Object.assign(kn, { st: 'fight', u: 1, kn: 0, hold: 1, x: 0, y: 0, f: ff }); if (kind === 'priest') Object.assign(kn, { hx: 14, hy: 6, hz: 0 }); K = kn; COL = kn.col; const cx = 130 + i * 220;
-    g.save(); g.translate(cx, 470); g.scale(S, S); if (kind === 'priest') drawPriest(g, tt); else if (kind === 'rooster') drawRooster(g, tt); else if (kind === 'ogre') drawStormOgre(g, tt); else if (kind === 'ninja') drawNinja(g, tt); else if (kind === 'fire') drawFire(g, tt); else if (kind === 'time') drawTime(g, tt); else drawKnight(g, tt); g.restore();
+    g.save(); g.translate(cx, 470); g.scale(S, S); if (kind === 'priest') drawPriest(g, tt); else if (kind === 'rooster') drawRooster(g, tt); else if (kind === 'gi') drawGIK(g, tt); else if (kind === 'ogre') drawStormOgre(g, tt); else if (kind === 'ninja') drawNinja(g, tt); else if (kind === 'fire') drawFire(g, tt); else if (kind === 'time') drawTime(g, tt); else drawKnight(g, tt); g.restore();
     g.fillStyle = '#fff'; g.font = '700 20px system-ui'; g.textAlign = 'center'; g.fillText(name, cx, 505); });
   K = k0; COL = c0; return cv.toDataURL(); }; window.__ttPic = (st, u, spd, tt = 1.2) => { const cv = document.createElement('canvas'); cv.width = 260; cv.height = 320; const g = cv.getContext('2d'), k0 = K; g.fillStyle = '#556'; g.fillRect(0, 0, 260, 320);
   const kn = mkKnight(0); Object.assign(kn, { col: MYCOL || KCOLS[0], x: 0, y: 0, f: 1 }); makeTime(kn); Object.assign(kn, { st, u, spd, x: 0, y: 0, f: 1, gp: 1 }); K = kn; g.translate(130, 290); g.scale(12, 12); for (let i = 0; i < 40; i++) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.fillStyle = "#556"; g.fillRect(0, 0, 260, 320); g.restore(); drawTime(g, tt); } K = k0; return cv.toDataURL(); }; window.__join = c => join(c); window.__NETS = () => NET && { seats: NET.seats, me: ME };
@@ -7729,7 +8094,7 @@ function lobby(screen, extra) {
     <button class="big pri" id="lHost" ${getSB() ? '' : 'disabled'}>Host a game</button>
     <button class="big" id="lChars"><img src="${charPic(CHAR)}" alt=""><span><small>Character</small>${CNAME[CHAR] || 'Knight'}</span></button>
     <button class="big" id="lSolo">Play solo</button><button class="fsBtn">&#x26F6; Full screen</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
-  else if (screen === 'chars') LC.innerHTML = `<h1>Characters</h1>${[['', ['knight', 'fire', 'priest', 'time']], ['In Development', ['ninja', 'ogre', 'rooster']]].map(([h, ks]) => `${h ? `<h2 class="cdev">${h}</h2>` : ''}<div class="cgrid">${ks.map(k => `<button data-ch="${k}" class="${CHAR === k ? 'on' : ''}"><img src="${charPic(k)}" alt=""><span>${CNAME[k]}</span></button>`).join('')}</div>`).join('')}
+  else if (screen === 'chars') LC.innerHTML = `<h1>Characters</h1>${[['', ['knight', 'fire', 'priest', 'time']], ['In Development', ['ninja', 'ogre', 'rooster', 'gi']]].map(([h, ks]) => `${h ? `<h2 class="cdev">${h}</h2>` : ''}<div class="cgrid">${ks.map(k => `<button data-ch="${k}" class="${CHAR === k ? 'on' : ''}"><img src="${charPic(k)}" alt=""><span>${CNAME[k]}</span></button>`).join('')}</div>`).join('')}
     <button class="big" id="lLay">Control layout · ${CNAME[CHAR] || 'Knight'}</button><button class="big pri" id="lBack">Done</button>`;
   else if (screen === 'hosting') LC.innerHTML = `<h1>Knight Brawl</h1><p>Give your friends this code</p><div class="code">${NET.code}</div><p>Waiting for players (up to 4; others can join any time)…</p>
     <button class="big" id="lSoloH">Start now (they can still join)</button><button id="lCancel">Cancel</button>`;
@@ -7816,10 +8181,11 @@ function applySnap(S) {
 }
 // ---------- control layout: each player drags/resizes the touch controls, per character and orientation (saved on this device) ----------
 const CTLS = { move: ['lst', 'Move stick'], swing: ['rst', 'Swing stick'], dash: ['dash', 'Dash aim'], leap: ['aoe', 'Leap aim'], spin: ['spin', 'Spin button'], ult: ['ult', 'Ult button'], breath: ['bst', 'Breath stick'], bring: ['bring', 'Bring in button'] };
-const layCh = () => CHAR === 'fire' || CHAR === 'priest' || CHAR === 'sword' || CHAR === 'time' || CHAR === 'ninja' || CHAR === 'ogre' || CHAR === 'rooster' ? CHAR : 'knight';
+const layCh = () => CHAR === 'fire' || CHAR === 'priest' || CHAR === 'sword' || CHAR === 'time' || CHAR === 'ninja' || CHAR === 'ogre' || CHAR === 'rooster' || CHAR === 'gi' ? CHAR : 'knight';
 // the HUD for the character being played: which controls show and what they're called
 let CHAR_UI = null;
 function charUI(kind) { CHAR_UI = kind; const fire = kind === 'fire', pr = kind === 'priest', swd = kind === 'sword', tm = kind === 'time', nj = kind === 'ninja', og = kind === 'ogre'; document.body.classList.toggle('ogre', og); document.body.classList.toggle('sword', swd); document.body.classList.toggle('ninja', nj); document.body.classList.toggle('time', tm); document.getElementById('help').textContent = og ? 'WASD/arrows move · hold mouse to smash toward the cursor · Shift frost surf the way you move (WASD steers) · hold Q to aim the storm cloud at the cursor · E ice spikes toward the cursor · R frozen thunder dragon · wheel zoom' : fire ? 'WASD/arrows move · hold mouse to breathe at the cursor · E lava · hold Shift to ride a plume the way you move · hold Q to aim the coals at the cursor, release to run them · R volcano, then click to erupt · wheel zoom' : pr ? 'WASD/arrows move · hold mouse to swing the censer toward the cursor · Shift sweep the flail at the cursor · hold Q to aim the slam, release to throw (again to pull yourself to it) · F bring the head in · E holy flame · R penance: WASD/mouse steer the flail, Space smash · wheel zoom' : swd ? 'WASD/arrows move · hold mouse to cut toward the cursor (a three-cut combo while held) · wheel zoom' : nj ? 'WASD/arrows move · hold mouse to cut toward the cursor · Shift kama at the enemy nearest the cursor · E shadow clones toward the cursor · hold Q to aim the leap at the cursor, release to leap (3 charges) · R ult: drag the three joints of the strike in slow motion, R again to strike now · wheel zoom' : tm ? 'WASD/arrows move · hold mouse to swing the cane (or fire the weapon) at the cursor · E opens a portal for a random weapon · Shift calls the motorcycle the way you move, then WASD steers · wheel zoom' : 'WASD/arrows move · hold mouse to swing toward cursor · Space spin · Shift dash where you\'re moving · hold Q to aim the leap at the cursor, release to jump · R ult · wheel zoom'; document.body.classList.toggle('fire', fire); document.body.classList.toggle('priest', pr); document.querySelector('#rst small').textContent = fire ? 'breath' : pr ? 'censer' : swd ? 'blades' : tm ? 'cane' : nj ? 'ninjato' : og ? 'smash' : 'swing'; document.querySelector('#dash small').textContent = fire ? 'plume' : pr ? 'sweep' : tm ? 'bike' : og ? 'surf' : nj ? 'kama' : 'dash'; document.querySelector('#aoe small').textContent = fire ? 'coals' : pr ? 'slam' : og ? 'cloud' : 'leap'; document.querySelector('#bst small').textContent = og ? 'spikes' : nj ? 'clones' : 'breath'; document.querySelector('#spin span').textContent = fire ? 'LAVA' : pr ? 'HOLY' : tm ? 'PORTAL' : og ? 'SPIKES' : nj ? 'CLONE' : 'SPIN';
+  document.body.classList.toggle('gi', kind === 'gi'); if (kind === 'gi') { document.getElementById('help').textContent = 'WASD/arrows move · hold mouse to fire the M16 at the cursor · R radio call: WASD aims the door gun, Space or mouse fires · wheel zoom'; document.querySelector('#rst small').textContent = 'M16'; }
   if (kind === 'rooster') { document.getElementById('help').textContent = 'WASD/arrows move · mouse: laser strikes sweep across toward the cursor (hold to keep striking) · Shift bombing run the way you move · hold Q to aim the egg barrage, release to fire · E egg mines · R chick storm · wheel zoom'; document.querySelector('#rst small').textContent = 'laser'; document.querySelector('#dash small').textContent = 'bomb run'; document.querySelector('#aoe small').textContent = 'barrage'; document.querySelector('#spin span').textContent = 'MINES'; } }
 let LAY = {}; try { LAY = JSON.parse(localStorage.getItem('kn_layout') || '{}') || {}; } catch (e) { }
 // plume and coals swapped places: carry a Firebreather layout saved before that over, so his saved spots swap too
