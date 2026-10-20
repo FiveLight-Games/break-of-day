@@ -105,6 +105,8 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <div class="row" style="margin-top:4px" id="walkRow"><button id="bWalkPrev" title="Preview the legs walking or standing (a view setting)">Preview: walking</button></div>
       <div class="row" style="margin-top:6px"><button id="bReset" class="danger" title="Throw away your changes to this animation and go back to how it is in the game">Reset to the game's version</button></div>
       <div class="row" style="margin-top:6px" id="delRow"><button id="bDelClip" class="danger">Delete this animation</button></div>
+      <div class="row" style="margin-top:6px"><button id="bSaveAs" title="Save a copy of this animation under My animations, with a new name">Save As…</button></div>
+      <div class="row" style="margin-top:6px;display:none" id="saveAsRow"><input type="text" id="saveAsName" style="flex:1;min-width:0;cursor:text;background:transparent;border:1px solid var(--line);box-shadow:none" aria-label="New animation name"><button id="saveAsGo" class="primary">Save</button><button id="saveAsNo">Cancel</button></div>
 
     </section>
     <section>
@@ -503,6 +505,14 @@ const origKey = () => { const c = clip(), K = c.lib ? (LIBK[c.id] || (LIBK[c.id]
 $('bRestore').onclick = () => { const o = origKey(); if (!o || locked()) return; snap(); const k = keyAt(fr), n = { fr, ease: o.ease || 'smooth', pose: clone(o.pose) }; if (k) Object.assign(k, n); else { keys().push(n); sortKeys(); } save(); setFr(fr); };
 const addClip = c => { const go = () => { c.id = rid(); c.orig = c.orig || clone(c.keys); clips.push(c); ci = clips.length - 1; hist.length = 0; save(); dirty = false; setFr(0, true); }; if (pending()) ask(go); else go(); };
 $('bNew').onclick = () => addClip(blank('New clip ' + (clips.length + 1)));
+// Save As: a copy under My animations with the name you give it; a changed pose on this frame goes into the copy as a key (this animation is left as it was)
+$('bSaveAs').onclick = () => { const r = $('saveAsRow'); r.style.display = 'flex'; let nm = clip().name, i = 2; const base = clip().lib ? 'My ' + nm.toLowerCase() : nm + ' copy'; nm = base; while (clips.some(q => q.name === nm)) nm = base + ' ' + i++; $('saveAsName').value = nm; $('saveAsName').focus(); $('saveAsName').select(); };
+$('saveAsNo').onclick = () => { $('saveAsRow').style.display = 'none'; };
+$('saveAsGo').onclick = () => { let nm = $('saveAsName').value.trim(); if (!nm) return; let n2 = nm, i = 2; while (clips.some(q => q.name === n2)) n2 = nm + ' ' + i++;
+  const c = clone(clip()); for (const k of ['game', 'lib', 'folder', 'note', 'orig', 'id']) delete c[k]; c.name = n2;
+  if (dirty && !locked()) { const k0 = c.keys.find(k => k.fr === fr); if (k0) k0.pose = clone(pose); else { c.keys.push({ fr, ease: 'smooth', pose: clone(pose) }); c.keys.sort((a, b) => a.fr - b.fr); } }
+  const keepFr = fr; $('saveAsRow').style.display = 'none'; dirty = false; c.id = rid(); c.orig = clone(c.keys); clips.push(c); ci = clips.length - 1; hist.length = 0; save(); setFr(keepFr, true); };
+$('saveAsName').addEventListener('keydown', e => { if (e.key === 'Enter') $('saveAsGo').click(); else if (e.key === 'Escape') $('saveAsNo').click(); e.stopPropagation(); });
 $('bDup').onclick = () => { const c = clone(clip()); delete c.orig; delete c.game; delete c.lib; if (clip().lib) { delete c.folder; delete c.note; } { const base = clip().lib ? 'My ' + clip().name.toLowerCase() : c.name + ' copy'; let nm = base, i = 2; while (clips.some(q => q.name === nm)) nm = base + ' ' + i++; c.name = nm; } addClip(c); };
 const freshCopy = k2 => { const g = gameClip(k2); let i = 2; while (clips.some(c => c.name === g.name + ' ' + i)) i++; g.name += ' ' + i; addClip(g); };
 
