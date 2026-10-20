@@ -3741,8 +3741,8 @@ function ogreStep(dt, t) {
   // a new combo starts at 1 after a pause (SW.GAP); while surfing he only throws the two hooks, alternating ----
   const SWG = O.SW; if (!(K.ou >= 0) && IN.aim && !rooted && !ram && !(K.ogFn >= 0) && !(K.clT < 0 && K.clT > -O.CLOUD.CAST)) { const a = Math.atan2(IN.aim[1] / OGY, IN.aim[0]), fresh = t - (K.ouE ?? -9) > SWG.GAP; let c2 = fresh ? 0 : ((K.ouC ?? -1) + 1) % 3; if (K.sv >= 0 && c2 === 2) c2 = 0;
     Object.assign(K, { ou: 0, ouN: (K.ouN || 0) + 1, ouS: 0, ouA: a, ouC: c2, ouK: c2, ogH: c2 === 0 ? 1 : c2 === 1 ? 0 : K.ogH }); if (Math.abs(Math.cos(a)) > 0.2) K.f = Math.cos(a) > 0 ? 1 : -1; }
-  // the punch stays aimable until its damage is done: the aim eases toward the stick (12 rad/s, so the fist never jumps); facing stays as it started
-  if (K.ou >= 0 && !K.ouS && IN.aim && K.ou < SWG.HIT[K.ouK ?? 2]) { const a2 = Math.atan2(IN.aim[1] / OGY, IN.aim[0]); let da = a2 - K.ouA; da -= Math.round(da / 6.283) * 6.283; K.ouA += Math.sign(da) * Math.min(Math.abs(da), 12 * dt); }
+  // the punch stays aimable until its damage is done: the aim eases toward the stick (12 rad/s, so the fist never jumps); he turns to face the side the aim swings to
+  if (K.ou >= 0 && !K.ouS && IN.aim && K.ou < SWG.HIT[K.ouK ?? 2]) { const a2 = Math.atan2(IN.aim[1] / OGY, IN.aim[0]); let da = a2 - K.ouA; da -= Math.round(da / 6.283) * 6.283; K.ouA += Math.sign(da) * Math.min(Math.abs(da), 12 * dt); if (Math.abs(Math.cos(K.ouA)) > 0.2) K.f = Math.cos(K.ouA) > 0 ? 1 : -1; }
   if (K.ou >= 0) { const u0 = K.ou, T0 = K.ouS ? O.AT : SWG.T[K.ouK ?? 2]; K.ou += dt / T0; const HT = K.ouS ? 2 : SWG.HIT[K.ouK ?? 2]; if (u0 < HT && K.ou >= HT && !K.ouS) ogSwingHit(K.ouK, K.ouA, host, K.ouBig ? OG.RAMP.BIG : 1);
     if (K.ou >= 1) { K.ou = -1; K.ouE = t; K.ouBig = 0; } }
   // ---- storm-hook spark hits waiting for their spark to arrive (host) ----
@@ -7893,7 +7893,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '918448';
+const KBUILD = '118837';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
