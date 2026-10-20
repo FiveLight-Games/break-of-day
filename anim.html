@@ -76,6 +76,11 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <span class="fr" id="frLbl"></span>
       <button class="primary" id="bSnap" title="Save this pose at the current frame (S)">Save key</button>
     </div>
+    <div class="tbar" id="pinBar" style="flex-wrap:wrap;gap:6px"><span class="note" id="pbName">Click a dot on him to pin that part</span>
+      <span id="pbCtl" style="display:none;align-items:center;gap:6px;flex-wrap:wrap"><label class="note"><input type="checkbox" id="pbPos" checked> Placement</label><label class="note"><input type="checkbox" id="pbRot" checked> Rotation</label>
+        <span class="note">from</span><input type="number" id="pinA" min="0" style="width:56px" aria-label="From frame"><span class="note">to</span><input type="number" id="pinB" min="0" style="width:56px" aria-label="To frame">
+        <button id="pinSetA" title="Use the frame you're on as the start">Start = this frame</button><button id="pinSetB" title="Use the frame you're on as the end">End = this frame</button><button id="pinAdd" class="primary">Pin</button></span>
+      <span id="pinList" style="display:flex;gap:6px;flex-wrap:wrap"></span></div>
     <div id="track"><canvas id="tcv"></canvas><div id="scrubB" title="Drag to scrub through the frames"></div></div>
     <div class="tbar">
       <button id="bDel" class="danger" title="Delete the key at the current frame (Delete)">Delete key</button>
@@ -111,13 +116,6 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <label class="sl" title="0 = ice head lit, 1 = storm head lit">Ice ↔ storm head <input type="range" id="act" min="0" max="1" step="0.01"><output id="actO"></output></label>
       <p class="note">Torso twist: + turns the far shoulder toward you, − the near one.</p>
       <div class="row" style="margin-top:8px"><button id="bOrb" title="Show or hide the crackling lightning in his storm hand (a view setting, not saved in the animation)">Lightning in hand: off</button><button id="bIce" title="Show or hide the swirling ice ball in his ice hand (a view setting, not saved in the animation)">Ice ball in hand: off</button></div>
-    </section>
-    <section>
-      <h2>Pin a part</h2>
-      <p class="note" style="margin-bottom:6px">Holds one part exactly still between two frames (both included), whatever the curve would do.</p>
-      <div class="row" style="flex-wrap:wrap;gap:6px"><select id="pinPart" aria-label="Part to pin"></select><span class="note">from</span><input type="number" id="pinA" min="0" style="width:60px" aria-label="From frame"><span class="note">to</span><input type="number" id="pinB" min="0" style="width:60px" aria-label="To frame"></div>
-      <div class="row" style="margin-top:6px;gap:6px"><button id="pinSetA" title="Use the frame you're on as the start">Start = this frame</button><button id="pinSetB" title="Use the frame you're on as the end">End = this frame</button><button id="pinAdd" class="primary">Add pin</button></div>
-      <div id="pinList" style="margin-top:6px"></div>
     </section>
     <section>
       <h2>Twist</h2>
@@ -978,11 +976,15 @@ function undo() { if (!hist.length) return; clips[ci] = JSON.parse(hist.pop()); 
 const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
 const cr = (p0, p1, p2, p3, u) => 0.5 * (2 * p1 + (-p0 + p2) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u * u + (-p0 + 3 * p1 - 3 * p2 + p3) * u * u * u);
 // pins (clip.pins = [{p, a, b}]): from frame a to frame b (both included) part p holds exactly what it is at frame a, whatever the curve does
-const PINP = { f0: 'Foot 0', f1: 'Foot 1', hA: 'Hand A', hB: 'Hand B', pel: 'Hips' };
-function pinApply(P, t) { for (const q of clip().pins || []) { if (t < q.a || t > q.b) continue; const S = poseRaw(q.a);
-    if (q.p === 'f0' || q.p === 'f1') { const i = +q.p[1]; P.feet = P.feet.slice(); P.feet[i] = S.feet[i].slice(); for (const k of ['fa', 'ff']) if (S[k] || P[k]) { P[k] = (P[k] || [0, 0]).slice(); P[k][i] = (S[k] || [0, 0])[i]; } if (S.tw || P.tw) { P.tw = clone(P.tw || {}); P.tw.F = (P.tw.F || [0, 0]).slice(); P.tw.F[i] = ((S.tw || {}).F || [0, 0])[i]; } }
-    else if (q.p === 'hA' || q.p === 'hB') { const sd = q.p[1]; P['h' + sd] = S['h' + sd].slice(); P['c' + sd] = S['c' + sd]; P['hf' + sd] = S['hf' + sd]; P['hb' + sd] = S['hb' + sd]; }
-    else if (q.p === 'pel') P.pel = S.pel.slice(); }
+// a pin holds placement ('pos'), rotation ('rot') or, for old pins without k, both
+const PCAP = { hA: ['pos', 'rot'], hB: ['pos', 'rot'], f0: ['pos', 'rot'], f1: ['pos', 'rot'], pel: ['pos'], chest: ['rot'], h0: ['rot'], h1: ['rot'] };
+const has = (q, k) => !q.k || q.k === k;
+function pinApply(P, t) { for (const q of clip().pins || []) { if (t < q.a || t > q.b) continue; const S = poseRaw(q.a), A = (k, i) => { P[k] = (P[k] || [0, 0]).slice(); P[k][i] = (S[k] || [0, 0])[i]; }, TW = (g, i) => { P.tw = clone(P.tw || {}); if (i === undefined) P.tw[g] = (S.tw || {})[g] || 0; else { P.tw[g] = (P.tw[g] || [0, 0]).slice(); P.tw[g][i] = ((S.tw || {})[g] || [0, 0])[i]; } };
+    if (q.p === 'f0' || q.p === 'f1') { const i = +q.p[1]; if (has(q, 'pos')) { P.feet = P.feet.slice(); P.feet[i] = S.feet[i].slice(); } if (has(q, 'rot')) { A('fa', i); A('ff', i); TW('F', i); } }
+    else if (q.p === 'hA' || q.p === 'hB') { const sd = q.p[1]; if (has(q, 'pos')) P['h' + sd] = S['h' + sd].slice(); if (has(q, 'rot')) { P['hf' + sd] = S['hf' + sd]; P['hb' + sd] = S['hb' + sd]; TW('h' + sd); } if (!q.k) P['c' + sd] = S['c' + sd]; }
+    else if (q.p === 'pel') P.pel = S.pel.slice();
+    else if (q.p === 'chest') { P.lean = S.lean; P.yaw = S.yaw; }
+    else if (q.p === 'h0' || q.p === 'h1') { const i = +q.p[1]; A('hr', i); A('hfl', i); TW('H', i); } }
   return P; }
 function poseAt(t) { return pinApply(poseRaw(t), t); }
 function poseRaw(t) { const K = keys(); if (!K.length) return idlePose(1); if (t <= K[0].fr) return clone(K[0].pose); if (t >= K[K.length - 1].fr) return clone(K[K.length - 1].pose);
@@ -1043,6 +1045,8 @@ const BACKH = (r, P) => [
     { id: 'beG', p: r.eG, k: 'elbowD', c: '--a', b: 'G' }, { id: 'beP', p: r.eP, k: 'elbowD', c: '--b', b: 'P' },
     { id: 'bxG', p: flipB(r.shG, r.hG, r.eG), k: 'elbow', c: '--a', b: 'G' }, { id: 'bxP', p: flipB(r.shP, r.hP, r.eP), k: 'elbow', c: '--b', b: 'P' },
     { id: 'hdI', p: headOf(r, P, 0), k: 'head', c: '--b', i: 0 }, { id: 'hdZ', p: headOf(r, P, 1), k: 'head', c: '--a', i: 1 } ];
+let SEL = null; const partOf = h => h.b ? null : ({ hA: 'hA', hB: 'hB', f0: 'f0', t0: 'f0', f1: 'f1', t1: 'f1', pl: 'pel', ch: 'chest', hdI: 'h0', hdZ: 'h1' })[h.id] || null;
+const pinnedHere = (part, t) => (clip().pins || []).filter(q => q.p === part && q.a <= t && t <= q.b);
 const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || locked()) return []; if (r.back) return BACKH(r, P); const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.95];
   return [
     { id: 'hA', p: r.hA, k: 'hand', c: '--a', l: 'A' }, { id: 'hB', p: r.hB, k: 'hand', c: '--b', l: 'B' },
@@ -1056,7 +1060,8 @@ const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || locked()
 function handles() { const H = HANDLES(), r = rig;
   // shoulders and arm reach (only the dragged hand's reach is drawn)
   if (drag && drag.k === 'hand') { const s = w2s(drag.b ? (drag.b === 'G' ? r.shG : r.shP) : drag.id === 'hA' ? r.shA : r.shB); ctx.setLineDash([4, 4]); ctx.strokeStyle = css(drag.c); ctx.beginPath(); ctx.arc(s[0], s[1], ARM * S, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
-  for (const h of H) { const [x, y] = w2s(h.p); ctx.lineWidth = 2; ctx.strokeStyle = css(h.c); ctx.fillStyle = css('--panel');
+  for (const h of H) { const [x, y] = w2s(h.p), pt = partOf(h), pn = pt && pinnedHere(pt, fr).filter(q => h.k === 'toe' ? has(q, 'rot') : h.k === 'foot' ? has(q, 'pos') : true).length; if (pt && pt === SEL) { ctx.save(); ctx.strokeStyle = css('--accent'); ctx.globalAlpha = 0.45; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(x, y, 14, 0, 7); ctx.stroke(); ctx.restore(); }
+    ctx.lineWidth = 2; ctx.strokeStyle = pn ? '#c62828' : css(h.c); ctx.fillStyle = pn ? '#e53935' : css('--panel');
     ctx.beginPath();
     if (h.k === 'pel') ctx.rect(x - 7, y - 7, 14, 14);
     else if (h.k === 'chest') { ctx.moveTo(x, y - 9); ctx.lineTo(x + 9, y); ctx.lineTo(x, y + 9); ctx.lineTo(x - 9, y); ctx.closePath(); }
@@ -1066,13 +1071,13 @@ function handles() { const H = HANDLES(), r = rig;
     else if (h.k === 'toe') { const ff = (pose.fa && 0, (pose.ff || [])[h.i] ? -1 : 1), a = -pose.f * ff * ((pose.fa || [0, 0])[h.i] || 0) + (pose.f * ff > 0 ? 0 : Math.PI); ctx.moveTo(x + Math.cos(a) * 11, y + Math.sin(a) * 11); ctx.lineTo(x + Math.cos(a + 2.4) * 8, y + Math.sin(a + 2.4) * 8); ctx.lineTo(x + Math.cos(a - 2.4) * 8, y + Math.sin(a - 2.4) * 8); ctx.closePath(); }
     else ctx.arc(x, y, 9, 0, 7);
     if (h.k === 'elbow' || h.k === 'knee') { ctx.globalAlpha = 0.9; ctx.stroke(); ctx.globalAlpha = 1; ctx.font = '600 10px ' + css('--mono'); ctx.fillStyle = css(h.c); ctx.textAlign = 'center'; ctx.fillText('⇄', x, y + 3.5); }
-    else { ctx.globalAlpha = 0.85; ctx.fill(); ctx.globalAlpha = 1; ctx.stroke(); if (h.l) { ctx.font = '600 11px ' + css('--mono'); ctx.fillStyle = css(h.c); ctx.textAlign = 'center'; ctx.fillText(h.l, x, y + 4); } } } }
+    else { ctx.globalAlpha = pn ? 1 : 0.85; ctx.fill(); ctx.globalAlpha = 1; ctx.stroke(); if (h.l) { if (pn) ctx.fillStyle = '#fff'; else ctx.font = '600 11px ' + css('--mono'); ctx.fillStyle = css(h.c); ctx.textAlign = 'center'; ctx.fillText(h.l, x, y + 4); } } } }
 
 // ---- pointer ----
 let drag = null;
 cv.addEventListener('pointerdown', e => { if (playing) return; if (locked()) { lockMsg(); return; } const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top, R = e.pointerType === 'touch' ? 24 : 14;
   let best = null, bd = R; for (const h of HANDLES()) { const [sx, sy] = w2s(h.p), d = Math.hypot(sx - x, sy - y); if (d < bd) { bd = d; best = h; } }
-  if (!best) return; drag = { ...best, x0: x, y0: y, moved: false }; cv.setPointerCapture(e.pointerId); e.preventDefault(); });
+  if (!best) return; { const pt = partOf(best); if (pt) { if (SEL !== pt && $('pinA').value === '') $('pinA').value = fr; SEL = pt; ui(); } } drag = { ...best, x0: x, y0: y, moved: false }; cv.setPointerCapture(e.pointerId); e.preventDefault(); });
 cv.addEventListener('pointermove', e => { if (!drag) return; const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
   if (!drag.moved && Math.hypot(x - drag.x0, y - drag.y0) < 4) return; drag.moved = true; const p = s2w(x, y), r = rig, P = pose;
   if (drag.b) { P.bk = P.bk ? { ...P.bk } : clone(backDef(P.f)); const B = P.bk, sh = drag.b === 'G' ? r.shG : r.shP;
@@ -1100,7 +1105,7 @@ let pend = false; function livePreview() { if (pend) return; pend = true; reques
 
 // ---- timeline ----
 const tlLen = () => Math.max(60, lastFr() + 12, fr + 6);
-const pinName = q => q.p === 'pel' ? 'Hips' : q.p[0] === 'f' ? cap(footName(+q.p[1])) + ' foot' : cap(nameOf(q.p[1]).replace(' arm', ' hand'));
+const pinName = q => q.p === 'pel' ? 'Hips' : q.p === 'chest' ? 'Chest' : q.p === 'h0' ? 'Ice head' : q.p === 'h1' ? 'Storm head' : q.p[0] === 'f' ? cap(footName(+q.p[1])) + ' foot' : cap(nameOf(q.p[1]).replace(' arm', ' hand'));
 function drawTrack() { const W = tcv.width / DPR, H = tcv.height / DPR, L = tlLen(), X = f2 => 10 + f2 / L * (W - 20); tctx.setTransform(DPR, 0, 0, DPR, 0, 0); tctx.clearRect(0, 0, W, H);
   tctx.font = '10px ' + css('--mono'); tctx.fillStyle = css('--mute'); tctx.strokeStyle = css('--line'); tctx.textAlign = 'center';
   const st = L > 240 ? 30 : L > 120 ? 10 : 6; for (let f2 = 0; f2 <= L; f2++) { const x = X(f2); if (f2 % st === 0) { tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, 12); tctx.stroke(); tctx.fillText(f2, x, 22); } else if (L <= 120) { tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, 4); tctx.stroke(); } }
@@ -1151,8 +1156,10 @@ function ui() {
   { const W = legWalk(); $('legP').classList.toggle('on', !W); $('legW').classList.toggle('on', W); $('walkRow').style.display = W ? '' : 'none'; $('bWalkPrev').textContent = 'Preview: ' + (walkPrev ? 'walking' : 'standing'); }
   for (const s2 of ['A', 'B']) { $('xf' + s2).textContent = 'Flip ' + nameOf(s2).replace(' arm', ' hand'); $('xf' + s2).classList.toggle('on', !!pose['hf' + s2]); $('bk' + s2).textContent = cap(nameOf(s2).replace(' arm', ' hand')) + ': ' + (pose['hb' + s2] ? 'back' : 'palm') + ' showing'; $('bk' + s2).classList.toggle('on', !!pose['hb' + s2]); }
   for (const i of [0, 1]) { $('xf' + i).textContent = 'Flip ' + footName(i) + ' foot'; $('xf' + i).classList.toggle('on', !!(pose.ff || [])[i]); $('xh' + i).classList.toggle('on', !!(pose.hfl || [])[i]); }
-  { const opts = ['f0', 'f1', 'hA', 'hB', 'pel'].map(p => `<option value="${p}">${pinName({ p })}</option>`).join(''), ps = $('pinPart'); if (ps.dataset.h !== opts) { const v = ps.value; ps.innerHTML = opts; ps.dataset.h = opts; if (v) ps.value = v; }
-    const L = (clip().pins || []).map((q, j) => `<div class="row" style="gap:6px;align-items:center;margin-top:3px"><span class="note">📌 ${pinName(q)}: frames ${q.a}–${q.b}${q.a <= fr && fr <= q.b ? ' (holding here)' : ''}</span><button data-pin="${j}" class="danger" style="padding:2px 8px">Remove</button></div>`).join(''); if ($('pinList').innerHTML !== L) $('pinList').innerHTML = L; }
+  {
+    $('pbName').textContent = SEL ? 'Pin ' + pinName({ p: SEL }).toLowerCase() + ':' : 'Click a dot on him to pin that part'; $('pbCtl').style.display = SEL ? 'inline-flex' : 'none';
+    if (SEL) { for (const [k, id] of [['pos', 'pbPos'], ['rot', 'pbRot']]) { const ok = PCAP[SEL].includes(k); $(id).disabled = !ok; $(id).parentElement.style.opacity = ok ? 1 : 0.4; } }
+    const L = (clip().pins || []).map((q, j) => q.p !== SEL ? '' : `<span class="note" style="display:inline-flex;gap:4px;align-items:center">📌 ${q.k === 'pos' ? 'placement' : q.k === 'rot' ? 'rotation' : 'held'} ${q.a}–${q.b}${q.a <= fr && fr <= q.b ? ' (here)' : ''} <button data-pin="${j}" class="danger" style="padding:1px 7px">✕</button></span>`).join(''); if ($('pinList').innerHTML !== L) $('pinList').innerHTML = L; }
   TWS.forEach((q, j) => { $('twn' + j).textContent = twName(q); const v = twGet(pose, q); if (document.activeElement !== $('tw' + j)) $('tw' + j).value = v; $('two' + j).textContent = v.toFixed(2); });
   $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('bIce').textContent = 'Ice ball in hand: ' + (iceOn ? 'on' : 'off'); $('bIce').classList.toggle('on', iceOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
@@ -1208,8 +1215,8 @@ $('vF').onclick = () => setView(0); $('vB').onclick = () => setView(1);
 // turning the link on adds the locked key in front of the animation (every key moves back a frame); turning it off takes that key out and moves them all up again
 // pins
 $('pinSetA').onclick = () => { $('pinA').value = fr; }; $('pinSetB').onclick = () => { $('pinB').value = fr; };
-$('pinAdd').onclick = () => { let a = Math.round(+$('pinA').value), b = Math.round(+$('pinB').value); if (!Number.isFinite(a) || !Number.isFinite(b) || $('pinA').value === '' || $('pinB').value === '') return; if (b < a) [a, b] = [b, a]; if (b === a) return;
-  snap(); const c = clip(); c.pins = (c.pins || []).concat([{ p: $('pinPart').value, a, b }]); save(); pose = dirty ? pose : poseAt(fr); ui(); draw(); };
+$('pinAdd').onclick = () => { if (!SEL) return; let a = Math.round(+$('pinA').value), b = Math.round(+$('pinB').value); if ($('pinA').value === '' || $('pinB').value === '' || !Number.isFinite(a) || !Number.isFinite(b)) return; if (b < a) [a, b] = [b, a]; if (b === a) return;
+  const ks = PCAP[SEL].filter(k => (k === 'pos' ? $('pbPos') : $('pbRot')).checked); if (!ks.length) return; snap(); const c = clip(); c.pins = (c.pins || []).concat(ks.map(k => ({ p: SEL, k, a, b }))); save(); if (!dirty) pose = poseAt(fr); ui(); draw(); };
 $('pinList').addEventListener('click', e => { const j = e.target.dataset && e.target.dataset.pin; if (j === undefined) return; snap(); const c = clip(); c.pins = c.pins.filter((q, i) => i !== +j); if (!c.pins.length) delete c.pins; save(); if (!dirty) pose = poseAt(fr); ui(); draw(); });
 $('linkOn').onchange = e => { if (clip().game) { e.target.checked = false; lockMsg(); return; } snap(); const c = clip(), was = !!linkSrc(c), on = e.target.checked && !!$('linkSel').value;
   if (on && !was) { for (const k of c.keys) k.fr += 1; c.from = $('linkSel').value; }
