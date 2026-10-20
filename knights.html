@@ -3611,16 +3611,21 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
 // the punching arm driven out to the target at shoulder height, the guard arm up by his face on the far side (hidden behind him but for the elbow), hips turned,
 // the rear leg back and across, up on the ball of its foot (pivoting), the front leg planted toward the target. o: { e (follow-through 0..1), pi (punching side is ice), cr, iL, zL }
 function drawBack(c, V, t, f, o) {
-  const e = o.e ?? 1, pi = !!o.pi, cr = o.cr || 0, py = -9.6 + cr, SG = V.gc;
+  // o.rig (anim suite): a posed back view: pel [x, y] (the pelvis; the body above it is rigid), aG/aP ankles (guard/punch leg), hG/hP hands, eG/eP elbow bend signs, hr head tilts [ice, storm];
+  // o.outRig is filled with where everything ended up
+  const BR = o.rig || null, dx0 = BR ? BR.pel[0] : 0, ORB = o.outRig ? { A: [] } : null;
+  const e = o.e ?? 1, pi = !!o.pi, cr = o.cr || 0, py = BR ? BR.pel[1] : -9.6 + cr, SG = V.gc;
+  const reach = (S, H, L) => { const dx = H[0] - S[0], dy = H[1] - S[1], d = Math.hypot(dx, dy); return d > L ? [S[0] + dx / d * L, S[1] + dy / d * L] : H.slice(); };
+  const elbowS = (S, H, E) => { const a = ik(S, H, 3.5, 3.5, 1), b = ik(S, H, 3.5, 3.5, -1); return Math.hypot(a[0] - E[0], a[1] - E[1]) <= Math.hypot(b[0] - E[0], b[1] - E[1]) ? 1 : -1; };
   const mixC = (a, b2, k2) => { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), A = p(a), B = p(b2); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * k2).toString(16).padStart(2, '0')).join(''); };
   const iL = o.iL ?? 0.5, zL = o.zL ?? 0.5, IS = mixC(V.iceSkin, '#86c9f5', iL), SS = mixC(V.stormSkin, '#262a36', zL * 0.7);
   { MARK.z = 0.2 + 1.05 * zL; MARK.zw = 1 + 0.6 * zL; MARK.i = 0.2 + 1.05 * iL; MARK.iw = 1 + 0.3 * iL; }
-  const X = p => [p[0] * f, p[1]], XS = pts => pts.map(X), skP = pi ? IS : SS, skG = pi ? SS : IS;
+  const X = p => [p[0] * f + dx0, p[1]], XS = pts => pts.map(X), skP = pi ? IS : SS, skG = pi ? SS : IS;
   const sway = Math.sin(t * 2.4) * 0.12;
   // ground shadow
   c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(f * 0.5, 0.2, 6.4, 1.6, 0, 0, 7); c.fill();
   // ---- legs ----
-  const leg = (hip, ank, heelUp, sk, ice, seed) => { const H0 = X(hip), A0 = X(ank), k1 = ik(H0, A0, 4.55, 4.55, 1), k2 = ik(H0, A0, 4.55, 4.55, -1), K0 = f * k1[0] > f * k2[0] ? k1 : k2;
+  const leg = (hip, ank, heelUp, sk, ice, seed, aAbs) => { const H0 = X(hip), A0 = aAbs ? aAbs.slice() : X(ank); if (ORB) ORB.A.push(A0); k1 = ik(H0, A0, 4.55, 4.55, 1), k2 = ik(H0, A0, 4.55, 4.55, -1), K0 = f * k1[0] > f * k2[0] ? k1 : k2;
     const TH = limbP(H0, K0, 1.85, 1.3, 1.08, 0.4), SH = limbP(K0, A0, 1.3, 0.85, 1.15, 0.38); cel(c, TH, sk, { d: 0.16, hl: 0.1 }); cel(c, SH, sk, { d: 0.18, hl: 0.12 });
     // the calf (we see the back of the leg): a swelling plate, and the crease behind the knee
     { const a = L2(K0, A0, 0.12), b = L2(K0, A0, 0.55), dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, n = [-dy / l, dx / l], Q = [a, [L2(a, b, 0.4)[0] + n[0] * 0.95, L2(a, b, 0.4)[1] + n[1] * 0.95], b, [L2(a, b, 0.45)[0] - n[0] * 0.85, L2(a, b, 0.45)[1] - n[1] * 0.85]];
@@ -3636,18 +3641,19 @@ function drawBack(c, V, t, f, o) {
     else veins(c, bolt(L2(H0, K0, 0.2), L2(K0, A0, 0.6), 300 + seed, 5, 0.3), SG, V.core, seed, t, 0.07);
     return K0; };
   const hipG = [-1.4, py - 0.2], hipP = [1.2, py + 0.15];
-  leg(hipG, [4.0 + sway * 0.2, -1.45], false, skG, !pi, 7);          // front leg (guard side), planted toward the target, farthest away
+  leg(hipG, [4.0 + sway * 0.2, -1.45], false, skG, !pi, 7, BR && BR.aG);          // front leg (guard side), planted toward the target, farthest away
   // ---- the guard arm: up by his face on the far side; only the elbow and the back of the arm show past his back ----
   // (game: o.gx 0..1 throws it out dead straight, down and away from the punch, as in the front view)
-  const gxB = o.gx ?? 0, Sg = X([-3.4, py - 8.2]), Ex = X([-3.4 - 0.57 * 3.5, py - 8.2 + 0.82 * 3.5]), Hx = X([-3.4 - 0.57 * 7, py - 8.2 + 0.82 * 7]), Eg = L2(X([-4.9, py - 5.6]), Ex, gxB), Hg = L2(X([-1.6, py - 10.4]), Hx, gxB);
+  const gxB = o.gx ?? 0, Sg = X([-3.4, py - 8.2]), Ex = X([-3.4 - 0.57 * 3.5, py - 8.2 + 0.82 * 3.5]), Hx = X([-3.4 - 0.57 * 7, py - 8.2 + 0.82 * 7]), Hg = BR ? reach(Sg, BR.hG, 6.98) : L2(X([-1.6, py - 10.4]), Hx, gxB), Eg = BR ? ik(Sg, Hg, 3.5, 3.5, BR.eG || 1) : L2(X([-4.9, py - 5.6]), Ex, gxB);
+  if (ORB) Object.assign(ORB, { shG: Sg, hG: Hg, eG: Eg, sG: elbowS(Sg, Hg, Eg) });
   cel(c, limbP(Sg, Eg, 1.6, 1.25, 1.1, 0.42), skG, { d: 0.16, hl: 0.1 }); cel(c, limbP(Eg, Hg, 1.25, 1.0, 1.12, 0.4), skG, { d: 0.16, hl: 0.08 });
   // (game) thrown out straight, its hand shows past his back: wrist band and a loose fist at the end of the arm
-  if (gxB > 0.05) { const dx = Hg[0] - Eg[0], dy = Hg[1] - Eg[1], l = Math.hypot(dx, dy) || 1, d = [dx / l, dy / l], n = [-d[1], d[0]], wb = L2(Eg, Hg, 0.66), wb2 = L2(Eg, Hg, 0.84), W = (p, v) => [p[0] + n[0] * v, p[1] + n[1] * v];
+  if (gxB > 0.05 || BR) { const dx = Hg[0] - Eg[0], dy = Hg[1] - Eg[1], l = Math.hypot(dx, dy) || 1, d = [dx / l, dy / l], n = [-d[1], d[0]], wb = L2(Eg, Hg, 0.66), wb2 = L2(Eg, Hg, 0.84), W = (p, v) => [p[0] + n[0] * v, p[1] + n[1] * v];
     path(c, [W(wb, 1.15), W(wb2, 1.2), W(wb2, -1.2), W(wb, -1.15)]); c.fillStyle = COL; c.fill(); c.strokeStyle = OUT; c.lineWidth = 0.15 * OLW; c.stroke();
     const fc = [Hg[0] + d[0] * 0.45, Hg[1] + d[1] * 0.45], FP = [[-0.9, -0.95], [0.4, -1.05], [1.15, -0.7], [1.2, 0.3], [0.9, 0.95], [-0.2, 1.05], [-0.95, 0.65]].map(([u, v]) => [fc[0] + d[0] * u + n[0] * v, fc[1] + d[1] * u + n[1] * v]);
     cel(c, FP, skG, { d: 0.24, hl: 0.1, lw: 0.17 }); c.strokeStyle = 'rgba(20,12,40,.35)'; c.lineWidth = 0.1; for (const v of [-0.45, 0.15, 0.7]) { c.beginPath(); c.moveTo(fc[0] + d[0] * 0.45 + n[0] * (v - 0.22), fc[1] + d[1] * 0.45 + n[1] * (v - 0.22)); c.quadraticCurveTo(fc[0] + d[0] * 1.05 + n[0] * v, fc[1] + d[1] * 1.05 + n[1] * v, fc[0] + d[0] * 0.45 + n[0] * (v + 0.22), fc[1] + d[1] * 0.45 + n[1] * (v + 0.22)); c.stroke(); }
     for (const v of [-0.5, 0.15, 0.75]) { const p = [fc[0] + d[0] * 1.2 + n[0] * v, fc[1] + d[1] * 1.2 + n[1] * v]; c.fillStyle = '#efe6cf'; c.strokeStyle = OUT; c.lineWidth = 0.08 * OLW; c.beginPath(); c.ellipse(p[0], p[1], 0.17, 0.12, Math.atan2(d[1], d[0]), 0, 7); c.fill(); c.stroke(); } }
-  leg(hipP, [-3.3, -1.7], true, skP, pi, 11);                          // rear leg (punch side), back and across, pivoting on the ball of the foot
+  leg(hipP, [-3.3, -1.7], true, skP, pi, 11, BR && BR.aP);                          // rear leg (punch side), back and across, pivoting on the ball of the foot
   // ---- the back ----
   const TO = XS([[-2.6, 0.6], [-3.5, -1.6], [-3.8, -4.2], [-4.4, -6.6], [-4.5, -8.4], [-3.6, -9.7], [-1.6, -10.4], [0.2, -10.5], [2.3, -10.2], [4.0, -9.4], [4.8, -8.0], [4.6, -6.2], [4.0, -3.8], [3.3, -1.4], [2.4, 0.4], [0, 0.75]].map(([x, y]) => [x, y + py]));
   cel(c, TO, skG, { d: 0.1, hl: 0.1, paint: () => {
@@ -3684,12 +3690,14 @@ function drawBack(c, V, t, f, o) {
         const ol = [P(-0.45, -0.3), P(0.45, -0.3), P(0.15, 0.4), P(0.7, 0.4), P(-0.05, 1.0), P(0.12, 0.56), P(-0.5, 0.56)]; path(c, ol); c.fillStyle = shade(SS, -0.35); c.fill(); c.lineJoin = 'miter'; c.strokeStyle = OUT; c.lineWidth = 0.15 * OLW; c.stroke();
         c.save(); c.globalAlpha = Math.min(1, 0.35 + 0.65 * MARK.z); path(c, [P(-0.12, 0.12), P(0.1, 0.12), P(-0.05, 0.46), P(0.4, 0.46), P(0.02, 0.84), P(0.06, 0.52), P(-0.3, 0.52)]); c.fillStyle = `rgb(${SG})`; c.fill(); c.restore(); } }
     return HP; };
-  const HG = X([-2.2, py - 11.7]), HPp = X([2.4, py - 11.3]); head(HG, !pi, 0); head(HPp, pi, 1);
+  const HG = X([-2.2, py - 11.7]), HPp = X([2.4, py - 11.3]), tilt = (H, ice, hs) => { const ha = BR && BR.hr ? BR.hr[ice ? 0 : 1] || 0 : 0; if (!ha) return head(H, ice, hs); c.save(); c.translate(H[0], H[1] + 2.2); c.rotate(-f * ha); c.translate(-H[0], -H[1] - 2.2); head(H, ice, hs); c.restore(); };
+  tilt(HG, !pi, 0); tilt(HPp, pi, 1); if (ORB) Object.assign(ORB, { HG, HP: HPp });
   // ---- shoulder caps: stone plates on the storm shoulder, ice spikes on the ice shoulder ----
   const cap = (S, ice, s2) => { if (ice) for (let i = 0; i < 3; i++) { const b = [S[0] + (i - 1) * 0.8 * f, S[1] - 0.6 - Math.abs(i - 1) * -0.2]; bevel(c, [[b[0] - 0.45, b[1] + 0.3], [b[0] + (i - 1) * 0.3 * f, b[1] - 1.5 + Math.abs(i - 1) * 0.4], [b[0] + 0.45, b[1] + 0.3]], ICEM.base, { lw: 0.12, k: 0.5 }); }
     else piece(c, chunk(S[0], S[1] - 0.6, 1.2, 0.75, 0.2 * s2, 81, 7), 'stone', 81, t, V, { crack: 0.6 }); };
   // ---- the punching arm: driven out at the target at shoulder height, carrying on round a little as he follows through ----
-  const Sp = X([3.7, py - 8.1]), F = X([3.7 + 6.4 - 1.1 * e, py - 8.4 - 1.5 * e]), e1 = ik(Sp, F, 3.5, 3.5, 1), e2 = ik(Sp, F, 3.5, 3.5, -1), E = e1[1] > e2[1] ? e1 : e2;
+  const Sp = X([3.7, py - 8.1]), F = BR ? reach(Sp, BR.hP, 6.98) : X([3.7 + 6.4 - 1.1 * e, py - 8.4 - 1.5 * e]), e1 = ik(Sp, F, 3.5, 3.5, 1), e2 = ik(Sp, F, 3.5, 3.5, -1), E = BR ? (BR.eP || 1) > 0 ? e1 : e2 : e1[1] > e2[1] ? e1 : e2;
+  if (ORB) Object.assign(o.outRig, ORB, { pel: [dx0, py], shP: Sp, hP: F, eP: E, sP: E === e1 ? 1 : -1, aG: ORB.A[0], aP: ORB.A[1] });
   cap(Sg, !pi, -1);
   cel(c, limbP(Sp, E, 1.7, 1.3, 1.12, 0.4), skP, { d: 0.16, hl: 0.12 }); cel(c, limbP(E, F, 1.3, 1.05, 1.14, 0.38), skP, { d: 0.16, hl: 0.12 });
   if (pi) { snowflake(c, L2(Sp, E, 0.5), 0.55, t, 61); snowflake(c, L2(E, F, 0.45), 0.42, t, 63); } else veins(c, bolt(L2(Sp, E, 0.2), L2(E, F, 0.75), 410, 6, 0.3), SG, V.core, 14, t, 0.08);
@@ -8507,7 +8515,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '0007ed';
+const KBUILD = '6b4ae0';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }

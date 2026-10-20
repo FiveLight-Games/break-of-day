@@ -93,11 +93,11 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <div class="row" style="margin-top:8px"><span class="note">Legs</span><div class="seg"><button id="legP" title="The legs do what you pose here">Posed here</button><button id="legW" title="In the game the legs keep walking with the player's movement; only the upper body and the crouch come from here">Walk with the player</button></div></div>
       <div class="row" style="margin-top:4px" id="walkRow"><button id="bWalkPrev" title="Preview the legs walking or standing (a view setting)">Preview: walking</button></div>
       <div class="row" style="margin-top:6px" id="delRow"><button id="bDelClip" class="danger">Delete this animation</button></div>
-      <p class="note" style="margin-top:8px">Fresh copy of the punch as it is in the game now:</p>
-      <div class="row" style="margin-top:4px"><button id="gStorm">Lightning punch</button><button id="gFrost">Ice punch</button></div>
+
     </section>
     <section>
       <h2>Body</h2>
+      <div class="row" style="margin-bottom:8px"><span class="note">View</span><div class="seg"><button id="vF" title="Seen from the front (three-quarter)">Front</button><button id="vB" title="Seen from behind, as when he throws a punch with his near arm. Between a front key and a behind key he turns round">From behind</button></div></div>
       <div class="row" style="margin-bottom:8px"><span class="note">Facing</span><div class="seg"><button id="fL">◀ Left</button><button id="fR">Right ▶</button></div></div>
       <label class="sl" title="Tip the body back or forward">Lean <input type="range" id="lean" min="-0.8" max="0.8" step="0.01"><output id="leanO"></output></label>
       <label class="sl" title="Twist the chest toward or away from you">Torso twist <input type="range" id="yaw" min="-1.6" max="1.6" step="0.01"><output id="yawO"></output></label>
@@ -704,16 +704,21 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
 // the punching arm driven out to the target at shoulder height, the guard arm up by his face on the far side (hidden behind him but for the elbow), hips turned,
 // the rear leg back and across, up on the ball of its foot (pivoting), the front leg planted toward the target. o: { e (follow-through 0..1), pi (punching side is ice), cr, iL, zL }
 function drawBack(c, V, t, f, o) {
-  const e = o.e ?? 1, pi = !!o.pi, cr = o.cr || 0, py = -9.6 + cr, SG = V.gc;
+  // o.rig (anim suite): a posed back view: pel [x, y] (the pelvis; the body above it is rigid), aG/aP ankles (guard/punch leg), hG/hP hands, eG/eP elbow bend signs, hr head tilts [ice, storm];
+  // o.outRig is filled with where everything ended up
+  const BR = o.rig || null, dx0 = BR ? BR.pel[0] : 0, ORB = o.outRig ? { A: [] } : null;
+  const e = o.e ?? 1, pi = !!o.pi, cr = o.cr || 0, py = BR ? BR.pel[1] : -9.6 + cr, SG = V.gc;
+  const reach = (S, H, L) => { const dx = H[0] - S[0], dy = H[1] - S[1], d = Math.hypot(dx, dy); return d > L ? [S[0] + dx / d * L, S[1] + dy / d * L] : H.slice(); };
+  const elbowS = (S, H, E) => { const a = ik(S, H, 3.5, 3.5, 1), b = ik(S, H, 3.5, 3.5, -1); return Math.hypot(a[0] - E[0], a[1] - E[1]) <= Math.hypot(b[0] - E[0], b[1] - E[1]) ? 1 : -1; };
   const mixC = (a, b2, k2) => { const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)), A = p(a), B = p(b2); return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * k2).toString(16).padStart(2, '0')).join(''); };
   const iL = o.iL ?? 0.5, zL = o.zL ?? 0.5, IS = mixC(V.iceSkin, '#86c9f5', iL), SS = mixC(V.stormSkin, '#262a36', zL * 0.7);
   { MARK.z = 0.2 + 1.05 * zL; MARK.zw = 1 + 0.6 * zL; MARK.i = 0.2 + 1.05 * iL; MARK.iw = 1 + 0.3 * iL; }
-  const X = p => [p[0] * f, p[1]], XS = pts => pts.map(X), skP = pi ? IS : SS, skG = pi ? SS : IS;
+  const X = p => [p[0] * f + dx0, p[1]], XS = pts => pts.map(X), skP = pi ? IS : SS, skG = pi ? SS : IS;
   const sway = Math.sin(t * 2.4) * 0.12;
   // ground shadow
   c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(f * 0.5, 0.2, 6.4, 1.6, 0, 0, 7); c.fill();
   // ---- legs ----
-  const leg = (hip, ank, heelUp, sk, ice, seed) => { const H0 = X(hip), A0 = X(ank), k1 = ik(H0, A0, 4.55, 4.55, 1), k2 = ik(H0, A0, 4.55, 4.55, -1), K0 = f * k1[0] > f * k2[0] ? k1 : k2;
+  const leg = (hip, ank, heelUp, sk, ice, seed, aAbs) => { const H0 = X(hip), A0 = aAbs ? aAbs.slice() : X(ank); if (ORB) ORB.A.push(A0); k1 = ik(H0, A0, 4.55, 4.55, 1), k2 = ik(H0, A0, 4.55, 4.55, -1), K0 = f * k1[0] > f * k2[0] ? k1 : k2;
     const TH = limbP(H0, K0, 1.85, 1.3, 1.08, 0.4), SH = limbP(K0, A0, 1.3, 0.85, 1.15, 0.38); cel(c, TH, sk, { d: 0.16, hl: 0.1 }); cel(c, SH, sk, { d: 0.18, hl: 0.12 });
     // the calf (we see the back of the leg): a swelling plate, and the crease behind the knee
     { const a = L2(K0, A0, 0.12), b = L2(K0, A0, 0.55), dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, n = [-dy / l, dx / l], Q = [a, [L2(a, b, 0.4)[0] + n[0] * 0.95, L2(a, b, 0.4)[1] + n[1] * 0.95], b, [L2(a, b, 0.45)[0] - n[0] * 0.85, L2(a, b, 0.45)[1] - n[1] * 0.85]];
@@ -729,18 +734,19 @@ function drawBack(c, V, t, f, o) {
     else veins(c, bolt(L2(H0, K0, 0.2), L2(K0, A0, 0.6), 300 + seed, 5, 0.3), SG, V.core, seed, t, 0.07);
     return K0; };
   const hipG = [-1.4, py - 0.2], hipP = [1.2, py + 0.15];
-  leg(hipG, [4.0 + sway * 0.2, -1.45], false, skG, !pi, 7);          // front leg (guard side), planted toward the target, farthest away
+  leg(hipG, [4.0 + sway * 0.2, -1.45], false, skG, !pi, 7, BR && BR.aG);          // front leg (guard side), planted toward the target, farthest away
   // ---- the guard arm: up by his face on the far side; only the elbow and the back of the arm show past his back ----
   // (game: o.gx 0..1 throws it out dead straight, down and away from the punch, as in the front view)
-  const gxB = o.gx ?? 0, Sg = X([-3.4, py - 8.2]), Ex = X([-3.4 - 0.57 * 3.5, py - 8.2 + 0.82 * 3.5]), Hx = X([-3.4 - 0.57 * 7, py - 8.2 + 0.82 * 7]), Eg = L2(X([-4.9, py - 5.6]), Ex, gxB), Hg = L2(X([-1.6, py - 10.4]), Hx, gxB);
+  const gxB = o.gx ?? 0, Sg = X([-3.4, py - 8.2]), Ex = X([-3.4 - 0.57 * 3.5, py - 8.2 + 0.82 * 3.5]), Hx = X([-3.4 - 0.57 * 7, py - 8.2 + 0.82 * 7]), Hg = BR ? reach(Sg, BR.hG, 6.98) : L2(X([-1.6, py - 10.4]), Hx, gxB), Eg = BR ? ik(Sg, Hg, 3.5, 3.5, BR.eG || 1) : L2(X([-4.9, py - 5.6]), Ex, gxB);
+  if (ORB) Object.assign(ORB, { shG: Sg, hG: Hg, eG: Eg, sG: elbowS(Sg, Hg, Eg) });
   cel(c, limbP(Sg, Eg, 1.6, 1.25, 1.1, 0.42), skG, { d: 0.16, hl: 0.1 }); cel(c, limbP(Eg, Hg, 1.25, 1.0, 1.12, 0.4), skG, { d: 0.16, hl: 0.08 });
   // (game) thrown out straight, its hand shows past his back: wrist band and a loose fist at the end of the arm
-  if (gxB > 0.05) { const dx = Hg[0] - Eg[0], dy = Hg[1] - Eg[1], l = Math.hypot(dx, dy) || 1, d = [dx / l, dy / l], n = [-d[1], d[0]], wb = L2(Eg, Hg, 0.66), wb2 = L2(Eg, Hg, 0.84), W = (p, v) => [p[0] + n[0] * v, p[1] + n[1] * v];
+  if (gxB > 0.05 || BR) { const dx = Hg[0] - Eg[0], dy = Hg[1] - Eg[1], l = Math.hypot(dx, dy) || 1, d = [dx / l, dy / l], n = [-d[1], d[0]], wb = L2(Eg, Hg, 0.66), wb2 = L2(Eg, Hg, 0.84), W = (p, v) => [p[0] + n[0] * v, p[1] + n[1] * v];
     path(c, [W(wb, 1.15), W(wb2, 1.2), W(wb2, -1.2), W(wb, -1.15)]); c.fillStyle = COL; c.fill(); c.strokeStyle = OUT; c.lineWidth = 0.15 * OLW; c.stroke();
     const fc = [Hg[0] + d[0] * 0.45, Hg[1] + d[1] * 0.45], FP = [[-0.9, -0.95], [0.4, -1.05], [1.15, -0.7], [1.2, 0.3], [0.9, 0.95], [-0.2, 1.05], [-0.95, 0.65]].map(([u, v]) => [fc[0] + d[0] * u + n[0] * v, fc[1] + d[1] * u + n[1] * v]);
     cel(c, FP, skG, { d: 0.24, hl: 0.1, lw: 0.17 }); c.strokeStyle = 'rgba(20,12,40,.35)'; c.lineWidth = 0.1; for (const v of [-0.45, 0.15, 0.7]) { c.beginPath(); c.moveTo(fc[0] + d[0] * 0.45 + n[0] * (v - 0.22), fc[1] + d[1] * 0.45 + n[1] * (v - 0.22)); c.quadraticCurveTo(fc[0] + d[0] * 1.05 + n[0] * v, fc[1] + d[1] * 1.05 + n[1] * v, fc[0] + d[0] * 0.45 + n[0] * (v + 0.22), fc[1] + d[1] * 0.45 + n[1] * (v + 0.22)); c.stroke(); }
     for (const v of [-0.5, 0.15, 0.75]) { const p = [fc[0] + d[0] * 1.2 + n[0] * v, fc[1] + d[1] * 1.2 + n[1] * v]; c.fillStyle = '#efe6cf'; c.strokeStyle = OUT; c.lineWidth = 0.08 * OLW; c.beginPath(); c.ellipse(p[0], p[1], 0.17, 0.12, Math.atan2(d[1], d[0]), 0, 7); c.fill(); c.stroke(); } }
-  leg(hipP, [-3.3, -1.7], true, skP, pi, 11);                          // rear leg (punch side), back and across, pivoting on the ball of the foot
+  leg(hipP, [-3.3, -1.7], true, skP, pi, 11, BR && BR.aP);                          // rear leg (punch side), back and across, pivoting on the ball of the foot
   // ---- the back ----
   const TO = XS([[-2.6, 0.6], [-3.5, -1.6], [-3.8, -4.2], [-4.4, -6.6], [-4.5, -8.4], [-3.6, -9.7], [-1.6, -10.4], [0.2, -10.5], [2.3, -10.2], [4.0, -9.4], [4.8, -8.0], [4.6, -6.2], [4.0, -3.8], [3.3, -1.4], [2.4, 0.4], [0, 0.75]].map(([x, y]) => [x, y + py]));
   cel(c, TO, skG, { d: 0.1, hl: 0.1, paint: () => {
@@ -777,12 +783,14 @@ function drawBack(c, V, t, f, o) {
         const ol = [P(-0.45, -0.3), P(0.45, -0.3), P(0.15, 0.4), P(0.7, 0.4), P(-0.05, 1.0), P(0.12, 0.56), P(-0.5, 0.56)]; path(c, ol); c.fillStyle = shade(SS, -0.35); c.fill(); c.lineJoin = 'miter'; c.strokeStyle = OUT; c.lineWidth = 0.15 * OLW; c.stroke();
         c.save(); c.globalAlpha = Math.min(1, 0.35 + 0.65 * MARK.z); path(c, [P(-0.12, 0.12), P(0.1, 0.12), P(-0.05, 0.46), P(0.4, 0.46), P(0.02, 0.84), P(0.06, 0.52), P(-0.3, 0.52)]); c.fillStyle = `rgb(${SG})`; c.fill(); c.restore(); } }
     return HP; };
-  const HG = X([-2.2, py - 11.7]), HPp = X([2.4, py - 11.3]); head(HG, !pi, 0); head(HPp, pi, 1);
+  const HG = X([-2.2, py - 11.7]), HPp = X([2.4, py - 11.3]), tilt = (H, ice, hs) => { const ha = BR && BR.hr ? BR.hr[ice ? 0 : 1] || 0 : 0; if (!ha) return head(H, ice, hs); c.save(); c.translate(H[0], H[1] + 2.2); c.rotate(-f * ha); c.translate(-H[0], -H[1] - 2.2); head(H, ice, hs); c.restore(); };
+  tilt(HG, !pi, 0); tilt(HPp, pi, 1); if (ORB) Object.assign(ORB, { HG, HP: HPp });
   // ---- shoulder caps: stone plates on the storm shoulder, ice spikes on the ice shoulder ----
   const cap = (S, ice, s2) => { if (ice) for (let i = 0; i < 3; i++) { const b = [S[0] + (i - 1) * 0.8 * f, S[1] - 0.6 - Math.abs(i - 1) * -0.2]; bevel(c, [[b[0] - 0.45, b[1] + 0.3], [b[0] + (i - 1) * 0.3 * f, b[1] - 1.5 + Math.abs(i - 1) * 0.4], [b[0] + 0.45, b[1] + 0.3]], ICEM.base, { lw: 0.12, k: 0.5 }); }
     else piece(c, chunk(S[0], S[1] - 0.6, 1.2, 0.75, 0.2 * s2, 81, 7), 'stone', 81, t, V, { crack: 0.6 }); };
   // ---- the punching arm: driven out at the target at shoulder height, carrying on round a little as he follows through ----
-  const Sp = X([3.7, py - 8.1]), F = X([3.7 + 6.4 - 1.1 * e, py - 8.4 - 1.5 * e]), e1 = ik(Sp, F, 3.5, 3.5, 1), e2 = ik(Sp, F, 3.5, 3.5, -1), E = e1[1] > e2[1] ? e1 : e2;
+  const Sp = X([3.7, py - 8.1]), F = BR ? reach(Sp, BR.hP, 6.98) : X([3.7 + 6.4 - 1.1 * e, py - 8.4 - 1.5 * e]), e1 = ik(Sp, F, 3.5, 3.5, 1), e2 = ik(Sp, F, 3.5, 3.5, -1), E = BR ? (BR.eP || 1) > 0 ? e1 : e2 : e1[1] > e2[1] ? e1 : e2;
+  if (ORB) Object.assign(o.outRig, ORB, { pel: [dx0, py], shP: Sp, hP: F, eP: E, sP: E === e1 ? 1 : -1, aG: ORB.A[0], aP: ORB.A[1] });
   cap(Sg, !pi, -1);
   cel(c, limbP(Sp, E, 1.7, 1.3, 1.12, 0.4), skP, { d: 0.16, hl: 0.12 }); cel(c, limbP(E, F, 1.3, 1.05, 1.14, 0.38), skP, { d: 0.16, hl: 0.12 });
   if (pi) { snowflake(c, L2(Sp, E, 0.5), 0.55, t, 61); snowflake(c, L2(E, F, 0.45), 0.42, t, 63); } else veins(c, bolt(L2(Sp, E, 0.2), L2(E, F, 0.75), 410, 6, 0.3), SG, V.core, 14, t, 0.08);
@@ -834,25 +842,42 @@ let orbOn = true; try { orbOn = localStorage.getItem('posebench-orb') !== '0'; }
 let walkPrev = true; try { walkPrev = localStorage.getItem('posebench-walk') !== '0'; } catch (e) {}
 const legWalk = () => typeof clips !== 'undefined' && clips && clips[ci] && clips[ci].legs === 'walk';
 let IDLEY = null;
-function render(c, P, out) { const W = legWalk(), now = performance.now() / 1000; if (W) { if (IDLEY === null) IDLEY = idlePose(1).pel[1]; P = { ...P, walk: { dy: P.pel[1] - IDLEY } }; }
+function renderFront(c, P, out) { const W = legWalk(), now = performance.now() / 1000; if (W) { if (IDLEY === null) IDLEY = idlePose(1).pel[1]; P = { ...P, walk: { dy: P.pel[1] - IDLEY } }; }
   const o = { rig: P, noFx: 1, noJet: 1, outRig: out || { ord: [] }, noOrb: !orbOn, fxT: now, ph: now * OGX.GAIT.RATE }; OGX.drawO2(c, OGX.V, T0, P.f, W && walkPrev ? 1 : 0, -1, -1, 'act', P.act, -1, [], 0, o); return o.outRig; }
+// ---- seen from behind (P.view 1; between keys he turns like the game: the front narrows to half width round his middle, swaps, the back widens out) ----
+// P.bk: pel [x, y], aG/aP ankles (guard leg = far side, punch leg = near side), hG/hP hands relative to their shoulders, eG/eP elbow bends, made by backPose
+const BKD = {}; const backDef = f => BKD[f] || (BKD[f] = backPose(f));
+const shBack = (f, pel) => ({ G: [-3.4 * f + pel[0], pel[1] - 8.2], P: [3.7 * f + pel[0], pel[1] - 8.1] });
+function renderBack(c, P, out) { const B = P.bk || backPose(P.f), S2 = shBack(P.f, B.pel), o = { pi: P.f > 0, iL: P.act, zL: 1 - P.act, gx: 0, outRig: out || {},
+    rig: { pel: B.pel, aG: B.aG, aP: B.aP, hG: [S2.G[0] + B.hG[0], S2.G[1] + B.hG[1]], hP: [S2.P[0] + B.hP[0], S2.P[1] + B.hP[1]], eG: B.eG, eP: B.eP, hr: P.hr } };
+  OGX.drawBack(c, OGX.V, T0, P.f, o); const r = o.outRig; r.back = 1; r.HI = o.pi ? r.HP : r.HG; r.HZ = o.pi ? r.HG : r.HP; return r; }
+function render(c, P, out) { const v = P.view || 0; if (v <= 0.001) return renderFront(c, P, out); if (v >= 0.999) return renderBack(c, P, out);
+  const sx = v < 0.5 ? 1 - v : v, px = v < 0.5 ? P.pel[0] : (P.bk || backPose(P.f)).pel[0]; c.save(); c.translate(px, 0); c.scale(sx, 1); c.translate(-px, 0); const r = v < 0.5 ? renderFront(c, P, out) : renderBack(c, P, out); c.restore(); r.turning = 1; return r; }
+// the back view's own pose, from the game's drawing (e how far the punch is out, cr crouch, gx guard arm thrown out)
+function backPose(f, e = 1, cr = 0, gx = 0) { const o = { e, pi: f > 0, cr, gx, iL: 0.5, zL: 0.5, outRig: {} }; OGX.drawBack(scratch, OGX.V, T0, f, o); const r = o.outRig;
+  return { pel: r.pel, aG: r.aG, aP: r.aP, hG: [r.hG[0] - r.shG[0], r.hG[1] - r.shG[1]], hP: [r.hP[0] - r.shP[0], r.hP[1] - r.shP[1]], eG: r.sG, eP: r.sP }; }
 function fromOut(o, f, act, yf) { const i = s => o.ord.indexOf(s), iT = i('T'), iH = i('H');
   return { f, pel: o.pel, lean: o.lean, yaw: o.yaw, feet: o.feet, kn: [f > 0 ? -1 : 1, f > 0 ? -1 : 1], hA: [o.hA[0] - o.shA[0], o.hA[1] - o.shA[1]], hB: [o.hB[0] - o.shB[0], o.hB[1] - o.shB[1]], eA: o.sA, eB: o.sB,
     fa: [0, 0], hr: [0, 0], aF: i('A') < iT ? 0 : i('A') < iH ? 1 : 2, bF: i('B') < iT ? 0 : 1, ls: 0, act, yf: yf ?? 0.42, cA: o.cA || 0, cB: o.cB || 0 }; }
 function idlePose(f) { const o = { ord: [] }; OGX.drawO2(scratch, OGX.V, T0, f, 0, -1, -1, 'act', 0, -1, [], 0, { noFx: 1, noJet: 1, outRig: o }); return fromOut(o, f, 0); }
 function gamePose(k2, f, u) { const hk = ogHookPose({ f, ouK: k2, ouA: f > 0 ? 0 : Math.PI }, u), o = { ord: [] }, act = k2 === 0 ? 1 : 0;
   OGX.drawO2(scratch, OGX.V, T0, f, 0, -1, -1, 'act', act, -1, [], 0, { hk, yaw: hk.yaw, noFx: 1, noJet: 1, outRig: o }); return fromOut(o, f, act, hk.yf); }
-function mirror(P) { const m = q => [-q[0], q[1]]; return { ...P, f: -P.f, pel: m(P.pel), feet: P.feet.map(m), hA: m(P.hA), hB: m(P.hB), eA: -P.eA, eB: -P.eB, kn: P.kn.map(v => -v) }; }
+function mirror(P) { const m = q => [-q[0], q[1]], B = P.bk; return { ...P, f: -P.f, pel: m(P.pel), feet: P.feet.map(m), hA: m(P.hA), hB: m(P.hB), eA: -P.eA, eB: -P.eB, kn: P.kn.map(v => -v), bk: B ? { pel: m(B.pel), aG: m(B.aG), aP: m(B.aP), hG: m(B.hG), hP: m(B.hP), eG: -B.eG, eP: -B.eP } : B }; }
 
 // ---- clips ----
 const blank = name => ({ name, keys: [{ fr: 0, ease: 'smooth', pose: idlePose(1) }] });
 // the hooks now take 1.625s in the game (x1.25 on 2026-10-19): 98 frames at 60fps, a key every 3
 const HOOKF = 98;
-function gameClip(k2) { const f = k2 === 1 ? 1 : -1, keys = []; for (let fr = 0; fr <= HOOKF; fr += (fr + 3 > HOOKF && fr < HOOKF ? HOOKF - fr : 3)) keys.push({ fr, ease: 'smooth', pose: gamePose(k2, f, Math.min(1, fr / HOOKF)) });
-  return { name: k2 === 1 ? 'Lightning punch' : 'Ice punch', keys }; }
+// both face right, as they're normally thrown; facing right the ice punch is thrown with the near arm, so like the game he turns his back for it
+function gameClip(k2) { const f = 1, keys = [], F = OGHK.F; for (let fr = 0; fr <= HOOKF; fr += (fr + 3 > HOOKF && fr < HOOKF ? HOOKF - fr : 3)) { const u = Math.min(1, fr / HOOKF), P = gamePose(k2, f, u), hk = ogHookPose({ f, ouK: k2, ouA: 0 }, u);
+    if (hk.arm === 1) { P.view = u < F + 0.04 ? sm(cl(hk.e / 0.7, 0, 1)) : 1 - sm(cl((u - F - 0.04) / 0.2, 0, 1)); P.bk = backPose(f, cl(hk.e, 0, 1), hk.cr, hk.gx); }
+    keys.push({ fr, ease: 'smooth', pose: P }); }
+  return { id: 'g' + k2, game: true, name: k2 === 1 ? 'Lightning punch' : 'Ice punch', keys }; }
+// the old way they were made (both stored as ordinary animations, the ice one facing left): used to recognise untouched stored copies
+function oldGameClip(k2) { const f = k2 === 1 ? 1 : -1, keys = []; for (let fr = 0; fr <= HOOKF; fr += (fr + 3 > HOOKF && fr < HOOKF ? HOOKF - fr : 3)) keys.push({ fr, pose: gamePose(k2, f, Math.min(1, fr / HOOKF)) }); return keys; }
 window.__bench = { gamePose, render, gameClip }; // for frame sheets / tests
 let clips, ci = 0;
-try { const s = JSON.parse(localStorage.getItem('posebench') || 'null'); if (s && s.clips && s.clips.length) { clips = s.clips; ci = cl(s.ci | 0, 0, clips.length - 1); } } catch (e) {}
+let GI0 = null; try { const s = JSON.parse(localStorage.getItem('posebench') || 'null'); if (s && s.clips) { clips = s.clips; ci = cl(s.ci | 0, 0, Math.max(0, clips.length - 1)); GI0 = s.gi || null; } } catch (e) {}
 if (!clips) clips = [];
 // the game's two punches are always in the Open list (added if missing; an edited copy keeps its own name)
 // older saves named them '... (game, facing ...)': drop that, then drop exact duplicates (an untouched second copy)
@@ -860,12 +885,14 @@ for (const c of clips) c.name = c.name.replace(/ \(game, facing (left|right)\)/,
 { const seen = new Set(); clips = clips.filter(c => { const k = c.name + '|' + JSON.stringify(c.keys); if (seen.has(k)) return false; seen.add(k); return true; }); }
 // a name used more than once gets numbered so every entry in the Open list is different
 { const n = {}; for (const c of clips) { n[c.name] = (n[c.name] || 0) + 1; if (n[c.name] > 1) c.name += ' ' + n[c.name]; } }
-// 'Lightning punch' and 'Ice punch' are always the game's current punches, rebuilt on every load; a saved animation with one of those
-// names that differs from it (an edit, an older version, or a mix-up) is kept under '<name> (your copy)'
-for (const k2 of [1, 0]) { const g = gameClip(k2), gk = JSON.stringify(g.keys); let have = false;
-  for (const c of clips) if (c.name === g.name) { if (!have && JSON.stringify(c.keys) === gk) { have = true; continue; } let nm = g.name + ' (your copy)', i = 2; while (clips.some(q => q.name === nm)) nm = g.name + ' (your copy ' + i++ + ')'; c.name = nm; }
-  if (!have) clips.push(g); }
-ci = Math.min(ci, clips.length - 1);
+// 'Lightning punch' and 'Ice punch' at the end of the list are the game's punches, made fresh every time and never saved (read-only; Copy this one to edit).
+// Saved copies of them from earlier versions of the bench (named Lightning/Ice punch, '... 2', '... (your copy)') that were never edited are dropped;
+// edited ones are kept as 'My lightning punch' / 'My ice punch'
+{ const OLD = [1, 0].map(oldGameClip), near = (a, b) => Math.abs(a[0] - b[0]) < 0.9 && Math.abs(a[1] - b[1]) < 0.9;
+  const untouched = c => OLD.some(K => K.length === c.keys.length && K.every((k, i) => { const q = c.keys[i]; return q.fr === k.fr && near(q.pose.pel, k.pose.pel) && near(q.pose.hA, k.pose.hA) && near(q.pose.hB, k.pose.hB) && q.pose.f === k.pose.f; }));
+  clips = clips.filter(c => { const m = /^(Lightning|Ice) punch( \d+| \(your copy( \d+)?\))?$/.exec(c.name); if (!m) return true; if (untouched(c)) return false; let nm = 'My ' + m[1].toLowerCase() + ' punch', i = 2; while (clips.some(q => q !== c && q.name === nm)) nm = 'My ' + m[1].toLowerCase() + ' punch ' + i++; c.name = nm; return true; }); }
+clips = clips.filter(c => !c.game).concat([gameClip(1), gameClip(0)]);
+if (GI0) ci = Math.max(0, clips.findIndex(c => c.id === GI0)); ci = Math.min(ci, clips.length - 1);
 // linking: an animation can start where another ends (clip.from = that one's id); its frame 0 is a locked copy of that one's last key
 const rid = () => Math.random().toString(36).slice(2, 9);
 for (const c of clips) c.id = c.id || rid();
@@ -874,7 +901,7 @@ function relink() { for (const c of clips) { if (!c.from) continue; const src = 
   const last = src.keys.reduce((a, k) => k.fr > a.fr ? k : a), k0 = c.keys.find(k => k.fr === 0), P = clone(last.pose);
   if (k0) k0.pose = P; else { c.keys.push({ fr: 0, ease: 'smooth', pose: P }); c.keys.sort((a, b) => a.fr - b.fr); } } }
 relink();
-const save = () => { relink(); try { localStorage.setItem('posebench', JSON.stringify({ clips, ci })); } catch (e) {} };
+const save = () => { relink(); try { const own = clips.filter(c => !c.game); localStorage.setItem('posebench', JSON.stringify({ clips: own, ci: Math.max(0, own.indexOf(clip())), gi: clip() && clip().game ? clip().id : null })); } catch (e) {} };
 const clip = () => clips[ci], keys = () => clip().keys;
 const sortKeys = () => keys().sort((a, b) => a.fr - b.fr);
 const keyAt = fr => keys().find(k => k.fr === fr);
@@ -895,15 +922,16 @@ function poseAt(t) { const K = keys(); if (!K.length) return idlePose(1); if (t 
   const ang = g => { const v = P.map(g); v[0] = v[1] + wrapA(v[0] - v[1]); v[2] = v[1] + wrapA(v[2] - v[1]); v[3] = v[2] + wrapA(v[3] - v[2]); return e === 'smooth' ? cr(v[0], v[1], v[2], v[3], u) : lerp(v[1], v[2], uu); };
   const pt = g => [num(p => g(p)[0]), num(p => g(p)[1])];
   const hand = g => { const A = ang(p => Math.atan2(g(p)[1], g(p)[0])), R = Math.min(ARM, Math.max(0, num(p => Math.hypot(g(p)[0], g(p)[1])))); return [Math.cos(A) * R, Math.sin(A) * R]; };
-  return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean), yaw: num(p => p.yaw), act: cl(num(p => p.act), 0, 1), cA: cl(num(p => p.cA || 0), 0, 1), cB: cl(num(p => p.cB || 0), 0, 1), yf: a.pose.yf, feet: [pt(p => p.feet[0]), pt(p => p.feet[1])], fa: [num(p => (p.fa || [0, 0])[0]), num(p => (p.fa || [0, 0])[1])], hr: [num(p => (p.hr || [0, 0])[0]), num(p => (p.hr || [0, 0])[1])], hA: hand(p => p.hA), hB: hand(p => p.hB) }; }
+  return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean), yaw: num(p => p.yaw), act: cl(num(p => p.act), 0, 1), cA: cl(num(p => p.cA || 0), 0, 1), cB: cl(num(p => p.cB || 0), 0, 1), yf: a.pose.yf, view: cl(num(p => p.view || 0), 0, 1), bk: P.some(p => (p.view || 0) > 0) ? (() => { const bq = p => p.bk || backDef(p.f), BP = g => pt(p => g(bq(p))), BH = g => hand(p => g(bq(p))); return { pel: BP(b => b.pel), aG: BP(b => b.aG), aP: BP(b => b.aP), hG: BH(b => b.hG), hP: BH(b => b.hP), eG: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eG, eP: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eP }; })() : a.pose.bk,
+    feet: [pt(p => p.feet[0]), pt(p => p.feet[1])], fa: [num(p => (p.fa || [0, 0])[0]), num(p => (p.fa || [0, 0])[1])], hr: [num(p => (p.hr || [0, 0])[0]), num(p => (p.hr || [0, 0])[1])], hA: hand(p => p.hA), hB: hand(p => p.hB) }; }
 
 // ---- state ----
 let fr = 0, pose = poseAt(0), dirty = false, playing = false, loop = true, onion = true, pt = 0, last = 0, rig = null;
 const onKey = () => !!keyAt(fr);
 function setFr(n) { fr = Math.max(0, Math.round(n)); pose = poseAt(fr); dirty = false; ui(); }
-const locked = () => fr === 0 && !!linkSrc(clip());
+const locked = () => !!(clip() && clip().game) || (fr === 0 && !!linkSrc(clip()));
 let lockMsgT = 0; const lockMsg = () => { lockMsgT = performance.now(); stat(); };
-function edited() { if (locked()) { pose = clone(keyAt(0).pose); dirty = false; lockMsg(); ui(); return; } const k = keyAt(fr); if (k) { if (!dirty) snap(); k.pose = clone(pose); save(); } dirty = !k; ui(); }
+function edited() { if (locked()) { pose = poseAt(fr); dirty = false; lockMsg(); ui(); return; } const k = keyAt(fr); if (k) { if (!dirty) snap(); k.pose = clone(pose); save(); } dirty = !k; ui(); }
 
 // ---- stage ----
 let S = 20, OX = 0, OY = 0, DPR = 1;
@@ -930,7 +958,15 @@ const toeOf = (r, P, i) => { const a = -P.f * ((P.fa || [0, 0])[i] || 0), an = [
 const headOf = (r, P, i) => { const H = i ? r.HZ : r.HI, a = -P.f * ((P.hr || [0, 0])[i] || 0), d = 4.4; return [H[0] + Math.sin(a) * d, H[1] + 2.2 - Math.cos(a) * d]; };
 const flipOf = (r, s) => { const sh = s === 'A' ? r.shA : r.shB, h = s === 'A' ? r.hA : r.hB, e = s === 'A' ? r.eA : r.eB, m = [(sh[0] + h[0]) / 2, (sh[1] + h[1]) / 2];
   let v = [e[0] - m[0], e[1] - m[1]]; let d = Math.hypot(...v); if (d < 0.3) { v = [-(h[1] - sh[1]), h[0] - sh[0]]; d = Math.hypot(...v) || 1; } return [e[0] + v[0] / d * 20 / S, e[1] + v[1] / d * 20 / S]; };
-const HANDLES = () => { const r = rig, P = pose, ankle = i => [r.feet[i][0], r.feet[i][1] - 0.95];
+const flipB = (sh, h, e) => { const m = [(sh[0] + h[0]) / 2, (sh[1] + h[1]) / 2]; let v = [e[0] - m[0], e[1] - m[1]], d = Math.hypot(...v); if (d < 0.3) { v = [-(h[1] - sh[1]), h[0] - sh[0]]; d = Math.hypot(...v) || 1; } return [e[0] + v[0] / d * 20 / S, e[1] + v[1] / d * 20 / S]; };
+// seen from behind: the punching arm (near the camera) is B, the guard arm A
+const BACKH = (r, P) => [
+    { id: 'bhG', p: r.hG, k: 'hand', c: '--a', l: 'A', b: 'G' }, { id: 'bhP', p: r.hP, k: 'hand', c: '--b', l: 'B', b: 'P' },
+    { id: 'baG', p: r.aG, k: 'foot', c: '--ink', b: 'G' }, { id: 'baP', p: r.aP, k: 'foot', c: '--ink', b: 'P' }, { id: 'bpl', p: r.pel, k: 'pel', c: '--ink', b: 1 },
+    { id: 'beG', p: r.eG, k: 'elbowD', c: '--a', b: 'G' }, { id: 'beP', p: r.eP, k: 'elbowD', c: '--b', b: 'P' },
+    { id: 'bxG', p: flipB(r.shG, r.hG, r.eG), k: 'elbow', c: '--a', b: 'G' }, { id: 'bxP', p: flipB(r.shP, r.hP, r.eP), k: 'elbow', c: '--b', b: 'P' },
+    { id: 'hdI', p: headOf(r, P, 0), k: 'head', c: '--b', i: 0 }, { id: 'hdZ', p: headOf(r, P, 1), k: 'head', c: '--a', i: 1 } ];
+const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || (clip() && clip().game)) return []; if (r.back) return BACKH(r, P); const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.95];
   return [
     { id: 'hA', p: r.hA, k: 'hand', c: '--a', l: 'A' }, { id: 'hB', p: r.hB, k: 'hand', c: '--b', l: 'B' },
     { id: 'f0', p: r.feet[0], k: 'foot', c: '--ink', i: 0 }, { id: 'f1', p: r.feet[1], k: 'foot', c: '--ink', i: 1 },
@@ -942,7 +978,7 @@ const HANDLES = () => { const r = rig, P = pose, ankle = i => [r.feet[i][0], r.f
     { id: 'k0', p: r.knees[0], k: 'knee', c: '--ink', i: 0, an: ankle(0) }, { id: 'k1', p: r.knees[1], k: 'knee', c: '--ink', i: 1, an: ankle(1) } ].filter(h => !(legWalk() && /^(f|t|k)\d$/.test(h.id))); };
 function handles() { const H = HANDLES(), r = rig;
   // shoulders and arm reach (only the dragged hand's reach is drawn)
-  if (drag && drag.k === 'hand') { const s = w2s(drag.id === 'hA' ? r.shA : r.shB); ctx.setLineDash([4, 4]); ctx.strokeStyle = css(drag.c); ctx.beginPath(); ctx.arc(s[0], s[1], ARM * S, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+  if (drag && drag.k === 'hand') { const s = w2s(drag.b ? (drag.b === 'G' ? r.shG : r.shP) : drag.id === 'hA' ? r.shA : r.shB); ctx.setLineDash([4, 4]); ctx.strokeStyle = css(drag.c); ctx.beginPath(); ctx.arc(s[0], s[1], ARM * S, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
   for (const h of H) { const [x, y] = w2s(h.p); ctx.lineWidth = 2; ctx.strokeStyle = css(h.c); ctx.fillStyle = css('--panel');
     ctx.beginPath();
     if (h.k === 'pel') ctx.rect(x - 7, y - 7, 14, 14);
@@ -962,6 +998,12 @@ cv.addEventListener('pointerdown', e => { if (playing) return; if (locked()) { l
   if (!best) return; drag = { ...best, x0: x, y0: y, moved: false }; cv.setPointerCapture(e.pointerId); e.preventDefault(); });
 cv.addEventListener('pointermove', e => { if (!drag) return; const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
   if (!drag.moved && Math.hypot(x - drag.x0, y - drag.y0) < 4) return; drag.moved = true; const p = s2w(x, y), r = rig, P = pose;
+  if (drag.b) { P.bk = P.bk ? { ...P.bk } : clone(backDef(P.f)); const B = P.bk, sh = drag.b === 'G' ? r.shG : r.shP;
+    if (drag.k === 'pel') B.pel = p;
+    else if (drag.k === 'foot') B['a' + drag.b] = [p[0], Math.min(-0.9, p[1])];
+    else if (drag.k === 'hand') { let v = [p[0] - sh[0], p[1] - sh[1]]; const d = Math.hypot(...v); if (d > ARM) v = [v[0] / d * ARM, v[1] / d * ARM]; B['h' + drag.b] = v; }
+    else if (drag.k === 'elbowD') { const e0 = drag.b === 'G' ? r.eG : r.eP, h = B['h' + drag.b], D = Math.atan2(p[1] - sh[1], p[0] - sh[0]) - Math.atan2(e0[1] - sh[1], e0[0] - sh[0]), c2 = Math.cos(D), s2 = Math.sin(D); B['h' + drag.b] = [h[0] * c2 - h[1] * s2, h[0] * s2 + h[1] * c2]; }
+    livePreview(); return; }
   if (drag.k === 'hand') { const s = drag.id === 'hA' ? r.shA : r.shB; let v = [p[0] - s[0], p[1] - s[1]]; const d = Math.hypot(...v); if (d > ARM) v = [v[0] / d * ARM, v[1] / d * ARM]; P[drag.id] = v; }
   else if (drag.k === 'foot') P.feet[drag.i] = [p[0], Math.min(0.2, p[1])];
   else if (drag.k === 'pel') P.pel = p;
@@ -973,7 +1015,7 @@ cv.addEventListener('pointermove', e => { if (!drag) return; const b = cv.getBou
   else if (drag.k === 'knee') { const s = r.hips[drag.i], h = drag.an, cz = (h[0] - s[0]) * (p[1] - s[1]) - (h[1] - s[1]) * (p[0] - s[0]); P.kn[drag.i] = cz > 0 ? 1 : -1; }
   livePreview(); });
 const endDrag = () => { if (!drag) return; const P = pose;
-  if (!drag.moved) { if (drag.k === 'elbow') P['e' + drag.a] *= -1; else if (drag.k === 'knee') P.kn[drag.i] *= -1; else { drag = null; draw(); return; } }
+  if (!drag.moved) { if (drag.b && drag.k === 'elbow') { P.bk = P.bk ? { ...P.bk } : clone(backDef(P.f)); P.bk['e' + drag.b] *= -1; } else if (drag.k === 'elbow') P['e' + drag.a] *= -1; else if (drag.k === 'knee') P.kn[drag.i] *= -1; else { drag = null; draw(); return; } }
   drag = null; edited(); };
 window.__bench.H = () => HANDLES().map(h => ({ id: h.id, s: w2s(h.p) })); window.__bench.pose = () => pose;
 cv.addEventListener('pointerup', endDrag); cv.addEventListener('pointercancel', endDrag);
@@ -992,7 +1034,7 @@ function drawTrack() { const W = tcv.width / DPR, H = tcv.height / DPR, L = tlLe
 let tdrag = null;
 const tX = e => { const b = tcv.getBoundingClientRect(), L = tlLen(); return (e.clientX - b.left - 10) / (b.width - 20) * L; };
 $('track').addEventListener('pointerdown', e => { stop(); const f2 = tX(e), L = tlLen(), b = tcv.getBoundingClientRect(), px = (b.width - 20) / L, y = e.clientY - b.top;
-  let k = y > 26 ? keys().find(k => Math.abs(k.fr - f2) * px < 10) : null; if (k && k.fr === 0 && linkSrc(clip())) k = null; // the locked first key stays put
+  let k = y > 26 ? keys().find(k => Math.abs(k.fr - f2) * px < 10) : null; if (k && ((k.fr === 0 && linkSrc(clip())) || clip().game)) k = null; // the locked first key stays put
   tdrag = { key: k, fr0: k ? k.fr : 0, moved: false, x0: e.clientX }; $('track').setPointerCapture(e.pointerId); if (!k) setFr(f2); else setFr(k.fr); });
 $('track').addEventListener('pointermove', e => { if (!tdrag) return; if (!tdrag.key) { setFr(tX(e)); return; } if (!tdrag.moved && Math.abs(e.clientX - tdrag.x0) < 5) return; if (!tdrag.moved) snap(); tdrag.moved = true;
   const n = Math.max(linkSrc(clip()) ? 1 : 0, Math.round(tX(e))); if (n !== tdrag.key.fr && !keyAt(n)) { tdrag.key.fr = n; sortKeys(); fr = n; pose = poseAt(fr); save(); ui(); } });
@@ -1007,7 +1049,7 @@ function stop() { if (!playing) return; playing = false; pose = poseAt(fr); ui()
 // ---- inspector ----
 const cap = t => t[0].toUpperCase() + t.slice(1);
 const nameOf = s => (pose.f > 0) === (s === 'A') ? 'storm arm' : 'ice arm';
-function stat() { const k = keyAt(fr), L = linkSrc(clip()); $('status').innerHTML = `<b>frame ${fr}</b> · ${(fr / FPS).toFixed(3)}s · ${playing ? 'playing' : fr === 0 && L ? `<span style="color:${performance.now() - lockMsgT < 1500 ? 'var(--warn)' : 'inherit'}">🔒 locked: the last frame of “${L.name.replace(/</g, '&lt;')}”</span>` : k ? 'on a key' : dirty ? '<span style="color:var(--warn)">not saved · press Save key to keep it</span>' : 'in between (filled in)'}`; }
+function stat() { const k = keyAt(fr), L = linkSrc(clip()); $('status').innerHTML = `<b>frame ${fr}</b> · ${(fr / FPS).toFixed(3)}s · ${playing ? 'playing' : clip().game ? `<span style="color:${performance.now() - lockMsgT < 1500 ? 'var(--warn)' : 'inherit'}">🔒 the game's punch, read-only · press Copy this one to change it</span>` : fr === 0 && L ? `<span style="color:${performance.now() - lockMsgT < 1500 ? 'var(--warn)' : 'inherit'}">🔒 locked: the last frame of “${L.name.replace(/</g, '&lt;')}”</span>` : k ? 'on a key' : dirty ? '<span style="color:var(--warn)">not saved · press Save key to keep it</span>' : 'in between (filled in)'}`; }
 function ui() {
   draw(); drawTrack(); stat();
   $('frLbl').textContent = `Frame ${fr} of ${lastFr()}`; $('bPlay').textContent = playing ? '❚❚' : '▶';
@@ -1016,6 +1058,7 @@ function ui() {
   const K = keys(), seg = [...K].reverse().find(k => k.fr <= fr); $('ease').value = seg ? seg.ease || 'smooth' : 'smooth';
   for (const [id, v, d] of [['lean', pose.lean, 2], ['yaw', pose.yaw, 2], ['act', pose.act, 2]]) { $(id).value = v; $(id + 'O').textContent = (+v).toFixed(d); }
   $('fL').classList.toggle('on', pose.f < 0); $('fR').classList.toggle('on', pose.f > 0);
+  { const v = pose.view || 0; $('vF').classList.toggle('on', v < 0.5); $('vB').classList.toggle('on', v >= 0.5); const G = !!clip().game; $('clipName').readOnly = G; $('bDelClip') && ($('bDelClip').disabled = G); $('linkOn').disabled = $('linkOn').disabled || G; }
   { const W = legWalk(); $('legP').classList.toggle('on', !W); $('legW').classList.toggle('on', W); $('walkRow').style.display = W ? '' : 'none'; $('bWalkPrev').textContent = 'Preview: ' + (walkPrev ? 'walking' : 'standing'); }
   $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
@@ -1029,12 +1072,12 @@ for (const id of ['lean', 'yaw', 'act']) { $(id).addEventListener('input', e => 
 for (const [id, key] of [['oA', 'aF'], ['oB', 'bF'], ['oL', 'ls']]) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pose[key] = +b.dataset.v; edited(); });
 $('flA').onclick = () => { pose.eA *= -1; edited(); }; for (const s of ['A', 'B']) $('hd' + s).onclick = () => { pose['c' + s] = (pose['c' + s] || 0) > 0.5 ? 0 : 1; edited(); }; $('flB').onclick = () => { pose.eB *= -1; edited(); };
 $('fL').onclick = () => setFacing(-1); $('fR').onclick = () => setFacing(1);
-function setFacing(f) { if (pose.f === f) return; snap(); for (const k of keys()) k.pose = mirror(k.pose); pose = mirror(pose); save(); ui(); }
-function snapshot() { if (keyAt(fr)) return; snap(); keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); save(); dirty = false; const st = +$('step').value || 0; if (st) { const k0 = clone(pose); fr += st; const k = keyAt(fr); pose = k ? clone(k.pose) : k0; dirty = !k; } ui(); }
+function setFacing(f) { if (pose.f === f) return; if (clip().game) { lockMsg(); return; } snap(); for (const k of keys()) k.pose = mirror(k.pose); pose = mirror(pose); save(); ui(); }
+function snapshot() { if (clip().game) { lockMsg(); return; } if (keyAt(fr)) return; snap(); keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); save(); dirty = false; const st = +$('step').value || 0; if (st) { const k0 = clone(pose); fr += st; const k = keyAt(fr); pose = k ? clone(k.pose) : k0; dirty = !k; } ui(); }
 $('bSnap').onclick = snapshot;
 $('bDel').onclick = () => { const k = keyAt(fr); if (!k || keys().length < 2) return; if (locked()) { lockMsg(); return; } snap(); clip().keys = keys().filter(q => q !== k); pose = poseAt(fr); save(); ui(); };
 $('bUndo').onclick = undo;
-$('ease').onchange = e => { const seg = [...keys()].reverse().find(k => k.fr <= fr); if (!seg) return; snap(); seg.ease = e.target.value; pose = poseAt(fr); save(); ui(); };
+$('ease').onchange = e => { if (clip().game) { lockMsg(); ui(); return; } const seg = [...keys()].reverse().find(k => k.fr <= fr); if (!seg) return; snap(); seg.ease = e.target.value; pose = poseAt(fr); save(); ui(); };
 $('bPlay').onclick = () => playing ? stop() : play();
 $('bFirst').onclick = () => { stop(); setFr(0); }; $('bPrev').onclick = () => { stop(); setFr(fr - 1); }; $('bNext').onclick = () => { stop(); setFr(fr + 1); };
 $('bPrevK').onclick = () => { stop(); const k = [...keys()].reverse().find(k => k.fr < fr); if (k) setFr(k.fr); };
@@ -1042,19 +1085,21 @@ $('bNextK').onclick = () => { stop(); const k = keys().find(k => k.fr > fr); if 
 $('bOrb').onclick = () => { orbOn = !orbOn; try { localStorage.setItem('posebench-orb', orbOn ? '1' : '0'); } catch (e) {} ui(); };
 // keep redrawing while the lightning shows, so it crackles even when nothing is playing
 (function fxLoop() { if ((orbOn || (legWalk() && walkPrev)) && !playing && !drag) draw(); requestAnimationFrame(fxLoop); })();
-const setLegs = v => { snap(); clip().legs = v; save(); ui(); draw(); };
+const setLegs = v => { if (clip().game) { lockMsg(); return; } snap(); clip().legs = v; save(); ui(); draw(); };
 $('legP').onclick = () => setLegs('pose'); $('legW').onclick = () => setLegs('walk');
 $('bWalkPrev').onclick = () => { walkPrev = !walkPrev; try { localStorage.setItem('posebench-walk', walkPrev ? '1' : '0'); } catch (e) {} ui(); draw(); };
-$('linkOn').onchange = e => { snap(); clip().from = e.target.checked ? $('linkSel').value || null : null; save(); pose = poseAt(fr); dirty = false; ui(); };
+const setView = v => { if (locked()) { lockMsg(); return; } pose.view = v; if (v && !pose.bk) pose.bk = clone(backDef(pose.f)); edited(); };
+$('vF').onclick = () => setView(0); $('vB').onclick = () => setView(1);
+$('linkOn').onchange = e => { if (clip().game) { e.target.checked = false; lockMsg(); return; } snap(); clip().from = e.target.checked ? $('linkSel').value || null : null; save(); pose = poseAt(fr); dirty = false; ui(); };
 $('linkSel').onchange = e => { if (!$('linkOn').checked) return; snap(); clip().from = e.target.value; save(); pose = poseAt(fr); dirty = false; ui(); };
 $('bLoop').onclick = () => { loop = !loop; ui(); }; $('bOnion').onclick = () => { onion = !onion; ui(); };
 $('clipSel').onchange = e => { stop(); ci = +e.target.value; hist.length = 0; save(); setFr(0); };
 $('clipName').addEventListener('input', e => { clip().name = e.target.value || 'Untitled'; save(); ui(); });
 const addClip = c => { c.id = rid(); clips.push(c); ci = clips.length - 1; hist.length = 0; save(); setFr(0); };
 $('bNew').onclick = () => addClip(blank('New clip ' + (clips.length + 1)));
-$('bDup').onclick = () => { const c = clone(clip()); c.name += ' copy'; addClip(c); };
+$('bDup').onclick = () => { const c = clone(clip()); delete c.game; { const base = clip().game ? 'My ' + clip().name.toLowerCase() : c.name + ' copy'; let nm = base, i = 2; while (clips.some(q => q.name === nm)) nm = base + ' ' + i++; c.name = nm; } addClip(c); };
 const freshCopy = k2 => { const g = gameClip(k2); let i = 2; while (clips.some(c => c.name === g.name + ' ' + i)) i++; g.name += ' ' + i; addClip(g); };
-$('gStorm').onclick = () => freshCopy(1); $('gFrost').onclick = () => freshCopy(0);
+
 function bindDel() { $('bDelClip').onclick = () => { const r = $('delRow'); r.innerHTML = '<span class="confirm">Delete “' + clip().name.replace(/</g, '&lt;') + '”? <button id="dYes" class="danger">Delete</button><button id="dNo">Keep</button></span>'; $('dNo').onclick = () => { $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete this animation</button>'; bindDel(); }; $('dYes').onclick = () => { clips.splice(ci, 1); if (!clips.length) clips.push(blank('New clip')); ci = Math.min(ci, clips.length - 1); hist.length = 0; save(); $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete this animation</button>'; bindDel(); setFr(0); }; }; }
 bindDel();
 const clipJSON = () => { const r = q => Array.isArray(q) ? q.map(r) : typeof q === 'number' ? Math.round(q * 1000) / 1000 : q && typeof q === 'object' ? Object.fromEntries(Object.entries(q).map(([k, v]) => [k, r(v)])) : q; return JSON.stringify({ posebench: 1, fps: FPS, ...r(clip()) }); };
