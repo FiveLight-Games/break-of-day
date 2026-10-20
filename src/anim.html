@@ -88,6 +88,8 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <h2>Clip</h2>
       <div class="row"><select id="clipSel" style="flex:1;min-width:0"></select></div>
       <div class="row" style="margin-top:6px"><input type="text" id="clipName" style="flex:1;min-width:0" aria-label="Clip name"><button id="bNew">New</button><button id="bDup">Duplicate</button></div>
+      <p class="note" style="margin-top:8px">New clip that starts where another ends:</p>
+      <div class="row" style="margin-top:4px"><select id="fromSel" style="flex:1;min-width:0" aria-label="Clip to continue from"></select><button id="bFrom">New from end</button></div>
       <div class="row" style="margin-top:6px" id="delRow"><button id="bDelClip" class="danger">Delete clip</button></div>
       <p class="note" style="margin-top:8px">Start from the game's current punch:</p>
       <div class="row" style="margin-top:4px"><button id="gStorm">Lightning punch</button><button id="gFrost">Ice punch</button></div>
@@ -278,6 +280,7 @@ function ui() {
   for (const s of ['A', 'B']) { const fist = (pose['c' + s] || 0) > 0.5; $('hd' + s).textContent = s + (fist ? ' fist' : ' open'); $('hd' + s).classList.toggle('on', fist); }
   $('bLoop').classList.toggle('on', loop); $('bOnion').classList.toggle('on', onion);
   const sel = $('clipSel'); if (sel.options.length !== clips.length || [...sel.options].some((o, i) => o.text !== clips[i].name)) sel.innerHTML = clips.map((c, i) => `<option value="${i}">${c.name.replace(/</g, '&lt;')}</option>`).join(''); sel.value = ci;
+  const fs = $('fromSel'), fv = fs.value, fo = clips.map((c, i) => `<option value="${i}">${c.name.replace(/</g, '&lt;')}</option>`).join('') + '<option value="g1">Lightning punch (game)</option><option value="g0">Ice punch (game)</option>'; if (fs.innerHTML !== fo) { fs.innerHTML = fo; if ([...fs.options].some(o => o.value === fv)) fs.value = fv; }
   if (document.activeElement !== $('clipName')) $('clipName').value = clip().name;
 }
 for (const id of ['lean', 'yaw', 'act']) { $(id).addEventListener('input', e => { pose[id] = +e.target.value; $(id + 'O').textContent = (+e.target.value).toFixed(2); livePreview(); }); $(id).addEventListener('change', edited); }
@@ -299,6 +302,7 @@ $('clipSel').onchange = e => { stop(); ci = +e.target.value; hist.length = 0; sa
 $('clipName').addEventListener('input', e => { clip().name = e.target.value || 'Untitled'; save(); ui(); });
 const addClip = c => { clips.push(c); ci = clips.length - 1; hist.length = 0; save(); setFr(0); };
 $('bNew').onclick = () => addClip(blank('New clip ' + (clips.length + 1)));
+$('bFrom').onclick = () => { const v = $('fromSel').value, src = v[0] === 'g' ? gameClip(+v[1]) : clips[+v]; if (!src) return; const last = src.keys.reduce((a, k) => k.fr > a.fr ? k : a); addClip({ name: 'After ' + src.name.replace(/ \(game.*\)$/, ''), from: src.name, keys: [{ fr: 0, ease: 'smooth', pose: clone(last.pose) }] }); };
 $('bDup').onclick = () => { const c = clone(clip()); c.name += ' copy'; addClip(c); };
 $('gStorm').onclick = () => addClip(gameClip(1)); $('gFrost').onclick = () => addClip(gameClip(0));
 function bindDel() { $('bDelClip').onclick = () => { const r = $('delRow'); r.innerHTML = '<span class="confirm">Delete “' + clip().name.replace(/</g, '&lt;') + '”? <button id="dYes" class="danger">Delete</button><button id="dNo">Keep</button></span>'; $('dNo').onclick = () => { $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete clip</button>'; bindDel(); }; $('dYes').onclick = () => { clips.splice(ci, 1); if (!clips.length) clips.push(blank('New clip')); ci = Math.min(ci, clips.length - 1); hist.length = 0; save(); $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete clip</button>'; bindDel(); setFr(0); }; }; }
