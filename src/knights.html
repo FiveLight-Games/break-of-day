@@ -4029,7 +4029,7 @@ function ogFxStep(dt) { ogShardStep(dt);
 function ogSwingHit(k, a, host, big = 1) { const S = OG.SW, d = [Math.cos(a), Math.sin(a)], f = K.f || 1, inCone = (w, R, A, ox = K.x, oy = K.y) => { const dx = w.x - ox, dy = (w.y - oy) / OGY, r = Math.hypot(dx, dy); if (r > R + UK[w.k].r) return false; let da = Math.atan2(dy, dx) - a; da -= Math.round(da / 6.283) * 6.283; return r < 5 + UK[w.k].r || Math.abs(da) < A; };
   const sideA = a + (k === 0 ? 1 : -1) * f * Math.PI / 2;
   // the blast comes off the fist itself: its real place on screen at the hit (from the hook pose), and the ground point under it for the frost wave
-  if (k < 2) { const hk = K.ou >= 0 && !K.ouS ? ogHookPose(K, K.ou) : null, FS = hk ? ogHandW(K, hk.arm, hk.h) : [K.x + d[0] * 9, K.y + d[1] * 9 * OGY - 6 * OGSC], fx = FS[0], fy = FS[1], gy = K.y + d[1] * 4 * OGY; ogHookFx(k, fx, fy, a);
+  if (k < 2) { const hk = K.ou >= 0 && !K.ouS ? ogHookPose(K, K.ou) : null, FS = ogClipRig(K) && K.ogFist ? K.ogFist : hk ? ogHandW(K, hk.arm, hk.h) : [K.x + d[0] * 9, K.y + d[1] * 9 * OGY - 6 * OGSC], fx = FS[0], fy = FS[1], gy = K.y + d[1] * 4 * OGY; ogHookFx(k, fx, fy, a);
     const hitF = []; if (host) for (const w of walkers) { if (w.hp <= 0 || !inCone(w, S.FR, S.FA)) continue; hitF.push(w.id); if (k === 0) w.ogFs = S.WSL; w.atk = -1; const kd = a * 0.5 + sideA * 0.5; w.kx += Math.cos(kd) * S.FKB; w.ky += Math.sin(kd) * S.FKB * 0.6; ogKill(w, S.FDMG, K, k === 1); }
     if (k === 0) { FX.push({ k: 'ogfw', x: fx, y: gy, a, t: 0, max: 0.7, sd: Math.random() * 999, hx: fx, hy: fy }); snd('fwave', K.x, K.y);
       for (let n = 0; n < 14; n++) { const b = a + rr(-S.WA, S.WA) * 0.8, v = rr(40, 110); OGFX.chips.push({ x: fx, y: gy, z: gy - fy, vx: Math.cos(b) * v, vy: Math.sin(b) * v * OGY, vz: rr(-30, 5), t: 0, r: rr(0.4, 1), sp: rr(-14, 14) }); }
@@ -4057,13 +4057,25 @@ function ogSmashFx(x, y, f, big) { if (big) { const sc = big; for (let n = 0; n 
 // two scratch canvases the size of the screen, for crossfading between his front and back views
 const OGOFF = [];
 function ogOff(i, cv) { let o = OGOFF[i]; if (!o) o = OGOFF[i] = document.createElement('canvas'); if (o.width !== cv.width || o.height !== cv.height) { o.width = cv.width; o.height = cv.height; } return o; }
+// Pose Bench animations played in the game (Elijah's, 2026-10-20): baked one rig per frame by tools/bake-clip.js, inlined by build.py.
+// 'storm hook right' = the storm (lightning) hook while he faces right; mirrored it is the ice punch while he faces left (both thrown with the facing-side arm A, front view).
+// The other two cases (storm hook facing left, ice punch facing right: the near-arm hooks with the turn to his back) keep the old animation.
+const OGCLIP = { storm: '__OGCLIP_STORM__' };
+const ogClipLerp = (a, b, k) => typeof a === 'number' && typeof b === 'number' ? a + (b - a) * k : Array.isArray(a) && Array.isArray(b) ? a.map((v, i) => ogClipLerp(v, b[i], k))
+  : a && b && typeof a === 'object' && typeof b === 'object' ? Object.fromEntries([...new Set([...Object.keys(a), ...Object.keys(b)])].map(q => [q, q in a && q in b ? ogClipLerp(a[q], b[q], k) : a[q] ?? b[q]])) : k < 0.5 ? a : b;
+const ogClipMirror = P => { const m = q => [-q[0], q[1]]; return { ...P, f: -P.f, pel: m(P.pel), feet: P.feet.map(m), hA: m(P.hA), hB: m(P.hB), eA: -P.eA, eB: -P.eB, kn: P.kn.map(v => -v) }; };
+// the rig for this frame of his swing, or null when the old animation plays
+function ogClipRig(kn) { if (!(kn.ou >= 0) || kn.ouS || !(kn.ouK < 2) || kn.ogR >= 0) return null; const C = OGCLIP.storm; if (!C || typeof C !== 'object') return null;
+  const f = kn.f || 1; if (!((kn.ouK === 1 && f > 0) || (kn.ouK === 0 && f < 0))) return null;
+  const F = C.frames, x = cl(kn.ou * OG.SW.T[kn.ouK] * C.fps, 0, F.length - 1), i = Math.min(F.length - 2, Math.floor(x)), P = ogClipLerp(F[i], F[i + 1], x - i);
+  return f > 0 ? P : ogClipMirror(P); }
 function drawStormOgre(c, t) { if (!Number.isFinite(K.ogPh)) K.ogPh = 0; const D = ogD(K), G = OG.DRG, dt = Math.min(0.1, Math.max(0, t - (K.ogDt ?? t))); K.ogDt = t; K.ogAk = lerp(K.ogAk ?? K.ogH, K.ogH || 0, 1 - Math.exp(-dt * 8));
   const w = cl((K.spd || 0) / (RUN * OG.SPD), 0, 1), u = K.ou >= 0 ? Math.min(0.999, K.ou) : -1, f = K.f || 1; let bk = -1, fb = null, aimTo = null;
   if (K.clT < 0 && K.clT > -OG.CLOUD.CAST) { bk = (K.clT + OG.CLOUD.CAST) / OG.CLOUD.CAST; { const MX = ogMix(K); aimTo = [(MX[0] - K.x) / OGSC, (MX[1] - K.y) / OGSC]; } }
   if (D && D.t < G.BUILD) { bk = Math.min(0.79, D.t / G.BUILD * 0.8); fb = 'ice'; const m = drgPos(D, drgS0() * (0.2 + 0.6 * D.t / G.BUILD)); aimTo = [(m.x - K.x) / OGSC, (m.y - K.y) / OGSC]; }
   else if (D && D.t < G.BUILD + G.STRIKE) { bk = Math.min(0.79, 0.3 + (D.t - G.BUILD) / G.STRIKE * 0.5); fb = 'zap'; aimTo = [f * 3, -60]; }
   const foes = []; for (const id of K.ogZ || []) { const w2 = walkers.find(q => q.id === id); if (w2) foes.push({ id, zap: 1, x: (w2.x - K.x) / OGSC, y: (w2.y - K.y - 6) / OGSC }); }
-  const hk0 = K.ou >= 0 && !K.ouS && K.ouK < 2 && !(K.ogR >= 0) ? ogHookPose(K, K.ou) : null;
+  const CR = ogClipRig(K), hk0 = !CR && K.ou >= 0 && !K.ouS && K.ouK < 2 && !(K.ogR >= 0) ? ogHookPose(K, K.ou) : null;
   // the storm hammer (ult): its pose is eased every frame (fast through a strike, so it never lags the hit), both hands on the haft, drawn behind him while its head is round his far side
   // the frost swirl in his ice hand only shows while he winds up a frost hook or holds the storm hammer (eased in and out)
   { const want = (K.ou >= 0 && !K.ouS && K.ouK === 0 && K.ou < OGHK.F) || K.ogR >= 0 ? 1 : 0; K.iSwV = lerp(K.iSwV || 0, want, 1 - Math.exp(-dt * 10)); }
@@ -4082,7 +4094,7 @@ function drawStormOgre(c, t) { if (!Number.isFinite(K.ogPh)) K.ogPh = 0; const D
   if (window.__ogRec && K.i === ME) { const g = OGREC || (OGREC = document.createElement('canvas').getContext('2d')), of = { ord: [] }, ob = {}; g.save(); OGX.drawO2(g, OGX.V, t, f, w, hk0 ? -1 : (u >= 0 && K.ouK === 2 && !K.ouS ? (u < 0.6 ? 0.25 * sm(u / 0.6) : u < 0.7 ? 0.25 + 0.17 * ((u - 0.6) / 0.1) ** 2 : 0.42 + 0.58 * (u - 0.7) / 0.3) : u), bk, bk >= 0 && !fb ? 'both' : 'act', K.ogAk, K.sv >= 0 ? K.sv * OGX.SURF.T / OG.SURF.T : -1, foes, 0, { noTrail: 1, aimTo, fb, atype: 2, hk: hk0, yaw: hk0 ? hk0.yaw : 0, noFx: 1, noJet: 1, ph: K.ogPh, st: ogStride(K), h2, hAbs, hCurl: hAbs ? hAbs.k : 0, crx: hCr, lnx: hLn, outRig: of });
     if (kb > 0) OGX.drawBack(g, OGX.V, t, f, { e: cl(hk0.e, 0, 1), pi: K.ouK === 0, cr: hk0.cr, gx: hk0.gx, iL: K.ogAk, zL: 1 - K.ogAk, outRig: ob }); g.restore();
     window.__ogRec.push({ f, act: K.ogAk, yf: hk0 ? hk0.yf : 0.55, kb, F: of, B: kb > 0 ? ob : null, ham: !!hamO }); }
-  OGMO.Z = OGMO.I = null; if (kb <= 0) front(c); else { const sx = kb < 0.5 ? 1 - kb : kb; c.save(); c.scale(sx, 1); if (kb < 0.5) front(c); else back(c); c.restore(); }
+  OGMO.Z = OGMO.I = null; if (CR) { const o2 = { ord: [] }; OGX.drawO2(c, OGX.V, t, f, w, -1, -1, 'act', K.ogAk, -1, foes, 0, { rig: CR, noTrail: 1, atype: 2, noFx: 1, noJet: 1, ph: K.ogPh, st: ogStride(K), iSw: K.iSwV, outM: OGMO, outRig: o2 }); if (o2.hA) { const zz = K.y - (K.z || 0); K.ogFist = [K.x + o2.hA[0] * OGSC, zz + o2.hA[1] * OGSC]; } } else if (kb <= 0) front(c); else { const sx = kb < 0.5 ? 1 - kb : kb; c.save(); c.scale(sx, 1); if (kb < 0.5) front(c); else back(c); c.restore(); }
   if (OGMO.Z && kb <= 0) { const zz = K.y - (K.z || 0); K.ogMo = [[K.x + OGMO.Z[0] * OGSC, zz + OGMO.Z[1] * OGSC], [K.x + OGMO.I[0] * OGSC, zz + OGMO.I[1] * OGSC]]; }
   OGX.GAIT.RUN = 0; OGX.arcn(0); c.restore(); }
 const OGMO = {}; let OGREC = null;

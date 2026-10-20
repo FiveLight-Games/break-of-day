@@ -663,6 +663,8 @@ bindDel();
 const clipJSON = () => { const r = q => Array.isArray(q) ? q.map(r) : typeof q === 'number' ? Math.round(q * 1000) / 1000 : q && typeof q === 'object' ? Object.fromEntries(Object.entries(q).map(([k, v]) => [k, r(v)])) : q; return JSON.stringify({ posebench: 1, fps: FPS, ...r(clip()) }); };
 $('bCopy').onclick = () => { const s = clipJSON(); $('io').value = s; const ok = () => { $('copyMsg').textContent = 'Copied'; setTimeout(() => $('copyMsg').textContent = '', 1600); };
   try { navigator.clipboard.writeText(s).then(ok, () => { $('io').select(); $('copyMsg').textContent = 'Selected: copy it from the box'; }); } catch (e) { $('io').select(); $('copyMsg').textContent = 'Selected: copy it from the box'; } };
+// for tools/bake-clip.js: the open animation's pose at every frame, exactly as the bench plays it
+window.__benchBake = () => { const out = []; for (let i = 0; i <= lastFr(); i++) out.push(clone(poseAt(i))); return out; };
 $('bLoad').onclick = () => { try { const c = JSON.parse($('io').value); if (!c.keys || !c.keys.length) throw 0; addClip({ name: c.name || 'Loaded clip', keys: c.keys }); $('copyMsg').textContent = 'Opened'; } catch (e) { $('copyMsg').textContent = 'That isn’t animation text. Paste what Copy animation gave you.'; } };
 addEventListener('keydown', e => { if (e.target.matches('input, textarea, select')) return; const k = e.key;
   if (k === ' ') { e.preventDefault(); playing ? stop() : play(); } else if (k === 'ArrowLeft') { stop(); setFr(fr - 1); } else if (k === 'ArrowRight') { stop(); setFr(fr + 1); }
