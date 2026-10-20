@@ -3207,8 +3207,9 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   const RG = opts.rig, pel = RG ? RG.pel.slice() : [px, py + cr], lean = RG ? RG.lean : 0.05 + SV * (0.16 + Math.sin(t * 2.3) * 0.04) + w * GAIT.RUN * 0.28 + k * (AT === 1 || HK ? 0.24 : 0.36) - wind * 0.14 + b * 0.05 + (HKo ? HKo.ln : 0) + (opts.lnx || 0);
   // game: opts.yaw turns his upper body round its spine (+ brings the facing-side shoulder A toward the camera, - brings B): the body narrows as it turns side-on and the shoulder coming round drops nearer
   const YW = RG ? RG.yaw : opts.yaw || 0, YS = Math.max(RG ? RG.yf ?? 0.42 : opts.hk && opts.hk.yf || 0.55, Math.abs(Math.cos(YW)));
-  const cs = Math.cos(f * lean), sn = Math.sin(f * lean), T = p => { const q = [f * p[0] * YS, p[1]]; return [pel[0] + q[0] * cs - q[1] * sn, pel[1] + q[0] * sn + q[1] * cs]; }, Ts = p => T([f * p[0], p[1]]), SF = f > 0;
-  const hips = [1, -1].map(s => [pel[0] + f * s * 1.9, pel[1] - 0.3]); // the pelvis stays level; only the body above it leans
+  // the turn eases in up the body: the hips turn only a little (YH), so the waist stays wide enough to take in the tops of the thighs
+  const YH = lerp(1, YS, 0.3), cs = Math.cos(f * lean), sn = Math.sin(f * lean), T = p => { const q = [f * p[0] * (YS < 1 ? lerp(YH, YS, sm(cl((-p[1] - 1.2) / 4.3, 0, 1))) : YS), p[1]]; return [pel[0] + q[0] * cs - q[1] * sn, pel[1] + q[0] * sn + q[1] * cs]; }, Ts = p => T([f * p[0], p[1]]), SF = f > 0;
+  const hips = [1, -1].map(s => [pel[0] + f * s * 1.9 * YH, pel[1] - 0.3]); // the pelvis stays level; only the body above it leans
   // game/anim suite: a posed rig (opts.rig) places the feet, knees, hands and elbows and picks the draw order itself
   if (RG) for (let i = 0; i < 2; i++) feet[i] = RG.feet[i].slice();
   const ankles = hips.map((h, i) => { const a = [feet[i][0], feet[i][1] - 0.95], dx = a[0] - h[0], dy = a[1] - h[1], d = Math.hypot(dx, dy) || 1;
@@ -8487,7 +8488,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '3e021a';
+const KBUILD = '5666ad';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
