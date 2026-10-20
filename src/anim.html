@@ -66,7 +66,9 @@ details.fold[open] > summary { margin-bottom: 6px; }
 #pp[hidden] { display: none; }
 #ppH { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 10px; border-bottom: 1px solid var(--line); cursor: move; touch-action: none; user-select: none; }
 #ppT { font: 600 14px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; flex: 1; }
-#ppX { padding: 2px 8px; }
+#ppX, #ppMin { padding: 2px 8px; }
+#pp.min #ppB { display: none; }
+#pp.min #ppH { border-bottom: 0; }
 #ppB { padding: 10px; overflow-y: auto; display: grid; gap: 8px; }
 #ppB .row { gap: 6px; }
 #ppB .ppS { font: 600 12px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--mute); border-top: 1px solid var(--line); padding-top: 8px; margin-top: 2px; }
@@ -86,7 +88,7 @@ details.fold[open] > summary { margin-bottom: 6px; }
 </div>
 
 <div class="wrap">
-  <div id="stage"><canvas id="cv"></canvas><div id="status"></div><div id="pp" hidden role="dialog" aria-labelledby="ppT"><div id="ppH" title="Drag to move this window"><span id="ppT"></span><button id="ppX" title="Close (click empty space on the stage to close it too)">✕</button></div><div id="ppB"></div></div><div id="hint">Click a part of him to open its settings (Ctrl/⌘-click to pick several) · Drag: hands, feet, toes (triangle) to turn a foot, the dot over a head to tilt it, hips (square), chest (diamond), elbow dot to swing the upper arm · Tap a ⇄ ring to bend that elbow or knee the other way</div></div>
+  <div id="stage"><canvas id="cv"></canvas><div id="status"></div><div id="pp" hidden role="dialog" aria-labelledby="ppT"><div id="ppH" title="Drag to move this window"><span id="ppT"></span><button id="ppMin" title="Minimize to a bar (click again to open it back up)">–</button><button id="ppX" title="Close (click empty space on the stage to close it too)">✕</button></div><div id="ppB"></div></div><div id="hint">Click a part of him to open its settings (Ctrl/⌘-click to pick several) · Drag: hands, feet, toes (triangle) to turn a foot, the dot over a head to tilt it, hips (square), chest (diamond), elbow dot to swing the upper arm · Tap a ⇄ ring to bend that elbow or knee the other way</div></div>
 
   <div class="time">
     <div class="tbar">
@@ -116,6 +118,7 @@ details.fold[open] > summary { margin-bottom: 6px; }
   <div class="side">
     <section>
       <h2>Animation</h2>
+      <p class="note" id="syncNote" style="margin:-2px 0 6px">Saved on this device</p>
       <p class="note">Open:</p><div class="row" style="margin-top:4px"><select id="clipSel" style="flex:1;min-width:0" aria-label="Open animation"></select></div><p class="note" id="clipNote" style="margin-top:4px"></p>
       <div class="row" style="margin-top:6px"><span class="note">Folder</span><input type="text" id="clipFolder" list="folderList" style="flex:1;min-width:0;cursor:text;background:transparent;border:1px solid var(--line);box-shadow:none" placeholder="My animations" title="Put this animation in a folder (type a new name to make one)"><datalist id="folderList"></datalist></div>
       <div class="row" style="margin-top:6px"><span class="note">Name</span><input type="text" id="clipName" style="flex:1;min-width:0;cursor:text;background:transparent;border:1px solid var(--line);box-shadow:none" aria-label="Rename" placeholder="Name" title="Rename this animation"></div><div class="row" style="margin-top:6px"><button id="bNew" title="New animation, ogre standing idle">New blank</button><button id="bDup" title="Copy this animation">Copy this one</button></div>
@@ -256,7 +259,53 @@ function relink() { for (const c of clips) { if (!c.from) continue; const src = 
   const last = src.keys.reduce((a, k) => k.fr > a.fr ? k : a), k0 = c.keys.find(k => k.fr === 0), P = clone(last.pose);
   if (k0) k0.pose = P; else { c.keys.push({ fr: 0, ease: 'smooth', pose: P }); c.keys.sort((a, b) => a.fr - b.fr); } } }
 relink();
-const save = () => { relink(); try { const own = clips.filter(c => !c.lib), lib = {}; for (const c of clips) if (libChanged(c)) lib[c.id] = { keys: c.keys, legs: c.legs, from: c.from, pins: c.pins }; localStorage.setItem('posebench2', JSON.stringify({ clips: own, lib, cur: clip() ? clip().id : null })); } catch (e) {} };
+const save = () => { relink(); stampEdits(); cloudSoon(); try { const own = clips.filter(c => !c.lib), lib = {}; for (const c of clips) if (libChanged(c)) lib[c.id] = { keys: c.keys, legs: c.legs, from: c.from, pins: c.pins, t: c.t }; localStorage.setItem('posebench2', JSON.stringify({ clips: own, lib, cur: clip() ? clip().id : null })); } catch (e) {} };
+
+// ---- saving to the account (db capability, 2026-10-20): every own animation and every edited library animation is also kept in the
+// viewer's private store (data/users/<id>/bench/clips/...), so it follows them to any device; this browser's copy stays as the fast local one.
+// When devices meet, the newer edit of each animation wins (c.t, stamped when its content changes); nothing is ever dropped from either side.
+const CL = { db: null, base: null, pushed: new Map(), timer: 0, busy: false, again: false, ok: false };
+const clipJ = c => JSON.stringify(c, (k, v) => k === 't' ? undefined : typeof v === 'number' ? Math.round(v * 1000) / 1000 : v);
+const libJ = c => JSON.stringify({ keys: c.keys, legs: c.legs, from: c.from, pins: c.pins }, (k, v) => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v);
+const hashS = t => { let h = 2166136261; for (let i = 0; i < t.length; i++) { h ^= t.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+const cKey = c => c.lib ? 'L' + hashS(c.id) : /^[A-Za-z0-9_-]{1,60}$/.test(c.id) ? 'C' + c.id : 'H' + hashS(c.id);
+const LSAVE = new Map();
+function stampEdits() { for (const c of clips) { if (c.lib && !libChanged(c)) { LSAVE.delete(c.id); continue; } const j = c.lib ? libJ(c) : clipJ(c); if (LSAVE.has(c.id) && LSAVE.get(c.id) !== j) c.t = Date.now(); LSAVE.set(c.id, j); } }
+const syncNote = (t, warn) => { const el = $('syncNote'); el.textContent = t; el.style.color = warn ? 'var(--warn)' : ''; };
+function cloudRecs() { const m = new Map(); clips.forEach((c, o) => { if (!c.lib) m.set(cKey(c), { kind: 'own', id: c.id, o, t: c.t || 0, j: clipJ(c) }); else if (libChanged(c)) m.set(cKey(c), { kind: 'lib', id: c.id, o: 0, t: c.t || 0, j: libJ(c) }); }); return m; }
+const PART = 200000;
+async function cloudWrite(key, r) { const d = CL.base.collection('clips').doc(key);
+  if (r.j.length <= PART) { await d.set({ kind: r.kind, id: r.id, o: r.o, t: r.t, j: r.j }); return; }
+  const n = Math.ceil(r.j.length / PART); for (let i = 0; i < n; i++) await d.collection('p').doc('p' + i).set({ s: r.j.slice(i * PART, (i + 1) * PART) });
+  await d.set({ kind: r.kind, id: r.id, o: r.o, t: r.t, n }); }
+async function cloudRead(doc) { const v = doc.data(); if (!v) return null; if (typeof v.j === 'string') return { ...v, j: v.j };
+  let j = ''; for (let i = 0; i < (v.n || 0); i++) { const p = await CL.base.collection('clips').doc(doc.id).collection('p').doc('p' + i).get(); const q = p.data(); if (!q) return null; j += q.s; } return { ...v, j }; }
+function cloudSoon() { if (!CL.ok) return; clearTimeout(CL.timer); CL.timer = setTimeout(cloudPush, 1200); }
+async function cloudPush() { if (!CL.ok) return; if (CL.busy) { CL.again = true; return; } CL.busy = true; syncNote('Saving to your account…');
+  try { const R = cloudRecs();
+    for (const [key, r] of R) { if (CL.pushed.get(key) === r.j) continue; if (!r.t) { r.t = Date.now(); const c = clips.find(q => q.id === r.id); if (c) c.t = r.t; } await cloudWrite(key, r); CL.pushed.set(key, r.j); }
+    for (const key of [...CL.pushed.keys()]) if (!R.has(key)) { await CL.base.collection('clips').doc(key).delete(); CL.pushed.delete(key); }
+    syncNote('Saved to your account ✓'); }
+  catch (e) { syncNote(e && e.code === 'quota_exceeded' ? 'Your account storage for the bench is full: saved on this device only' : 'Couldn’t save to your account just now (saved on this device); it will try again on your next change', true); }
+  CL.busy = false; if (CL.again) { CL.again = false; cloudPush(); } }
+async function cloudInit() { if (!window.claude || !claude.use) { syncNote('Saved on this device only'); return; }
+  const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]); const uid = user ? await user.id() : null;
+  if (!db || !uid) { syncNote('Saved on this device only (sign in to claude.ai to save to your account)'); return; }
+  CL.db = db; CL.base = db.doc('data/users/' + uid + '/bench'); syncNote('Loading your saved animations…');
+  try { const snap = await CL.base.collection('clips').get(), got = [];
+    for (const d of snap.docs) { const r = await cloudRead(d); if (r) got.push([d.id, r]); }
+    const cur = clip(), keep = dirty ? cur : null; let added = 0, changed = 0;
+    for (const [key, r] of got.sort((a, b) => (a[1].o || 0) - (b[1].o || 0))) { let v; try { v = JSON.parse(r.j); } catch (e) { continue; }
+      const here = clips.find(c => c.id === r.id);
+      if (r.kind === 'lib') { if (!here || here === keep) { CL.pushed.set(key, r.j); continue; } if (!libChanged(here) || (r.t || 0) > (here.t || 0)) { Object.assign(here, v, { t: r.t }); changed++; } }
+      else if (!here) { clips.splice(clips.findIndex(c => c.lib), 0, Object.assign(v, { t: r.t })); added++; }
+      else if (here !== keep && (r.t || 0) > (here.t || 0) && clipJ(here) !== r.j) { Object.assign(here, v, { t: r.t }); changed++; }
+      CL.pushed.set(key, r.j); }
+    ci = Math.max(0, clips.indexOf(cur)); LSAVE.clear(); for (const c of clips) LSAVE.set(c.id, c.lib ? libJ(c) : clipJ(c));
+    CL.ok = true; relink(); if (!dirty) pose = poseAt(fr); try { localStorage.setItem('posebench2', JSON.stringify({ clips: clips.filter(c => !c.lib), lib: Object.fromEntries(clips.filter(libChanged).map(c => [c.id, { keys: c.keys, legs: c.legs, from: c.from, pins: c.pins, t: c.t }])), cur: clip().id })); } catch (e) {}
+    ui(); syncNote(added || changed ? `Saved to your account ✓ (${added ? added + ' animation' + (added > 1 ? 's' : '') + ' brought in from your account' : ''}${added && changed ? ', ' : ''}${changed ? changed + ' updated' : ''})` : 'Saved to your account ✓');
+    cloudPush(); }
+  catch (e) { syncNote('Couldn’t reach your account (saved on this device only)', true); } }
 const clip = () => clips[ci], keys = () => clip().keys;
 const sortKeys = () => keys().sort((a, b) => a.fr - b.fr);
 const keyAt = fr => keys().find(k => k.fr === fr);
@@ -570,6 +619,9 @@ function ppUpd() { const show = PSELS.length > 0 && frontOnly() && !playing; $('
     else if (q.t === 'b') { el.textContent = q.l(); el.classList.toggle('on', q.on()); el.disabled = locked(); }
     else for (const b of el.children) b.classList.toggle('on', +b.dataset.v === q.get()); }); }
 $('ppX').onclick = () => selPart(null);
+// minimize: the window folds to just its title bar (remembered)
+{ let mn = false; try { mn = localStorage.getItem('posebench-ppmin') === '1'; } catch (e) {} const setMin = v => { mn = v; $('pp').classList.toggle('min', v); $('ppMin').textContent = v ? '▢' : '–'; $('ppMin').title = v ? 'Open the window back up' : 'Minimize to a bar'; try { localStorage.setItem('posebench-ppmin', v ? '1' : '0'); } catch (e) {} };
+  setMin(mn); $('ppMin').onclick = () => setMin(!mn); }
 // the window is moved by its title bar, kept inside the stage, and remembers where it was
 let ppPos = null; try { ppPos = JSON.parse(localStorage.getItem('posebench-pp') || 'null'); } catch (e) {}
 function ppPlace() { const st = $('stage'), p = $('pp'), W = st.clientWidth, H = st.clientHeight, w = p.offsetWidth, h = p.offsetHeight, q = ppPos || { x: W - w - 10, y: 36 };
@@ -671,7 +723,7 @@ addEventListener('keydown', e => { if (e.target.matches('input, textarea, select
   else if (k === 's' || k === 'S') snapshot(); else if (k === 'Delete' || k === 'Backspace') $('bDel').click(); else if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); undo(); } });
 addEventListener('resize', () => { size(); ui(); });
 new MutationObserver(() => ui()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-size(); setFr(0);
+size(); setFr(0); for (const c of clips) LSAVE.set(c.id, c.lib ? libJ(c) : clipJ(c)); cloudInit();
 window.__pb = { clips: () => clips, setFr, pose: () => pose, rig: () => rig };
 })();
 </script>
