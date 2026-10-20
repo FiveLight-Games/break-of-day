@@ -823,7 +823,9 @@ function gameClip(k2) { const f = k2 === 1 ? 1 : -1, keys = []; for (let fr = 0;
 window.__bench = { gamePose, render, gameClip }; // for frame sheets / tests
 let clips, ci = 0;
 try { const s = JSON.parse(localStorage.getItem('posebench') || 'null'); if (s && s.clips && s.clips.length) { clips = s.clips; ci = cl(s.ci | 0, 0, clips.length - 1); } } catch (e) {}
-if (!clips) clips = [gameClip(1)];
+if (!clips) clips = [];
+// the game's two punches are always in the Open list (added if missing; an edited copy keeps its own name)
+for (const k2 of [1, 0]) { const g = gameClip(k2); if (!clips.some(c => c.name === g.name)) clips.push(g); }
 const save = () => { try { localStorage.setItem('posebench', JSON.stringify({ clips, ci })); } catch (e) {} };
 const clip = () => clips[ci], keys = () => clip().keys;
 const sortKeys = () => keys().sort((a, b) => a.fr - b.fr);
