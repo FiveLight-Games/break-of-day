@@ -74,7 +74,6 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <div class="seg"><button id="bFirst" title="First frame">⏮</button><button id="bPrevK" title="Previous key">◆◀</button><button id="bPrev" title="Back one frame (←)">◀</button><button id="bPlay" title="Play / pause (Space)">▶</button><button id="bNext" title="Forward one frame (→)">▶</button><button id="bNextK" title="Next key">▶◆</button></div>
       <span class="fr" id="frLbl"></span>
       <button class="primary" id="bSnap" title="Save this pose at the current frame (S)">Save key</button>
-      <label class="note">After saving, jump ahead <input type="number" id="step" min="0" max="60" value="4"> frames</label>
     </div>
     <div id="track"><canvas id="tcv"></canvas></div>
     <div class="tbar">
@@ -1158,7 +1157,7 @@ const folderOf = c => c.folder || 'My animations', esc = t => String(t).replace(
 function grouped(list, val) { const G = new Map(); for (const c of list) { const k = folderOf(c); if (!G.has(k)) G.set(k, []); G.get(k).push(c); }
   const order = [...G.keys()].sort((a, b) => (a.startsWith('Storm Ogre') - b.startsWith('Storm Ogre')) || (a === 'My animations' ? -1 : b === 'My animations' ? 1 : 0));
   return order.map(k => `<optgroup label="${esc(k)}">` + G.get(k).map(c => `<option value="${val(c)}">${esc(c.name)}</option>`).join('') + '</optgroup>').join(''); }
-function snapshot() { if (clip().game) { lockMsg(); return; } if (locked()) { lockMsg(); return; } const k0 = keyAt(fr); if (k0 && !dirty) return; snap(); if (k0) k0.pose = clone(pose); else keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); save(); dirty = false; const st = +$('step').value || 0; if (st) { const k0 = clone(pose); fr += st; const k = keyAt(fr); pose = k ? clone(k.pose) : k0; dirty = !k; } ui(); }
+function snapshot() { if (clip().game) { lockMsg(); return; } if (locked()) { lockMsg(); return; } const k0 = keyAt(fr); if (k0 && !dirty) return; snap(); if (k0) k0.pose = clone(pose); else keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); save(); dirty = false; ui(); }
 $('bSnap').onclick = snapshot;
 // Save key from the question: saves at this frame without jumping ahead, then carries on to wherever you were going
 $('sqSave').onclick = () => { const k0 = keyAt(fr); snap(); if (k0) k0.pose = clone(pose); else { keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); } save(); dirty = false; askEnd(true); };
