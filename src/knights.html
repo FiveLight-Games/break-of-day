@@ -3376,9 +3376,13 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   // squeeze (RG.sq, same keys as tw, 1 = as drawn): a part scaled side to side on screen, always horizontally, round its own anchor (shoulder, hip, ankle, hand, head)
   const SQ = RG && RG.sq && !RW ? RG.sq : null, sqv = (g, i) => { const v = SQ && SQ[g] !== undefined ? (i === undefined ? SQ[g] : SQ[g][i]) : 1; return v === undefined || v === null ? 1 : v; };
   const hsq = (o, k, fn) => { if (Math.abs(k - 1) < 1e-3) return fn(); c.save(); c.translate(o[0], 0); c.scale(k, 1); c.translate(-o[0], 0); const r = fn(); c.restore(); return r; };
-  const arm = (s, h, sk, side, ice) => gp(side, () => hsq(s, sqv(side), () => squash(s, Math.atan2(h[1] - s[1], h[0] - s[0]), 1 - 0.45 * Math.abs(Math.sin(twv(side))), () => arm0(s, h, sk, side, ice))));
+  const arm = (s, h, sk, side, ice) => gp(side, () => { c.save(); const r = arm0(s, h, sk, side, ice); c.restore(); return r; });
   const arm0 = (s, h, sk, side, ice) => { const e = (() => { const e1 = ik(s, h, 3.5, 3.5, 1), e2 = ik(s, h, 3.5, 3.5, -1); if (RG) return side === 'A' ? (RG.eA > 0 ? e1 : e2) : (RG.eB > 0 ? e1 : e2); if (HKo && HKo.gFlip && side === (HKo.arm ? 'A' : 'B')) return e1[1] > e2[1] ? e1 : e2; if (HKo && HKo.bs && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const cz = q => (h[0] - s[0]) * (q[1] - s[1]) - (h[1] - s[1]) * (q[0] - s[0]); return cz(e1) * f * HKo.bs >= 0 ? e1 : e2; } if (HKo && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const C0 = [pel[0], pel[1] - 7.3], d1 = Math.hypot(e1[0] - C0[0], (e1[1] - C0[1]) * 1.6), d2 = Math.hypot(e2[0] - C0[0], (e2[1] - C0[1]) * 1.6); return d1 > d2 ? e1 : e2; } return f * e1[0] < f * e2[0] ? e1 : e2; })(), dx = h[0] - e[0], dy = h[1] - e[1], dl = Math.hypot(dx, dy) || 1, d = [dx / dl, dy / dl], n = [-d[1], d[0]], fa0 = Math.atan2(dy, dx);
     if (opts.outRig) { const e1 = ik(s, h, 3.5, 3.5, 1); opts.outRig['e' + side] = e.slice(); opts.outRig['s' + side] = Math.hypot(e[0] - e1[0], e[1] - e1[1]) < 1e-6 ? 1 : -1; opts.outRig.ord.push(side); }
+    // a posed rig twists/squeezes the upper arm (tw/sq [side]) and the forearm (tw/sq ['f' + side]) on their own: the forearm and hand ride the upper arm's squeeze, the hand the forearm's
+    const SEG = !!(TW || SQ), Mb = SEG ? c.getTransform() : null, mk = (M, o, ang, kk, hk) => { let m = M.translate(o[0], o[1]); if (Math.abs(hk - 1) > 1e-3) m = m.scale(hk, 1); if (Math.abs(kk - 1) > 1e-3) m = m.rotate(ang * 57.29578).scale(1, kk).rotate(-ang * 57.29578); return m.translate(-o[0], -o[1]); };
+    const M0 = SEG ? mk(Mb, s, 0, 1, sqv(side)) : null, mUA = SEG ? mk(M0, s, Math.atan2(e[1] - s[1], e[0] - s[0]), 1 - 0.45 * Math.abs(Math.sin(twv(side))), 1) : null, mH = SEG ? mk(M0, e, 0, 1, sqv('f' + side)) : null, mFA = SEG ? mk(mH, e, fa0, 1 - 0.45 * Math.abs(Math.sin(twv('f' + side))), 1) : null, setM = m => { if (m) c.setTransform(m); };
+    gs(side); setM(mUA);
     const UA = limbP(s, e, 1.6, 1.25, 1.25, 0.38); cel(c, UA, sk, { noStroke: 1 });
     // arm muscles drawn like the abs: soft muscle plates inside the arm, each with a shadow, a shine on top and a fine edge line
     const mus = Pp => { c.beginPath(); addSmooth(c, Pp); c.fillStyle = 'rgba(20,12,40,.17)'; c.fill(); const [cx, cy] = ctr(Pp), Hh = Pp.map(p => [cx + (p[0] - cx) * 0.75 + LIT[0] * 0.15, cy + (p[1] - cy) * 0.68 + LIT[1] * 0.2]); c.beginPath(); addSmooth(c, Hh); c.fillStyle = 'rgba(255,255,255,.24)'; c.fill(); c.beginPath(); addSmooth(c, Pp); c.strokeStyle = 'rgba(20,12,40,.34)'; c.lineWidth = 0.1; c.stroke(); };
@@ -3387,17 +3391,19 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
       mus([at(0.04, -0.2), at(0.1, 0.9), at(0.3, 1.25), at(0.42, 0.7), at(0.36, -0.3), at(0.2, -0.8)]);                                  // deltoid
       mus([at(0.4, 0.05), at(0.48, 1.05 * fl3), at(0.68, 1.2 * fl3), at(0.88, 0.75), at(0.86, 0.05), at(0.64, -0.2)]);                      // bicep
       mus([at(0.42, -0.45), at(0.62, -0.5), at(0.86, -0.35), at(0.8, -1.05), at(0.56, -1.2), at(0.4, -0.95)]); }                             // tricep
+    gs('f' + side); setM(mFA);
     const FA = limbP(e, L2(e, h, 0.82), 1.25, 1.5, 1.12, 0.35); cel(c, FA, sk, { noStroke: 1 });
     // one outline round the arm: no line where the upper arm and forearm meet at the elbow
     // and where the arm meets the body at the shoulder there's no line either: the arm's edge is left out inside the torso near the shoulder
     const torsoP = torsoDone && TO ? (() => { const p2 = new Path2D(); addSmooth(p2, TO); return p2; })() : null, shR = 3.3;
-    for (const [Q, R2] of [[UA, FA], [FA, UA]]) { const sp = new Path2D(); addSmooth(sp, Q); const ex = () => { const cp = new Path2D(); cp.rect(-80, -80, 160, 160); addSmooth(cp, R2); c.clip(cp, 'evenodd'); };
+    for (const [Q, R2] of [[UA, FA], [FA, UA]]) { const sp = new Path2D(); addSmooth(sp, Q); const MQ = Q === UA ? mUA : mFA, MR = Q === UA ? mFA : mUA, ex = () => { const cp = new Path2D(); cp.rect(-80, -80, 160, 160); addSmooth(cp, R2); setM(MR); c.clip(cp, 'evenodd'); setM(MQ); }; gs(Q === UA ? side : 'f' + side); setM(MQ);
       c.strokeStyle = OUT; c.lineWidth = 0.2 * OLW; c.lineJoin = 'round';
       if (!torsoP || Q === FA) { c.save(); ex(); c.stroke(sp); c.restore(); continue; }
       const notTorso = new Path2D(); notTorso.rect(-80, -80, 160, 160); addSmooth(notTorso, TO);
       const notCirc = new Path2D(); notCirc.rect(-80, -80, 160, 160); { const cc = L2(s, e, 0.3); notCirc.arc(cc[0], cc[1], shR, 0, 7); }
-      c.save(); ex(); c.clip(notTorso, 'evenodd'); c.stroke(sp); c.restore();                    // outside the body
-      c.save(); ex(); c.clip(torsoP); c.clip(notCirc, 'evenodd'); c.stroke(sp); c.restore(); }   // over the body, away from the shoulder
+      c.save(); ex(); setM(Mb); c.clip(notTorso, 'evenodd'); setM(MQ); c.stroke(sp); c.restore();                    // outside the body
+      c.save(); ex(); setM(Mb); c.clip(torsoP); setM(MQ); c.clip(notCirc, 'evenodd'); c.stroke(sp); c.restore(); }
+    gs('f' + side); setM(mFA);   // over the body, away from the shoulder
     // forearm: two long muscle plates down to the wrist
     { const fx = h[0] - e[0], fy = h[1] - e[1], fl2 = Math.hypot(fx, fy) || 1; let fn = [-fy / fl2, fx / fl2]; if (fn[1] > 0) fn = [-fn[0], -fn[1]];
       const at = (q, v) => [e[0] + fx * q + fn[0] * v, e[1] + fy * q + fn[1] * v];
@@ -3410,7 +3416,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
     const wb = L2(e, h, 0.62), wb2 = L2(e, h, 0.8), W = (p, v) => [p[0] + n[0] * v, p[1] + n[1] * v];
     if (V.st === 'armour') { if (ice) bevel(c, [W(L2(e, h, 0.25), 1.55), W(wb2, 1.75), W(wb2, -1.75), W(L2(e, h, 0.25), -1.55)], '#c4e9ff', { lw: 0.15, k: 0.55, inner: (Q, ox, oy, sz) => iceIn(c, Q, ox, oy, sz, 5, t) }); else { bevel(c, [W(L2(e, h, 0.25), 1.5), W(wb2, 1.7), W(wb2, -1.7), W(L2(e, h, 0.25), -1.5)], '#b8733a', { lw: 0.15, k: 0.55 }); for (const q of [0.38, 0.52, 0.66]) { const p = L2(e, h, q); c.strokeStyle = '#e0a060'; c.lineWidth = 0.18; c.beginPath(); c.moveTo(...W(p, 1.55)); c.lineTo(...W(p, -1.55)); c.stroke(); } } }
     else { path(c, [W(wb, 1.45), W(wb2, 1.55), W(wb2, -1.55), W(wb, -1.45)]); c.fillStyle = COL; c.fill(); c.strokeStyle = OUT; c.lineWidth = 0.15 * OLW; c.stroke(); }
-    gs('h' + side);
+    gs('h' + side); setM(mH);
     // the hand: a broad palm, three thick clawed fingers and a thumb; they curl into a fist for the smash
     const fc = [h[0] + d[0] * 0.2, h[1] + d[1] * 0.2], fa = Math.atan2(dy, dx), curl = RG ? (side === 'A' ? RG.cA : RG.cB) || 0 : WPN ? 0.85 : Math.max(k, wind * 0.6, opts.hCurl || 0, (() => { const q = opts.h2 && opts.h2[side === 'A' ? 0 : 1]; return q ? (q.c || 0) * q.k : 0; })()), sd2 = side === 'B' ? 1 : -1; if (opts.outRig) opts.outRig['c' + side] = curl; const hTw = twv('h' + side), hK = Math.max(0.3, Math.abs(Math.cos(hTw))), hSq = sqv('h' + side); c.save(); if (Math.abs(hSq - 1) > 1e-3) { c.translate(fc[0], 0); c.scale(hSq, 1); c.translate(-fc[0], 0); } if (hK < 0.999) { const ha = Math.atan2(d[1], d[0]); c.translate(fc[0], fc[1]); c.rotate(ha); c.scale(1, hK); c.rotate(-ha); c.translate(-fc[0], -fc[1]); }
     // seen from behind (a posed rig's RG.hbA/hbB): the back of the hand instead of the palm: a broad plate with two raised knuckles and tendons, fingers
