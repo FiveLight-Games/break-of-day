@@ -113,6 +113,11 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <div class="row" style="margin-top:8px"><button id="bOrb" title="Show or hide the crackling lightning in his storm hand (a view setting, not saved in the animation)">Lightning in hand: off</button><button id="bIce" title="Show or hide the swirling ice ball in his ice hand (a view setting, not saved in the animation)">Ice ball in hand: off</button></div>
     </section>
     <section>
+      <h2>Twist</h2>
+      <p class="note" style="margin-bottom:6px">Turn a part about its own length. Heads turn their faces, feet point toward or away from you, hands turn edge-on.</p>
+      <div id="twBox"></div>
+    </section>
+    <section>
       <h2>What's in front</h2>
       <div class="ord"><span><span class="tag tA">A</span> <span id="nA"></span></span><div class="seg" id="oA"><button data-v="0">Behind body</button><button data-v="1">In front of body</button><button data-v="2">In front of all</button></div></div>
       <div class="ord" style="margin-top:6px"><span><span class="tag tB">B</span> <span id="nB"></span></span><div class="seg" id="oB"><button data-v="0">Behind body</button><button data-v="1">In front of all</button></div></div>
@@ -240,7 +245,7 @@ function poseAt(t) { const K = keys(); if (!K.length) return idlePose(1); if (t 
   const ang = g => { const v = P.map(g); v[0] = v[1] + wrapA(v[0] - v[1]); v[2] = v[1] + wrapA(v[2] - v[1]); v[3] = v[2] + wrapA(v[3] - v[2]); return e === 'smooth' ? cr(v[0], v[1], v[2], v[3], u) : lerp(v[1], v[2], uu); };
   const pt = g => [num(p => g(p)[0]), num(p => g(p)[1])];
   const hand = g => { const A = ang(p => Math.atan2(g(p)[1], g(p)[0])), R = Math.min(ARM, Math.max(0, num(p => Math.hypot(g(p)[0], g(p)[1])))); return [Math.cos(A) * R, Math.sin(A) * R]; };
-  return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean), yaw: num(p => p.yaw), act: cl(num(p => p.act), 0, 1), cA: cl(num(p => p.cA || 0), 0, 1), cB: cl(num(p => p.cB || 0), 0, 1), yf: a.pose.yf, view: cl(num(p => p.view || 0), 0, 1), bk: P.some(p => (p.view || 0) > 0) ? (() => { const bq = p => p.bk || backDef(p.f), BP = g => pt(p => g(bq(p))), BH = g => hand(p => g(bq(p))); return { pel: BP(b => b.pel), aG: BP(b => b.aG), aP: BP(b => b.aP), hG: BH(b => b.hG), hP: BH(b => b.hP), eG: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eG, eP: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eP }; })() : a.pose.bk,
+  return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean), yaw: num(p => p.yaw), act: cl(num(p => p.act), 0, 1), cA: cl(num(p => p.cA || 0), 0, 1), cB: cl(num(p => p.cB || 0), 0, 1), yf: a.pose.yf, view: cl(num(p => p.view || 0), 0, 1), tw: P.some(p => p.tw) ? (() => { const g = (k, i) => num(p => twGet(p, [k, i])); return { H: [g('H', 0), g('H', 1)], L: [g('L', 0), g('L', 1)], F: [g('F', 0), g('F', 1)], A: g('A'), B: g('B'), hA: g('hA'), hB: g('hB') }; })() : a.pose.tw, bk: P.some(p => (p.view || 0) > 0) ? (() => { const bq = p => p.bk || backDef(p.f), BP = g => pt(p => g(bq(p))), BH = g => hand(p => g(bq(p))); return { pel: BP(b => b.pel), aG: BP(b => b.aG), aP: BP(b => b.aP), hG: BH(b => b.hG), hP: BH(b => b.hP), eG: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eG, eP: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eP }; })() : a.pose.bk,
     feet: [pt(p => p.feet[0]), pt(p => p.feet[1])], fa: [num(p => (p.fa || [0, 0])[0]), num(p => (p.fa || [0, 0])[1])], hr: [num(p => (p.hr || [0, 0])[0]), num(p => (p.hr || [0, 0])[1])], hA: hand(p => p.hA), hB: hand(p => p.hB) }; }
 
 // ---- state ----
@@ -277,7 +282,7 @@ function draw() {
   if (!playing) handles();
 }
 // where a foot's toe handle sits (the foot turned round its ankle by P.fa), and an elbow's flip bubble (just outside the bend)
-const toeOf = (r, P, i) => { const ff = (P.ff || [])[i] ? -1 : 1, a = -P.f * ff * ((P.fa || [0, 0])[i] || 0), an = [r.feet[i][0], r.feet[i][1] - 0.95], x = P.f * ff * 3.6, y = -0.6; return [an[0] + x * Math.cos(a) - y * Math.sin(a), an[1] + x * Math.sin(a) + y * Math.cos(a)]; };
+const toeOf = (r, P, i) => { const ff = (P.ff || [])[i] ? -1 : 1, a = -P.f * ff * ((P.fa || [0, 0])[i] || 0), an = [r.feet[i][0], r.feet[i][1] - 0.95], x = P.f * ff * 3.6 * Math.max(0.35, Math.cos(twGet(P, ['F', i]))), y = -0.6; return [an[0] + x * Math.cos(a) - y * Math.sin(a), an[1] + x * Math.sin(a) + y * Math.cos(a)]; };
 // each head's turn handle: a dot above it that swings with its tilt (P.hr: 0 ice, 1 storm; + tips the face up)
 const headOf = (r, P, i) => { const H = i ? r.HZ : r.HI, a = -P.f * ((P.hr || [0, 0])[i] || 0), d = 4.4; return [H[0] + Math.sin(a) * d, H[1] + 2.2 - Math.cos(a) * d]; };
 const flipOf = (r, s) => { const sh = s === 'A' ? r.shA : r.shB, h = s === 'A' ? r.hA : r.hB, e = s === 'A' ? r.eA : r.eB, m = [(sh[0] + h[0]) / 2, (sh[1] + h[1]) / 2];
@@ -334,7 +339,7 @@ cv.addEventListener('pointermove', e => { if (!drag) return; const b = cv.getBou
   else if (drag.k === 'chest') P.lean = cl(P.f * Math.atan2(p[0] - P.pel[0], -(p[1] - P.pel[1])), -1.2, 1.2);
   else if (drag.k === 'elbowD') { const s = drag.a === 'A' ? r.shA : r.shB, e0 = drag.a === 'A' ? r.eA : r.eB, h = P['h' + drag.a], D = Math.atan2(p[1] - s[1], p[0] - s[0]) - Math.atan2(e0[1] - s[1], e0[0] - s[0]), c2 = Math.cos(D), s2 = Math.sin(D); P['h' + drag.a] = [h[0] * c2 - h[1] * s2, h[0] * s2 + h[1] * c2]; }
   else if (drag.k === 'head') { const H = drag.i ? r.HZ : r.HI, pv = [H[0], H[1] + 2.2], a = Math.atan2(p[0] - pv[0], -(p[1] - pv[1])); P.hr = (P.hr || [0, 0]).slice(); P.hr[drag.i] = cl(-P.f * a, -1.2, 1.2); }
-  else if (drag.k === 'toe') { const ff = (P.ff || [])[drag.i] ? -1 : 1, an = [r.feet[drag.i][0], r.feet[drag.i][1] - 0.95], a = Math.atan2(p[1] - an[1], p[0] - an[0]) - Math.atan2(-0.6, P.f * ff * 3.6); P.fa = (P.fa || [0, 0]).slice(); P.fa[drag.i] = cl(-P.f * ff * Math.atan2(Math.sin(a), Math.cos(a)), -1.3, 1.3); }
+  else if (drag.k === 'toe') { const ff = (P.ff || [])[drag.i] ? -1 : 1, an = [r.feet[drag.i][0], r.feet[drag.i][1] - 0.95], a = Math.atan2(p[1] - an[1], p[0] - an[0]) - Math.atan2(-0.6, P.f * ff * 3.6 * Math.max(0.35, Math.cos(twGet(P, ['F', drag.i])))); P.fa = (P.fa || [0, 0]).slice(); P.fa[drag.i] = cl(-P.f * ff * Math.atan2(Math.sin(a), Math.cos(a)), -1.3, 1.3); }
   else if (drag.k === 'elbow') { const s = drag.a === 'A' ? r.shA : r.shB, h = drag.a === 'A' ? r.hA : r.hB, cz = (h[0] - s[0]) * (p[1] - s[1]) - (h[1] - s[1]) * (p[0] - s[0]); P['e' + drag.a] = cz > 0 ? 1 : -1; }
   else if (drag.k === 'knee') { const s = r.hips[drag.i], h = drag.an, cz = (h[0] - s[0]) * (p[1] - s[1]) - (h[1] - s[1]) * (p[0] - s[0]); P.kn[drag.i] = cz > 0 ? 1 : -1; }
   livePreview(); });
@@ -390,6 +395,7 @@ function ui() {
   { const W = legWalk(); $('legP').classList.toggle('on', !W); $('legW').classList.toggle('on', W); $('walkRow').style.display = W ? '' : 'none'; $('bWalkPrev').textContent = 'Preview: ' + (walkPrev ? 'walking' : 'standing'); }
   for (const s2 of ['A', 'B']) { $('xf' + s2).textContent = 'Flip ' + nameOf(s2).replace(' arm', ' hand'); $('xf' + s2).classList.toggle('on', !!pose['hf' + s2]); $('bk' + s2).textContent = cap(nameOf(s2).replace(' arm', ' hand')) + ': ' + (pose['hb' + s2] ? 'back' : 'palm') + ' showing'; $('bk' + s2).classList.toggle('on', !!pose['hb' + s2]); }
   for (const i of [0, 1]) { $('xf' + i).textContent = 'Flip ' + footName(i) + ' foot'; $('xf' + i).classList.toggle('on', !!(pose.ff || [])[i]); $('xh' + i).classList.toggle('on', !!(pose.hfl || [])[i]); }
+  TWS.forEach((q, j) => { $('twn' + j).textContent = twName(q); const v = twGet(pose, q); if (document.activeElement !== $('tw' + j)) $('tw' + j).value = v; $('two' + j).textContent = v.toFixed(2); });
   $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('bIce').textContent = 'Ice ball in hand: ' + (iceOn ? 'on' : 'off'); $('bIce').classList.toggle('on', iceOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
   for (const s of ['A', 'B']) { const fist = (pose['c' + s] || 0) > 0.5; $('hd' + s).textContent = cap(nameOf(s).replace(' arm', ' hand')) + (fist ? ': fist' : ': open'); $('fl' + s).textContent = 'Flip ' + nameOf(s).replace(' arm', ' elbow'); $('hd' + s).classList.toggle('on', fist); }
@@ -399,6 +405,12 @@ function ui() {
   { const ls = $('linkSel'), lv = clip().from || ls.value, lo = grouped(clips.filter(c => c !== clip()), c => c.id); if (ls.innerHTML !== lo) ls.innerHTML = lo; if ([...ls.options].some(o => o.value === lv)) ls.value = lv; $('linkOn').checked = !!linkSrc(clip()); $('linkOn').disabled = !ls.options.length; }
   if (document.activeElement !== $('clipName')) $('clipName').value = clip().name;
 }
+// twist sliders: pose.tw = {L: [leg 0, leg 1], F: [foot 0, foot 1], H: [ice head, storm head], A, B, hA, hB}
+const TWS = [['H', 0], ['H', 1], ['A'], ['B'], ['hA'], ['hB'], ['L', 0], ['L', 1], ['F', 0], ['F', 1]];
+const twName = ([g, i]) => g === 'H' ? (i ? 'Storm head' : 'Ice head') : g === 'A' || g === 'B' ? cap(nameOf(g)) : g === 'hA' || g === 'hB' ? cap(nameOf(g[1]).replace(' arm', ' hand')) : cap(footName(i)) + (g === 'L' ? ' leg' : ' foot');
+const twGet = (P, [g, i]) => { const T = P.tw || {}; return (i === undefined ? T[g] : (T[g] || [])[i]) || 0; };
+$('twBox').innerHTML = TWS.map((q, j) => `<label class="sl"><span id="twn${j}"></span> <input type="range" id="tw${j}" min="-1.5" max="1.5" step="0.01"><output id="two${j}"></output></label>`).join('');
+TWS.forEach((q, j) => { const [g, i] = q; $('tw' + j).addEventListener('input', e => { const v = +e.target.value, T = pose.tw = clone(pose.tw || {}); if (i === undefined) T[g] = v; else { T[g] = (T[g] || [0, 0]).slice(); T[g][i] = v; } $('two' + j).textContent = v.toFixed(2); livePreview(); }); $('tw' + j).addEventListener('change', edited); $('tw' + j).addEventListener('dblclick', () => { $('tw' + j).value = 0; $('tw' + j).dispatchEvent(new Event('input')); edited(); }); });
 for (const id of ['lean', 'yaw', 'act']) { $(id).addEventListener('input', e => { pose[id] = +e.target.value; $(id + 'O').textContent = (+e.target.value).toFixed(2); livePreview(); }); $(id).addEventListener('change', edited); }
 for (const [id, key] of [['oA', 'aF'], ['oB', 'bF'], ['oL', 'ls']]) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pose[key] = +b.dataset.v; edited(); });
 // flips: each hand over, each foot round, each head the other way (a key value: it changes at the key, like the draw order)
