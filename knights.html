@@ -3419,7 +3419,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
     else { path(c, [W(wb, 1.45), W(wb2, 1.55), W(wb2, -1.55), W(wb, -1.45)]); c.fillStyle = COL; c.fill(); c.strokeStyle = OUT; c.lineWidth = 0.15 * OLW; c.stroke(); }
     gs('h' + side); setM(mH);
     // the hand: a broad palm, three thick clawed fingers and a thumb; they curl into a fist for the smash
-    const fc = [h[0] + d[0] * 0.2, h[1] + d[1] * 0.2], fa = Math.atan2(dy, dx), curl = RG ? (side === 'A' ? RG.cA : RG.cB) || 0 : WPN ? 0.85 : Math.max(k, wind * 0.6, opts.hCurl || 0, (() => { const q = opts.h2 && opts.h2[side === 'A' ? 0 : 1]; return q ? (q.c || 0) * q.k : 0; })()), sd2 = side === 'B' ? 1 : -1; if (opts.outRig) opts.outRig['c' + side] = curl; const hTw = twv('h' + side), hK = Math.max(0.3, Math.abs(Math.cos(hTw))), hSq = sqv('h' + side); c.save(); if (Math.abs(hSq - 1) > 1e-3) { c.translate(fc[0], 0); c.scale(hSq, 1); c.translate(-fc[0], 0); } if (hK < 0.999) { const ha = Math.atan2(d[1], d[0]); c.translate(fc[0], fc[1]); c.rotate(ha); c.scale(1, hK); c.rotate(-ha); c.translate(-fc[0], -fc[1]); }
+    const fc = [h[0] + d[0] * 0.2, h[1] + d[1] * 0.2], fa = Math.atan2(dy, dx), curl = RG ? (side === 'A' ? RG.cA : RG.cB) || 0 : WPN ? 0.85 : Math.max(k, wind * 0.6, opts.hCurl || 0, sm(cl(w / 0.35, 0, 1)) /* walking and running: fists closed, opening again as he slows to a stop */, (() => { const q = opts.h2 && opts.h2[side === 'A' ? 0 : 1]; return q ? (q.c || 0) * q.k : 0; })()), sd2 = side === 'B' ? 1 : -1; if (opts.outRig) opts.outRig['c' + side] = curl; const hTw = twv('h' + side), hK = Math.max(0.3, Math.abs(Math.cos(hTw))), hSq = sqv('h' + side); c.save(); if (Math.abs(hSq - 1) > 1e-3) { c.translate(fc[0], 0); c.scale(hSq, 1); c.translate(-fc[0], 0); } if (hK < 0.999) { const ha = Math.atan2(d[1], d[0]); c.translate(fc[0], fc[1]); c.rotate(ha); c.scale(1, hK); c.rotate(-ha); c.translate(-fc[0], -fc[1]); }
     // seen from behind (a posed rig's RG.hbA/hbB): the back of the hand instead of the palm: a broad plate with two raised knuckles and tendons, fingers
     // with their nails on top, the thumb on the other side; closing it folds the fingers down out of sight under the knuckles (a fist from behind)
     const HBK = !!(RG && RG['hb' + side]);
@@ -8580,7 +8580,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '39408b';
+const KBUILD = '2c9630';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
