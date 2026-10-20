@@ -90,6 +90,8 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <div class="row" style="margin-top:6px"><span class="note">Name</span><input type="text" id="clipName" style="flex:1;min-width:0;cursor:text;background:transparent;border:1px solid var(--line);box-shadow:none" aria-label="Rename" placeholder="Name" title="Rename this animation"></div><div class="row" style="margin-top:6px"><button id="bNew" title="New animation, ogre standing idle">New blank</button><button id="bDup" title="Copy this animation">Copy this one</button></div>
       <div class="row" style="margin-top:8px"><label class="note" style="display:flex;gap:6px;align-items:center" title="Frame 0 of this animation becomes a locked copy of the last frame of the one you pick, and follows it when that one changes"><input type="checkbox" id="linkOn"> Start where this ends:</label></div>
       <div class="row" style="margin-top:4px"><select id="linkSel" style="flex:1;min-width:0" aria-label="Animation to start from"></select></div>
+      <div class="row" style="margin-top:8px"><span class="note">Legs</span><div class="seg"><button id="legP" title="The legs do what you pose here">Posed here</button><button id="legW" title="In the game the legs keep walking with the player's movement; only the upper body and the crouch come from here">Walk with the player</button></div></div>
+      <div class="row" style="margin-top:4px" id="walkRow"><button id="bWalkPrev" title="Preview the legs walking or standing (a view setting)">Preview: walking</button></div>
       <div class="row" style="margin-top:6px" id="delRow"><button id="bDelClip" class="danger">Delete this animation</button></div>
       <p class="note" style="margin-top:8px">Fresh copy of the punch as it is in the game now:</p>
       <div class="row" style="margin-top:4px"><button id="gStorm">Lightning punch</button><button id="gFrost">Ice punch</button></div>
@@ -136,7 +138,12 @@ const clone = o => JSON.parse(JSON.stringify(o));
 // ---- poses: what drawO2's rig takes (hands relative to their shoulders) ----
 // the storm hand's lightning: shown or not (a view setting, remembered), and always crackling on its own clock
 let orbOn = true; try { orbOn = localStorage.getItem('posebench-orb') !== '0'; } catch (e) {}
-function render(c, P, out) { const o = { rig: P, noFx: 1, noJet: 1, outRig: out || { ord: [] }, noOrb: !orbOn, fxT: performance.now() / 1000 }; OGX.drawO2(c, OGX.V, T0, P.f, 0, -1, -1, 'act', P.act, -1, [], 0, o); return o.outRig; }
+// legs that walk with the player (clip.legs 'walk'): the game's gait draws them; the pose only gives the crouch (pelvis height vs standing)
+let walkPrev = true; try { walkPrev = localStorage.getItem('posebench-walk') !== '0'; } catch (e) {}
+const legWalk = () => typeof clips !== 'undefined' && clips && clips[ci] && clips[ci].legs === 'walk';
+let IDLEY = null;
+function render(c, P, out) { const W = legWalk(), now = performance.now() / 1000; if (W) { if (IDLEY === null) IDLEY = idlePose(1).pel[1]; P = { ...P, walk: { dy: P.pel[1] - IDLEY } }; }
+  const o = { rig: P, noFx: 1, noJet: 1, outRig: out || { ord: [] }, noOrb: !orbOn, fxT: now, ph: now * OGX.GAIT.RATE }; OGX.drawO2(c, OGX.V, T0, P.f, W && walkPrev ? 1 : 0, -1, -1, 'act', P.act, -1, [], 0, o); return o.outRig; }
 function fromOut(o, f, act, yf) { const i = s => o.ord.indexOf(s), iT = i('T'), iH = i('H');
   return { f, pel: o.pel, lean: o.lean, yaw: o.yaw, feet: o.feet, kn: [f > 0 ? -1 : 1, f > 0 ? -1 : 1], hA: [o.hA[0] - o.shA[0], o.hA[1] - o.shA[1]], hB: [o.hB[0] - o.shB[0], o.hB[1] - o.shB[1]], eA: o.sA, eB: o.sB,
     fa: [0, 0], aF: i('A') < iT ? 0 : i('A') < iH ? 1 : 2, bF: i('B') < iT ? 0 : 1, ls: 0, act, yf: yf ?? 0.42, cA: o.cA || 0, cB: o.cB || 0 }; }
@@ -233,7 +240,7 @@ const HANDLES = () => { const r = rig, P = pose, ankle = i => [r.feet[i][0], r.f
     { id: 'eA', p: r.eA, k: 'elbowD', c: '--a', a: 'A' }, { id: 'eB', p: r.eB, k: 'elbowD', c: '--b', a: 'B' },
     { id: 'xA', p: flipOf(r, 'A'), k: 'elbow', c: '--a', a: 'A' }, { id: 'xB', p: flipOf(r, 'B'), k: 'elbow', c: '--b', a: 'B' },
     { id: 't0', p: toeOf(r, P, 0), k: 'toe', c: '--accent', i: 0 }, { id: 't1', p: toeOf(r, P, 1), k: 'toe', c: '--accent', i: 1 },
-    { id: 'k0', p: r.knees[0], k: 'knee', c: '--ink', i: 0, an: ankle(0) }, { id: 'k1', p: r.knees[1], k: 'knee', c: '--ink', i: 1, an: ankle(1) } ]; };
+    { id: 'k0', p: r.knees[0], k: 'knee', c: '--ink', i: 0, an: ankle(0) }, { id: 'k1', p: r.knees[1], k: 'knee', c: '--ink', i: 1, an: ankle(1) } ].filter(h => !(legWalk() && /^(f|t|k)\d$/.test(h.id))); };
 function handles() { const H = HANDLES(), r = rig;
   // shoulders and arm reach (only the dragged hand's reach is drawn)
   if (drag && drag.k === 'hand') { const s = w2s(drag.id === 'hA' ? r.shA : r.shB); ctx.setLineDash([4, 4]); ctx.strokeStyle = css(drag.c); ctx.beginPath(); ctx.arc(s[0], s[1], ARM * S, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
@@ -308,6 +315,7 @@ function ui() {
   const K = keys(), seg = [...K].reverse().find(k => k.fr <= fr); $('ease').value = seg ? seg.ease || 'smooth' : 'smooth';
   for (const [id, v, d] of [['lean', pose.lean, 2], ['yaw', pose.yaw, 2], ['act', pose.act, 2]]) { $(id).value = v; $(id + 'O').textContent = (+v).toFixed(d); }
   $('fL').classList.toggle('on', pose.f < 0); $('fR').classList.toggle('on', pose.f > 0);
+  { const W = legWalk(); $('legP').classList.toggle('on', !W); $('legW').classList.toggle('on', W); $('walkRow').style.display = W ? '' : 'none'; $('bWalkPrev').textContent = 'Preview: ' + (walkPrev ? 'walking' : 'standing'); }
   $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
   for (const s of ['A', 'B']) { const fist = (pose['c' + s] || 0) > 0.5; $('hd' + s).textContent = cap(nameOf(s).replace(' arm', ' hand')) + (fist ? ': fist' : ': open'); $('fl' + s).textContent = 'Flip ' + nameOf(s).replace(' arm', ' elbow'); $('hd' + s).classList.toggle('on', fist); }
@@ -332,7 +340,10 @@ $('bPrevK').onclick = () => { stop(); const k = [...keys()].reverse().find(k => 
 $('bNextK').onclick = () => { stop(); const k = keys().find(k => k.fr > fr); if (k) setFr(k.fr); };
 $('bOrb').onclick = () => { orbOn = !orbOn; try { localStorage.setItem('posebench-orb', orbOn ? '1' : '0'); } catch (e) {} ui(); };
 // keep redrawing while the lightning shows, so it crackles even when nothing is playing
-(function fxLoop() { if (orbOn && !playing && !drag) draw(); requestAnimationFrame(fxLoop); })();
+(function fxLoop() { if ((orbOn || (legWalk() && walkPrev)) && !playing && !drag) draw(); requestAnimationFrame(fxLoop); })();
+const setLegs = v => { snap(); clip().legs = v; save(); ui(); draw(); };
+$('legP').onclick = () => setLegs('pose'); $('legW').onclick = () => setLegs('walk');
+$('bWalkPrev').onclick = () => { walkPrev = !walkPrev; try { localStorage.setItem('posebench-walk', walkPrev ? '1' : '0'); } catch (e) {} ui(); draw(); };
 $('linkOn').onchange = e => { snap(); clip().from = e.target.checked ? $('linkSel').value || null : null; save(); pose = poseAt(fr); dirty = false; ui(); };
 $('linkSel').onchange = e => { if (!$('linkOn').checked) return; snap(); clip().from = e.target.value; save(); pose = poseAt(fr); dirty = false; ui(); };
 $('bLoop').onclick = () => { loop = !loop; ui(); }; $('bOnion').onclick = () => { onion = !onion; ui(); };
