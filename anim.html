@@ -113,6 +113,13 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <div class="row" style="margin-top:8px"><button id="bOrb" title="Show or hide the crackling lightning in his storm hand (a view setting, not saved in the animation)">Lightning in hand: off</button><button id="bIce" title="Show or hide the swirling ice ball in his ice hand (a view setting, not saved in the animation)">Ice ball in hand: off</button></div>
     </section>
     <section>
+      <h2>Pin a part</h2>
+      <p class="note" style="margin-bottom:6px">Holds one part exactly still between two frames (both included), whatever the curve would do.</p>
+      <div class="row" style="flex-wrap:wrap;gap:6px"><select id="pinPart" aria-label="Part to pin"></select><span class="note">from</span><input type="number" id="pinA" min="0" style="width:60px" aria-label="From frame"><span class="note">to</span><input type="number" id="pinB" min="0" style="width:60px" aria-label="To frame"></div>
+      <div class="row" style="margin-top:6px;gap:6px"><button id="pinSetA" title="Use the frame you're on as the start">Start = this frame</button><button id="pinSetB" title="Use the frame you're on as the end">End = this frame</button><button id="pinAdd" class="primary">Add pin</button></div>
+      <div id="pinList" style="margin-top:6px"></div>
+    </section>
+    <section>
       <h2>Twist</h2>
       <p class="note" style="margin-bottom:6px">Turn a part about its own length. Heads turn their faces, feet point toward or away from you, hands turn edge-on.</p>
       <div id="twBox"></div>
@@ -946,7 +953,7 @@ for (const c of clips) c.name = c.name.replace(/ \(game, facing (left|right)\)/,
 // the library animations are the ones the game uses: edit them directly (changes are saved over them here; 'Reset to the game's version' undoes that)
 const LIB = (typeof OG_LIB !== 'undefined' ? OG_LIB.folders : []).flatMap(F => F.clips.map(c => ({ id: 'lib:' + F.name + ':' + c.name, lib: 1, folder: 'Storm Ogre › ' + F.name, name: c.name, note: c.note, keys: c.keys })));
 const LIB0 = {}; for (const c of LIB) { LIB0[c.id] = JSON.stringify({ keys: c.keys }); const o = LIBO[c.id]; if (o) Object.assign(c, clone(o)); }
-const libChanged = c => c.lib && (JSON.stringify({ keys: c.keys }) !== LIB0[c.id] || c.legs === 'walk' || !!c.from);
+const libChanged = c => c.lib && (JSON.stringify({ keys: c.keys }) !== LIB0[c.id] || c.legs === 'walk' || !!c.from || !!(c.pins && c.pins.length));
 clips = clips.filter(c => !c.game && !c.lib).concat(LIB);
 ci = GI0 ? Math.max(0, clips.findIndex(c => c.id === GI0)) : 0; ci = Math.min(ci, clips.length - 1);
 // linking: an animation can start where another ends (clip.from = that one's id); its frame 0 is a locked copy of that one's last key
@@ -957,7 +964,7 @@ function relink() { for (const c of clips) { if (!c.from) continue; const src = 
   const last = src.keys.reduce((a, k) => k.fr > a.fr ? k : a), k0 = c.keys.find(k => k.fr === 0), P = clone(last.pose);
   if (k0) k0.pose = P; else { c.keys.push({ fr: 0, ease: 'smooth', pose: P }); c.keys.sort((a, b) => a.fr - b.fr); } } }
 relink();
-const save = () => { relink(); try { const own = clips.filter(c => !c.lib), lib = {}; for (const c of clips) if (libChanged(c)) lib[c.id] = { keys: c.keys, legs: c.legs, from: c.from }; localStorage.setItem('posebench2', JSON.stringify({ clips: own, lib, cur: clip() ? clip().id : null })); } catch (e) {} };
+const save = () => { relink(); try { const own = clips.filter(c => !c.lib), lib = {}; for (const c of clips) if (libChanged(c)) lib[c.id] = { keys: c.keys, legs: c.legs, from: c.from, pins: c.pins }; localStorage.setItem('posebench2', JSON.stringify({ clips: own, lib, cur: clip() ? clip().id : null })); } catch (e) {} };
 const clip = () => clips[ci], keys = () => clip().keys;
 const sortKeys = () => keys().sort((a, b) => a.fr - b.fr);
 const keyAt = fr => keys().find(k => k.fr === fr);
@@ -970,7 +977,15 @@ function undo() { if (!hist.length) return; clips[ci] = JSON.parse(hist.pop()); 
 // ---- interpolation ----
 const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
 const cr = (p0, p1, p2, p3, u) => 0.5 * (2 * p1 + (-p0 + p2) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u * u + (-p0 + 3 * p1 - 3 * p2 + p3) * u * u * u);
-function poseAt(t) { const K = keys(); if (!K.length) return idlePose(1); if (t <= K[0].fr) return clone(K[0].pose); if (t >= K[K.length - 1].fr) return clone(K[K.length - 1].pose);
+// pins (clip.pins = [{p, a, b}]): from frame a to frame b (both included) part p holds exactly what it is at frame a, whatever the curve does
+const PINP = { f0: 'Foot 0', f1: 'Foot 1', hA: 'Hand A', hB: 'Hand B', pel: 'Hips' };
+function pinApply(P, t) { for (const q of clip().pins || []) { if (t < q.a || t > q.b) continue; const S = poseRaw(q.a);
+    if (q.p === 'f0' || q.p === 'f1') { const i = +q.p[1]; P.feet = P.feet.slice(); P.feet[i] = S.feet[i].slice(); for (const k of ['fa', 'ff']) if (S[k] || P[k]) { P[k] = (P[k] || [0, 0]).slice(); P[k][i] = (S[k] || [0, 0])[i]; } if (S.tw || P.tw) { P.tw = clone(P.tw || {}); P.tw.F = (P.tw.F || [0, 0]).slice(); P.tw.F[i] = ((S.tw || {}).F || [0, 0])[i]; } }
+    else if (q.p === 'hA' || q.p === 'hB') { const sd = q.p[1]; P['h' + sd] = S['h' + sd].slice(); P['c' + sd] = S['c' + sd]; P['hf' + sd] = S['hf' + sd]; P['hb' + sd] = S['hb' + sd]; }
+    else if (q.p === 'pel') P.pel = S.pel.slice(); }
+  return P; }
+function poseAt(t) { return pinApply(poseRaw(t), t); }
+function poseRaw(t) { const K = keys(); if (!K.length) return idlePose(1); if (t <= K[0].fr) return clone(K[0].pose); if (t >= K[K.length - 1].fr) return clone(K[K.length - 1].pose);
   let i = 0; while (K[i + 1].fr <= t) i++; const a = K[i], b = K[i + 1], u = (t - a.fr) / (b.fr - a.fr), e = a.ease || 'smooth';
   if (e === 'hold') return clone(a.pose);
   const P = [K[Math.max(0, i - 1)].pose, a.pose, b.pose, K[Math.min(K.length - 1, i + 2)].pose], uu = e === 'ease' ? sm(u) : u;
@@ -1085,6 +1100,7 @@ let pend = false; function livePreview() { if (pend) return; pend = true; reques
 
 // ---- timeline ----
 const tlLen = () => Math.max(60, lastFr() + 12, fr + 6);
+const pinName = q => q.p === 'pel' ? 'Hips' : q.p[0] === 'f' ? cap(footName(+q.p[1])) + ' foot' : cap(nameOf(q.p[1]).replace(' arm', ' hand'));
 function drawTrack() { const W = tcv.width / DPR, H = tcv.height / DPR, L = tlLen(), X = f2 => 10 + f2 / L * (W - 20); tctx.setTransform(DPR, 0, 0, DPR, 0, 0); tctx.clearRect(0, 0, W, H);
   tctx.font = '10px ' + css('--mono'); tctx.fillStyle = css('--mute'); tctx.strokeStyle = css('--line'); tctx.textAlign = 'center';
   const st = L > 240 ? 30 : L > 120 ? 10 : 6; for (let f2 = 0; f2 <= L; f2++) { const x = X(f2); if (f2 % st === 0) { tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, 12); tctx.stroke(); tctx.fillText(f2, x, 22); } else if (L <= 120) { tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, 4); tctx.stroke(); } }
@@ -1096,6 +1112,7 @@ function drawTrack() { const W = tcv.width / DPR, H = tcv.height / DPR, L = tlLe
       tctx.beginPath(); tctx.roundRect ? tctx.roundRect(x - 6, y - 1, 12, 9, 2) : tctx.rect(x - 6, y - 1, 12, 9); tctx.fill(); tctx.fillStyle = css('--bg'); tctx.fillRect(x - 1, y + 2, 2, 3); tctx.restore(); continue; }
     tctx.fillStyle = sel ? css('--sel') : css('--key'); tctx.beginPath(); tctx.moveTo(x, y - 7); tctx.lineTo(x + 7, y); tctx.lineTo(x, y + 7); tctx.lineTo(x - 7, y); tctx.closePath(); tctx.fill();
     if (k.ease === 'hold') { tctx.strokeStyle = css('--mute'); tctx.setLineDash([2, 3]); tctx.beginPath(); tctx.moveTo(x + 8, y); tctx.lineTo(i < K.length - 1 ? X(K[i + 1].fr) - 8 : x + 8, y); tctx.stroke(); tctx.setLineDash([]); } }
+  (clip().pins || []).forEach((q, j) => { tctx.fillStyle = 'rgba(40,140,90,.55)'; tctx.fillRect(X(q.a) - 3, 48 + (j % 2) * 3, X(q.b) - X(q.a) + 6, 3); });
   const x = X(fr); tctx.strokeStyle = css('--accent'); tctx.lineWidth = 2; tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, H); tctx.stroke(); tctx.lineWidth = 1;
   { const xb = X(fr) / (W) * 100; $('scrubB').style.left = 'calc(' + (X(fr)) + 'px)'; } }
 let tdrag = null;
@@ -1134,6 +1151,8 @@ function ui() {
   { const W = legWalk(); $('legP').classList.toggle('on', !W); $('legW').classList.toggle('on', W); $('walkRow').style.display = W ? '' : 'none'; $('bWalkPrev').textContent = 'Preview: ' + (walkPrev ? 'walking' : 'standing'); }
   for (const s2 of ['A', 'B']) { $('xf' + s2).textContent = 'Flip ' + nameOf(s2).replace(' arm', ' hand'); $('xf' + s2).classList.toggle('on', !!pose['hf' + s2]); $('bk' + s2).textContent = cap(nameOf(s2).replace(' arm', ' hand')) + ': ' + (pose['hb' + s2] ? 'back' : 'palm') + ' showing'; $('bk' + s2).classList.toggle('on', !!pose['hb' + s2]); }
   for (const i of [0, 1]) { $('xf' + i).textContent = 'Flip ' + footName(i) + ' foot'; $('xf' + i).classList.toggle('on', !!(pose.ff || [])[i]); $('xh' + i).classList.toggle('on', !!(pose.hfl || [])[i]); }
+  { const opts = ['f0', 'f1', 'hA', 'hB', 'pel'].map(p => `<option value="${p}">${pinName({ p })}</option>`).join(''), ps = $('pinPart'); if (ps.dataset.h !== opts) { const v = ps.value; ps.innerHTML = opts; ps.dataset.h = opts; if (v) ps.value = v; }
+    const L = (clip().pins || []).map((q, j) => `<div class="row" style="gap:6px;align-items:center;margin-top:3px"><span class="note">📌 ${pinName(q)}: frames ${q.a}–${q.b}${q.a <= fr && fr <= q.b ? ' (holding here)' : ''}</span><button data-pin="${j}" class="danger" style="padding:2px 8px">Remove</button></div>`).join(''); if ($('pinList').innerHTML !== L) $('pinList').innerHTML = L; }
   TWS.forEach((q, j) => { $('twn' + j).textContent = twName(q); const v = twGet(pose, q); if (document.activeElement !== $('tw' + j)) $('tw' + j).value = v; $('two' + j).textContent = v.toFixed(2); });
   $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('bIce').textContent = 'Ice ball in hand: ' + (iceOn ? 'on' : 'off'); $('bIce').classList.toggle('on', iceOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
@@ -1187,6 +1206,11 @@ $('bWalkPrev').onclick = () => { walkPrev = !walkPrev; try { localStorage.setIte
 const setView = v => { if (locked()) { lockMsg(); return; } pose.view = v; if (v && !pose.bk) pose.bk = clone(backDef(pose.f)); edited(); };
 $('vF').onclick = () => setView(0); $('vB').onclick = () => setView(1);
 // turning the link on adds the locked key in front of the animation (every key moves back a frame); turning it off takes that key out and moves them all up again
+// pins
+$('pinSetA').onclick = () => { $('pinA').value = fr; }; $('pinSetB').onclick = () => { $('pinB').value = fr; };
+$('pinAdd').onclick = () => { let a = Math.round(+$('pinA').value), b = Math.round(+$('pinB').value); if (!Number.isFinite(a) || !Number.isFinite(b) || $('pinA').value === '' || $('pinB').value === '') return; if (b < a) [a, b] = [b, a]; if (b === a) return;
+  snap(); const c = clip(); c.pins = (c.pins || []).concat([{ p: $('pinPart').value, a, b }]); save(); pose = dirty ? pose : poseAt(fr); ui(); draw(); };
+$('pinList').addEventListener('click', e => { const j = e.target.dataset && e.target.dataset.pin; if (j === undefined) return; snap(); const c = clip(); c.pins = c.pins.filter((q, i) => i !== +j); if (!c.pins.length) delete c.pins; save(); if (!dirty) pose = poseAt(fr); ui(); draw(); });
 $('linkOn').onchange = e => { if (clip().game) { e.target.checked = false; lockMsg(); return; } snap(); const c = clip(), was = !!linkSrc(c), on = e.target.checked && !!$('linkSel').value;
   if (on && !was) { for (const k of c.keys) k.fr += 1; c.from = $('linkSel').value; }
   else if (!on && was) { c.from = null; c.keys = c.keys.filter(k => k.fr !== 0); for (const k of c.keys) k.fr -= 1; if (!c.keys.length) c.keys.push({ fr: 0, ease: 'smooth', pose: idlePose(1) }); }
@@ -1195,7 +1219,7 @@ $('linkSel').onchange = e => { if (!$('linkOn').checked) return; snap(); clip().
 $('bLoop').onclick = () => { loop = !loop; ui(); }; $('bOnion').onclick = () => { onion = !onion; ui(); };
 $('clipSel').onchange = e => { stop(); const to = +e.target.value; const go = () => { ci = to; hist.length = 0; save(); dirty = false; setFr(0, true); }; if (pending()) { e.target.value = ci; ask(go); } else go(); };
 $('bReset').onclick = () => { const c = clip(); if (!c.lib) return; const b = $('bReset'); if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Tap again to throw away your changes'; setTimeout(() => { b.dataset.sure = ''; b.textContent = "Reset to the game's version"; }, 2500); return; }
-  b.dataset.sure = ''; b.textContent = "Reset to the game's version"; snap(); const o = JSON.parse(LIB0[c.id]); c.keys = o.keys; delete c.legs; delete c.from; save(); dirty = false; setFr(0, true); };
+  b.dataset.sure = ''; b.textContent = "Reset to the game's version"; snap(); const o = JSON.parse(LIB0[c.id]); c.keys = o.keys; delete c.legs; delete c.from; delete c.pins; save(); dirty = false; setFr(0, true); };
 $('clipFolder').addEventListener('change', e => { if (clip().lib) return; clip().folder = e.target.value.trim() || undefined; save(); ui(); });
 $('clipName').addEventListener('input', e => { clip().name = e.target.value || 'Untitled'; save(); ui(); });
 // Restore key: the key at this frame in the saved original (a library animation's game version, or an own animation as it was when made;
