@@ -55,6 +55,10 @@ input[type=number] { width: 64px; font-family: var(--mono); }
 textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; }
 .note { font-size: 12px; color: var(--mute); margin: 0; }
 .confirm { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+#saveQ { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; z-index: 50; }
+#saveQ.on { display: flex; }
+#saveQ .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; max-width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+#saveQ h3 { margin: 0 0 6px; font-size: 17px; } #saveQ p { margin: 0 0 14px; font-size: 13px; color: var(--mute); } #saveQ .row { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
 </style>
 
 <div class="top">
@@ -126,6 +130,8 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
     </section>
   </div>
 </div>
+
+<div id="saveQ" role="dialog" aria-modal="true" aria-labelledby="saveQt"><div class="box"><h3 id="saveQt">Save key?</h3><p id="saveQm"></p><div class="row"><button id="sqCancel">Stay here</button><button id="sqDrop" class="danger">Don't save</button><button id="sqSave" class="primary">Save key</button></div></div></div>
 
 <script>
 const cl = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, k) => a + (b - a) * k, sm = k => k * k * (3 - 2 * k);
@@ -518,7 +524,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
         const sp = new Path2D(); addSmooth(sp, Q); c.strokeStyle = OUT; c.lineWidth = 0.17 * OLW; c.lineJoin = 'round'; c.stroke(sp); c.restore(); });
       // tendons fanning from the wrist to each knuckle, then the knuckles themselves: lit bumps, bigger and sharper as the fist closes
       c.strokeStyle = 'rgba(20,12,40,.22)'; c.lineWidth = 0.09; c.lineCap = 'round'; for (const v of [-0.475, 0.475]) { c.beginPath(); c.moveTo(...HQ(-0.7, v * 0.35)); c.quadraticCurveTo(...HQ(0.1, v * 0.8), ...HQ(0.6, v)); c.stroke(); }
-      for (const v of [-0.475, 0.475]) { const kc = HQ(0.8 + 0.08 * cw, v), r = 0.36 + 0.12 * cw; c.fillStyle = 'rgba(255,255,255,' + (0.18 + 0.14 * cw) + ')'; c.beginPath(); c.ellipse(kc[0], kc[1], r, r * 0.78, fa, 0, 7); c.fill(); }
+      
       for (const q of late) q(); }
     else {
     const handParts = [], nails = [], creases = [];
@@ -967,7 +973,12 @@ function poseAt(t) { const K = keys(); if (!K.length) return idlePose(1); if (t 
 // ---- state ----
 let fr = 0, pose = poseAt(0), dirty = false, playing = false, loop = true, onion = true, pt = 0, last = 0, rig = null;
 const onKey = () => !!keyAt(fr);
-function setFr(n) { fr = Math.max(0, Math.round(n)); pose = poseAt(fr); dirty = false; ui(); }
+// leaving a frame with an unsaved pose asks first (Save key / Don't save / Stay here); force skips the question (used after the pose is dealt with)
+let askNext = null;
+function ask(next) { if (askNext) return; askNext = next; tdrag = null; stop(); $('saveQm').textContent = 'You changed the pose on frame ' + fr + ' and haven\'t saved it. Save it as a key before you leave this frame?'; $('saveQ').classList.add('on'); $('sqSave').focus(); }
+const askEnd = go => { const n = askNext; askNext = null; $('saveQ').classList.remove('on'); if (go && n) n(); };
+const pending = () => dirty && !locked() && !(clip() && clip().game);
+function setFr(n, force) { n = Math.max(0, Math.round(n)); if (!force && n !== fr && pending()) { ask(() => setFr(n, true)); return; } fr = n; pose = poseAt(fr); dirty = false; ui(); }
 const locked = () => fr === 0 && !!linkSrc(clip());
 let lockMsgT = 0; const lockMsg = () => { lockMsgT = performance.now(); stat(); };
 // a changed pose is only kept when Save key is pressed (it then replaces the key at this frame, or adds one)
@@ -1087,7 +1098,7 @@ $('track').addEventListener('pointerup', () => { tdrag = null; });
 // ---- playback ----
 function tick(ts) { if (!playing) return; const dt = Math.min(0.1, (ts - (last || ts)) / 1000); last = ts; pt += dt * FPS * +$('spd').value; const L = lastFr();
   if (pt > L) { if (loop && L > 0) pt %= L; else { pt = L; playing = false; } } fr = Math.floor(pt); pose = poseAt(pt); dirty = false; ui(); if (playing) requestAnimationFrame(tick); }
-function play() { if (lastFr() <= 0) return; playing = true; pt = fr >= lastFr() ? 0 : fr; last = 0; requestAnimationFrame(tick); ui(); }
+function play() { if (lastFr() <= 0) return; if (pending()) { ask(play); return; } playing = true; pt = fr >= lastFr() ? 0 : fr; last = 0; requestAnimationFrame(tick); ui(); }
 function stop() { if (!playing) return; playing = false; pose = poseAt(fr); ui(); }
 
 // ---- inspector ----
@@ -1131,6 +1142,10 @@ function grouped(list, val) { const G = new Map(); for (const c of list) { const
   return order.map(k => `<optgroup label="${esc(k)}">` + G.get(k).map(c => `<option value="${val(c)}">${esc(c.name)}</option>`).join('') + '</optgroup>').join(''); }
 function snapshot() { if (clip().game) { lockMsg(); return; } if (locked()) { lockMsg(); return; } const k0 = keyAt(fr); if (k0 && !dirty) return; snap(); if (k0) k0.pose = clone(pose); else keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); save(); dirty = false; const st = +$('step').value || 0; if (st) { const k0 = clone(pose); fr += st; const k = keyAt(fr); pose = k ? clone(k.pose) : k0; dirty = !k; } ui(); }
 $('bSnap').onclick = snapshot;
+// Save key from the question: saves at this frame without jumping ahead, then carries on to wherever you were going
+$('sqSave').onclick = () => { const k0 = keyAt(fr); snap(); if (k0) k0.pose = clone(pose); else { keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); } save(); dirty = false; askEnd(true); };
+$('sqDrop').onclick = () => { dirty = false; askEnd(true); }; $('sqCancel').onclick = () => askEnd(false);
+$('saveQ').addEventListener('pointerdown', e => { if (e.target.id === 'saveQ') askEnd(false); });
 $('bDel').onclick = () => { const k = keyAt(fr); if (!k || keys().length < 2) return; if (locked()) { lockMsg(); return; } snap(); clip().keys = keys().filter(q => q !== k); pose = poseAt(fr); save(); ui(); };
 $('bUndo').onclick = undo;
 $('ease').onchange = e => { if (clip().game) { lockMsg(); ui(); return; } const seg = [...keys()].reverse().find(k => k.fr <= fr); if (!seg) return; snap(); seg.ease = e.target.value; pose = poseAt(fr); save(); ui(); };
@@ -1150,12 +1165,12 @@ $('vF').onclick = () => setView(0); $('vB').onclick = () => setView(1);
 $('linkOn').onchange = e => { if (clip().game) { e.target.checked = false; lockMsg(); return; } snap(); const c = clip(), was = !!linkSrc(c), on = e.target.checked && !!$('linkSel').value;
   if (on && !was) { for (const k of c.keys) k.fr += 1; c.from = $('linkSel').value; }
   else if (!on && was) { c.from = null; c.keys = c.keys.filter(k => k.fr !== 0); for (const k of c.keys) k.fr -= 1; if (!c.keys.length) c.keys.push({ fr: 0, ease: 'smooth', pose: idlePose(1) }); }
-  save(); setFr(on && !was ? fr + 1 : !on && was ? Math.max(0, fr - 1) : fr); };
+  save(); dirty = false; setFr(on && !was ? fr + 1 : !on && was ? Math.max(0, fr - 1) : fr, true); };
 $('linkSel').onchange = e => { if (!$('linkOn').checked) return; snap(); clip().from = e.target.value; save(); pose = poseAt(fr); dirty = false; ui(); };
 $('bLoop').onclick = () => { loop = !loop; ui(); }; $('bOnion').onclick = () => { onion = !onion; ui(); };
-$('clipSel').onchange = e => { stop(); ci = +e.target.value; hist.length = 0; save(); setFr(0); };
+$('clipSel').onchange = e => { stop(); const to = +e.target.value; const go = () => { ci = to; hist.length = 0; save(); dirty = false; setFr(0, true); }; if (pending()) { e.target.value = ci; ask(go); } else go(); };
 $('bReset').onclick = () => { const c = clip(); if (!c.lib) return; const b = $('bReset'); if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Tap again to throw away your changes'; setTimeout(() => { b.dataset.sure = ''; b.textContent = "Reset to the game's version"; }, 2500); return; }
-  b.dataset.sure = ''; b.textContent = "Reset to the game's version"; snap(); const o = JSON.parse(LIB0[c.id]); c.keys = o.keys; delete c.legs; delete c.from; save(); setFr(0); };
+  b.dataset.sure = ''; b.textContent = "Reset to the game's version"; snap(); const o = JSON.parse(LIB0[c.id]); c.keys = o.keys; delete c.legs; delete c.from; save(); dirty = false; setFr(0, true); };
 $('clipFolder').addEventListener('change', e => { if (clip().lib) return; clip().folder = e.target.value.trim() || undefined; save(); ui(); });
 $('clipName').addEventListener('input', e => { clip().name = e.target.value || 'Untitled'; save(); ui(); });
 // Restore key: the key at this frame in the saved original (a library animation's game version, or an own animation as it was when made;
@@ -1163,12 +1178,12 @@ $('clipName').addEventListener('input', e => { clip().name = e.target.value || '
 const LIBK = {};
 const origKey = () => { const c = clip(), K = c.lib ? (LIBK[c.id] || (LIBK[c.id] = JSON.parse(LIB0[c.id]).keys)) : c.orig; if (!K) return null; const f0 = fr - (linkSrc(c) ? 1 : 0); return f0 >= 0 ? K.find(k => k.fr === f0) || null : null; };
 $('bRestore').onclick = () => { const o = origKey(); if (!o || locked()) return; snap(); const k = keyAt(fr), n = { fr, ease: o.ease || 'smooth', pose: clone(o.pose) }; if (k) Object.assign(k, n); else { keys().push(n); sortKeys(); } save(); setFr(fr); };
-const addClip = c => { c.id = rid(); c.orig = c.orig || clone(c.keys); clips.push(c); ci = clips.length - 1; hist.length = 0; save(); setFr(0); };
+const addClip = c => { const go = () => { c.id = rid(); c.orig = c.orig || clone(c.keys); clips.push(c); ci = clips.length - 1; hist.length = 0; save(); dirty = false; setFr(0, true); }; if (pending()) ask(go); else go(); };
 $('bNew').onclick = () => addClip(blank('New clip ' + (clips.length + 1)));
 $('bDup').onclick = () => { const c = clone(clip()); delete c.orig; delete c.game; delete c.lib; if (clip().lib) { delete c.folder; delete c.note; } { const base = clip().lib ? 'My ' + clip().name.toLowerCase() : c.name + ' copy'; let nm = base, i = 2; while (clips.some(q => q.name === nm)) nm = base + ' ' + i++; c.name = nm; } addClip(c); };
 const freshCopy = k2 => { const g = gameClip(k2); let i = 2; while (clips.some(c => c.name === g.name + ' ' + i)) i++; g.name += ' ' + i; addClip(g); };
 
-function bindDel() { $('bDelClip').onclick = () => { const r = $('delRow'); r.innerHTML = '<span class="confirm">Delete “' + clip().name.replace(/</g, '&lt;') + '”? <button id="dYes" class="danger">Delete</button><button id="dNo">Keep</button></span>'; $('dNo').onclick = () => { $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete this animation</button>'; bindDel(); }; $('dYes').onclick = () => { clips.splice(ci, 1); if (!clips.length) clips.push(blank('New clip')); ci = Math.min(ci, clips.length - 1); hist.length = 0; save(); $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete this animation</button>'; bindDel(); setFr(0); }; }; }
+function bindDel() { $('bDelClip').onclick = () => { const r = $('delRow'); r.innerHTML = '<span class="confirm">Delete “' + clip().name.replace(/</g, '&lt;') + '”? <button id="dYes" class="danger">Delete</button><button id="dNo">Keep</button></span>'; $('dNo').onclick = () => { $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete this animation</button>'; bindDel(); }; $('dYes').onclick = () => { clips.splice(ci, 1); if (!clips.length) clips.push(blank('New clip')); ci = Math.min(ci, clips.length - 1); hist.length = 0; save(); $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete this animation</button>'; bindDel(); dirty = false, setFr(0, true); }; }; }
 bindDel();
 const clipJSON = () => { const r = q => Array.isArray(q) ? q.map(r) : typeof q === 'number' ? Math.round(q * 1000) / 1000 : q && typeof q === 'object' ? Object.fromEntries(Object.entries(q).map(([k, v]) => [k, r(v)])) : q; return JSON.stringify({ posebench: 1, fps: FPS, ...r(clip()) }); };
 $('bCopy').onclick = () => { const s = clipJSON(); $('io').value = s; const ok = () => { $('copyMsg').textContent = 'Copied'; setTimeout(() => $('copyMsg').textContent = '', 1600); };

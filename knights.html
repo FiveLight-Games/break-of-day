@@ -3421,7 +3421,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
         const sp = new Path2D(); addSmooth(sp, Q); c.strokeStyle = OUT; c.lineWidth = 0.17 * OLW; c.lineJoin = 'round'; c.stroke(sp); c.restore(); });
       // tendons fanning from the wrist to each knuckle, then the knuckles themselves: lit bumps, bigger and sharper as the fist closes
       c.strokeStyle = 'rgba(20,12,40,.22)'; c.lineWidth = 0.09; c.lineCap = 'round'; for (const v of [-0.475, 0.475]) { c.beginPath(); c.moveTo(...HQ(-0.7, v * 0.35)); c.quadraticCurveTo(...HQ(0.1, v * 0.8), ...HQ(0.6, v)); c.stroke(); }
-      for (const v of [-0.475, 0.475]) { const kc = HQ(0.8 + 0.08 * cw, v), r = 0.36 + 0.12 * cw; c.fillStyle = 'rgba(255,255,255,' + (0.18 + 0.14 * cw) + ')'; c.beginPath(); c.ellipse(kc[0], kc[1], r, r * 0.78, fa, 0, 7); c.fill(); }
+      
       for (const q of late) q(); }
     else {
     const handParts = [], nails = [], creases = [];
@@ -8546,7 +8546,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '417baf';
+const KBUILD = '8ce4b5';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }

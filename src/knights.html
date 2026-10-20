@@ -3421,7 +3421,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
         const sp = new Path2D(); addSmooth(sp, Q); c.strokeStyle = OUT; c.lineWidth = 0.17 * OLW; c.lineJoin = 'round'; c.stroke(sp); c.restore(); });
       // tendons fanning from the wrist to each knuckle, then the knuckles themselves: lit bumps, bigger and sharper as the fist closes
       c.strokeStyle = 'rgba(20,12,40,.22)'; c.lineWidth = 0.09; c.lineCap = 'round'; for (const v of [-0.475, 0.475]) { c.beginPath(); c.moveTo(...HQ(-0.7, v * 0.35)); c.quadraticCurveTo(...HQ(0.1, v * 0.8), ...HQ(0.6, v)); c.stroke(); }
-      for (const v of [-0.475, 0.475]) { const kc = HQ(0.8 + 0.08 * cw, v), r = 0.36 + 0.12 * cw; c.fillStyle = 'rgba(255,255,255,' + (0.18 + 0.14 * cw) + ')'; c.beginPath(); c.ellipse(kc[0], kc[1], r, r * 0.78, fa, 0, 7); c.fill(); }
+      
       for (const q of late) q(); }
     else {
     const handParts = [], nails = [], creases = [];
