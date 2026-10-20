@@ -3206,7 +3206,8 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   const LEG = 4.55, LL = LEG * 2, SOFT = LL * 0.975, px = f * (0.15 + w * GAIT.RUN * 0.35 * LS);
   // standing tall (legs almost straight) unless a leg needs the hips lower to reach its foot: then they dip just enough (straight-legged walk, hips lowest at full stride)
   let py = -8.2 - (4.55 - 3.95) * 2 - 0.25 + bob * 0.3 + Math.sin(t * 1.7) * 0.05; [1, -1].forEach((s2, i) => { const dx = feet[i][0] - (px + f * s2 * 1.9), ay = feet[i][1] - 0.95, R = LL * 0.972; py = Math.max(py, ay - Math.sqrt(Math.max(0, R * R - dx * dx)) + 0.3); });
-  const RG = opts.rig, RW = RG && RG.walk, pel = RG && !RW ? RG.pel.slice() : [px, py + cr + (RW ? RW.dy || 0 : 0)], lean = RG ? RG.lean : 0.05 + SV * (0.16 + Math.sin(t * 2.3) * 0.04) + w * GAIT.RUN * 0.28 + k * (AT === 1 || HK ? 0.24 : 0.36) - wind * 0.14 + b * 0.05 + (HKo ? HKo.ln : 0) + (opts.lnx || 0);
+  // game: RG.lw 0..1 hands a posed rig's legs over to the walking gait (eased by the caller): 0 = the rig's own stance, 1 = walking legs under the rig's hips (its lunge and crouch kept); RG.py0 = the rig's standing pelvis height
+  const RG = opts.rig, RW = RG && RG.walk, LW = RG && !RW && typeof RG.lw === 'number' ? cl(RG.lw, 0, 1) : 0, LDX = LW > 0 ? RG.pel[0] - 0.15 : 0, pel = RG && !RW ? (LW > 0 ? [lerp(RG.pel[0], px + LDX, LW), lerp(RG.pel[1], py + cr + RG.pel[1] - (RG.py0 ?? -9.47), LW)] : RG.pel.slice()) : [px, py + cr + (RW ? RW.dy || 0 : 0)], lean = RG ? RG.lean : 0.05 + SV * (0.16 + Math.sin(t * 2.3) * 0.04) + w * GAIT.RUN * 0.28 + k * (AT === 1 || HK ? 0.24 : 0.36) - wind * 0.14 + b * 0.05 + (HKo ? HKo.ln : 0) + (opts.lnx || 0);
   // game: opts.yaw turns his upper body round its spine (+ brings the facing-side shoulder A toward the camera, - brings B): the body narrows as it turns side-on and the shoulder coming round drops nearer
   const YW = RG ? RG.yaw : opts.yaw || 0, YS = Math.max(RG ? RG.yf ?? 0.42 : opts.hk && opts.hk.yf || 0.55, Math.abs(Math.cos(YW)));
   // the turn eases in up the body: the hips turn only a little (YH), so the waist stays wide enough to take in the tops of the thighs
@@ -3214,11 +3215,11 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   const hips = [1, -1].map(s => [pel[0] + f * s * 1.9 * YH, pel[1] - 0.3]); // the pelvis stays level; only the body above it leans
   // game/anim suite: a posed rig (opts.rig) places the feet, knees, hands and elbows and picks the draw order itself
   // a posed rig with walk set (anim suite: 'legs walk with the player') keeps the game's gait for the legs; the pelvis only takes the rig's crouch (walk.dy)
-  if (RG && !RW) for (let i = 0; i < 2; i++) feet[i] = RG.feet[i].slice();
+  if (RG && !RW) for (let i = 0; i < 2; i++) feet[i] = LW > 0 ? [lerp(RG.feet[i][0], feet[i][0] + LDX, LW), lerp(RG.feet[i][1], feet[i][1], LW)] : RG.feet[i].slice();
   const ankles = hips.map((h, i) => { const a = [feet[i][0], feet[i][1] - 0.95], dx = a[0] - h[0], dy = a[1] - h[1], d = Math.hypot(dx, dy) || 1;
     if (d <= SOFT) return a; const ds = SOFT + (LL * 0.985 - SOFT) * (1 - Math.exp(-(d - SOFT) / (LL * 0.985 - SOFT))); return [h[0] + dx / d * ds, h[1] + dy / d * ds]; });
   for (let i = 0; i < 2; i++) feet[i] = [ankles[i][0], ankles[i][1] + 0.95];
-  const knees = hips.map((h, i) => ik(h, ankles[i], LEG, LEG, RG && !RW ? RG.kn[i] : f > 0 ? -1 : 1));
+  const knees = hips.map((h, i) => ik(h, ankles[i], LEG, LEG, RG && !RW && LW < 0.5 ? RG.kn[i] : f > 0 ? -1 : 1));
   const twk = HKo ? HKo.tw : u < 0 ? 0 : u < 0.25 ? sm(u / 0.25) : u < 0.55 ? 1 : 1 - sm((u - 0.55) / 0.45);
   const tw = Math.sin(ph) * 0.25 * w, iX = -0.45 * f, iY = 0.35, shA = T([4.15 - 0.9 * twk + tw * 0.55 + (SF ? 0 : iX), -7.9 + 0.2 * twk - tw * 0.3 + (SF ? 0 : iY)]), shB = T([-4.0 + 1.3 * twk + tw * 0.55 + (SF ? iX : 0), -7.7 + 0.3 * twk + tw * 0.3 + (SF ? iY : 0)]); if (YW) { shA[1] += Math.sin(YW) * 1.4; shB[1] -= Math.sin(YW) * 1.4; } // the frost shoulder sits a little further out to screen-left and lower
   const rear = bk >= 0 && bk < 0.2 ? Math.sin(Math.PI * bk / 0.2) : 0;
@@ -3268,7 +3269,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
     // lower leg and foot as one shape: the calf runs down into the heel, its back edge dropping straight down into the back of the foot
     { const dx = ank[0] - kn[0], dy = ank[1] - kn[1], dl = Math.hypot(dx, dy) || 1; let n = [-dy / dl, dx / dl]; if (n[0] * f < 0) n = [-n[0], -n[1]];
       // a posed rig (anim suite) can turn each foot round its ankle: RG.fa[i] in radians, + lifts the toes whichever way he faces
-      const fFl = RG && RG.ff && RG.ff[i] && !RW ? -1 : 1, fRo = RG && RG.fa && !RW ? -f * fFl * (RG.fa[i] || 0) : 0, fC = Math.cos(fRo), fS = Math.sin(fRo);
+      const fFl = RG && RG.ff && RG.ff[i] && !RW && LW < 0.5 ? -1 : 1, fRo = RG && RG.fa && !RW ? -f * fFl * (RG.fa[i] || 0) * (1 - LW) : 0, fC = Math.cos(fRo), fS = Math.sin(fRo);
       const N = (p, v) => [p[0] + n[0] * v, p[1] + n[1] * v], F2 = (x, y) => { const qx = f * fFl * x * Math.max(0.35, Math.cos(twv('F', i))), qy = y + 0.95; return [ank[0] + (qx * fC - qy * fS) * sqv('F', i), ank[1] + qx * fS + qy * fC]; }, mid = L2(kn, ank, 0.42);
       const aT = [ank[0], ft[1] - 1.75], P = [N(kn, 1.5), N(mid, 1.3), N(aT, 1.1), F2(1.35, -1.4), F2(1.95, -1.05), F2(2.35, -0.4), F2(2.15, 0.05), F2(0.4, 0.08), F2(-1.15, 0.08), F2(-1.35, -0.3), F2(-1.35, -0.95), N(aT, -1.3), N(mid, -1.65), N(kn, -1.55)]; // the ankle follows the shin's angle, so it never kinks
       cel(c, P, sk, { d: 0.2, noStroke: 1 });
@@ -3371,10 +3372,10 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   const weaponOf = (ar, h) => { if (!WPN) return; const a = scrA(wpA(ar)), isHam = ar === iceArm; if (isHam) hammer(h, a, iL); else sword(h, a, zL); };
   // twist (a posed rig's RG.tw = {L: [leg 0, leg 1], F: [foot 0, foot 1], H: [ice head, storm head], A, B (arms), hA, hB (hands)}, radians):
   // a part turned about its own length narrows across it (heads turn their faces, feet foreshorten toward/away from the camera)
-  const TW = RG && RG.tw && !RW ? RG.tw : null, twv = (g, i) => TW && TW[g] ? (i === undefined ? TW[g] : TW[g][i]) || 0 : 0;
+  const TW = RG && RG.tw && !RW ? RG.tw : null, twv = (g, i) => (TW && TW[g] ? (i === undefined ? TW[g] : TW[g][i]) || 0 : 0) * (g === 'L' || g === 'F' ? 1 - LW : 1);
   const squash = (o, ang, k, fn) => { if (Math.abs(k - 1) < 1e-3) return fn(); c.save(); c.translate(o[0], o[1]); c.rotate(ang); c.scale(1, k); c.rotate(-ang); c.translate(-o[0], -o[1]); const r = fn(); c.restore(); return r; };
   // squeeze (RG.sq, same keys as tw, 1 = as drawn): a part scaled side to side on screen, always horizontally, round its own anchor (shoulder, hip, ankle, hand, head)
-  const SQ = RG && RG.sq && !RW ? RG.sq : null, sqv = (g, i) => { const v = SQ && SQ[g] !== undefined ? (i === undefined ? SQ[g] : SQ[g][i]) : 1; return v === undefined || v === null ? 1 : v; };
+  const SQ = RG && RG.sq && !RW ? RG.sq : null, sqv = (g, i) => { const v = SQ && SQ[g] !== undefined ? (i === undefined ? SQ[g] : SQ[g][i]) : 1; return v === undefined || v === null ? 1 : g === 'L' || g === 'F' ? lerp(v, 1, LW) : v; };
   const hsq = (o, k, fn) => { if (Math.abs(k - 1) < 1e-3) return fn(); c.save(); c.translate(o[0], 0); c.scale(k, 1); c.translate(-o[0], 0); const r = fn(); c.restore(); return r; };
   const arm = (s, h, sk, side, ice) => gp(side, () => { c.save(); const r = arm0(s, h, sk, side, ice); c.restore(); return r; });
   const arm0 = (s, h, sk, side, ice) => { const e = (() => { const e1 = ik(s, h, 3.5, 3.5, 1), e2 = ik(s, h, 3.5, 3.5, -1); if (RG) return side === 'A' ? (RG.eA > 0 ? e1 : e2) : (RG.eB > 0 ? e1 : e2); if (HKo && HKo.gFlip && side === (HKo.arm ? 'A' : 'B')) return e1[1] > e2[1] ? e1 : e2; if (HKo && HKo.bs && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const cz = q => (h[0] - s[0]) * (q[1] - s[1]) - (h[1] - s[1]) * (q[0] - s[0]); return cz(e1) * f * HKo.bs >= 0 ? e1 : e2; } if (HKo && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const C0 = [pel[0], pel[1] - 7.3], d1 = Math.hypot(e1[0] - C0[0], (e1[1] - C0[1]) * 1.6), d2 = Math.hypot(e2[0] - C0[0], (e2[1] - C0[1]) * 1.6); return d1 > d2 ? e1 : e2; } return f * e1[0] < f * e2[0] ? e1 : e2; })(), dx = h[0] - e[0], dy = h[1] - e[1], dl = Math.hypot(dx, dy) || 1, d = [dx / dl, dy / dl], n = [-d[1], d[0]], fa0 = Math.atan2(dy, dx);
@@ -3598,7 +3599,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   if (RG ? !RG.bF : hkB && !HKo.front) armB();
   if (opts.outRig) opts.outRig.ord.push('T');
   const legT = (i, sk2, ic) => hsq(hips[i], sqv('L', i), () => squash(hips[i], Math.atan2(feet[i][1] - hips[i][1], feet[i][0] - hips[i][0]), 1 - 0.4 * Math.abs(Math.sin(twv('L', i))), () => leg(i, sk2, ic)));
-  torso(); torsoDone = 1; if (RG && RG.ls && !RW) { legT(1, SF ? IS : SS, SF); legT(0, SF ? SS : IS, !SF); } else { legT(0, SF ? SS : IS, !SF); legT(1, SF ? IS : SS, SF); } loin();
+  torso(); torsoDone = 1; if (RG && RG.ls && !RW && LW < 0.5) { legT(1, SF ? IS : SS, SF); legT(0, SF ? SS : IS, !SF); } else { legT(0, SF ? SS : IS, !SF); legT(1, SF ? IS : SS, SF); } loin();
   if (RG ? RG.aF === 1 : !hkA && (!aLow || gFront) && !guardBehind) armA();
   if (opts.outRig) opts.outRig.ord.push('H');
   // a posed rig can flip each foot (RG.ff[i]: toes the other way), the thumb side of each hand (RG.hfA/hfB) and each head (RG.hfl [ice, storm]: looks the other way)
@@ -4075,7 +4076,8 @@ function drawStormOgre(c, t) { if (!Number.isFinite(K.ogPh)) K.ogPh = 0; const D
   if (D && D.t < G.BUILD) { bk = Math.min(0.79, D.t / G.BUILD * 0.8); fb = 'ice'; const m = drgPos(D, drgS0() * (0.2 + 0.6 * D.t / G.BUILD)); aimTo = [(m.x - K.x) / OGSC, (m.y - K.y) / OGSC]; }
   else if (D && D.t < G.BUILD + G.STRIKE) { bk = Math.min(0.79, 0.3 + (D.t - G.BUILD) / G.STRIKE * 0.5); fb = 'zap'; aimTo = [f * 3, -60]; }
   const foes = []; for (const id of K.ogZ || []) { const w2 = walkers.find(q => q.id === id); if (w2) foes.push({ id, zap: 1, x: (w2.x - K.x) / OGSC, y: (w2.y - K.y - 6) / OGSC }); }
-  const CR = ogClipRig(K), hk0 = !CR && K.ou >= 0 && !K.ouS && K.ouK < 2 && !(K.ogR >= 0) ? ogHookPose(K, K.ou) : null;
+  const CR = ogClipRig(K); { K.ogLW = lerp(K.ogLW || 0, CR && w > 0.08 ? 1 : 0, 1 - Math.exp(-dt * 10)); if (CR) { CR.lw = K.ogLW; CR.py0 = OGCLIP.storm.frames[0].pel[1]; } }
+  const hk0 = !CR && K.ou >= 0 && !K.ouS && K.ouK < 2 && !(K.ogR >= 0) ? ogHookPose(K, K.ou) : null;
   // the storm hammer (ult): its pose is eased every frame (fast through a strike, so it never lags the hit), both hands on the haft, drawn behind him while its head is round his far side
   // the frost swirl in his ice hand only shows while he winds up a frost hook or holds the storm hammer (eased in and out)
   { const want = (K.ou >= 0 && !K.ouS && K.ouK === 0 && K.ou < OGHK.F) || K.ogR >= 0 ? 1 : 0; K.iSwV = lerp(K.iSwV || 0, want, 1 - Math.exp(-dt * 10)); }
