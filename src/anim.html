@@ -362,7 +362,10 @@ function drawTrack() { const W = tcv.width / DPR, H = tcv.height / DPR, L = tlLe
       tctx.beginPath(); tctx.roundRect ? tctx.roundRect(x - 6, y - 1, 12, 9, 2) : tctx.rect(x - 6, y - 1, 12, 9); tctx.fill(); tctx.fillStyle = css('--bg'); tctx.fillRect(x - 1, y + 2, 2, 3); tctx.restore(); continue; }
     tctx.fillStyle = sel ? css('--sel') : css('--key'); tctx.beginPath(); tctx.moveTo(x, y - 7); tctx.lineTo(x + 7, y); tctx.lineTo(x, y + 7); tctx.lineTo(x - 7, y); tctx.closePath(); tctx.fill();
     if (k.ease === 'hold') { tctx.strokeStyle = css('--mute'); tctx.setLineDash([2, 3]); tctx.beginPath(); tctx.moveTo(x + 8, y); tctx.lineTo(i < K.length - 1 ? X(K[i + 1].fr) - 8 : x + 8, y); tctx.stroke(); tctx.setLineDash([]); } }
-  const x = X(fr); tctx.strokeStyle = css('--accent'); tctx.lineWidth = 2; tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, H); tctx.stroke(); tctx.lineWidth = 1; }
+  const x = X(fr); tctx.strokeStyle = css('--accent'); tctx.lineWidth = 2; tctx.beginPath(); tctx.moveTo(x, 12); tctx.lineTo(x, H); tctx.stroke(); tctx.lineWidth = 1;
+  // the scrub bubble riding the top of the playhead: grabbing it (or anywhere along the top strip) only ever scrubs, never picks up a key
+  { const lbl = String(fr), w2 = Math.max(18, tctx.measureText(lbl).width + 10), bx = cl(x, w2 / 2 + 1, W - w2 / 2 - 1); tctx.fillStyle = css('--accent'); tctx.beginPath(); tctx.roundRect ? tctx.roundRect(bx - w2 / 2, 1, w2, 16, 8) : tctx.rect(bx - w2 / 2, 1, w2, 16); tctx.fill();
+    tctx.fillStyle = '#fff'; tctx.font = '600 10px ' + css('--mono'); tctx.textAlign = 'center'; tctx.fillText(lbl, bx, 12.5); } }
 let tdrag = null;
 const tX = e => { const b = tcv.getBoundingClientRect(), L = tlLen(); return (e.clientX - b.left - 10) / (b.width - 20) * L; };
 $('track').addEventListener('pointerdown', e => { stop(); const f2 = tX(e), L = tlLen(), b = tcv.getBoundingClientRect(), px = (b.width - 20) / L, y = e.clientY - b.top;
@@ -371,6 +374,7 @@ $('track').addEventListener('pointerdown', e => { stop(); const f2 = tX(e), L = 
 $('track').addEventListener('pointermove', e => { if (!tdrag) return; if (!tdrag.key) { setFr(tX(e)); return; } if (!tdrag.moved && Math.abs(e.clientX - tdrag.x0) < 5) return; if (!tdrag.moved) snap(); tdrag.moved = true;
   const n = Math.max(linkSrc(clip()) ? 1 : 0, Math.round(tX(e))); if (n !== tdrag.key.fr && !keyAt(n)) { tdrag.key.fr = n; sortKeys(); fr = n; pose = poseAt(fr); save(); ui(); } });
 $('track').addEventListener('pointerup', () => { tdrag = null; });
+$('track').addEventListener('mousemove', e => { if (tdrag) return; const y = e.clientY - tcv.getBoundingClientRect().top; $('track').style.cursor = y <= 26 ? 'ew-resize' : 'pointer'; });
 
 // ---- playback ----
 function tick(ts) { if (!playing) return; const dt = Math.min(0.1, (ts - (last || ts)) / 1000); last = ts; pt += dt * FPS * +$('spd').value; const L = lastFr();
