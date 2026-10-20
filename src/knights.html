@@ -3184,6 +3184,8 @@ GAIT.SPD = 2 * lerp(1.8, 3.6, GAIT.RUN) * GAIT.LS * GAIT.RATE / Math.PI;
 const SURF = { T: 4.2, IN: 0.35, OUT: 0.5, SPD: 14, RANGE: 16 };  // frost surf: how long, how fast the ground rushes by, how far the storm head zaps
 const surfK = sv => sv >= 0 ? sm(Math.min(1, sv / SURF.IN)) * (1 - sm(Math.max(0, (sv - SURF.T + SURF.OUT) / SURF.OUT))) : 0;
 function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, opts = {}) {
+  // opts.gate (Pose Bench): wraps the context so it can draw one part alone or every part in a flat pick colour; GT.cur = the part(s) being drawn now
+  const GT = opts.gate || null; if (GT) c = GT.wrap(c); const gp = (k, fn) => { if (!GT) return fn(); const o = GT.cur; GT.cur = k; try { return fn(); } finally { GT.cur = o; } }, gs = k => { if (GT) GT.cur = k; };
   const SV = surfK(sv); w *= 1 - SV;   // surfing: no walking
   const AT = opts.atype ?? 2, WPN = opts.weapons === true, HK = !!opts.hook && AT < 2, HKo = opts.hk || null; // attack: 0 frost hammer (ice hand), 1 lightning sword (storm hand), 2 both fists
   const k = strikeK(u), wind = u >= 0 && u < 0.25 ? sm(u / 0.25) : u >= 0.25 && u < 0.42 ? 1 - sm((u - 0.25) / 0.17) : 0, ph = opts.ph ?? t * GAIT.RATE;
@@ -3256,12 +3258,13 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   const XA = HKo && HKo.ex > 0 && HKo.k > 0.05, hA = reach(shA, hA0, RG || gI === 0 || (XA && !HKo.arm) ? 6.998 : 6.9), hB = reach(shB, hB0, RG || gI === 1 || (XA && HKo.arm) ? 6.998 : 6.9), aLow = hA[1] - shA[1] > 4.0;
 
   // ---- pieces ----
-  const leg = (i, sk, ice) => { const h = hips[i], kn = knees[i], ft = feet[i];
+  const leg = (i, sk, ice) => gp('L' + i, () => leg0(i, sk, ice)), leg0 = (i, sk, ice) => { const h = hips[i], kn = knees[i], ft = feet[i];
     const ank = [ft[0], ft[1] - 0.95];
     { const top = [h[0] + (kn[0] - h[0]) * -0.05, h[1] - 0.55], outside = () => { c.beginPath(); c.rect(-60, -60, 120, 120); addSmooth(c, TO); c.clip('evenodd'); };
       // show the thigh only where it's outside the body, or below the hip (the belt hides the seam), so no thigh shape shows on the belly
       var LP = limbP(top, kn, 2.15, 1.65, 1.06, 0.45); c.save(); outside(); cel(c, LP, sk, { d: 0.16, noStroke: 1 }); c.restore();
       c.save(); c.beginPath(); c.rect(-60, h[1] + 0.1, 120, 80); c.clip(); cel(c, LP, sk, { d: 0.16, noStroke: 1 }); c.restore(); var outsideT = outside; }
+    gs(['L' + i, 'F' + i]);
     // lower leg and foot as one shape: the calf runs down into the heel, its back edge dropping straight down into the back of the foot
     { const dx = ank[0] - kn[0], dy = ank[1] - kn[1], dl = Math.hypot(dx, dy) || 1; let n = [-dy / dl, dx / dl]; if (n[0] * f < 0) n = [-n[0], -n[1]];
       // a posed rig (anim suite) can turn each foot round its ankle: RG.fa[i] in radians, + lifts the toes whichever way he faces
@@ -3274,13 +3277,14 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
       c.save(); notIn(LP); c.strokeStyle = OUT; c.lineWidth = 0.2 * OLW; c.lineJoin = 'round'; c.stroke(pth(P)); c.restore();
       c.strokeStyle = 'rgba(25,15,45,.3)'; c.lineWidth = 0.1; c.lineCap = 'round'; c.beginPath(); c.moveTo(...F2(0.55, -1.25)); c.quadraticCurveTo(...F2(1.1, -0.9), ...F2(1.85, -0.85)); c.stroke();
     for (let j = 0; j < 3; j++) { const q = F2(1.9 - j * 0.5, -0.25 - j * 0.1); c.fillStyle = '#efe6cf'; c.strokeStyle = OUT; c.lineWidth = 0.1 * OLW; c.beginPath(); c.ellipse(q[0], q[1], 0.24, 0.17, fRo, 0, 7); c.fill(); c.stroke(); } }
+    gs('L' + i);
     if (ice && V.st !== 'paint') { c.save(); c.globalAlpha = 0.85 * Math.min(1, 0.35 + 0.65 * iL); for (const q of [0.35, 0.7]) { const p = L2(h, kn, q); bevel(c, chunk(p[0] - f * 0.6, p[1], 0.45, 0.35, 0.5, 200 + i * 9 + q * 10, 5), '#d8f1ff', { lw: 0.1, k: 0.5 }); } c.restore(); }
     if (!ice && V.st === 'stone') piece(c, chunk(kn[0] + f * 0.3, kn[1], 1.0, 0.8, 0.3, 87, 6), 'stone', 87, t, V, { crack: 0.6 });
     if (ice && V.st === 'stone') piece(c, chunk(kn[0] + f * 0.3, kn[1], 1.0, 0.8, 0.3, 87, 6), 'ice', 87, t, V); // the frost leg's kneecap: the same shape, in ice
     if (ice && V.st === 'stone') { snowflake(c, L2(h, kn, 0.45), 0.62, t, 17); snowflake(c, L2(kn, ft, 0.35), 0.45, t, 19); }
     if (!ice && V.st !== 'armour') veins(c, bolt(L2(h, kn, 0.15), L2(kn, ft, 0.5), 300 + i, 5, 0.3), SG, V.core, i, t, 0.07); };
   let TO = null, torsoDone = 0;
-  const torso = () => { const O = TO = [[-2.4, 0.7], [-3.6, -1.5], [-4.1, -4.2], [-4.4, -6.8], [-4.2, -8.6], [-3.7, -9.25], [-2.0, -10.00], [0, -10.10], [2.2, -9.90], [3.95, -9.15], [4.45, -8.5], [4.65, -6.6], [4.75 + breathe, -4.0], [4.05 + breathe, -1.3], [2.6, 0.2], [0, 0.45]].map(T);
+  const torso = () => gp('T', torso0), torso0 = () => { const O = TO = [[-2.4, 0.7], [-3.6, -1.5], [-4.1, -4.2], [-4.4, -6.8], [-4.2, -8.6], [-3.7, -9.25], [-2.0, -10.00], [0, -10.10], [2.2, -9.90], [3.95, -9.15], [4.45, -8.5], [4.65, -6.6], [4.75 + breathe, -4.0], [4.05 + breathe, -1.3], [2.6, 0.2], [0, 0.45]].map(T);
     cel(c, O, IS, { d: 0.12, hl: 0.12, paint: () => {
       // the storm half: everything on his facing side of a wavy seam
       const seam = []; for (let y = 2; y >= -13; y -= 0.5) seam.push(Ts([0.35 + Math.sin(y * 1.4) * 0.28, y])); const far = Ts([12, -13]), far2 = Ts([12, 2]);
@@ -3309,7 +3313,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
       if (V.st === 'paint') { for (const [a, b2, sd] of [[[0.9, -8.4], [3.6, -7.2], 5], [[1.4, -6.6], [4.2, -5.2], 8], [[1.2, -4.4], [3.9, -3.1], 13]]) veins(c, bolt(T(a), T(b2), sd, 4, 0.3), SG, V.core, sd, t, 0.14); }
       // seam glow where the halves meet
       c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = 'rgba(210,235,255,.28)'; c.lineWidth = 0.5; c.beginPath(); seam.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.stroke(); c.restore(); } }); };
-  const loin = () => { const swy = Math.sin(t * 2.4) * 0.15 - f * w * 0.35, belt = [[-3.0, -0.3], [3.4, -0.6], [3.3, 0.5], [-2.9, 0.75]].map(T);
+  const loin = () => gp('T', loin0), loin0 = () => { const swy = Math.sin(t * 2.4) * 0.15 - f * w * 0.35, belt = [[-3.0, -0.3], [3.4, -0.6], [3.3, 0.5], [-2.9, 0.75]].map(T);
     // the belt wraps his whole body: a band clipped to his outline, curving down round the belly
     { const yT = -1.25, yB = -0.25, sag = 0.35, P = []; for (let i = 0; i <= 12; i++) { const x = -6 + i, q = (x - 1.0) / 6; P.push(T([x, yT + sag * (1 - q * q)])); } for (let i = 12; i >= 0; i--) { const x = -6 + i, q = (x - 1.0) / 6; P.push(T([x, yB + sag * (1 - q * q)])); }
       // the outline of the body above the belt is redrawn, but not below it, so it never cuts across the tops of the thighs
@@ -3372,7 +3376,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   // squeeze (RG.sq, same keys as tw, 1 = as drawn): a part scaled side to side on screen, always horizontally, round its own anchor (shoulder, hip, ankle, hand, head)
   const SQ = RG && RG.sq && !RW ? RG.sq : null, sqv = (g, i) => { const v = SQ && SQ[g] !== undefined ? (i === undefined ? SQ[g] : SQ[g][i]) : 1; return v === undefined || v === null ? 1 : v; };
   const hsq = (o, k, fn) => { if (Math.abs(k - 1) < 1e-3) return fn(); c.save(); c.translate(o[0], 0); c.scale(k, 1); c.translate(-o[0], 0); const r = fn(); c.restore(); return r; };
-  const arm = (s, h, sk, side, ice) => hsq(s, sqv(side), () => squash(s, Math.atan2(h[1] - s[1], h[0] - s[0]), 1 - 0.45 * Math.abs(Math.sin(twv(side))), () => arm0(s, h, sk, side, ice)));
+  const arm = (s, h, sk, side, ice) => gp(side, () => hsq(s, sqv(side), () => squash(s, Math.atan2(h[1] - s[1], h[0] - s[0]), 1 - 0.45 * Math.abs(Math.sin(twv(side))), () => arm0(s, h, sk, side, ice))));
   const arm0 = (s, h, sk, side, ice) => { const e = (() => { const e1 = ik(s, h, 3.5, 3.5, 1), e2 = ik(s, h, 3.5, 3.5, -1); if (RG) return side === 'A' ? (RG.eA > 0 ? e1 : e2) : (RG.eB > 0 ? e1 : e2); if (HKo && HKo.gFlip && side === (HKo.arm ? 'A' : 'B')) return e1[1] > e2[1] ? e1 : e2; if (HKo && HKo.bs && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const cz = q => (h[0] - s[0]) * (q[1] - s[1]) - (h[1] - s[1]) * (q[0] - s[0]); return cz(e1) * f * HKo.bs >= 0 ? e1 : e2; } if (HKo && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const C0 = [pel[0], pel[1] - 7.3], d1 = Math.hypot(e1[0] - C0[0], (e1[1] - C0[1]) * 1.6), d2 = Math.hypot(e2[0] - C0[0], (e2[1] - C0[1]) * 1.6); return d1 > d2 ? e1 : e2; } return f * e1[0] < f * e2[0] ? e1 : e2; })(), dx = h[0] - e[0], dy = h[1] - e[1], dl = Math.hypot(dx, dy) || 1, d = [dx / dl, dy / dl], n = [-d[1], d[0]], fa0 = Math.atan2(dy, dx);
     if (opts.outRig) { const e1 = ik(s, h, 3.5, 3.5, 1); opts.outRig['e' + side] = e.slice(); opts.outRig['s' + side] = Math.hypot(e[0] - e1[0], e[1] - e1[1]) < 1e-6 ? 1 : -1; opts.outRig.ord.push(side); }
     const UA = limbP(s, e, 1.6, 1.25, 1.25, 0.38); cel(c, UA, sk, { noStroke: 1 });
@@ -3406,6 +3410,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
     const wb = L2(e, h, 0.62), wb2 = L2(e, h, 0.8), W = (p, v) => [p[0] + n[0] * v, p[1] + n[1] * v];
     if (V.st === 'armour') { if (ice) bevel(c, [W(L2(e, h, 0.25), 1.55), W(wb2, 1.75), W(wb2, -1.75), W(L2(e, h, 0.25), -1.55)], '#c4e9ff', { lw: 0.15, k: 0.55, inner: (Q, ox, oy, sz) => iceIn(c, Q, ox, oy, sz, 5, t) }); else { bevel(c, [W(L2(e, h, 0.25), 1.5), W(wb2, 1.7), W(wb2, -1.7), W(L2(e, h, 0.25), -1.5)], '#b8733a', { lw: 0.15, k: 0.55 }); for (const q of [0.38, 0.52, 0.66]) { const p = L2(e, h, q); c.strokeStyle = '#e0a060'; c.lineWidth = 0.18; c.beginPath(); c.moveTo(...W(p, 1.55)); c.lineTo(...W(p, -1.55)); c.stroke(); } } }
     else { path(c, [W(wb, 1.45), W(wb2, 1.55), W(wb2, -1.55), W(wb, -1.45)]); c.fillStyle = COL; c.fill(); c.strokeStyle = OUT; c.lineWidth = 0.15 * OLW; c.stroke(); }
+    gs('h' + side);
     // the hand: a broad palm, three thick clawed fingers and a thumb; they curl into a fist for the smash
     const fc = [h[0] + d[0] * 0.2, h[1] + d[1] * 0.2], fa = Math.atan2(dy, dx), curl = RG ? (side === 'A' ? RG.cA : RG.cB) || 0 : WPN ? 0.85 : Math.max(k, wind * 0.6, opts.hCurl || 0, (() => { const q = opts.h2 && opts.h2[side === 'A' ? 0 : 1]; return q ? (q.c || 0) * q.k : 0; })()), sd2 = side === 'B' ? 1 : -1; if (opts.outRig) opts.outRig['c' + side] = curl; const hTw = twv('h' + side), hK = Math.max(0.3, Math.abs(Math.cos(hTw))), hSq = sqv('h' + side); c.save(); if (Math.abs(hSq - 1) > 1e-3) { c.translate(fc[0], 0); c.scale(hSq, 1); c.translate(-fc[0], 0); } if (hK < 0.999) { const ha = Math.atan2(d[1], d[0]); c.translate(fc[0], fc[1]); c.rotate(ha); c.scale(1, hK); c.rotate(-ha); c.translate(-fc[0], -fc[1]); }
     // seen from behind (a posed rig's RG.hbA/hbB): the back of the hand instead of the palm: a broad plate with two raised knuckles and tendons, fingers
@@ -3494,7 +3499,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
       // snowflakes swept round in the wind
       for (let i = 0; i < 5; i++) { const a = -sp * 1.6 + i * 1.257, rr = R * (0.95 + 0.35 * Math.sin(tq * 3 + i * 1.3)), p = [Math.cos(a) * rr, Math.sin(a) * rr * 0.72 - 0.2]; snowflake(c, p, 0.32 * S, t, 50 + i); }
       c.restore(); } };
-  const shoulder = (s, ice) => { if (V.st === 'armour') { if (ice) bevel(c, chunk(s[0], s[1] - 0.4, 2.2, 1.6, f * 0.15, 61, 7), '#c4e9ff', { lw: 0.17, inner: (Q, ox, oy, sz) => iceIn(c, Q, ox, oy, sz, 61, t) }); else { cel(c, ellP(s[0], s[1] - 0.4, 2.1, 1.5, f * 0.1, 10), '#b8733a', { d: 0.25 }); const tp = [s[0] + f * 0.2, s[1] - 1.6]; c.strokeStyle = OUT; c.lineWidth = 0.55 * OLW; c.beginPath(); c.moveTo(...tp); c.lineTo(tp[0] - f * 0.3, tp[1] - 2.0); c.stroke(); c.strokeStyle = '#d99a5a'; c.lineWidth = 0.32; c.stroke(); for (const q of [0.35, 0.6, 0.85]) { const p = [tp[0] - f * 0.3 * q, tp[1] - 2.0 * q]; c.fillStyle = '#e8b070'; c.strokeStyle = OUT; c.lineWidth = 0.1 * OLW; c.beginPath(); c.ellipse(p[0], p[1], 0.45, 0.16, 0, 0, 7); c.fill(); c.stroke(); } const tip = [tp[0] - f * 0.3, tp[1] - 2.2]; c.save(); c.globalCompositeOperation = 'lighter'; glow(c, ...tip, 1.2, SG, 0.8); c.restore(); if (rnd(Math.floor(t * 10)) > 0.4) arc2(c, tip, [tip[0] + (rnd(Math.floor(t * 10) + 1) - 0.5) * 3, tip[1] - 0.5 - rnd(Math.floor(t * 10) + 2) * 1.5], SG, V.core, Math.floor(t * 10), 0.07, 0.6, 5); } return; }
+  const shoulder = (s, ice) => gp('T', () => shoulder0(s, ice)), shoulder0 = (s, ice) => { if (V.st === 'armour') { if (ice) bevel(c, chunk(s[0], s[1] - 0.4, 2.2, 1.6, f * 0.15, 61, 7), '#c4e9ff', { lw: 0.17, inner: (Q, ox, oy, sz) => iceIn(c, Q, ox, oy, sz, 61, t) }); else { cel(c, ellP(s[0], s[1] - 0.4, 2.1, 1.5, f * 0.1, 10), '#b8733a', { d: 0.25 }); const tp = [s[0] + f * 0.2, s[1] - 1.6]; c.strokeStyle = OUT; c.lineWidth = 0.55 * OLW; c.beginPath(); c.moveTo(...tp); c.lineTo(tp[0] - f * 0.3, tp[1] - 2.0); c.stroke(); c.strokeStyle = '#d99a5a'; c.lineWidth = 0.32; c.stroke(); for (const q of [0.35, 0.6, 0.85]) { const p = [tp[0] - f * 0.3 * q, tp[1] - 2.0 * q]; c.fillStyle = '#e8b070'; c.strokeStyle = OUT; c.lineWidth = 0.1 * OLW; c.beginPath(); c.ellipse(p[0], p[1], 0.45, 0.16, 0, 0, 7); c.fill(); c.stroke(); } const tip = [tp[0] - f * 0.3, tp[1] - 2.2]; c.save(); c.globalCompositeOperation = 'lighter'; glow(c, ...tip, 1.2, SG, 0.8); c.restore(); if (rnd(Math.floor(t * 10)) > 0.4) arc2(c, tip, [tip[0] + (rnd(Math.floor(t * 10) + 1) - 0.5) * 3, tip[1] - 0.5 - rnd(Math.floor(t * 10) + 2) * 1.5], SG, V.core, Math.floor(t * 10), 0.07, 0.6, 5); } return; }
     if (!ice && V.st === 'stone') { if (!SF) s = [shB[0] - f * 0.55, shB[1] - 0.15]; piece(c, chunk(s[0] + f * 0.15, s[1] - 0.75, 0.7, 0.6, f * 0.3, 81, 7), 'stone', 81, t, V, { lw: 0.15 }); piece(c, chunk(s[0] + f * 0.85, s[1] - 0.45, 0.39, 0.33, f * 0.6, 83, 6), 'stone', 83, t, V, { lw: 0.12 }); }
     if (ice && V.st === 'paint') { bevel(c, chunk(s[0], s[1] - 0.6, 1.9, 1.2, f * 0.2, 63, 7), '#cdeeff', { lw: 0.16, inner: (Q, ox, oy, sz) => iceIn(c, Q, ox, oy, sz, 63, t) }); for (const [x, hh] of [[-0.9, 1.3], [0, 1.8], [0.9, 1.1]]) bevel(c, [[s[0] + x - 0.35, s[1] - 1.3], [s[0] + x - f * 0.2, s[1] - 1.3 - hh], [s[0] + x + 0.35, s[1] - 1.3]], '#dff6ff', { lw: 0.12, k: 0.5 }); }
     if (ice && (V.st === 'split' || V.st === 'stone')) for (const [x, hh] of [[-1.0, 1.0], [-0.2, 1.5], [0.7, 0.9]]) bevel(c, [[s[0] + x - 0.32, s[1] - 1.1], [s[0] + x - f * 0.25, s[1] - 1.1 - hh], [s[0] + x + 0.32, s[1] - 1.1]], '#dff6ff', { lw: 0.12, k: 0.5 }); };
@@ -3592,7 +3597,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   if (opts.outRig) opts.outRig.ord.push('H');
   // a posed rig can flip each foot (RG.ff[i]: toes the other way), the thumb side of each hand (RG.hfA/hfB) and each head (RG.hfl [ice, storm]: looks the other way)
   const hFl = i => RG && RG.hfl && RG.hfl[i] ? -1 : 1;
-  const hI = () => head(HI, true, f * hFl(0), Math.max(iceOn, argue * Math.max(0, -Math.sin(t * 13))), both ? b : actK), hZ = () => head(HZ, false, (argue > 0.3 ? -f : f) * hFl(1), Math.max(zapOn, argue * Math.max(0, Math.sin(t * 13))), both ? b : 1 - actK);
+  const hI = () => gp('H0', () => head(HI, true, f * hFl(0), Math.max(iceOn, argue * Math.max(0, -Math.sin(t * 13))), both ? b : actK)), hZ = () => gp('H1', () => head(HZ, false, (argue > 0.3 ? -f : f) * hFl(1), Math.max(zapOn, argue * Math.max(0, Math.sin(t * 13))), both ? b : 1 - actK));
   // the head on his facing side is drawn last; the storm shoulder stones sit behind the storm face
   // turned well round (|yaw| > 0.6) the head on the side coming toward the camera goes in front: + twist puts the ice head in front, - the storm head
   const iceFront = YW > 0.6 ? true : YW < -0.6 ? false : !SF;

@@ -56,6 +56,21 @@ input[type=number] { width: 64px; font-family: var(--mono); }
 textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; }
 .note { font-size: 12px; color: var(--mute); margin: 0; }
 .confirm { display: flex; gap: 6px; align-items: center; font-size: 13px; }
+details.fold > summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before { content: '▸'; color: var(--mute); font-size: 12px; transition: transform .15s; }
+details.fold[open] > summary::before { transform: rotate(90deg); }
+details.fold > summary h2 { margin: 0; }
+details.fold[open] > summary { margin-bottom: 6px; }
+#pp { position: absolute; z-index: 3; width: 260px; max-width: calc(100% - 16px); max-height: calc(100% - 16px); display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 20px rgba(0,0,0,.22); }
+#pp[hidden] { display: none; }
+#ppH { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 10px; border-bottom: 1px solid var(--line); cursor: move; touch-action: none; user-select: none; }
+#ppT { font: 600 14px/1 var(--display); letter-spacing: .08em; text-transform: uppercase; flex: 1; }
+#ppX { padding: 2px 8px; }
+#ppB { padding: 10px; overflow-y: auto; display: grid; gap: 8px; }
+#ppB .row { gap: 6px; }
+#ppB label.sl { grid-template-columns: 62px minmax(0, 1fr) 36px; }
+#ppB input[type=range] { min-width: 0; width: 100%; }
 #saveQ { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; z-index: 50; }
 #saveQ.on { display: flex; }
 #saveQ .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; max-width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
@@ -68,7 +83,7 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
 </div>
 
 <div class="wrap">
-  <div id="stage"><canvas id="cv"></canvas><div id="status"></div><div id="hint">Drag: hands, feet, toes (triangle) to turn a foot, the dot over a head to tilt it, hips (square), chest (diamond), elbow dot to swing the upper arm · Tap a ⇄ ring to bend that elbow or knee the other way</div></div>
+  <div id="stage"><canvas id="cv"></canvas><div id="status"></div><div id="pp" hidden role="dialog" aria-labelledby="ppT"><div id="ppH" title="Drag to move this window"><span id="ppT"></span><button id="ppX" title="Close (click empty space on the stage to close it too)">✕</button></div><div id="ppB"></div></div><div id="hint">Click a part of him to open its settings · Drag: hands, feet, toes (triangle) to turn a foot, the dot over a head to tilt it, hips (square), chest (diamond), elbow dot to swing the upper arm · Tap a ⇄ ring to bend that elbow or knee the other way</div></div>
 
   <div class="time">
     <div class="tbar">
@@ -119,16 +134,16 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <p class="note">Torso twist: + turns the far shoulder toward you, − the near one.</p>
       <div class="row" style="margin-top:8px"><button id="bOrb" title="Show or hide the crackling lightning in his storm hand (a view setting, not saved in the animation)">Lightning in hand: off</button><button id="bIce" title="Show or hide the swirling ice ball in his ice hand (a view setting, not saved in the animation)">Ice ball in hand: off</button></div>
     </section>
-    <section>
-      <h2>Twist</h2>
+    <details class="fold" id="fdTw">
+      <summary><h2>Twist</h2></summary>
       <p class="note" style="margin-bottom:6px">Turn a part about its own length. Heads turn their faces, feet point toward or away from you, hands turn edge-on.</p>
       <div id="twBox"></div>
-    </section>
-    <section>
-      <h2>Squeeze</h2>
+    </details>
+    <details class="fold" id="fdSq">
+      <summary><h2>Squeeze</h2></summary>
       <p class="note" style="margin-bottom:6px">Squash or stretch a part side to side, always straight across the screen, whatever way it points. 1 = as drawn. Double-click a slider to reset it.</p>
       <div id="sqBox"></div>
-    </section>
+    </details>
     <section>
       <h2>What's in front</h2>
       <div class="ord"><span><span class="tag tA">A</span> <span id="nA"></span></span><div class="seg" id="oA"><button data-v="0">Behind body</button><button data-v="1">In front of body</button><button data-v="2">In front of all</button></div></div>
@@ -304,6 +319,8 @@ GAIT.SPD = 2 * lerp(1.8, 3.6, GAIT.RUN) * GAIT.LS * GAIT.RATE / Math.PI;
 const SURF = { T: 4.2, IN: 0.35, OUT: 0.5, SPD: 14, RANGE: 16 };  // frost surf: how long, how fast the ground rushes by, how far the storm head zaps
 const surfK = sv => sv >= 0 ? sm(Math.min(1, sv / SURF.IN)) * (1 - sm(Math.max(0, (sv - SURF.T + SURF.OUT) / SURF.OUT))) : 0;
 function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, opts = {}) {
+  // opts.gate (Pose Bench): wraps the context so it can draw one part alone or every part in a flat pick colour; GT.cur = the part(s) being drawn now
+  const GT = opts.gate || null; if (GT) c = GT.wrap(c); const gp = (k, fn) => { if (!GT) return fn(); const o = GT.cur; GT.cur = k; try { return fn(); } finally { GT.cur = o; } }, gs = k => { if (GT) GT.cur = k; };
   const SV = surfK(sv); w *= 1 - SV;   // surfing: no walking
   const AT = opts.atype ?? 2, WPN = opts.weapons === true, HK = !!opts.hook && AT < 2, HKo = opts.hk || null; // attack: 0 frost hammer (ice hand), 1 lightning sword (storm hand), 2 both fists
   const k = strikeK(u), wind = u >= 0 && u < 0.25 ? sm(u / 0.25) : u >= 0.25 && u < 0.42 ? 1 - sm((u - 0.25) / 0.17) : 0, ph = opts.ph ?? t * GAIT.RATE;
@@ -376,12 +393,13 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   const XA = HKo && HKo.ex > 0 && HKo.k > 0.05, hA = reach(shA, hA0, RG || gI === 0 || (XA && !HKo.arm) ? 6.998 : 6.9), hB = reach(shB, hB0, RG || gI === 1 || (XA && HKo.arm) ? 6.998 : 6.9), aLow = hA[1] - shA[1] > 4.0;
 
   // ---- pieces ----
-  const leg = (i, sk, ice) => { const h = hips[i], kn = knees[i], ft = feet[i];
+  const leg = (i, sk, ice) => gp('L' + i, () => leg0(i, sk, ice)), leg0 = (i, sk, ice) => { const h = hips[i], kn = knees[i], ft = feet[i];
     const ank = [ft[0], ft[1] - 0.95];
     { const top = [h[0] + (kn[0] - h[0]) * -0.05, h[1] - 0.55], outside = () => { c.beginPath(); c.rect(-60, -60, 120, 120); addSmooth(c, TO); c.clip('evenodd'); };
       // show the thigh only where it's outside the body, or below the hip (the belt hides the seam), so no thigh shape shows on the belly
       var LP = limbP(top, kn, 2.15, 1.65, 1.06, 0.45); c.save(); outside(); cel(c, LP, sk, { d: 0.16, noStroke: 1 }); c.restore();
       c.save(); c.beginPath(); c.rect(-60, h[1] + 0.1, 120, 80); c.clip(); cel(c, LP, sk, { d: 0.16, noStroke: 1 }); c.restore(); var outsideT = outside; }
+    gs(['L' + i, 'F' + i]);
     // lower leg and foot as one shape: the calf runs down into the heel, its back edge dropping straight down into the back of the foot
     { const dx = ank[0] - kn[0], dy = ank[1] - kn[1], dl = Math.hypot(dx, dy) || 1; let n = [-dy / dl, dx / dl]; if (n[0] * f < 0) n = [-n[0], -n[1]];
       // a posed rig (anim suite) can turn each foot round its ankle: RG.fa[i] in radians, + lifts the toes whichever way he faces
@@ -394,13 +412,14 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
       c.save(); notIn(LP); c.strokeStyle = OUT; c.lineWidth = 0.2 * OLW; c.lineJoin = 'round'; c.stroke(pth(P)); c.restore();
       c.strokeStyle = 'rgba(25,15,45,.3)'; c.lineWidth = 0.1; c.lineCap = 'round'; c.beginPath(); c.moveTo(...F2(0.55, -1.25)); c.quadraticCurveTo(...F2(1.1, -0.9), ...F2(1.85, -0.85)); c.stroke();
     for (let j = 0; j < 3; j++) { const q = F2(1.9 - j * 0.5, -0.25 - j * 0.1); c.fillStyle = '#efe6cf'; c.strokeStyle = OUT; c.lineWidth = 0.1 * OLW; c.beginPath(); c.ellipse(q[0], q[1], 0.24, 0.17, fRo, 0, 7); c.fill(); c.stroke(); } }
+    gs('L' + i);
     if (ice && V.st !== 'paint') { c.save(); c.globalAlpha = 0.85 * Math.min(1, 0.35 + 0.65 * iL); for (const q of [0.35, 0.7]) { const p = L2(h, kn, q); bevel(c, chunk(p[0] - f * 0.6, p[1], 0.45, 0.35, 0.5, 200 + i * 9 + q * 10, 5), '#d8f1ff', { lw: 0.1, k: 0.5 }); } c.restore(); }
     if (!ice && V.st === 'stone') piece(c, chunk(kn[0] + f * 0.3, kn[1], 1.0, 0.8, 0.3, 87, 6), 'stone', 87, t, V, { crack: 0.6 });
     if (ice && V.st === 'stone') piece(c, chunk(kn[0] + f * 0.3, kn[1], 1.0, 0.8, 0.3, 87, 6), 'ice', 87, t, V); // the frost leg's kneecap: the same shape, in ice
     if (ice && V.st === 'stone') { snowflake(c, L2(h, kn, 0.45), 0.62, t, 17); snowflake(c, L2(kn, ft, 0.35), 0.45, t, 19); }
     if (!ice && V.st !== 'armour') veins(c, bolt(L2(h, kn, 0.15), L2(kn, ft, 0.5), 300 + i, 5, 0.3), SG, V.core, i, t, 0.07); };
   let TO = null, torsoDone = 0;
-  const torso = () => { const O = TO = [[-2.4, 0.7], [-3.6, -1.5], [-4.1, -4.2], [-4.4, -6.8], [-4.2, -8.6], [-3.7, -9.25], [-2.0, -10.00], [0, -10.10], [2.2, -9.90], [3.95, -9.15], [4.45, -8.5], [4.65, -6.6], [4.75 + breathe, -4.0], [4.05 + breathe, -1.3], [2.6, 0.2], [0, 0.45]].map(T);
+  const torso = () => gp('T', torso0), torso0 = () => { const O = TO = [[-2.4, 0.7], [-3.6, -1.5], [-4.1, -4.2], [-4.4, -6.8], [-4.2, -8.6], [-3.7, -9.25], [-2.0, -10.00], [0, -10.10], [2.2, -9.90], [3.95, -9.15], [4.45, -8.5], [4.65, -6.6], [4.75 + breathe, -4.0], [4.05 + breathe, -1.3], [2.6, 0.2], [0, 0.45]].map(T);
     cel(c, O, IS, { d: 0.12, hl: 0.12, paint: () => {
       // the storm half: everything on his facing side of a wavy seam
       const seam = []; for (let y = 2; y >= -13; y -= 0.5) seam.push(Ts([0.35 + Math.sin(y * 1.4) * 0.28, y])); const far = Ts([12, -13]), far2 = Ts([12, 2]);
@@ -429,7 +448,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
       if (V.st === 'paint') { for (const [a, b2, sd] of [[[0.9, -8.4], [3.6, -7.2], 5], [[1.4, -6.6], [4.2, -5.2], 8], [[1.2, -4.4], [3.9, -3.1], 13]]) veins(c, bolt(T(a), T(b2), sd, 4, 0.3), SG, V.core, sd, t, 0.14); }
       // seam glow where the halves meet
       c.save(); c.globalCompositeOperation = 'lighter'; c.strokeStyle = 'rgba(210,235,255,.28)'; c.lineWidth = 0.5; c.beginPath(); seam.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.stroke(); c.restore(); } }); };
-  const loin = () => { const swy = Math.sin(t * 2.4) * 0.15 - f * w * 0.35, belt = [[-3.0, -0.3], [3.4, -0.6], [3.3, 0.5], [-2.9, 0.75]].map(T);
+  const loin = () => gp('T', loin0), loin0 = () => { const swy = Math.sin(t * 2.4) * 0.15 - f * w * 0.35, belt = [[-3.0, -0.3], [3.4, -0.6], [3.3, 0.5], [-2.9, 0.75]].map(T);
     // the belt wraps his whole body: a band clipped to his outline, curving down round the belly
     { const yT = -1.25, yB = -0.25, sag = 0.35, P = []; for (let i = 0; i <= 12; i++) { const x = -6 + i, q = (x - 1.0) / 6; P.push(T([x, yT + sag * (1 - q * q)])); } for (let i = 12; i >= 0; i--) { const x = -6 + i, q = (x - 1.0) / 6; P.push(T([x, yB + sag * (1 - q * q)])); }
       // the outline of the body above the belt is redrawn, but not below it, so it never cuts across the tops of the thighs
@@ -492,7 +511,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   // squeeze (RG.sq, same keys as tw, 1 = as drawn): a part scaled side to side on screen, always horizontally, round its own anchor (shoulder, hip, ankle, hand, head)
   const SQ = RG && RG.sq && !RW ? RG.sq : null, sqv = (g, i) => { const v = SQ && SQ[g] !== undefined ? (i === undefined ? SQ[g] : SQ[g][i]) : 1; return v === undefined || v === null ? 1 : v; };
   const hsq = (o, k, fn) => { if (Math.abs(k - 1) < 1e-3) return fn(); c.save(); c.translate(o[0], 0); c.scale(k, 1); c.translate(-o[0], 0); const r = fn(); c.restore(); return r; };
-  const arm = (s, h, sk, side, ice) => hsq(s, sqv(side), () => squash(s, Math.atan2(h[1] - s[1], h[0] - s[0]), 1 - 0.45 * Math.abs(Math.sin(twv(side))), () => arm0(s, h, sk, side, ice)));
+  const arm = (s, h, sk, side, ice) => gp(side, () => hsq(s, sqv(side), () => squash(s, Math.atan2(h[1] - s[1], h[0] - s[0]), 1 - 0.45 * Math.abs(Math.sin(twv(side))), () => arm0(s, h, sk, side, ice))));
   const arm0 = (s, h, sk, side, ice) => { const e = (() => { const e1 = ik(s, h, 3.5, 3.5, 1), e2 = ik(s, h, 3.5, 3.5, -1); if (RG) return side === 'A' ? (RG.eA > 0 ? e1 : e2) : (RG.eB > 0 ? e1 : e2); if (HKo && HKo.gFlip && side === (HKo.arm ? 'A' : 'B')) return e1[1] > e2[1] ? e1 : e2; if (HKo && HKo.bs && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const cz = q => (h[0] - s[0]) * (q[1] - s[1]) - (h[1] - s[1]) * (q[0] - s[0]); return cz(e1) * f * HKo.bs >= 0 ? e1 : e2; } if (HKo && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const C0 = [pel[0], pel[1] - 7.3], d1 = Math.hypot(e1[0] - C0[0], (e1[1] - C0[1]) * 1.6), d2 = Math.hypot(e2[0] - C0[0], (e2[1] - C0[1]) * 1.6); return d1 > d2 ? e1 : e2; } return f * e1[0] < f * e2[0] ? e1 : e2; })(), dx = h[0] - e[0], dy = h[1] - e[1], dl = Math.hypot(dx, dy) || 1, d = [dx / dl, dy / dl], n = [-d[1], d[0]], fa0 = Math.atan2(dy, dx);
     if (opts.outRig) { const e1 = ik(s, h, 3.5, 3.5, 1); opts.outRig['e' + side] = e.slice(); opts.outRig['s' + side] = Math.hypot(e[0] - e1[0], e[1] - e1[1]) < 1e-6 ? 1 : -1; opts.outRig.ord.push(side); }
     const UA = limbP(s, e, 1.6, 1.25, 1.25, 0.38); cel(c, UA, sk, { noStroke: 1 });
@@ -526,6 +545,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
     const wb = L2(e, h, 0.62), wb2 = L2(e, h, 0.8), W = (p, v) => [p[0] + n[0] * v, p[1] + n[1] * v];
     if (V.st === 'armour') { if (ice) bevel(c, [W(L2(e, h, 0.25), 1.55), W(wb2, 1.75), W(wb2, -1.75), W(L2(e, h, 0.25), -1.55)], '#c4e9ff', { lw: 0.15, k: 0.55, inner: (Q, ox, oy, sz) => iceIn(c, Q, ox, oy, sz, 5, t) }); else { bevel(c, [W(L2(e, h, 0.25), 1.5), W(wb2, 1.7), W(wb2, -1.7), W(L2(e, h, 0.25), -1.5)], '#b8733a', { lw: 0.15, k: 0.55 }); for (const q of [0.38, 0.52, 0.66]) { const p = L2(e, h, q); c.strokeStyle = '#e0a060'; c.lineWidth = 0.18; c.beginPath(); c.moveTo(...W(p, 1.55)); c.lineTo(...W(p, -1.55)); c.stroke(); } } }
     else { path(c, [W(wb, 1.45), W(wb2, 1.55), W(wb2, -1.55), W(wb, -1.45)]); c.fillStyle = COL; c.fill(); c.strokeStyle = OUT; c.lineWidth = 0.15 * OLW; c.stroke(); }
+    gs('h' + side);
     // the hand: a broad palm, three thick clawed fingers and a thumb; they curl into a fist for the smash
     const fc = [h[0] + d[0] * 0.2, h[1] + d[1] * 0.2], fa = Math.atan2(dy, dx), curl = RG ? (side === 'A' ? RG.cA : RG.cB) || 0 : WPN ? 0.85 : Math.max(k, wind * 0.6, opts.hCurl || 0, (() => { const q = opts.h2 && opts.h2[side === 'A' ? 0 : 1]; return q ? (q.c || 0) * q.k : 0; })()), sd2 = side === 'B' ? 1 : -1; if (opts.outRig) opts.outRig['c' + side] = curl; const hTw = twv('h' + side), hK = Math.max(0.3, Math.abs(Math.cos(hTw))), hSq = sqv('h' + side); c.save(); if (Math.abs(hSq - 1) > 1e-3) { c.translate(fc[0], 0); c.scale(hSq, 1); c.translate(-fc[0], 0); } if (hK < 0.999) { const ha = Math.atan2(d[1], d[0]); c.translate(fc[0], fc[1]); c.rotate(ha); c.scale(1, hK); c.rotate(-ha); c.translate(-fc[0], -fc[1]); }
     // seen from behind (a posed rig's RG.hbA/hbB): the back of the hand instead of the palm: a broad plate with two raised knuckles and tendons, fingers
@@ -614,7 +634,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
       // snowflakes swept round in the wind
       for (let i = 0; i < 5; i++) { const a = -sp * 1.6 + i * 1.257, rr = R * (0.95 + 0.35 * Math.sin(tq * 3 + i * 1.3)), p = [Math.cos(a) * rr, Math.sin(a) * rr * 0.72 - 0.2]; snowflake(c, p, 0.32 * S, t, 50 + i); }
       c.restore(); } };
-  const shoulder = (s, ice) => { if (V.st === 'armour') { if (ice) bevel(c, chunk(s[0], s[1] - 0.4, 2.2, 1.6, f * 0.15, 61, 7), '#c4e9ff', { lw: 0.17, inner: (Q, ox, oy, sz) => iceIn(c, Q, ox, oy, sz, 61, t) }); else { cel(c, ellP(s[0], s[1] - 0.4, 2.1, 1.5, f * 0.1, 10), '#b8733a', { d: 0.25 }); const tp = [s[0] + f * 0.2, s[1] - 1.6]; c.strokeStyle = OUT; c.lineWidth = 0.55 * OLW; c.beginPath(); c.moveTo(...tp); c.lineTo(tp[0] - f * 0.3, tp[1] - 2.0); c.stroke(); c.strokeStyle = '#d99a5a'; c.lineWidth = 0.32; c.stroke(); for (const q of [0.35, 0.6, 0.85]) { const p = [tp[0] - f * 0.3 * q, tp[1] - 2.0 * q]; c.fillStyle = '#e8b070'; c.strokeStyle = OUT; c.lineWidth = 0.1 * OLW; c.beginPath(); c.ellipse(p[0], p[1], 0.45, 0.16, 0, 0, 7); c.fill(); c.stroke(); } const tip = [tp[0] - f * 0.3, tp[1] - 2.2]; c.save(); c.globalCompositeOperation = 'lighter'; glow(c, ...tip, 1.2, SG, 0.8); c.restore(); if (rnd(Math.floor(t * 10)) > 0.4) arc2(c, tip, [tip[0] + (rnd(Math.floor(t * 10) + 1) - 0.5) * 3, tip[1] - 0.5 - rnd(Math.floor(t * 10) + 2) * 1.5], SG, V.core, Math.floor(t * 10), 0.07, 0.6, 5); } return; }
+  const shoulder = (s, ice) => gp('T', () => shoulder0(s, ice)), shoulder0 = (s, ice) => { if (V.st === 'armour') { if (ice) bevel(c, chunk(s[0], s[1] - 0.4, 2.2, 1.6, f * 0.15, 61, 7), '#c4e9ff', { lw: 0.17, inner: (Q, ox, oy, sz) => iceIn(c, Q, ox, oy, sz, 61, t) }); else { cel(c, ellP(s[0], s[1] - 0.4, 2.1, 1.5, f * 0.1, 10), '#b8733a', { d: 0.25 }); const tp = [s[0] + f * 0.2, s[1] - 1.6]; c.strokeStyle = OUT; c.lineWidth = 0.55 * OLW; c.beginPath(); c.moveTo(...tp); c.lineTo(tp[0] - f * 0.3, tp[1] - 2.0); c.stroke(); c.strokeStyle = '#d99a5a'; c.lineWidth = 0.32; c.stroke(); for (const q of [0.35, 0.6, 0.85]) { const p = [tp[0] - f * 0.3 * q, tp[1] - 2.0 * q]; c.fillStyle = '#e8b070'; c.strokeStyle = OUT; c.lineWidth = 0.1 * OLW; c.beginPath(); c.ellipse(p[0], p[1], 0.45, 0.16, 0, 0, 7); c.fill(); c.stroke(); } const tip = [tp[0] - f * 0.3, tp[1] - 2.2]; c.save(); c.globalCompositeOperation = 'lighter'; glow(c, ...tip, 1.2, SG, 0.8); c.restore(); if (rnd(Math.floor(t * 10)) > 0.4) arc2(c, tip, [tip[0] + (rnd(Math.floor(t * 10) + 1) - 0.5) * 3, tip[1] - 0.5 - rnd(Math.floor(t * 10) + 2) * 1.5], SG, V.core, Math.floor(t * 10), 0.07, 0.6, 5); } return; }
     if (!ice && V.st === 'stone') { if (!SF) s = [shB[0] - f * 0.55, shB[1] - 0.15]; piece(c, chunk(s[0] + f * 0.15, s[1] - 0.75, 0.7, 0.6, f * 0.3, 81, 7), 'stone', 81, t, V, { lw: 0.15 }); piece(c, chunk(s[0] + f * 0.85, s[1] - 0.45, 0.39, 0.33, f * 0.6, 83, 6), 'stone', 83, t, V, { lw: 0.12 }); }
     if (ice && V.st === 'paint') { bevel(c, chunk(s[0], s[1] - 0.6, 1.9, 1.2, f * 0.2, 63, 7), '#cdeeff', { lw: 0.16, inner: (Q, ox, oy, sz) => iceIn(c, Q, ox, oy, sz, 63, t) }); for (const [x, hh] of [[-0.9, 1.3], [0, 1.8], [0.9, 1.1]]) bevel(c, [[s[0] + x - 0.35, s[1] - 1.3], [s[0] + x - f * 0.2, s[1] - 1.3 - hh], [s[0] + x + 0.35, s[1] - 1.3]], '#dff6ff', { lw: 0.12, k: 0.5 }); }
     if (ice && (V.st === 'split' || V.st === 'stone')) for (const [x, hh] of [[-1.0, 1.0], [-0.2, 1.5], [0.7, 0.9]]) bevel(c, [[s[0] + x - 0.32, s[1] - 1.1], [s[0] + x - f * 0.25, s[1] - 1.1 - hh], [s[0] + x + 0.32, s[1] - 1.1]], '#dff6ff', { lw: 0.12, k: 0.5 }); };
@@ -712,7 +732,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   if (opts.outRig) opts.outRig.ord.push('H');
   // a posed rig can flip each foot (RG.ff[i]: toes the other way), the thumb side of each hand (RG.hfA/hfB) and each head (RG.hfl [ice, storm]: looks the other way)
   const hFl = i => RG && RG.hfl && RG.hfl[i] ? -1 : 1;
-  const hI = () => head(HI, true, f * hFl(0), Math.max(iceOn, argue * Math.max(0, -Math.sin(t * 13))), both ? b : actK), hZ = () => head(HZ, false, (argue > 0.3 ? -f : f) * hFl(1), Math.max(zapOn, argue * Math.max(0, Math.sin(t * 13))), both ? b : 1 - actK);
+  const hI = () => gp('H0', () => head(HI, true, f * hFl(0), Math.max(iceOn, argue * Math.max(0, -Math.sin(t * 13))), both ? b : actK)), hZ = () => gp('H1', () => head(HZ, false, (argue > 0.3 ? -f : f) * hFl(1), Math.max(zapOn, argue * Math.max(0, Math.sin(t * 13))), both ? b : 1 - actK));
   // the head on his facing side is drawn last; the storm shoulder stones sit behind the storm face
   // turned well round (|yaw| > 0.6) the head on the side coming toward the camera goes in front: + twist puts the ice head in front, - the storm head
   const iceFront = YW > 0.6 ? true : YW < -0.6 ? false : !SF;
@@ -906,9 +926,9 @@ let orbOn = false, iceOn = false; try { orbOn = localStorage.getItem('posebench-
 // legs that walk with the player (clip.legs 'walk'): the game's gait draws them; the pose only gives the crouch (pelvis height vs standing)
 let walkPrev = true; try { walkPrev = localStorage.getItem('posebench-walk') !== '0'; } catch (e) {}
 const legWalk = () => typeof clips !== 'undefined' && clips && clips[ci] && clips[ci].legs === 'walk';
-let IDLEY = null;
+let IDLEY = null, GATE = null;
 function renderFront(c, P, out) { const W = legWalk(), now = performance.now() / 1000; if (W) { if (IDLEY === null) IDLEY = idlePose(1).pel[1]; P = { ...P, walk: { dy: P.pel[1] - IDLEY } }; }
-  const o = { rig: P, noFx: 1, noJet: 1, outRig: out || { ord: [] }, noOrb: !orbOn, iSw: iceOn ? 1 : 0, fxF: 1, fxT: now, ph: now * OGX.GAIT.RATE }; OGX.drawO2(c, OGX.V, T0, P.f, W && walkPrev ? 1 : 0, -1, -1, 'act', P.act, -1, [], 0, o); return o.outRig; }
+  const o = { gate: GATE, rig: P, noFx: 1, noJet: 1, outRig: out || { ord: [] }, noOrb: !orbOn, iSw: iceOn ? 1 : 0, fxF: 1, fxT: now, ph: now * OGX.GAIT.RATE }; OGX.drawO2(c, OGX.V, T0, P.f, W && walkPrev ? 1 : 0, -1, -1, 'act', P.act, -1, [], 0, o); return o.outRig; }
 // ---- seen from behind (P.view 1; between keys he turns like the game: the front narrows to half width round his middle, swaps, the back widens out) ----
 // P.bk: pel [x, y], aG/aP ankles (guard leg = far side, punch leg = near side), hG/hP hands relative to their shoulders, eG/eP elbow bends, made by backPose
 const BKD = {}; const backDef = f => BKD[f] || (BKD[f] = backPose(f));
@@ -1039,6 +1059,7 @@ function draw() {
   if (onion && !playing) { const K = keys(), p = [...K].reverse().find(k => k.fr < fr), n = K.find(k => k.fr > fr);
     for (const [k, col] of [[p, '--b'], [n, '--a']]) if (k) { const g = ghost; g.width = cv.width; g.height = cv.height; const gc = g.getContext('2d'); gc.clearRect(0, 0, g.width, g.height); drawFig(gc, k.pose, 1); gc.setTransform(1, 0, 0, 1, 0, 0); gc.globalCompositeOperation = 'source-atop'; gc.fillStyle = css(col); gc.globalAlpha = 0.55; gc.fillRect(0, 0, g.width, g.height); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.22; ctx.drawImage(g, 0, 0); ctx.restore(); } }
   rig = drawFig(ctx, pose, 1);
+  if (!playing && PSEL) partOutline();
   if (!playing) handles();
 }
 // where a foot's toe handle sits (the foot turned round its ankle by P.fa), and an elbow's flip bubble (just outside the bend)
@@ -1055,7 +1076,7 @@ const BACKH = (r, P) => [
     { id: 'beG', p: r.eG, k: 'elbowD', c: '--a', b: 'G' }, { id: 'beP', p: r.eP, k: 'elbowD', c: '--b', b: 'P' },
     { id: 'bxG', p: flipB(r.shG, r.hG, r.eG), k: 'elbow', c: '--a', b: 'G' }, { id: 'bxP', p: flipB(r.shP, r.hP, r.eP), k: 'elbow', c: '--b', b: 'P' },
     { id: 'hdI', p: headOf(r, P, 0), k: 'head', c: '--b', i: 0 }, { id: 'hdZ', p: headOf(r, P, 1), k: 'head', c: '--a', i: 1 } ];
-let SEL = null; const partOf = h => h.b ? null : ({ hA: 'hA', hB: 'hB', f0: 'f0', t0: 'f0', f1: 'f1', t1: 'f1', pl: 'pel', ch: 'chest', hdI: 'h0', hdZ: 'h1' })[h.id] || null;
+let SEL = null, PSEL = null, ppKey = ''; const partOf = h => h.b ? null : ({ hA: 'hA', hB: 'hB', f0: 'f0', t0: 'f0', f1: 'f1', t1: 'f1', pl: 'pel', ch: 'chest', hdI: 'h0', hdZ: 'h1' })[h.id] || null;
 const pinnedHere = (part, t) => (clip().pins || []).filter(q => q.p === part && q.a <= t && t <= q.b);
 const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || locked()) return []; if (r.back) return BACKH(r, P); const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.95];
   return [
@@ -1087,7 +1108,7 @@ function handles() { const H = HANDLES(), r = rig;
 let drag = null;
 cv.addEventListener('pointerdown', e => { if (playing) return; if (locked()) { lockMsg(); return; } const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top, R = e.pointerType === 'touch' ? 24 : 14;
   let best = null, bd = R; for (const h of HANDLES()) { const [sx, sy] = w2s(h.p), d = Math.hypot(sx - x, sy - y); if (d < bd) { bd = d; best = h; } }
-  if (!best) return; { const pt = partOf(best); if (pt) { if (SEL !== pt && $('pinA').value === '') $('pinA').value = fr; SEL = pt; ui(); } } drag = { ...best, x0: x, y0: y, moved: false }; cv.setPointerCapture(e.pointerId); e.preventDefault(); });
+  if (!best) { const k = pickPart(x, y); selPart(k); return; } { const pt = partOf(best); if (pt) { if (SEL !== pt && $('pinA').value === '') $('pinA').value = fr; SEL = pt; PSEL = PIN2P[pt]; ui(); } } drag = { ...best, x0: x, y0: y, moved: false }; cv.setPointerCapture(e.pointerId); e.preventDefault(); });
 cv.addEventListener('pointermove', e => { if (!drag) return; const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
   if (!drag.moved && Math.hypot(x - drag.x0, y - drag.y0) < 4) return; drag.moved = true; const p = s2w(x, y), r = rig, P = pose;
   if (drag.b) { P.bk = P.bk ? { ...P.bk } : clone(backDef(P.f)); const B = P.bk, sh = drag.b === 'G' ? r.shG : r.shP;
@@ -1179,6 +1200,7 @@ function ui() {
     $('folderList').innerHTML = [...new Set(clips.filter(c => !c.lib).map(folderOf))].map(f => `<option value="${esc(f)}">`).join(''); }
   { const ls = $('linkSel'), lv = clip().from || ls.value, lo = grouped(clips.filter(c => c !== clip()), c => c.id); if (ls.innerHTML !== lo) ls.innerHTML = lo; if ([...ls.options].some(o => o.value === lv)) ls.value = lv; $('linkOn').checked = !!linkSrc(clip()); $('linkOn').disabled = !ls.options.length; }
   if (document.activeElement !== $('clipName')) $('clipName').value = clip().name;
+  ppUpd();
 }
 // squeeze sliders: pose.sq, same keys as tw, 1 = as drawn (drawO2 scales the part along screen x round its anchor)
 const sqGet = (P, [g, i]) => { const T = P.sq || {}, v = i === undefined ? T[g] : (T[g] || [])[i]; return v === undefined || v === null ? 1 : v; };
@@ -1190,6 +1212,86 @@ $('twBox').innerHTML = TWS.map((q, j) => `<label class="sl"><span id="twn${j}"><
 $('sqBox').innerHTML = TWS.map((q, j) => `<label class="sl"><span id="sqn${j}"></span> <input type="range" id="sq${j}" min="0.3" max="1.6" step="0.01"><output id="sqo${j}"></output></label>`).join('');
 TWS.forEach((q, j) => { const [g, i] = q; $('sq' + j).addEventListener('input', e => { const v = +e.target.value, T = pose.sq = clone(pose.sq || {}); if (i === undefined) T[g] = v; else { T[g] = (T[g] || [1, 1]).slice(); T[g][i] = v; } $('sqo' + j).textContent = v.toFixed(2); livePreview(); }); $('sq' + j).addEventListener('change', edited); $('sq' + j).addEventListener('dblclick', () => { $('sq' + j).value = 1; $('sq' + j).dispatchEvent(new Event('input')); edited(); }); });
 TWS.forEach((q, j) => { const [g, i] = q; $('tw' + j).addEventListener('input', e => { const v = +e.target.value, T = pose.tw = clone(pose.tw || {}); if (i === undefined) T[g] = v; else { T[g] = (T[g] || [0, 0]).slice(); T[g][i] = v; } $('two' + j).textContent = v.toFixed(2); livePreview(); }); $('tw' + j).addEventListener('change', edited); $('tw' + j).addEventListener('dblclick', () => { $('tw' + j).value = 0; $('tw' + j).dispatchEvent(new Event('input')); edited(); }); });
+// ---- parts: click on him to pick one; it gets an outline and its own window with everything that belongs to it ----
+// drawO2 tags what it draws (opts.gate): H0 ice head, H1 storm head, A/B arms, hA/hB hands, L0/L1 legs (the lower leg also F0/F1: shin and foot are one shape), T torso + belt + shoulder stones
+const PARTS = ['H0', 'H1', 'A', 'B', 'hA', 'hB', 'L0', 'L1', 'F0', 'F1', 'T'], PCOL = {}; PARTS.forEach((k, i) => { PCOL[k] = [20 + i * 21, 230 - i * 13, 60 + (i * 97) % 180]; });
+const P2PIN = { H0: 'h0', H1: 'h1', hA: 'hA', hB: 'hB', F0: 'f0', F1: 'f1', T: 'chest' }, PIN2P = { h0: 'H0', h1: 'H1', hA: 'hA', hB: 'hB', f0: 'F0', f1: 'F1', chest: 'T', pel: 'T' };
+const DRAWM = new Set(['fill', 'stroke', 'fillRect', 'strokeRect', 'fillText', 'strokeText', 'drawImage', 'putImageData']);
+// mode 'only': draw the one part as it looks; 'pick': every part in its own flat colour (what's under the cursor is the part on top)
+function makeGate(mode, only) { const G = { cur: null, wrap(c) { return new Proxy(c, {
+  get(t, p) { const v = t[p]; if (typeof v !== 'function') return v; if (!DRAWM.has(p)) return v.bind(t);
+    return (...a) => { const k = G.cur; if (k == null) return; const ks = Array.isArray(k) ? k : [k];
+      if (mode === 'only') return ks.includes(only) ? v.apply(t, a) : undefined;
+      if (p === 'fillText' || p === 'strokeText' || p === 'drawImage' || p === 'putImageData') return; const q = PCOL[ks[0]]; if (!q) return; const col = `rgb(${q[0]},${q[1]},${q[2]})`;
+      t.save(); t.globalAlpha = 1; t.globalCompositeOperation = 'source-over'; t.shadowColor = 'transparent'; t.filter = 'none'; t.fillStyle = col; t.strokeStyle = col; const r = v.apply(t, a); t.restore(); return r; }; },
+  set(t, p, val) { t[p] = val; return true; } }); } }; return G; }
+const frontOnly = () => rig && !rig.back && !rig.turning && (pose.view || 0) < 0.001;
+const pickCv = document.createElement('canvas'), olA = document.createElement('canvas'), olB = document.createElement('canvas');
+function pickPart(sx, sy) { if (!frontOnly()) return null; const g = pickCv; g.width = cv.width; g.height = cv.height; const gc = g.getContext('2d', { willReadFrequently: true });
+  GATE = makeGate('pick'); try { drawFig(gc, pose, 1); } finally { GATE = null; }
+  const px = Math.round(sx * DPR), py = Math.round(sy * DPR), R = Math.round(3 * DPR), d = gc.getImageData(px - R, py - R, 2 * R + 1, 2 * R + 1).data, votes = {};
+  for (let j = 0; j < d.length; j += 4) { if (d[j + 3] < 200) continue; let best = null, bd = 24; for (const k of PARTS) { const q = PCOL[k], e = Math.abs(q[0] - d[j]) + Math.abs(q[1] - d[j + 1]) + Math.abs(q[2] - d[j + 2]); if (e < bd) { bd = e; best = k; } } if (best) votes[best] = (votes[best] || 0) + 1; }
+  let k = null, n = 0; for (const [kk, v] of Object.entries(votes)) if (v > n) { n = v; k = kk; } if (!k) return null;
+  // the lower leg and the foot are one shape: below the ankle it's the foot
+  if (k[0] === 'L') { const i = +k[1], w = s2w(sx, sy); if (w[1] > rig.feet[i][1] - 1.9) k = 'F' + i; }
+  return k; }
+function selPart(k) { PSEL = k; SEL = k ? P2PIN[k] || null : null; if (SEL && $('pinA').value === '') $('pinA').value = fr; ui(); }
+// the picked part drawn alone, grown a few pixels all round, minus itself = an outline round just that part
+function partOutline() { if (!frontOnly()) return; const W = cv.width, H = cv.height, R = Math.max(2, Math.round(2.5 * DPR));
+  for (const g of [olA, olB]) { if (g.width !== W || g.height !== H) { g.width = W; g.height = H; } }
+  const a = olA.getContext('2d'), b = olB.getContext('2d'); a.setTransform(1, 0, 0, 1, 0, 0); a.clearRect(0, 0, W, H);
+  GATE = makeGate('only', PSEL); try { drawFig(a, pose, 1); } finally { GATE = null; }
+  a.setTransform(1, 0, 0, 1, 0, 0);
+  if (PSEL[0] === 'F') { const i = +PSEL[1], y = w2s([0, rig.feet[i][1] - 1.9])[1] * DPR; a.clearRect(0, 0, W, Math.max(0, y)); }
+  b.setTransform(1, 0, 0, 1, 0, 0); b.clearRect(0, 0, W, H); b.globalCompositeOperation = 'source-over';
+  for (let j = 0; j < 12; j++) { const an = j / 12 * Math.PI * 2; b.drawImage(olA, Math.cos(an) * R, Math.sin(an) * R); }
+  b.globalCompositeOperation = 'source-in'; b.fillStyle = css('--sel'); b.fillRect(0, 0, W, H);
+  b.globalCompositeOperation = 'destination-out'; b.drawImage(olA, 0, 0); b.globalCompositeOperation = 'source-over';
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.18; ctx.drawImage(olA, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(olB, 0, 0); ctx.restore(); }
+// the part window: what's in it depends on the part
+const partName = k => k === 'T' ? 'Torso' : k[0] === 'H' ? twName(['H', +k[1]]) : k === 'A' || k === 'B' ? cap(nameOf(k)) : k[0] === 'h' ? cap(nameOf(k[1]).replace(' arm', ' hand')) : cap(footName(+k[1])) + (k[0] === 'L' ? ' leg' : ' foot');
+const setTw = ([g, i], v) => { const T = pose.tw = clone(pose.tw || {}); if (i === undefined) T[g] = v; else { T[g] = (T[g] || [0, 0]).slice(); T[g][i] = v; } };
+const setSq = ([g, i], v) => { const T = pose.sq = clone(pose.sq || {}); if (i === undefined) T[g] = v; else { T[g] = (T[g] || [1, 1]).slice(); T[g][i] = v; } };
+const arrSet = (key, i, v, def) => { pose[key] = (pose[key] || def).slice(); pose[key][i] = v; };
+function ppSpec(k) { const S = [], twq = k === 'T' ? null : k[0] === 'H' || k[0] === 'L' || k[0] === 'F' ? [k[0], +k[1]] : [k];
+  const sl = (l, get, set, min, max, def, title) => S.push({ t: 's', l, get, set, min, max, def, title }), tg = (l, on, click, title) => S.push({ t: 'b', l, on, click, title });
+  if (k === 'T') { sl('Lean', () => pose.lean, v => { pose.lean = v; }, -0.8, 0.8, 0, 'Tip the body back or forward'); sl('Torso twist', () => pose.yaw, v => { pose.yaw = v; }, -1.6, 1.6, 0, '+ turns the far shoulder toward you, − the near one'); sl('Ice ↔ storm', () => pose.act, v => { pose.act = v; }, 0, 1, 0, '0 = ice head lit, 1 = storm head lit'); }
+  if (k[0] === 'H') { const i = +k[1]; sl('Tilt', () => (pose.hr || [0, 0])[i] || 0, v => arrSet('hr', i, v, [0, 0]), -1.2, 1.2, 0, '+ tips the face up'); }
+  if (k[0] === 'F') { const i = +k[1]; sl('Turn', () => (pose.fa || [0, 0])[i] || 0, v => arrSet('fa', i, v, [0, 0]), -1.3, 1.3, 0, 'Turn the foot round its ankle: + lifts the toes'); }
+  if (k[0] === 'h') { const s2 = k[1]; sl('Close', () => pose['c' + s2] || 0, v => { pose['c' + s2] = v; }, 0, 1, 0, '0 = open hand, 1 = fist'); }
+  if (twq) { sl('Twist', () => twGet(pose, twq), v => setTw(twq, v), -1.5, 1.5, 0, k[0] === 'H' ? 'Turn the face' : k[0] === 'F' ? 'Point the foot toward or away from you' : k[0] === 'h' ? 'Turn the hand edge-on' : 'Turn about its own length'); sl('Squeeze', () => sqGet(pose, twq), v => setSq(twq, v), 0.3, 1.6, 1, 'Squash or stretch it side to side, straight across the screen. 1 = as drawn'); }
+  if (k[0] === 'H') { const i = +k[1]; tg(() => 'Flipped: ' + ((pose.hfl || [])[i] ? 'yes' : 'no'), () => !!(pose.hfl || [])[i], () => arrSet('hfl', i, (pose.hfl || [])[i] ? 0 : 1, [0, 0]), 'Turn the head to look the other way'); }
+  if (k[0] === 'F') { const i = +k[1]; tg(() => 'Flipped: ' + ((pose.ff || [])[i] ? 'yes' : 'no'), () => !!(pose.ff || [])[i], () => arrSet('ff', i, (pose.ff || [])[i] ? 0 : 1, [0, 0]), 'Point the foot the other way'); }
+  if (k[0] === 'h') { const s2 = k[1]; tg(() => 'Thumb side flipped: ' + (pose['hf' + s2] ? 'yes' : 'no'), () => !!pose['hf' + s2], () => { pose['hf' + s2] = !pose['hf' + s2]; }, 'Turn the hand over'); tg(() => (pose['hb' + s2] ? 'Back' : 'Palm') + ' of the hand showing', () => !!pose['hb' + s2], () => { pose['hb' + s2] = !pose['hb' + s2]; }, 'Show the back of the hand instead of the palm'); }
+  if (k === 'A' || k === 'B') { S.push({ t: 'g', l: 'Drawn', get: () => k === 'A' ? pose.aF || 0 : pose.bF || 0, set: v => { pose[k === 'A' ? 'aF' : 'bF'] = v; }, o: k === 'A' ? [[0, 'Behind body'], [1, 'In front of body'], [2, 'In front of all']] : [[0, 'Behind body'], [1, 'In front of all']] });
+    tg(() => 'Bend the elbow the other way', () => false, () => { pose['e' + k] *= -1; }, 'Flip which way the elbow bends'); }
+  if (k[0] === 'L') S.push({ t: 'g', l: 'Order', get: () => pose.ls ? 1 : 0, set: v => { pose.ls = v; }, o: [[0, 'Normal'], [1, 'Other leg in front']] });
+  return S; }
+let PPS = [];
+function ppBuild() { const k = PSEL; PPS = ppSpec(k); $('ppT').textContent = partName(k);
+  $('ppB').innerHTML = PPS.map((q, j) => q.t === 's' ? `<label class="sl" title="${esc(q.title || '')}"><span>${q.l}</span><input type="range" id="pps${j}" min="${q.min}" max="${q.max}" step="0.01"><output id="ppo${j}"></output></label>`
+    : q.t === 'b' ? `<div class="row"><button id="pps${j}" title="${esc(q.title || '')}" style="flex:1"></button></div>`
+    : `<div class="row"><span class="note">${q.l}</span><div class="seg" id="pps${j}">${q.o.map(([v, l]) => `<button data-v="${v}">${l}</button>`).join('')}</div></div>`).join('')
+    + (P2PIN[k] ? `<p class="note">To hold its ${PCAP[P2PIN[k]].map(x => x === 'pos' ? 'placement' : 'rotation').join(' or ')} still over a run of frames, use the pin bar above the timeline.</p>` : '') + '<p class="note">Double-click a slider to reset it.</p>';
+  PPS.forEach((q, j) => { const el = $('pps' + j);
+    if (q.t === 's') { el.addEventListener('input', e => { if (locked()) return; q.set(+e.target.value); $('ppo' + j).textContent = (+e.target.value).toFixed(2); livePreview(); }); el.addEventListener('change', edited); el.addEventListener('dblclick', () => { el.value = q.def; el.dispatchEvent(new Event('input')); edited(); }); }
+    else if (q.t === 'b') el.onclick = () => { if (locked()) { lockMsg(); return; } q.click(); edited(); };
+    else el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (locked()) { lockMsg(); return; } q.set(+b.dataset.v); edited(); }); }); }
+function ppUpd() { const show = !!PSEL && frontOnly() && !playing; $('pp').hidden = !show; if (!show) return; const key = PSEL + '|' + pose.f; if (key !== ppKey) { ppKey = key; ppBuild(); ppPlace(); }
+  PPS.forEach((q, j) => { const el = $('pps' + j); if (q.t === 's') { const v = +q.get(); if (document.activeElement !== el) el.value = v; $('ppo' + j).textContent = v.toFixed(2); el.disabled = locked(); }
+    else if (q.t === 'b') { el.textContent = q.l(); el.classList.toggle('on', q.on()); el.disabled = locked(); }
+    else for (const b of el.children) b.classList.toggle('on', +b.dataset.v === q.get()); }); }
+$('ppX').onclick = () => selPart(null);
+// the window is moved by its title bar, kept inside the stage, and remembers where it was
+let ppPos = null; try { ppPos = JSON.parse(localStorage.getItem('posebench-pp') || 'null'); } catch (e) {}
+function ppPlace() { const st = $('stage'), p = $('pp'), W = st.clientWidth, H = st.clientHeight, w = p.offsetWidth, h = p.offsetHeight, q = ppPos || { x: W - w - 10, y: 36 };
+  q.x = cl(q.x, 6, Math.max(6, W - w - 6)); q.y = cl(q.y, 6, Math.max(6, H - Math.min(h, 120) - 6)); p.style.left = q.x + 'px'; p.style.top = q.y + 'px'; }
+{ let dg = null; $('ppH').addEventListener('pointerdown', e => { if (e.target.closest('button')) return; const p = $('pp'); dg = { x: e.clientX - p.offsetLeft, y: e.clientY - p.offsetTop }; $('ppH').setPointerCapture(e.pointerId); e.preventDefault(); });
+  $('ppH').addEventListener('pointermove', e => { if (!dg) return; ppPos = { x: e.clientX - dg.x, y: e.clientY - dg.y }; ppPlace(); });
+  const end = () => { if (!dg) return; dg = null; try { localStorage.setItem('posebench-pp', JSON.stringify(ppPos)); } catch (e) {} }; $('ppH').addEventListener('pointerup', end); $('ppH').addEventListener('pointercancel', end);
+  window.addEventListener('resize', () => { if (!$('pp').hidden) ppPlace(); }); }
+// Twist and Squeeze fold away; open or shut is remembered
+for (const id of ['fdTw', 'fdSq']) { try { $(id).open = localStorage.getItem('posebench-' + id) === '1'; } catch (e) {} $(id).addEventListener('toggle', () => { try { localStorage.setItem('posebench-' + id, $(id).open ? '1' : '0'); } catch (e) {} }); }
 for (const id of ['lean', 'yaw', 'act']) { $(id).addEventListener('input', e => { pose[id] = +e.target.value; $(id + 'O').textContent = (+e.target.value).toFixed(2); livePreview(); }); $(id).addEventListener('change', edited); }
 for (const [id, key] of [['oA', 'aF'], ['oB', 'bF'], ['oL', 'ls']]) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pose[key] = +b.dataset.v; edited(); });
 // flips: each hand over, each foot round, each head the other way (a key value: it changes at the key, like the draw order)
