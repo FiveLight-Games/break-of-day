@@ -88,8 +88,8 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <h2>Animation</h2>
       <p class="note">Open:</p><div class="row" style="margin-top:4px"><select id="clipSel" style="flex:1;min-width:0" aria-label="Open animation"></select></div>
       <div class="row" style="margin-top:6px"><span class="note">Name</span><input type="text" id="clipName" style="flex:1;min-width:0;cursor:text;background:transparent;border:1px solid var(--line);box-shadow:none" aria-label="Rename" placeholder="Name" title="Rename this animation"></div><div class="row" style="margin-top:6px"><button id="bNew" title="New animation, ogre standing idle">New blank</button><button id="bDup" title="Copy this animation">Copy this one</button></div>
-      <p class="note" style="margin-top:8px">New animation starting from the last frame of:</p>
-      <div class="row" style="margin-top:4px"><select id="fromSel" style="flex:1;min-width:0" aria-label="Clip to continue from"></select><button id="bFrom">Start</button></div>
+      <div class="row" style="margin-top:8px"><label class="note" style="display:flex;gap:6px;align-items:center" title="Frame 0 of this animation becomes a locked copy of the last frame of the one you pick, and follows it when that one changes"><input type="checkbox" id="linkOn"> Start where this ends:</label></div>
+      <div class="row" style="margin-top:4px"><select id="linkSel" style="flex:1;min-width:0" aria-label="Animation to start from"></select></div>
       <div class="row" style="margin-top:6px" id="delRow"><button id="bDelClip" class="danger">Delete this animation</button></div>
       <p class="note" style="margin-top:8px">Fresh copy of the punch as it is in the game now:</p>
       <div class="row" style="margin-top:4px"><button id="gStorm">Lightning punch</button><button id="gFrost">Ice punch</button></div>
@@ -853,7 +853,15 @@ for (const c of clips) c.name = c.name.replace(/ \(game, facing (left|right)\)/,
 { const n = {}; for (const c of clips) { n[c.name] = (n[c.name] || 0) + 1; if (n[c.name] > 1) c.name += ' ' + n[c.name]; } }
 for (const k2 of [1, 0]) { const g = gameClip(k2); if (!clips.some(c => c.name === g.name)) clips.push(g); }
 ci = Math.min(ci, clips.length - 1);
-const save = () => { try { localStorage.setItem('posebench', JSON.stringify({ clips, ci })); } catch (e) {} };
+// linking: an animation can start where another ends (clip.from = that one's id); its frame 0 is a locked copy of that one's last key
+const rid = () => Math.random().toString(36).slice(2, 9);
+for (const c of clips) c.id = c.id || rid();
+const linkSrc = c => c && c.from ? clips.find(q => q.id === c.from && q !== c) : null;
+function relink() { for (const c of clips) { if (!c.from) continue; const src = linkSrc(c); if (!src || !src.keys.length) { if (!src) c.from = null; continue; }
+  const last = src.keys.reduce((a, k) => k.fr > a.fr ? k : a), k0 = c.keys.find(k => k.fr === 0), P = clone(last.pose);
+  if (k0) k0.pose = P; else { c.keys.push({ fr: 0, ease: 'smooth', pose: P }); c.keys.sort((a, b) => a.fr - b.fr); } } }
+relink();
+const save = () => { relink(); try { localStorage.setItem('posebench', JSON.stringify({ clips, ci })); } catch (e) {} };
 const clip = () => clips[ci], keys = () => clip().keys;
 const sortKeys = () => keys().sort((a, b) => a.fr - b.fr);
 const keyAt = fr => keys().find(k => k.fr === fr);
@@ -880,7 +888,9 @@ function poseAt(t) { const K = keys(); if (!K.length) return idlePose(1); if (t 
 let fr = 0, pose = poseAt(0), dirty = false, playing = false, loop = true, onion = true, pt = 0, last = 0, rig = null;
 const onKey = () => !!keyAt(fr);
 function setFr(n) { fr = Math.max(0, Math.round(n)); pose = poseAt(fr); dirty = false; ui(); }
-function edited() { const k = keyAt(fr); if (k) { if (!dirty) snap(); k.pose = clone(pose); save(); } dirty = !k; ui(); }
+const locked = () => fr === 0 && !!linkSrc(clip());
+let lockMsgT = 0; const lockMsg = () => { lockMsgT = performance.now(); stat(); };
+function edited() { if (locked()) { pose = clone(keyAt(0).pose); dirty = false; lockMsg(); ui(); return; } const k = keyAt(fr); if (k) { if (!dirty) snap(); k.pose = clone(pose); save(); } dirty = !k; ui(); }
 
 // ---- stage ----
 let S = 20, OX = 0, OY = 0, DPR = 1;
@@ -930,7 +940,7 @@ function handles() { const H = HANDLES(), r = rig;
 
 // ---- pointer ----
 let drag = null;
-cv.addEventListener('pointerdown', e => { if (playing) return; const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top, R = e.pointerType === 'touch' ? 24 : 14;
+cv.addEventListener('pointerdown', e => { if (playing) return; if (locked()) { lockMsg(); return; } const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top, R = e.pointerType === 'touch' ? 24 : 14;
   let best = null, bd = R; for (const h of HANDLES()) { const [sx, sy] = w2s(h.p), d = Math.hypot(sx - x, sy - y); if (d < bd) { bd = d; best = h; } }
   if (!best) return; drag = { ...best, x0: x, y0: y, moved: false }; cv.setPointerCapture(e.pointerId); e.preventDefault(); });
 cv.addEventListener('pointermove', e => { if (!drag) return; const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
@@ -964,10 +974,10 @@ function drawTrack() { const W = tcv.width / DPR, H = tcv.height / DPR, L = tlLe
 let tdrag = null;
 const tX = e => { const b = tcv.getBoundingClientRect(), L = tlLen(); return (e.clientX - b.left - 10) / (b.width - 20) * L; };
 $('track').addEventListener('pointerdown', e => { stop(); const f2 = tX(e), L = tlLen(), b = tcv.getBoundingClientRect(), px = (b.width - 20) / L, y = e.clientY - b.top;
-  const k = y > 26 ? keys().find(k => Math.abs(k.fr - f2) * px < 10) : null;
+  let k = y > 26 ? keys().find(k => Math.abs(k.fr - f2) * px < 10) : null; if (k && k.fr === 0 && linkSrc(clip())) k = null; // the locked first key stays put
   tdrag = { key: k, fr0: k ? k.fr : 0, moved: false, x0: e.clientX }; $('track').setPointerCapture(e.pointerId); if (!k) setFr(f2); else setFr(k.fr); });
 $('track').addEventListener('pointermove', e => { if (!tdrag) return; if (!tdrag.key) { setFr(tX(e)); return; } if (!tdrag.moved && Math.abs(e.clientX - tdrag.x0) < 5) return; if (!tdrag.moved) snap(); tdrag.moved = true;
-  const n = Math.max(0, Math.round(tX(e))); if (n !== tdrag.key.fr && !keyAt(n)) { tdrag.key.fr = n; sortKeys(); fr = n; pose = poseAt(fr); save(); ui(); } });
+  const n = Math.max(linkSrc(clip()) ? 1 : 0, Math.round(tX(e))); if (n !== tdrag.key.fr && !keyAt(n)) { tdrag.key.fr = n; sortKeys(); fr = n; pose = poseAt(fr); save(); ui(); } });
 $('track').addEventListener('pointerup', () => { tdrag = null; });
 
 // ---- playback ----
@@ -979,12 +989,12 @@ function stop() { if (!playing) return; playing = false; pose = poseAt(fr); ui()
 // ---- inspector ----
 const cap = t => t[0].toUpperCase() + t.slice(1);
 const nameOf = s => (pose.f > 0) === (s === 'A') ? 'storm arm' : 'ice arm';
-function stat() { const k = keyAt(fr); $('status').innerHTML = `<b>frame ${fr}</b> · ${(fr / FPS).toFixed(3)}s · ${playing ? 'playing' : k ? 'on a key' : dirty ? '<span style="color:var(--warn)">not saved · press Save key to keep it</span>' : 'in between (filled in)'}`; }
+function stat() { const k = keyAt(fr), L = linkSrc(clip()); $('status').innerHTML = `<b>frame ${fr}</b> · ${(fr / FPS).toFixed(3)}s · ${playing ? 'playing' : fr === 0 && L ? `<span style="color:${performance.now() - lockMsgT < 1500 ? 'var(--warn)' : 'inherit'}">🔒 locked: the last frame of “${L.name.replace(/</g, '&lt;')}”</span>` : k ? 'on a key' : dirty ? '<span style="color:var(--warn)">not saved · press Save key to keep it</span>' : 'in between (filled in)'}`; }
 function ui() {
   draw(); drawTrack(); stat();
   $('frLbl').textContent = `Frame ${fr} of ${lastFr()}`; $('bPlay').textContent = playing ? '❚❚' : '▶';
   $('bSnap').textContent = keyAt(fr) ? 'Key saved ✓' : 'Save key'; $('bSnap').disabled = !!keyAt(fr);
-  $('bDel').disabled = !keyAt(fr) || keys().length < 2;
+  $('bDel').disabled = !keyAt(fr) || keys().length < 2 || locked();
   const K = keys(), seg = [...K].reverse().find(k => k.fr <= fr); $('ease').value = seg ? seg.ease || 'smooth' : 'smooth';
   for (const [id, v, d] of [['lean', pose.lean, 2], ['yaw', pose.yaw, 2], ['act', pose.act, 2]]) { $(id).value = v; $(id + 'O').textContent = (+v).toFixed(d); }
   $('fL').classList.toggle('on', pose.f < 0); $('fR').classList.toggle('on', pose.f > 0);
@@ -993,7 +1003,7 @@ function ui() {
   for (const s of ['A', 'B']) { const fist = (pose['c' + s] || 0) > 0.5; $('hd' + s).textContent = cap(nameOf(s).replace(' arm', ' hand')) + (fist ? ': fist' : ': open'); $('fl' + s).textContent = 'Flip ' + nameOf(s).replace(' arm', ' elbow'); $('hd' + s).classList.toggle('on', fist); }
   $('bLoop').classList.toggle('on', loop); $('bOnion').classList.toggle('on', onion);
   const sel = $('clipSel'); if (sel.options.length !== clips.length || [...sel.options].some((o, i) => o.text !== clips[i].name)) sel.innerHTML = clips.map((c, i) => `<option value="${i}">${c.name.replace(/</g, '&lt;')}</option>`).join(''); sel.value = ci;
-  const fs = $('fromSel'), fv = fs.value, fo = clips.map((c, i) => `<option value="${i}">${c.name.replace(/</g, '&lt;')}</option>`).join(''); if (fs.innerHTML !== fo) { fs.innerHTML = fo; if ([...fs.options].some(o => o.value === fv)) fs.value = fv; }
+  { const ls = $('linkSel'), lv = clip().from || ls.value, lo = clips.filter(c => c !== clip()).map(c => `<option value="${c.id}">${c.name.replace(/</g, '&lt;')}</option>`).join(''); if (ls.innerHTML !== lo) ls.innerHTML = lo; if ([...ls.options].some(o => o.value === lv)) ls.value = lv; $('linkOn').checked = !!linkSrc(clip()); $('linkOn').disabled = !ls.options.length; }
   if (document.activeElement !== $('clipName')) $('clipName').value = clip().name;
 }
 for (const id of ['lean', 'yaw', 'act']) { $(id).addEventListener('input', e => { pose[id] = +e.target.value; $(id + 'O').textContent = (+e.target.value).toFixed(2); livePreview(); }); $(id).addEventListener('change', edited); }
@@ -1003,7 +1013,7 @@ $('fL').onclick = () => setFacing(-1); $('fR').onclick = () => setFacing(1);
 function setFacing(f) { if (pose.f === f) return; snap(); for (const k of keys()) k.pose = mirror(k.pose); pose = mirror(pose); save(); ui(); }
 function snapshot() { if (keyAt(fr)) return; snap(); keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); save(); dirty = false; const st = +$('step').value || 0; if (st) { const k0 = clone(pose); fr += st; const k = keyAt(fr); pose = k ? clone(k.pose) : k0; dirty = !k; } ui(); }
 $('bSnap').onclick = snapshot;
-$('bDel').onclick = () => { const k = keyAt(fr); if (!k || keys().length < 2) return; snap(); clip().keys = keys().filter(q => q !== k); pose = poseAt(fr); save(); ui(); };
+$('bDel').onclick = () => { const k = keyAt(fr); if (!k || keys().length < 2) return; if (locked()) { lockMsg(); return; } snap(); clip().keys = keys().filter(q => q !== k); pose = poseAt(fr); save(); ui(); };
 $('bUndo').onclick = undo;
 $('ease').onchange = e => { const seg = [...keys()].reverse().find(k => k.fr <= fr); if (!seg) return; snap(); seg.ease = e.target.value; pose = poseAt(fr); save(); ui(); };
 $('bPlay').onclick = () => playing ? stop() : play();
@@ -1013,12 +1023,13 @@ $('bNextK').onclick = () => { stop(); const k = keys().find(k => k.fr > fr); if 
 $('bOrb').onclick = () => { orbOn = !orbOn; try { localStorage.setItem('posebench-orb', orbOn ? '1' : '0'); } catch (e) {} ui(); };
 // keep redrawing while the lightning shows, so it crackles even when nothing is playing
 (function fxLoop() { if (orbOn && !playing && !drag) draw(); requestAnimationFrame(fxLoop); })();
+$('linkOn').onchange = e => { snap(); clip().from = e.target.checked ? $('linkSel').value || null : null; save(); pose = poseAt(fr); dirty = false; ui(); };
+$('linkSel').onchange = e => { if (!$('linkOn').checked) return; snap(); clip().from = e.target.value; save(); pose = poseAt(fr); dirty = false; ui(); };
 $('bLoop').onclick = () => { loop = !loop; ui(); }; $('bOnion').onclick = () => { onion = !onion; ui(); };
 $('clipSel').onchange = e => { stop(); ci = +e.target.value; hist.length = 0; save(); setFr(0); };
 $('clipName').addEventListener('input', e => { clip().name = e.target.value || 'Untitled'; save(); ui(); });
-const addClip = c => { clips.push(c); ci = clips.length - 1; hist.length = 0; save(); setFr(0); };
+const addClip = c => { c.id = rid(); clips.push(c); ci = clips.length - 1; hist.length = 0; save(); setFr(0); };
 $('bNew').onclick = () => addClip(blank('New clip ' + (clips.length + 1)));
-$('bFrom').onclick = () => { const v = $('fromSel').value, src = v[0] === 'g' ? gameClip(+v[1]) : clips[+v]; if (!src) return; const last = src.keys.reduce((a, k) => k.fr > a.fr ? k : a); addClip({ name: 'After ' + src.name, from: src.name, keys: [{ fr: 0, ease: 'smooth', pose: clone(last.pose) }] }); };
 $('bDup').onclick = () => { const c = clone(clip()); c.name += ' copy'; addClip(c); };
 const freshCopy = k2 => { const g = gameClip(k2); let i = 2; while (clips.some(c => c.name === g.name + ' ' + i)) i++; g.name += ' ' + i; addClip(g); };
 $('gStorm').onclick = () => freshCopy(1); $('gFrost').onclick = () => freshCopy(0);
