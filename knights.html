@@ -3425,23 +3425,25 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
     for (const [nl, a, na = 1] of nails) { c.globalAlpha = na; c.fillStyle = '#efe6cf'; c.strokeStyle = OUT; c.lineWidth = 0.08 * OLW; c.beginPath(); c.ellipse(nl[0], nl[1], 0.2, 0.15, a, 0, 7); c.fill(); c.stroke(); } c.globalAlpha = 1;
     // knuckle bumps along the top edge
     c.strokeStyle = 'rgba(20,12,40,.3)'; c.lineWidth = 0.09; c.lineCap = 'round'; c.globalAlpha = 1 - cw; for (const v of [-0.475, 0.475]) { c.beginPath(); c.moveTo(...HP(0.55, v - 0.3)); c.quadraticCurveTo(...HP(0.78, v), ...HP(0.55, v + 0.3)); c.stroke(); } c.globalAlpha = 1; for (const q of ext) q();
-    if (!WPN && !ice && (k > 0.3 || rnd(Math.floor(t * 9) + 7) > 0.45 + 0.5 * (1 - zL)) && V.st !== 'paint') arc2(c, [fc[0] - n[0] * 1.3, fc[1] - n[1] * 1.3], [fc[0] + n[0] * 1.4 + d[0], fc[1] + n[1] * 1.4 + d[1]], SG, V.core, Math.floor(t * 14), 0.08, 0.7, 5);
+    // effects can run on their own clock (anim suite: the pose holds still while the lightning keeps crackling); opts.noOrb hides the hand's lightning
+    const tq = opts.fxT ?? t;
+    if (!WPN && !ice && !opts.noOrb && (k > 0.3 || rnd(Math.floor(tq * 9) + 7) > 0.45 + 0.5 * (1 - zL)) && V.st !== 'paint') arc2(c, [fc[0] - n[0] * 1.3, fc[1] - n[1] * 1.3], [fc[0] + n[0] * 1.4 + d[0], fc[1] + n[1] * 1.4 + d[1]], SG, V.core, Math.floor(tq * 14), 0.08, 0.7, 5);
     if (k > 0.2) { c.save(); c.globalCompositeOperation = 'lighter'; glow(c, fc[0], fc[1], 2.8 + k, ice ? IG : SG, 0.45 * k); c.restore(); }
     // lightning in charge: a ball of lightning crackles in the storm hand, bolts snapping out of it to the fingertips and the air around
-    if (!WPN && !ice && zL > 0.05 && k < 0.5) { const S = zL * (1 - k * 2), o = [fc[0] + d[0] * 1.6 + f * 0.6, fc[1] + d[1] * 1.6 - 0.2], R = 1.15 * S, sd = Math.floor(t * 16), fl = 0.75 + 0.25 * rnd(sd * 3.1);
+    if (!WPN && !ice && zL > 0.05 && k < 0.5 && !opts.noOrb) { const S = zL * (1 - k * 2), o = [fc[0] + d[0] * 1.6 + f * 0.6, fc[1] + d[1] * 1.6 - 0.2], R = 1.15 * S, sd = Math.floor(tq * 16), fl = 0.75 + 0.25 * rnd(sd * 3.1);
       const jag = (a, b, seed, jit, n) => { const P = [a]; for (let i = 1; i < n; i++) { const q = i / n, p = L2(a, b, q), dx = b[0] - a[0], dy = b[1] - a[1], dl = Math.hypot(dx, dy) || 1, o2 = (rnd(seed + i * 7.3) - 0.5) * jit * Math.sin(q * Math.PI) * 2; P.push([p[0] - dy / dl * o2, p[1] + dx / dl * o2]); } P.push(b); return P; };
       const zline = (P, w2, a2 = 1) => { c.lineJoin = 'round'; c.lineCap = 'round'; c.beginPath(); P.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.strokeStyle = `rgba(60,130,230,${0.35 * a2})`; c.lineWidth = w2 * 4; c.stroke(); c.strokeStyle = `rgba(${SG},${0.95 * a2})`; c.lineWidth = w2 * 1.6; c.stroke(); c.strokeStyle = `rgba(255,255,255,${a2})`; c.lineWidth = w2 * 0.6; c.stroke(); };
       c.save(); c.translate(...o); // drawn normally (not additive), so it stays electric blue over the green grass
       const g = c.createRadialGradient(0, 0, 0, 0, 0, R * 2.4); g.addColorStop(0, `rgba(255,255,255,${0.95 * S * fl})`); g.addColorStop(0.25, `rgba(${SG},${0.75 * S * fl})`); g.addColorStop(0.55, `rgba(70,140,230,${0.3 * S})`); g.addColorStop(1, 'rgba(70,140,230,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, R * 2.4, 0, 7); c.fill();
       // a cage of arcs crawling over the ball
-      for (let i = 0; i < 4; i++) { const a0 = t * 5 * (i % 2 ? 1 : -1) + i * 1.6, a1 = a0 + 1.4 + rnd(sd + i) * 0.8, P = []; for (let q = 0; q <= 1.0001; q += 0.2) { const a = lerp(a0, a1, q), rr = R * (0.95 + (rnd(sd * 5 + i * 9 + q * 10) - 0.5) * 0.35); P.push([Math.cos(a) * rr, Math.sin(a) * rr]); } zline(P, 0.07 * S); }
+      for (let i = 0; i < 4; i++) { const a0 = tq * 5 * (i % 2 ? 1 : -1) + i * 1.6, a1 = a0 + 1.4 + rnd(sd + i) * 0.8, P = []; for (let q = 0; q <= 1.0001; q += 0.2) { const a = lerp(a0, a1, q), rr = R * (0.95 + (rnd(sd * 5 + i * 9 + q * 10) - 0.5) * 0.35); P.push([Math.cos(a) * rr, Math.sin(a) * rr]); } zline(P, 0.07 * S); }
       // bolts snapping out of it
       for (let i = 0; i < 3; i++) { if (rnd(sd * 7 + i) < 0.35) continue; const a = rnd(sd * 11 + i) * 6.283, L3 = R * (1.8 + rnd(sd * 13 + i) * 1.4), E = [Math.cos(a) * L3, Math.sin(a) * L3], P = jag([Math.cos(a) * R * 0.6, Math.sin(a) * R * 0.6], E, sd * 17 + i * 5, 0.5 * S, 6); zline(P, 0.08 * S);
         if (rnd(sd + i * 3) > 0.5) { const m = P[3], a2 = a + (rnd(sd * 2 + i) - 0.5) * 1.8; zline(jag(m, [m[0] + Math.cos(a2) * R * 0.9, m[1] + Math.sin(a2) * R * 0.9], sd * 19 + i, 0.25 * S, 3), 0.05 * S); } }
       // the bright core
       c.fillStyle = `rgba(255,255,255,${S})`; c.beginPath(); c.arc(0, 0, R * 0.42 * (0.9 + 0.2 * rnd(sd * 1.7)), 0, 7); c.fill();
       // sparks orbiting
-      for (let i = 0; i < 6; i++) { const a = t * 6 + i * 1.047, rr = R * (1.35 + 0.25 * Math.sin(t * 7 + i)), p = [Math.cos(a) * rr, Math.sin(a) * rr * 0.8]; c.fillStyle = `rgba(255,255,255,${0.9 * S})`; c.fillRect(p[0] - 0.07, p[1] - 0.07, 0.14, 0.14); }
+      for (let i = 0; i < 6; i++) { const a = tq * 6 + i * 1.047, rr = R * (1.35 + 0.25 * Math.sin(tq * 7 + i)), p = [Math.cos(a) * rr, Math.sin(a) * rr * 0.8]; c.fillStyle = `rgba(255,255,255,${0.9 * S})`; c.fillRect(p[0] - 0.07, p[1] - 0.07, 0.14, 0.14); }
       c.restore(); }
     // frost in charge: a swirl of frost spins in the ice hand (it grows in as he takes over, fades as he hands back)
     if (!WPN && ice && iL > 0.05 && (opts.iSw !== undefined ? opts.iSw > 0.02 : k < 0.5)) { const S = opts.iSw !== undefined ? Math.max(iL, 0.6) * opts.iSw : iL * (1 - k * 2), o = [fc[0] + d[0] * 1.6 + f * 0.6, fc[1] + d[1] * 1.6 - 0.2], R = 1.75 * S, sp = t * 3.2;
@@ -8503,7 +8505,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '03f425';
+const KBUILD = 'a1e985';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
