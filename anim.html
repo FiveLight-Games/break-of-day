@@ -69,6 +69,9 @@ details.fold[open] > summary { margin-bottom: 6px; }
 #ppX { padding: 2px 8px; }
 #ppB { padding: 10px; overflow-y: auto; display: grid; gap: 8px; }
 #ppB .row { gap: 6px; }
+#ppB .ppS { font: 600 12px/1 var(--display); letter-spacing: .1em; text-transform: uppercase; color: var(--mute); border-top: 1px solid var(--line); padding-top: 8px; margin-top: 2px; }
+#ppB .ppC { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+#ppB .ppC label { display: flex; gap: 4px; align-items: center; }
 #ppB label.sl { grid-template-columns: 62px minmax(0, 1fr) 36px; }
 #ppB input[type=range] { min-width: 0; width: 100%; }
 #saveQ { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; z-index: 50; }
@@ -83,7 +86,7 @@ details.fold[open] > summary { margin-bottom: 6px; }
 </div>
 
 <div class="wrap">
-  <div id="stage"><canvas id="cv"></canvas><div id="status"></div><div id="pp" hidden role="dialog" aria-labelledby="ppT"><div id="ppH" title="Drag to move this window"><span id="ppT"></span><button id="ppX" title="Close (click empty space on the stage to close it too)">✕</button></div><div id="ppB"></div></div><div id="hint">Click a part of him to open its settings · Drag: hands, feet, toes (triangle) to turn a foot, the dot over a head to tilt it, hips (square), chest (diamond), elbow dot to swing the upper arm · Tap a ⇄ ring to bend that elbow or knee the other way</div></div>
+  <div id="stage"><canvas id="cv"></canvas><div id="status"></div><div id="pp" hidden role="dialog" aria-labelledby="ppT"><div id="ppH" title="Drag to move this window"><span id="ppT"></span><button id="ppX" title="Close (click empty space on the stage to close it too)">✕</button></div><div id="ppB"></div></div><div id="hint">Click a part of him to open its settings (Ctrl/⌘-click to pick several) · Drag: hands, feet, toes (triangle) to turn a foot, the dot over a head to tilt it, hips (square), chest (diamond), elbow dot to swing the upper arm · Tap a ⇄ ring to bend that elbow or knee the other way</div></div>
 
   <div class="time">
     <div class="tbar">
@@ -1065,7 +1068,7 @@ function draw() {
   if (onion && !playing) { const K = keys(), p = [...K].reverse().find(k => k.fr < fr), n = K.find(k => k.fr > fr);
     for (const [k, col] of [[p, '--b'], [n, '--a']]) if (k) { const g = ghost; g.width = cv.width; g.height = cv.height; const gc = g.getContext('2d'); gc.clearRect(0, 0, g.width, g.height); drawFig(gc, k.pose, 1); gc.setTransform(1, 0, 0, 1, 0, 0); gc.globalCompositeOperation = 'source-atop'; gc.fillStyle = css(col); gc.globalAlpha = 0.55; gc.fillRect(0, 0, g.width, g.height); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.22; ctx.drawImage(g, 0, 0); ctx.restore(); } }
   rig = drawFig(ctx, pose, 1);
-  if (!playing && PSEL) partOutline();
+  if (!playing && PSELS.length) partOutline();
   if (!playing) handles();
 }
 // where a foot's toe handle sits (the foot turned round its ankle by P.fa), and an elbow's flip bubble (just outside the bend)
@@ -1082,7 +1085,7 @@ const BACKH = (r, P) => [
     { id: 'beG', p: r.eG, k: 'elbowD', c: '--a', b: 'G' }, { id: 'beP', p: r.eP, k: 'elbowD', c: '--b', b: 'P' },
     { id: 'bxG', p: flipB(r.shG, r.hG, r.eG), k: 'elbow', c: '--a', b: 'G' }, { id: 'bxP', p: flipB(r.shP, r.hP, r.eP), k: 'elbow', c: '--b', b: 'P' },
     { id: 'hdI', p: headOf(r, P, 0), k: 'head', c: '--b', i: 0 }, { id: 'hdZ', p: headOf(r, P, 1), k: 'head', c: '--a', i: 1 } ];
-let SEL = null, PSEL = null, ppKey = ''; const partOf = h => h.b ? null : ({ hA: 'hA', hB: 'hB', f0: 'f0', t0: 'f0', f1: 'f1', t1: 'f1', pl: 'pel', ch: 'chest', hdI: 'h0', hdZ: 'h1' })[h.id] || null;
+let SEL = null, PSELS = [], PCHK = {}, ppKey = ''; const partOf = h => h.b ? null : ({ hA: 'hA', hB: 'hB', f0: 'f0', t0: 'f0', f1: 'f1', t1: 'f1', pl: 'pel', ch: 'chest', hdI: 'h0', hdZ: 'h1' })[h.id] || null;
 const pinnedHere = (part, t) => (clip().pins || []).filter(q => q.p === part && q.a <= t && t <= q.b);
 const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || locked()) return []; if (r.back) return BACKH(r, P); const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.95];
   return [
@@ -1114,7 +1117,8 @@ function handles() { const H = HANDLES(), r = rig;
 let drag = null;
 cv.addEventListener('pointerdown', e => { if (playing) return; if (locked()) { lockMsg(); return; } const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top, R = e.pointerType === 'touch' ? 24 : 14;
   let best = null, bd = R; for (const h of HANDLES()) { const [sx, sy] = w2s(h.p), d = Math.hypot(sx - x, sy - y); if (d < bd) { bd = d; best = h; } }
-  if (!best) { const k = pickPart(x, y); selPart(k); return; } { const pt = partOf(best); if (pt) { if (SEL !== pt && $('pinA').value === '') $('pinA').value = fr; SEL = pt; PSEL = PIN2P[pt]; ui(); } } drag = { ...best, x0: x, y0: y, moved: false }; cv.setPointerCapture(e.pointerId); e.preventDefault(); });
+  const multi = e.ctrlKey || e.metaKey;
+  if (!best || multi) { const k = (best && PIN2P[partOf(best)]) || pickPart(x, y); if (multi) { if (k) selToggle(k); } else selPart(k); return; } { const pt = partOf(best); if (pt) { if (SEL !== pt && $('pinA').value === '') $('pinA').value = fr; SEL = pt; PSELS = [PIN2P[pt]]; PCHK = { [PIN2P[pt]]: true }; ui(); } } drag = { ...best, x0: x, y0: y, moved: false }; cv.setPointerCapture(e.pointerId); e.preventDefault(); });
 cv.addEventListener('pointermove', e => { if (!drag) return; const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
   if (!drag.moved && Math.hypot(x - drag.x0, y - drag.y0) < 4) return; drag.moved = true; const p = s2w(x, y), r = rig, P = pose;
   if (drag.b) { P.bk = P.bk ? { ...P.bk } : clone(backDef(P.f)); const B = P.bk, sh = drag.b === 'G' ? r.shG : r.shP;
@@ -1228,12 +1232,12 @@ const DRAWM = new Set(['fill', 'stroke', 'fillRect', 'strokeRect', 'fillText', '
 function makeGate(mode, only) { const G = { cur: null, wrap(c) { return new Proxy(c, {
   get(t, p) { const v = t[p]; if (typeof v !== 'function') return v; if (!DRAWM.has(p)) return v.bind(t);
     return (...a) => { const k = G.cur; if (k == null) return; const ks = Array.isArray(k) ? k : [k];
-      if (mode === 'only') return ks.includes(only) ? v.apply(t, a) : undefined;
+      if (mode === 'only') return ks.some(q => only.includes(q)) ? v.apply(t, a) : undefined;
       if (p === 'fillText' || p === 'strokeText' || p === 'drawImage' || p === 'putImageData') return; const q = PCOL[ks[0]]; if (!q) return; const col = `rgb(${q[0]},${q[1]},${q[2]})`;
       t.save(); t.globalAlpha = 1; t.globalCompositeOperation = 'source-over'; t.shadowColor = 'transparent'; t.filter = 'none'; t.fillStyle = col; t.strokeStyle = col; const r = v.apply(t, a); t.restore(); return r; }; },
   set(t, p, val) { t[p] = val; return true; } }); } }; return G; }
 const frontOnly = () => rig && !rig.back && !rig.turning && (pose.view || 0) < 0.001;
-const pickCv = document.createElement('canvas'), olA = document.createElement('canvas'), olB = document.createElement('canvas');
+const pickCv = document.createElement('canvas'), olA = document.createElement('canvas'), olB = document.createElement('canvas'), olC = document.createElement('canvas');
 function pickPart(sx, sy) { if (!frontOnly()) return null; const g = pickCv; g.width = cv.width; g.height = cv.height; const gc = g.getContext('2d', { willReadFrequently: true });
   GATE = makeGate('pick'); try { drawFig(gc, pose, 1); } finally { GATE = null; }
   const px = Math.round(sx * DPR), py = Math.round(sy * DPR), R = Math.round(3 * DPR), d = gc.getImageData(px - R, py - R, 2 * R + 1, 2 * R + 1).data, votes = {};
@@ -1242,14 +1246,18 @@ function pickPart(sx, sy) { if (!frontOnly()) return null; const g = pickCv; g.w
   // the lower leg and the foot are one shape: below the ankle it's the foot
   if (k[0] === 'L') { const i = +k[1], w = s2w(sx, sy); if (w[1] > rig.feet[i][1] - 1.9) k = 'F' + i; }
   return k; }
-function selPart(k) { PSEL = k; SEL = k ? P2PIN[k] || null : null; if (SEL && $('pinA').value === '') $('pinA').value = fr; ui(); }
+// the selection: a plain click picks one part, Ctrl/Cmd-click adds or removes one; the pin bar follows the part clicked last
+function selPart(k) { PSELS = k ? [k] : []; PCHK = k ? { [k]: true } : {}; selPin(k); }
+function selToggle(k) { const i = PSELS.indexOf(k); if (i >= 0) { PSELS.splice(i, 1); delete PCHK[k]; selPin(PSELS[PSELS.length - 1] || null); } else { PSELS.push(k); PCHK[k] = true; selPin(k); } }
+function selPin(k) { SEL = k ? P2PIN[k] || null : null; if (SEL && $('pinA').value === '') $('pinA').value = fr; ui(); }
 // the picked part drawn alone, grown a few pixels all round, minus itself = an outline round just that part
 function partOutline() { if (!frontOnly()) return; const W = cv.width, H = cv.height, R = Math.max(2, Math.round(2.5 * DPR));
   for (const g of [olA, olB]) { if (g.width !== W || g.height !== H) { g.width = W; g.height = H; } }
   const a = olA.getContext('2d'), b = olB.getContext('2d'); a.setTransform(1, 0, 0, 1, 0, 0); a.clearRect(0, 0, W, H);
-  GATE = makeGate('only', PSEL); try { drawFig(a, pose, 1); } finally { GATE = null; }
+  const rest = PSELS.filter(k => k[0] !== 'F'); if (rest.length) { GATE = makeGate('only', rest); try { drawFig(a, pose, 1); } finally { GATE = null; } }
+  for (const k of PSELS.filter(k => k[0] === 'F')) { if (olC.width !== W || olC.height !== H) { olC.width = W; olC.height = H; } const g = olC.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
+    GATE = makeGate('only', [k]); try { drawFig(g, pose, 1); } finally { GATE = null; } g.setTransform(1, 0, 0, 1, 0, 0); const y = w2s([0, rig.feet[+k[1]][1] - 1.9])[1] * DPR; g.clearRect(0, 0, W, Math.max(0, y)); a.setTransform(1, 0, 0, 1, 0, 0); a.drawImage(olC, 0, 0); }
   a.setTransform(1, 0, 0, 1, 0, 0);
-  if (PSEL[0] === 'F') { const i = +PSEL[1], y = w2s([0, rig.feet[i][1] - 1.9])[1] * DPR; a.clearRect(0, 0, W, Math.max(0, y)); }
   b.setTransform(1, 0, 0, 1, 0, 0); b.clearRect(0, 0, W, H); b.globalCompositeOperation = 'source-over';
   for (let j = 0; j < 12; j++) { const an = j / 12 * Math.PI * 2; b.drawImage(olA, Math.cos(an) * R, Math.sin(an) * R); }
   b.globalCompositeOperation = 'source-in'; b.fillStyle = css('--sel'); b.fillRect(0, 0, W, H);
@@ -1261,31 +1269,43 @@ const setTw = ([g, i], v) => { const T = pose.tw = clone(pose.tw || {}); if (i =
 const setSq = ([g, i], v) => { const T = pose.sq = clone(pose.sq || {}); if (i === undefined) T[g] = v; else { T[g] = (T[g] || [1, 1]).slice(); T[g][i] = v; } };
 const arrSet = (key, i, v, def) => { pose[key] = (pose[key] || def).slice(); pose[key][i] = v; };
 function ppSpec(k) { const S = [], twq = k === 'T' ? null : k[0] === 'H' || k[0] === 'L' || k[0] === 'F' ? [k[0], +k[1]] : [k], arm = k === 'A' || k === 'B' ? k : k[0] === 'f' ? k[1] : null;
-  const sl = (l, get, set, min, max, def, title) => S.push({ t: 's', l, get, set, min, max, def, title }), tg = (l, on, click, title) => S.push({ t: 'b', l, on, click, title });
+  const sl = (l, get, set, min, max, def, title) => S.push({ t: 's', id: 's:' + l, l, get, set, min, max, def, title }), tg = (id, base, l, on, click, title) => S.push({ t: 'b', id: 'b:' + id, base, l, on, click, title });
   if (k === 'T') { sl('Lean', () => pose.lean, v => { pose.lean = v; }, -0.8, 0.8, 0, 'Tip the body back or forward'); sl('Torso twist', () => pose.yaw, v => { pose.yaw = v; }, -1.6, 1.6, 0, '+ turns the far shoulder toward you, − the near one'); sl('Ice ↔ storm', () => pose.act, v => { pose.act = v; }, 0, 1, 0, '0 = ice head lit, 1 = storm head lit'); }
   if (k[0] === 'H') { const i = +k[1]; sl('Tilt', () => (pose.hr || [0, 0])[i] || 0, v => arrSet('hr', i, v, [0, 0]), -1.2, 1.2, 0, '+ tips the face up'); }
   if (k[0] === 'F') { const i = +k[1]; sl('Turn', () => (pose.fa || [0, 0])[i] || 0, v => arrSet('fa', i, v, [0, 0]), -1.3, 1.3, 0, 'Turn the foot round its ankle: + lifts the toes'); }
   if (k[0] === 'h') { const s2 = k[1]; sl('Close', () => pose['c' + s2] || 0, v => { pose['c' + s2] = v; }, 0, 1, 0, '0 = open hand, 1 = fist'); }
   if (twq) { sl('Twist', () => twGet(pose, twq), v => setTw(twq, v), -1.5, 1.5, 0, k[0] === 'H' ? 'Turn the face' : k[0] === 'F' ? 'Point the foot toward or away from you' : k[0] === 'h' ? 'Turn the hand edge-on' : 'Turn about its own length'); sl('Squeeze', () => sqGet(pose, twq), v => setSq(twq, v), 0.3, 1.6, 1, 'Squash or stretch it side to side, straight across the screen. 1 = as drawn'); }
-  if (k[0] === 'H') { const i = +k[1]; tg(() => 'Flipped: ' + ((pose.hfl || [])[i] ? 'yes' : 'no'), () => !!(pose.hfl || [])[i], () => arrSet('hfl', i, (pose.hfl || [])[i] ? 0 : 1, [0, 0]), 'Turn the head to look the other way'); }
-  if (k[0] === 'F') { const i = +k[1]; tg(() => 'Flipped: ' + ((pose.ff || [])[i] ? 'yes' : 'no'), () => !!(pose.ff || [])[i], () => arrSet('ff', i, (pose.ff || [])[i] ? 0 : 1, [0, 0]), 'Point the foot the other way'); }
-  if (k[0] === 'h') { const s2 = k[1]; tg(() => 'Thumb side flipped: ' + (pose['hf' + s2] ? 'yes' : 'no'), () => !!pose['hf' + s2], () => { pose['hf' + s2] = !pose['hf' + s2]; }, 'Turn the hand over'); tg(() => (pose['hb' + s2] ? 'Back' : 'Palm') + ' of the hand showing', () => !!pose['hb' + s2], () => { pose['hb' + s2] = !pose['hb' + s2]; }, 'Show the back of the hand instead of the palm'); }
-  if (arm) { S.push({ t: 'g', l: 'Arm drawn', get: () => arm === 'A' ? pose.aF || 0 : pose.bF || 0, set: v => { pose[arm === 'A' ? 'aF' : 'bF'] = v; }, o: arm === 'A' ? [[0, 'Behind body'], [1, 'In front of body'], [2, 'In front of all']] : [[0, 'Behind body'], [1, 'In front of all']] });
-    tg(() => 'Bend the elbow the other way', () => false, () => { pose['e' + arm] *= -1; }, 'Flip which way the elbow bends'); }
-  if (k[0] === 'L') S.push({ t: 'g', l: 'Order', get: () => pose.ls ? 1 : 0, set: v => { pose.ls = v; }, o: [[0, 'Normal'], [1, 'Other leg in front']] });
+  if (k[0] === 'H') { const i = +k[1]; tg('flip', 'Flipped', () => 'Flipped: ' + ((pose.hfl || [])[i] ? 'yes' : 'no'), () => !!(pose.hfl || [])[i], () => arrSet('hfl', i, (pose.hfl || [])[i] ? 0 : 1, [0, 0]), 'Turn the head to look the other way'); }
+  if (k[0] === 'F') { const i = +k[1]; tg('flip', 'Flipped', () => 'Flipped: ' + ((pose.ff || [])[i] ? 'yes' : 'no'), () => !!(pose.ff || [])[i], () => arrSet('ff', i, (pose.ff || [])[i] ? 0 : 1, [0, 0]), 'Point the foot the other way'); }
+  if (k[0] === 'h') { const s2 = k[1]; tg('thumb', 'Thumb side flipped', () => 'Thumb side flipped: ' + (pose['hf' + s2] ? 'yes' : 'no'), () => !!pose['hf' + s2], () => { pose['hf' + s2] = !pose['hf' + s2]; }, 'Turn the hand over'); tg('back', 'Back of the hand showing', () => (pose['hb' + s2] ? 'Back' : 'Palm') + ' of the hand showing', () => !!pose['hb' + s2], () => { pose['hb' + s2] = !pose['hb' + s2]; }, 'Show the back of the hand instead of the palm'); }
+  if (arm) { S.push({ t: 'g', id: 'g:arm', l: 'Arm drawn', get: () => arm === 'A' ? pose.aF || 0 : pose.bF || 0, set: v => { pose[arm === 'A' ? 'aF' : 'bF'] = v; }, o: arm === 'A' ? [[0, 'Behind body'], [1, 'In front of body'], [2, 'In front of all']] : [[0, 'Behind body'], [1, 'In front of all']] });
+    tg('elbow', 'Bend the elbow the other way', () => 'Bend the elbow the other way', () => false, () => { pose['e' + arm] *= -1; }, 'Flip which way the elbow bends'); }
+  if (k[0] === 'L') S.push({ t: 'g', id: 'g:legs', l: 'Order', get: () => pose.ls ? 1 : 0, set: v => { pose.ls = v; }, o: [[0, 'Normal'], [1, 'Other leg in front']] });
   return S; }
 let PPS = [];
-function ppBuild() { const k = PSEL; PPS = ppSpec(k); $('ppT').textContent = partName(k);
-  $('ppB').innerHTML = PPS.map((q, j) => q.t === 's' ? `<label class="sl" title="${esc(q.title || '')}"><span>${q.l}</span><input type="range" id="pps${j}" min="${q.min}" max="${q.max}" step="0.01"><output id="ppo${j}"></output></label>`
-    : q.t === 'b' ? `<div class="row"><button id="pps${j}" title="${esc(q.title || '')}" style="flex:1"></button></div>`
-    : `<div class="row"><span class="note">${q.l}</span><div class="seg" id="pps${j}">${q.o.map(([v, l]) => `<button data-v="${v}">${l}</button>`).join('')}</div></div>`).join('')
-    + (P2PIN[k] ? `<p class="note">To hold its ${PCAP[P2PIN[k]].map(x => x === 'pos' ? 'placement' : 'rotation').join(' or ')} still over a run of frames, use the pin bar above the timeline.</p>` : '') + '<p class="note">Double-click a slider to reset it.</p>';
+// one control acting on several parts at once: shows the first part's value (– if they differ), sets them all
+function ppShared(ks) { const lists = ks.map(ppSpec), out = []; for (const q of lists[0]) { const M = lists.map(L => L.find(x => x.id === q.id)); if (M.some(x => !x)) continue;
+    if (q.t === 's') out.push({ ...q, get: () => M[0].get(), same: () => M.every(x => Math.abs(x.get() - M[0].get()) < 1e-4), set: v => M.forEach(x => x.set(v)) });
+    else if (q.t === 'b') out.push({ ...q, l: () => M.every(x => x.on() === M[0].on()) ? M[0].l() : q.base + ': mixed', on: () => M.every(x => x.on()), click: () => { if (q.id === 'b:elbow') { M.forEach(x => x.click()); return; } const to = !M.every(x => x.on()); M.forEach(x => { if (x.on() !== to) x.click(); }); } });
+    else out.push({ ...q, get: () => M.every(x => x.get() === M[0].get()) ? M[0].get() : -1, set: v => M.forEach(x => x.set(v)) }); } return out; }
+const ppCtl = (q, j) => q.t === 's' ? `<label class="sl" title="${esc(q.title || '')}"><span>${q.l}</span><input type="range" id="pps${j}" min="${q.min}" max="${q.max}" step="0.01"><output id="ppo${j}"></output></label>`
+  : q.t === 'b' ? `<div class="row"><button id="pps${j}" title="${esc(q.title || '')}" style="flex:1"></button></div>`
+  : `<div class="row"><span class="note">${q.l}</span><div class="seg" id="pps${j}">${q.o.map(([v, l]) => `<button data-v="${v}">${l}</button>`).join('')}</div></div>`;
+function ppBuild() { const ks = PSELS, on = ks.filter(k => PCHK[k]), off = ks.filter(k => !PCHK[k]); PPS = []; let h = '';
+  $('ppT').textContent = ks.length === 1 ? partName(ks[0]) : ks.length + ' parts';
+  const sec = (title, list) => { if (title) h += `<div class="ppS">${title}</div>`; if (!list.length) { h += '<p class="note">Nothing they all share.</p>'; return; } for (const q of list) { h += ppCtl(q, PPS.length); PPS.push(q); } };
+  if (ks.length > 1) h += `<div class="ppC">${ks.map(k => `<label class="note"><input type="checkbox" data-pk="${k}"${PCHK[k] ? ' checked' : ''}> ${partName(k)}</label>`).join('')}</div><p class="note">Ticked parts share one set of settings. Ctrl-click (⌘ on a Mac) a part on him to add or remove it.</p>`;
+  if (on.length) sec(ks.length > 1 ? 'Together: ' + on.map(partName).join(', ') : '', on.length === 1 ? ppSpec(on[0]) : ppShared(on));
+  for (const k of off) sec(partName(k), ppSpec(k));
+  if (ks.length === 1 && P2PIN[ks[0]]) h += `<p class="note">To hold its ${PCAP[P2PIN[ks[0]]].map(x => x === 'pos' ? 'placement' : 'rotation').join(' or ')} still over a run of frames, use the pin bar above the timeline.</p>`;
+  $('ppB').innerHTML = h + '<p class="note">Double-click a slider to reset it.</p>';
+  for (const cb of $('ppB').querySelectorAll('[data-pk]')) cb.onchange = () => { PCHK[cb.dataset.pk] = cb.checked; ui(); };
   PPS.forEach((q, j) => { const el = $('pps' + j);
     if (q.t === 's') { el.addEventListener('input', e => { if (locked()) return; q.set(+e.target.value); $('ppo' + j).textContent = (+e.target.value).toFixed(2); livePreview(); }); el.addEventListener('change', edited); el.addEventListener('dblclick', () => { el.value = q.def; el.dispatchEvent(new Event('input')); edited(); }); }
     else if (q.t === 'b') el.onclick = () => { if (locked()) { lockMsg(); return; } q.click(); edited(); };
     else el.addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; if (locked()) { lockMsg(); return; } q.set(+b.dataset.v); edited(); }); }); }
-function ppUpd() { const show = !!PSEL && frontOnly() && !playing; $('pp').hidden = !show; if (!show) return; const key = PSEL + '|' + pose.f; if (key !== ppKey) { ppKey = key; ppBuild(); ppPlace(); }
-  PPS.forEach((q, j) => { const el = $('pps' + j); if (q.t === 's') { const v = +q.get(); if (document.activeElement !== el) el.value = v; $('ppo' + j).textContent = v.toFixed(2); el.disabled = locked(); }
+function ppUpd() { const show = PSELS.length > 0 && frontOnly() && !playing; $('pp').hidden = !show; if (!show) return; const key = PSELS.map(k => k + (PCHK[k] ? '+' : '-')).join(',') + '|' + pose.f; if (key !== ppKey) { ppKey = key; ppBuild(); ppPlace(); }
+  PPS.forEach((q, j) => { const el = $('pps' + j); if (q.t === 's') { const v = +q.get(), same = !q.same || q.same(); if (document.activeElement !== el) el.value = v; $('ppo' + j).textContent = same ? v.toFixed(2) : '–'; el.disabled = locked(); }
     else if (q.t === 'b') { el.textContent = q.l(); el.classList.toggle('on', q.on()); el.disabled = locked(); }
     else for (const b of el.children) b.classList.toggle('on', +b.dataset.v === q.get()); }); }
 $('ppX').onclick = () => selPart(null);
