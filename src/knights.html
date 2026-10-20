@@ -3554,7 +3554,9 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   if (opts.outRig) opts.outRig.ord.push('H');
   const hI = () => head(HI, true, f, Math.max(iceOn, argue * Math.max(0, -Math.sin(t * 13))), both ? b : actK), hZ = () => head(HZ, false, argue > 0.3 ? -f : f, Math.max(zapOn, argue * Math.max(0, Math.sin(t * 13))), both ? b : 1 - actK);
   // the head on his facing side is drawn last; the storm shoulder stones sit behind the storm face
-  if (SF) { hI(); shoulder(shA, false); hZ(); } else { shoulder(shA, true); hZ(); hI(); }
+  // turned well round (|yaw| > 0.6) the head on the side coming toward the camera goes in front: + twist puts the ice head in front, - the storm head
+  const iceFront = YW > 0.6 ? true : YW < -0.6 ? false : !SF;
+  if (!iceFront) { if (SF) { hI(); shoulder(shA, false); hZ(); } else { shoulder(shA, true); hI(); hZ(); } } else { shoulder(shA, !SF); hZ(); hI(); }
   if (RG ? RG.bF : !(hkB && !HKo.front)) armB(); if (SF) shoulder(shB, true); else shoulder(shB, false);
   if (RG ? RG.aF === 2 : hkA && HKo.front) armA();
   if (sq >= 0) spikes.filter(q => q.y >= G[1]).forEach(spike);
