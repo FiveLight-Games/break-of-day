@@ -1038,8 +1038,11 @@ function drawTrack() { const W = tcv.width / DPR, H = tcv.height / DPR, L = tlLe
   const st = L > 240 ? 30 : L > 120 ? 10 : 6; for (let f2 = 0; f2 <= L; f2++) { const x = X(f2); if (f2 % st === 0) { tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, 12); tctx.stroke(); tctx.fillText(f2, x, 22); } else if (L <= 120) { tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, 4); tctx.stroke(); } }
   const K = keys(); for (let i = 0; i < K.length; i++) { const k = K[i], x = X(k.fr), y = 39, sel = k.fr === fr;
     if (i < K.length - 1) { const n = K[i + 1], P = k.pose, Q = n.pose; if (P.eA !== Q.eA || P.eB !== Q.eB || P.aF !== Q.aF || P.bF !== Q.bF || P.ls !== Q.ls || P.kn[0] !== Q.kn[0] || P.kn[1] !== Q.kn[1]) { tctx.fillStyle = css('--warn'); tctx.fillRect(X(n.fr) - 1, 28, 2, 22); } }
-    const lk = k.fr === 0 && !!linkSrc(clip()); if (lk) { tctx.save(); tctx.font = '15px sans-serif'; tctx.textAlign = 'left'; tctx.fillText('🔒', x + 9, y + 5); tctx.restore(); }
-    tctx.fillStyle = lk ? css('--mute') : sel ? css('--sel') : css('--key'); tctx.beginPath(); tctx.moveTo(x, y - 7); tctx.lineTo(x + 7, y); tctx.lineTo(x, y + 7); tctx.lineTo(x - 7, y); tctx.closePath(); tctx.fill();
+    // a locked first key (this animation starts where another ends) is drawn as a padlock instead of a diamond
+    if (k.fr === 0 && linkSrc(clip())) { tctx.save(); tctx.fillStyle = sel ? css('--sel') : css('--key'); tctx.strokeStyle = tctx.fillStyle; tctx.lineWidth = 2;
+      tctx.beginPath(); tctx.arc(x, y - 2, 4, Math.PI, 0); tctx.lineTo(x + 4, y); tctx.moveTo(x - 4, y); tctx.lineTo(x - 4, y - 2); tctx.stroke();
+      tctx.beginPath(); tctx.roundRect ? tctx.roundRect(x - 6, y - 1, 12, 9, 2) : tctx.rect(x - 6, y - 1, 12, 9); tctx.fill(); tctx.fillStyle = css('--bg'); tctx.fillRect(x - 1, y + 2, 2, 3); tctx.restore(); continue; }
+    tctx.fillStyle = sel ? css('--sel') : css('--key'); tctx.beginPath(); tctx.moveTo(x, y - 7); tctx.lineTo(x + 7, y); tctx.lineTo(x, y + 7); tctx.lineTo(x - 7, y); tctx.closePath(); tctx.fill();
     if (k.ease === 'hold') { tctx.strokeStyle = css('--mute'); tctx.setLineDash([2, 3]); tctx.beginPath(); tctx.moveTo(x + 8, y); tctx.lineTo(i < K.length - 1 ? X(K[i + 1].fr) - 8 : x + 8, y); tctx.stroke(); tctx.setLineDash([]); } }
   const x = X(fr); tctx.strokeStyle = css('--accent'); tctx.lineWidth = 2; tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, H); tctx.stroke(); tctx.lineWidth = 1; }
 let tdrag = null;
