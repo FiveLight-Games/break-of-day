@@ -59,63 +59,63 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
 
 <div class="top">
   <h1>Pose Bench</h1>
-  <p>Drag joints to pose the Storm Ogre, snapshot each key, play it back at 60 fps. Copy the clip JSON when it looks right.</p>
+  <p>Pose the Storm Ogre, save a key at each main moment, and the frames in between fill in. Press ▶ to watch it at game speed (60 fps).</p>
 </div>
 
 <div class="wrap">
-  <div id="stage"><canvas id="cv"></canvas><div id="status"></div><div id="hint">Drag hands, feet, hips (square) and chest (diamond) · tap an elbow or knee ring to flip its bend</div></div>
+  <div id="stage"><canvas id="cv"></canvas><div id="status"></div><div id="hint">Drag the dots: hands, feet, hips (square), chest (diamond) · Tap an elbow or knee ring to bend it the other way</div></div>
 
   <div class="time">
     <div class="tbar">
       <div class="seg"><button id="bFirst" title="First frame">⏮</button><button id="bPrevK" title="Previous key">◆◀</button><button id="bPrev" title="Back one frame (←)">◀</button><button id="bPlay" title="Play / pause (Space)">▶</button><button id="bNext" title="Forward one frame (→)">▶</button><button id="bNextK" title="Next key">▶◆</button></div>
       <span class="fr" id="frLbl"></span>
-      <button class="primary" id="bSnap" title="Save this pose as a key at the playhead (S)">Snapshot</button>
-      <label class="note">then advance <input type="number" id="step" min="0" max="60" value="4"> frames</label>
+      <button class="primary" id="bSnap" title="Save this pose at the current frame (S)">Save key</button>
+      <label class="note">After saving, jump ahead <input type="number" id="step" min="0" max="60" value="4"> frames</label>
     </div>
     <div id="track"><canvas id="tcv"></canvas></div>
     <div class="tbar">
-      <button id="bDel" class="danger" title="Delete the key at the playhead (Delete)">Delete key</button>
+      <button id="bDel" class="danger" title="Delete the key at the current frame (Delete)">Delete key</button>
       <button id="bUndo" title="Undo (Ctrl+Z)">Undo</button>
-      <label class="note">Into next key <select id="ease"><option value="smooth">Smooth</option><option value="ease">Ease in-out</option><option value="linear">Linear</option><option value="hold">Hold</option></select></label>
-      <label class="note">Speed <select id="spd"><option value="0.1">0.1×</option><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select></label>
-      <button id="bLoop" class="on">Loop</button>
-      <button id="bOnion" class="on">Onion skin</button>
+      <label class="note">Motion to the next key <select id="ease"><option value="smooth">Smooth curve</option><option value="ease">Slow start and stop</option><option value="linear">Steady speed</option><option value="hold">Freeze, then jump</option></select></label>
+      <label class="note">Playback speed <select id="spd"><option value="0.1">0.1×</option><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select></label>
+      <button id="bLoop" class="on" title="Repeat playback">Loop</button>
+      <button id="bOnion" class="on" title="Faint copies of the previous and next keys">Show nearby keys</button>
     </div>
   </div>
 
   <div class="side">
     <section>
-      <h2>Clip</h2>
-      <div class="row"><select id="clipSel" style="flex:1;min-width:0"></select></div>
-      <div class="row" style="margin-top:6px"><input type="text" id="clipName" style="flex:1;min-width:0" aria-label="Clip name"><button id="bNew">New</button><button id="bDup">Duplicate</button></div>
-      <p class="note" style="margin-top:8px">New clip that starts where another ends:</p>
-      <div class="row" style="margin-top:4px"><select id="fromSel" style="flex:1;min-width:0" aria-label="Clip to continue from"></select><button id="bFrom">New from end</button></div>
-      <div class="row" style="margin-top:6px" id="delRow"><button id="bDelClip" class="danger">Delete clip</button></div>
-      <p class="note" style="margin-top:8px">Start from the game's current punch:</p>
+      <h2>Animation</h2>
+      <p class="note">Open:</p><div class="row" style="margin-top:4px"><select id="clipSel" style="flex:1;min-width:0" aria-label="Open animation"></select></div>
+      <div class="row" style="margin-top:6px"><span class="note">Name</span><input type="text" id="clipName" style="flex:1;min-width:0;cursor:text;background:transparent;border:1px solid var(--line);box-shadow:none" aria-label="Rename" placeholder="Name" title="Rename this animation"></div><div class="row" style="margin-top:6px"><button id="bNew" title="New animation, ogre standing idle">New blank</button><button id="bDup" title="Copy this animation">Copy this one</button></div>
+      <p class="note" style="margin-top:8px">New animation starting from the last frame of:</p>
+      <div class="row" style="margin-top:4px"><select id="fromSel" style="flex:1;min-width:0" aria-label="Clip to continue from"></select><button id="bFrom">Start</button></div>
+      <div class="row" style="margin-top:6px" id="delRow"><button id="bDelClip" class="danger">Delete this animation</button></div>
+      <p class="note" style="margin-top:8px">Copy a punch from the game as a new animation:</p>
       <div class="row" style="margin-top:4px"><button id="gStorm">Lightning punch</button><button id="gFrost">Ice punch</button></div>
     </section>
     <section>
       <h2>Body</h2>
       <div class="row" style="margin-bottom:8px"><span class="note">Facing</span><div class="seg"><button id="fL">◀ Left</button><button id="fR">Right ▶</button></div></div>
-      <label class="sl">Lean <input type="range" id="lean" min="-0.8" max="0.8" step="0.01"><output id="leanO"></output></label>
-      <label class="sl">Torso turn <input type="range" id="yaw" min="-1.6" max="1.6" step="0.01"><output id="yawO"></output></label>
-      <label class="sl">Lit head <input type="range" id="act" min="0" max="1" step="0.01"><output id="actO"></output></label>
-      <p class="note">Torso turn: + brings arm A's shoulder toward you, − brings B's.</p>
+      <label class="sl" title="Tip the body back or forward">Lean <input type="range" id="lean" min="-0.8" max="0.8" step="0.01"><output id="leanO"></output></label>
+      <label class="sl" title="Twist the chest toward or away from you">Torso twist <input type="range" id="yaw" min="-1.6" max="1.6" step="0.01"><output id="yawO"></output></label>
+      <label class="sl" title="0 = ice head lit, 1 = storm head lit">Ice ↔ storm head <input type="range" id="act" min="0" max="1" step="0.01"><output id="actO"></output></label>
+      <p class="note">Torso twist: + turns the far shoulder toward you, − the near one.</p>
     </section>
     <section>
-      <h2>Draw order</h2>
-      <div class="ord"><span><span class="tag tA">A</span> <span id="nA"></span></span><div class="seg" id="oA"><button data-v="0">Behind body</button><button data-v="1">Over body</button><button data-v="2">Over all</button></div></div>
-      <div class="ord" style="margin-top:6px"><span><span class="tag tB">B</span> <span id="nB"></span></span><div class="seg" id="oB"><button data-v="0">Behind body</button><button data-v="1">Over all</button></div></div>
-      <div class="ord" style="margin-top:6px"><span>Legs</span><div class="seg" id="oL"><button data-v="0">Normal</button><button data-v="1">Swapped</button></div></div>
-      <div class="ord" style="margin-top:6px"><span>Hands</span><div class="row"><button id="hdA">A open</button><button id="hdB">B open</button></div></div>
-      <div class="ord" style="margin-top:6px"><span>Bends</span><div class="row"><button id="flA">Flip A elbow</button><button id="flB">Flip B elbow</button></div></div>
+      <h2>What's in front</h2>
+      <div class="ord"><span><span class="tag tA">A</span> <span id="nA"></span></span><div class="seg" id="oA"><button data-v="0">Behind body</button><button data-v="1">In front of body</button><button data-v="2">In front of all</button></div></div>
+      <div class="ord" style="margin-top:6px"><span><span class="tag tB">B</span> <span id="nB"></span></span><div class="seg" id="oB"><button data-v="0">Behind body</button><button data-v="1">In front of all</button></div></div>
+      <div class="ord" style="margin-top:6px"><span>Legs</span><div class="seg" id="oL"><button data-v="0">Normal</button><button data-v="1">Other leg in front</button></div></div>
+      <div class="ord" style="margin-top:6px"><span>Hands</span><div class="row"><button id="hdA" title="Open hand or fist"></button><button id="hdB" title="Open hand or fist"></button></div></div>
+      <div class="ord" style="margin-top:6px"><span>Elbows</span><div class="row"><button id="flA" title="Bend this elbow the other way"></button><button id="flB" title="Bend this elbow the other way"></button></div></div>
     </section>
     <section>
-      <h2>Share</h2>
-      <div class="row"><button id="bCopy" class="primary">Copy clip JSON</button><span class="note" id="copyMsg"></span></div>
-      <textarea id="io" spellcheck="false" aria-label="Clip JSON"></textarea>
-      <div class="row"><button id="bLoad">Load JSON from box</button></div>
-      <p class="note">Paste a clip here and press Load. Copy sends the clip you're on.</p>
+      <h2>Send to Claude</h2>
+      <div class="row"><button id="bCopy" class="primary">Copy animation</button><span class="note" id="copyMsg"></span></div>
+      <textarea id="io" spellcheck="false" aria-label="Animation text" placeholder="Paste animation text here"></textarea>
+      <div class="row"><button id="bLoad">Open pasted animation</button></div>
+      <p class="note">Copy puts the open animation on your clipboard; paste it in the chat. To open one Claude sends back, paste it in the box.</p>
     </section>
   </div>
 </div>
@@ -265,19 +265,20 @@ function play() { if (lastFr() <= 0) return; playing = true; pt = fr >= lastFr()
 function stop() { if (!playing) return; playing = false; pose = poseAt(fr); ui(); }
 
 // ---- inspector ----
+const cap = t => t[0].toUpperCase() + t.slice(1);
 const nameOf = s => (pose.f > 0) === (s === 'A') ? 'storm arm' : 'ice arm';
-function stat() { const k = keyAt(fr); $('status').innerHTML = `<b>frame ${fr}</b> · ${(fr / FPS).toFixed(3)}s · ${playing ? 'playing' : k ? 'editing key' : dirty ? '<span style="color:var(--warn)">unsaved pose · Snapshot to keep it</span>' : 'between keys'}`; }
+function stat() { const k = keyAt(fr); $('status').innerHTML = `<b>frame ${fr}</b> · ${(fr / FPS).toFixed(3)}s · ${playing ? 'playing' : k ? 'on a key' : dirty ? '<span style="color:var(--warn)">not saved · press Save key to keep it</span>' : 'in between (filled in)'}`; }
 function ui() {
   draw(); drawTrack(); stat();
-  $('frLbl').textContent = `frame ${fr} / ${lastFr()}`; $('bPlay').textContent = playing ? '❚❚' : '▶';
-  $('bSnap').textContent = keyAt(fr) ? 'Key saved ✓' : 'Snapshot'; $('bSnap').disabled = !!keyAt(fr);
+  $('frLbl').textContent = `Frame ${fr} of ${lastFr()}`; $('bPlay').textContent = playing ? '❚❚' : '▶';
+  $('bSnap').textContent = keyAt(fr) ? 'Key saved ✓' : 'Save key'; $('bSnap').disabled = !!keyAt(fr);
   $('bDel').disabled = !keyAt(fr) || keys().length < 2;
   const K = keys(), seg = [...K].reverse().find(k => k.fr <= fr); $('ease').value = seg ? seg.ease || 'smooth' : 'smooth';
   for (const [id, v, d] of [['lean', pose.lean, 2], ['yaw', pose.yaw, 2], ['act', pose.act, 2]]) { $(id).value = v; $(id + 'O').textContent = (+v).toFixed(d); }
   $('fL').classList.toggle('on', pose.f < 0); $('fR').classList.toggle('on', pose.f > 0);
   $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
-  for (const s of ['A', 'B']) { const fist = (pose['c' + s] || 0) > 0.5; $('hd' + s).textContent = s + (fist ? ' fist' : ' open'); $('hd' + s).classList.toggle('on', fist); }
+  for (const s of ['A', 'B']) { const fist = (pose['c' + s] || 0) > 0.5; $('hd' + s).textContent = cap(nameOf(s).replace(' arm', ' hand')) + (fist ? ': fist' : ': open'); $('fl' + s).textContent = 'Flip ' + nameOf(s).replace(' arm', ' elbow'); $('hd' + s).classList.toggle('on', fist); }
   $('bLoop').classList.toggle('on', loop); $('bOnion').classList.toggle('on', onion);
   const sel = $('clipSel'); if (sel.options.length !== clips.length || [...sel.options].some((o, i) => o.text !== clips[i].name)) sel.innerHTML = clips.map((c, i) => `<option value="${i}">${c.name.replace(/</g, '&lt;')}</option>`).join(''); sel.value = ci;
   const fs = $('fromSel'), fv = fs.value, fo = clips.map((c, i) => `<option value="${i}">${c.name.replace(/</g, '&lt;')}</option>`).join('') + '<option value="g1">Lightning punch (game)</option><option value="g0">Ice punch (game)</option>'; if (fs.innerHTML !== fo) { fs.innerHTML = fo; if ([...fs.options].some(o => o.value === fv)) fs.value = fv; }
@@ -305,12 +306,12 @@ $('bNew').onclick = () => addClip(blank('New clip ' + (clips.length + 1)));
 $('bFrom').onclick = () => { const v = $('fromSel').value, src = v[0] === 'g' ? gameClip(+v[1]) : clips[+v]; if (!src) return; const last = src.keys.reduce((a, k) => k.fr > a.fr ? k : a); addClip({ name: 'After ' + src.name.replace(/ \(game.*\)$/, ''), from: src.name, keys: [{ fr: 0, ease: 'smooth', pose: clone(last.pose) }] }); };
 $('bDup').onclick = () => { const c = clone(clip()); c.name += ' copy'; addClip(c); };
 $('gStorm').onclick = () => addClip(gameClip(1)); $('gFrost').onclick = () => addClip(gameClip(0));
-function bindDel() { $('bDelClip').onclick = () => { const r = $('delRow'); r.innerHTML = '<span class="confirm">Delete “' + clip().name.replace(/</g, '&lt;') + '”? <button id="dYes" class="danger">Delete</button><button id="dNo">Keep</button></span>'; $('dNo').onclick = () => { $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete clip</button>'; bindDel(); }; $('dYes').onclick = () => { clips.splice(ci, 1); if (!clips.length) clips.push(blank('New clip')); ci = Math.min(ci, clips.length - 1); hist.length = 0; save(); $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete clip</button>'; bindDel(); setFr(0); }; }; }
+function bindDel() { $('bDelClip').onclick = () => { const r = $('delRow'); r.innerHTML = '<span class="confirm">Delete “' + clip().name.replace(/</g, '&lt;') + '”? <button id="dYes" class="danger">Delete</button><button id="dNo">Keep</button></span>'; $('dNo').onclick = () => { $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete this animation</button>'; bindDel(); }; $('dYes').onclick = () => { clips.splice(ci, 1); if (!clips.length) clips.push(blank('New clip')); ci = Math.min(ci, clips.length - 1); hist.length = 0; save(); $('delRow').innerHTML = '<button id="bDelClip" class="danger">Delete this animation</button>'; bindDel(); setFr(0); }; }; }
 bindDel();
 const clipJSON = () => { const r = q => Array.isArray(q) ? q.map(r) : typeof q === 'number' ? Math.round(q * 1000) / 1000 : q && typeof q === 'object' ? Object.fromEntries(Object.entries(q).map(([k, v]) => [k, r(v)])) : q; return JSON.stringify({ posebench: 1, fps: FPS, ...r(clip()) }); };
 $('bCopy').onclick = () => { const s = clipJSON(); $('io').value = s; const ok = () => { $('copyMsg').textContent = 'Copied'; setTimeout(() => $('copyMsg').textContent = '', 1600); };
-  try { navigator.clipboard.writeText(s).then(ok, () => { $('io').select(); $('copyMsg').textContent = 'Selected, copy it from the box'; }); } catch (e) { $('io').select(); $('copyMsg').textContent = 'Selected, copy it from the box'; } };
-$('bLoad').onclick = () => { try { const c = JSON.parse($('io').value); if (!c.keys || !c.keys.length) throw 0; addClip({ name: c.name || 'Loaded clip', keys: c.keys }); $('copyMsg').textContent = 'Loaded'; } catch (e) { $('copyMsg').textContent = 'That box doesn’t hold a clip. Paste the JSON from Copy clip JSON.'; } };
+  try { navigator.clipboard.writeText(s).then(ok, () => { $('io').select(); $('copyMsg').textContent = 'Selected: copy it from the box'; }); } catch (e) { $('io').select(); $('copyMsg').textContent = 'Selected: copy it from the box'; } };
+$('bLoad').onclick = () => { try { const c = JSON.parse($('io').value); if (!c.keys || !c.keys.length) throw 0; addClip({ name: c.name || 'Loaded clip', keys: c.keys }); $('copyMsg').textContent = 'Opened'; } catch (e) { $('copyMsg').textContent = 'That isn’t animation text. Paste what Copy animation gave you.'; } };
 addEventListener('keydown', e => { if (e.target.matches('input, textarea, select')) return; const k = e.key;
   if (k === ' ') { e.preventDefault(); playing ? stop() : play(); } else if (k === 'ArrowLeft') { stop(); setFr(fr - 1); } else if (k === 'ArrowRight') { stop(); setFr(fr + 1); }
   else if (k === 's' || k === 'S') snapshot(); else if (k === 'Delete' || k === 'Backspace') $('bDel').click(); else if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); undo(); } });
