@@ -106,7 +106,7 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <label class="sl" title="Twist the chest toward or away from you">Torso twist <input type="range" id="yaw" min="-1.6" max="1.6" step="0.01"><output id="yawO"></output></label>
       <label class="sl" title="0 = ice head lit, 1 = storm head lit">Ice ↔ storm head <input type="range" id="act" min="0" max="1" step="0.01"><output id="actO"></output></label>
       <p class="note">Torso twist: + turns the far shoulder toward you, − the near one.</p>
-      <div class="row" style="margin-top:8px"><button id="bOrb" title="Show or hide the lightning in his storm hand">Lightning in hand: on</button></div>
+      <div class="row" style="margin-top:8px;display:none"><button id="bOrb" title="Show or hide the lightning in his storm hand">Lightning in hand: on</button></div>
     </section>
     <section>
       <h2>What's in front</h2>
@@ -114,7 +114,7 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <div class="ord" style="margin-top:6px"><span><span class="tag tB">B</span> <span id="nB"></span></span><div class="seg" id="oB"><button data-v="0">Behind body</button><button data-v="1">In front of all</button></div></div>
       <div class="ord" style="margin-top:6px"><span>Legs</span><div class="seg" id="oL"><button data-v="0">Normal</button><button data-v="1">Other leg in front</button></div></div>
       <div class="ord" style="margin-top:6px"><span>Hands</span><div class="row"><button id="hdA" title="Open hand or fist"></button><button id="hdB" title="Open hand or fist"></button></div></div>
-      <div class="ord" style="margin-top:6px"><span>Flip</span><div class="row" style="flex-wrap:wrap"><button id="xfA" title="Turn this hand over (thumb on the other side)"></button><button id="xfB" title="Turn this hand over (thumb on the other side)"></button><button id="xf0" title="Point this foot the other way"></button><button id="xf1" title="Point this foot the other way"></button><button id="xh0" title="Turn this head to look the other way">Flip ice head</button><button id="xh1" title="Turn this head to look the other way">Flip storm head</button></div></div>
+      <div class="ord" style="margin-top:6px"><span>Flip</span><div class="row" style="flex-wrap:wrap"><button id="xfA" title="Turn this hand over (thumb on the other side)"></button><button id="xfB" title="Turn this hand over (thumb on the other side)"></button><button id="xf0" title="Point this foot the other way"></button><button id="xf1" title="Point this foot the other way"></button><button id="bkA" title="Show the back of this hand instead of the palm"></button><button id="bkB" title="Show the back of this hand instead of the palm"></button><button id="xh0" title="Turn this head to look the other way">Flip ice head</button><button id="xh1" title="Turn this head to look the other way">Flip storm head</button></div></div>
       <div class="ord" style="margin-top:6px"><span>Elbows</span><div class="row"><button id="flA" title="Bend this elbow the other way"></button><button id="flB" title="Bend this elbow the other way"></button></div></div>
     </section>
     <section>
@@ -497,6 +497,30 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
     else { path(c, [W(wb, 1.45), W(wb2, 1.55), W(wb2, -1.55), W(wb, -1.45)]); c.fillStyle = COL; c.fill(); c.strokeStyle = OUT; c.lineWidth = 0.15 * OLW; c.stroke(); }
     // the hand: a broad palm, three thick clawed fingers and a thumb; they curl into a fist for the smash
     const fc = [h[0] + d[0] * 0.2, h[1] + d[1] * 0.2], fa = Math.atan2(dy, dx), curl = RG ? (side === 'A' ? RG.cA : RG.cB) || 0 : WPN ? 0.85 : Math.max(k, wind * 0.6, opts.hCurl || 0, (() => { const q = opts.h2 && opts.h2[side === 'A' ? 0 : 1]; return q ? (q.c || 0) * q.k : 0; })()), sd2 = side === 'B' ? 1 : -1; if (opts.outRig) opts.outRig['c' + side] = curl;
+    // seen from behind (a posed rig's RG.hbA/hbB): the back of the hand instead of the palm: a broad plate with two raised knuckles and tendons, fingers
+    // with their nails on top, the thumb on the other side; closing it folds the fingers down out of sight under the knuckles (a fist from behind)
+    const HBK = !!(RG && RG['hb' + side]);
+    if (HBK) { const cw = sm(cl(curl, 0, 1)), HQ = (u, v) => [fc[0] + d[0] * u + n[0] * v, fc[1] + d[1] * u + n[1] * v], parts = [], late = [];
+      const kt = -((side === 'A' ? (n[1] > 0 ? 1 : -1) : sd2 * f) * (RG && RG['hf' + side] ? -1 : 1));
+      // thumb: out to the side when open, tucked in under the hand when closed (drawn first, so the plate covers its root)
+      { const base = HQ(lerp(-0.1, 0.1, cw), -kt * lerp(0.95, 0.4, cw)), a = fa - kt * lerp(0.9, -0.35, cw), L = lerp(1.15, 0.4, cw), tip = [base[0] + Math.cos(a) * L, base[1] + Math.sin(a) * L];
+        const TP = limbP(base, tip, 0.5, 0.4, 1.05, 0.4); parts.push(TP); cel(c, TP, sk, { d: 0.32, hl: 0, noStroke: 1 }); if (cw < 0.6) late.push(() => { const p = L2(base, tip, 0.86); c.globalAlpha = 1 - cw / 0.6; c.fillStyle = '#efe6cf'; c.strokeStyle = OUT; c.lineWidth = 0.08 * OLW; c.beginPath(); c.ellipse(p[0], p[1], 0.22, 0.16, a, 0, 7); c.fill(); c.stroke(); c.globalAlpha = 1; }); }
+      // fingers: out from the knuckles when open; closed, only the first joint shows, folded down past the knuckles
+      for (const j of [0.5, 1.5]) { const off = (j - 1) * 0.95, base = HQ(0.75, off), a = fa + (j - 1) * 0.22 * (1 - cw), L = lerp(1.55, 0.62, cw), tip = [base[0] + Math.cos(a) * L, base[1] + Math.sin(a) * L], th = 1 + 0.15 * cw;
+        const FP = limbP(base, tip, 0.53 * th, lerp(0.42, 0.55, cw), 1.04, 0.4); parts.push(FP); cel(c, FP, sk, { d: lerp(0.28, 0.4, cw), hl: 0, noStroke: 1 });
+        late.push(() => { c.strokeStyle = 'rgba(20,12,40,.32)'; c.lineWidth = 0.08; c.lineCap = 'round'; const nx = -Math.sin(a), ny = Math.cos(a);
+          for (const q of cw < 0.4 ? [0.38, 0.62] : []) { const m = L2(base, tip, q); c.beginPath(); c.moveTo(m[0] + nx * 0.3, m[1] + ny * 0.3); c.quadraticCurveTo(m[0] - Math.cos(a) * 0.12, m[1] - Math.sin(a) * 0.12, m[0] - nx * 0.3, m[1] - ny * 0.3); c.stroke(); }
+          if (cw < 0.6) { const p = L2(base, tip, 0.84); c.globalAlpha = 1 - cw / 0.6; c.fillStyle = '#efe6cf'; c.strokeStyle = OUT; c.lineWidth = 0.08 * OLW; c.beginPath(); c.ellipse(p[0], p[1], 0.26, 0.2, a, 0, 7); c.fill(); c.stroke(); c.globalAlpha = 1; } }); }
+      // the back of the hand: a plate a little wider at the knuckles
+      const plate = [[-0.95, -0.92], [-0.95, 0.92], [-0.5, 1.05], [0.35, 1.18], [0.85, 1.05], [1.05, 0.55], [1.08, 0], [1.05, -0.55], [0.85, -1.05], [0.35, -1.18], [-0.5, -1.05]].map(([u, v]) => HQ(u, v));
+      cel(c, plate, sk, { d: 0.14, hl: 0, noStroke: 1 }); parts.push(plate);
+      parts.forEach((Q, qi) => { c.save(); const cp = new Path2D(); cp.rect(-80, -80, 160, 160); parts.forEach((R2, ri) => { if (ri !== qi) addSmooth(cp, R2); }); c.clip(cp, 'evenodd'); const cf = new Path2D(); cf.rect(-80, -80, 160, 160); addSmooth(cf, FA); c.clip(cf, 'evenodd');
+        const sp = new Path2D(); addSmooth(sp, Q); c.strokeStyle = OUT; c.lineWidth = 0.17 * OLW; c.lineJoin = 'round'; c.stroke(sp); c.restore(); });
+      // tendons fanning from the wrist to each knuckle, then the knuckles themselves: lit bumps, bigger and sharper as the fist closes
+      c.strokeStyle = 'rgba(20,12,40,.22)'; c.lineWidth = 0.09; c.lineCap = 'round'; for (const v of [-0.475, 0.475]) { c.beginPath(); c.moveTo(...HQ(-0.7, v * 0.35)); c.quadraticCurveTo(...HQ(0.1, v * 0.8), ...HQ(0.6, v)); c.stroke(); }
+      for (const v of [-0.475, 0.475]) { const kc = HQ(0.8 + 0.08 * cw, v), r = 0.36 + 0.12 * cw; c.fillStyle = 'rgba(255,255,255,' + (0.18 + 0.14 * cw) + ')'; c.beginPath(); c.ellipse(kc[0], kc[1], r, r * 0.78, fa, 0, 7); c.fill(); }
+      for (const q of late) q(); }
+    else {
     const handParts = [], nails = [], creases = [];
     // closing the hand (curl 0 open .. 1 fist): each finger draws back into a fat rolled knuckle along the front of the palm, so the fist is a
     // solid block with two knuckle bumps; the thumb swings across in front of them (drawn over the rest with its own outline)
@@ -523,6 +547,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
     for (const [nl, a, na = 1] of nails) { c.globalAlpha = na; c.fillStyle = '#efe6cf'; c.strokeStyle = OUT; c.lineWidth = 0.08 * OLW; c.beginPath(); c.ellipse(nl[0], nl[1], 0.2, 0.15, a, 0, 7); c.fill(); c.stroke(); } c.globalAlpha = 1;
     // knuckle bumps along the top edge
     c.strokeStyle = 'rgba(20,12,40,.3)'; c.lineWidth = 0.09; c.lineCap = 'round'; c.globalAlpha = 1 - cw; for (const v of [-0.475, 0.475]) { c.beginPath(); c.moveTo(...HP(0.55, v - 0.3)); c.quadraticCurveTo(...HP(0.78, v), ...HP(0.55, v + 0.3)); c.stroke(); } c.globalAlpha = 1; for (const q of ext) q();
+    }
     // effects can run on their own clock (anim suite: the pose holds still while the lightning keeps crackling); opts.noOrb hides the hand's lightning
     const tq = opts.fxT ?? t;
     if (!WPN && !ice && !opts.noOrb && (k > 0.3 || rnd(Math.floor(tq * 9) + 7) > 0.45 + 0.5 * (1 - zL)) && V.st !== 'paint') arc2(c, [fc[0] - n[0] * 1.3, fc[1] - n[1] * 1.3], [fc[0] + n[0] * 1.4 + d[0], fc[1] + n[1] * 1.4 + d[1]], SG, V.core, Math.floor(tq * 14), 0.08, 0.7, 5);
@@ -844,7 +869,8 @@ const clone = o => JSON.parse(JSON.stringify(o));
 
 // ---- poses: what drawO2's rig takes (hands relative to their shoulders) ----
 // the storm hand's lightning: shown or not (a view setting, remembered), and always crackling on its own clock
-let orbOn = true; try { orbOn = localStorage.getItem('posebench-orb') !== '0'; } catch (e) {}
+// (2026-10-20, Elijah: no lightning in his hand in the bench for now; the toggle is hidden, he'll say when it goes back)
+let orbOn = false;
 // legs that walk with the player (clip.legs 'walk'): the game's gait draws them; the pose only gives the crouch (pelvis height vs standing)
 let walkPrev = true; try { walkPrev = localStorage.getItem('posebench-walk') !== '0'; } catch (e) {}
 const legWalk = () => typeof clips !== 'undefined' && clips && clips[ci] && clips[ci].legs === 'walk';
@@ -1078,7 +1104,7 @@ function ui() {
   $('fL').classList.toggle('on', pose.f < 0); $('fR').classList.toggle('on', pose.f > 0);
   { const v = pose.view || 0; $('vF').classList.toggle('on', v < 0.5); $('vB').classList.toggle('on', v >= 0.5); const G = !!clip().lib; $('clipName').readOnly = G; $('bDelClip') && ($('bDelClip').disabled = G); $('bReset').style.display = libChanged(clip()) ? '' : 'none'; $('linkOn').disabled = $('linkOn').disabled || G; }
   { const W = legWalk(); $('legP').classList.toggle('on', !W); $('legW').classList.toggle('on', W); $('walkRow').style.display = W ? '' : 'none'; $('bWalkPrev').textContent = 'Preview: ' + (walkPrev ? 'walking' : 'standing'); }
-  for (const s2 of ['A', 'B']) { $('xf' + s2).textContent = 'Flip ' + nameOf(s2).replace(' arm', ' hand'); $('xf' + s2).classList.toggle('on', !!pose['hf' + s2]); }
+  for (const s2 of ['A', 'B']) { $('xf' + s2).textContent = 'Flip ' + nameOf(s2).replace(' arm', ' hand'); $('xf' + s2).classList.toggle('on', !!pose['hf' + s2]); $('bk' + s2).textContent = cap(nameOf(s2).replace(' arm', ' hand')) + ': ' + (pose['hb' + s2] ? 'back' : 'palm') + ' showing'; $('bk' + s2).classList.toggle('on', !!pose['hb' + s2]); }
   for (const i of [0, 1]) { $('xf' + i).textContent = 'Flip ' + footName(i) + ' foot'; $('xf' + i).classList.toggle('on', !!(pose.ff || [])[i]); $('xh' + i).classList.toggle('on', !!(pose.hfl || [])[i]); }
   $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
@@ -1093,7 +1119,7 @@ for (const id of ['lean', 'yaw', 'act']) { $(id).addEventListener('input', e => 
 for (const [id, key] of [['oA', 'aF'], ['oB', 'bF'], ['oL', 'ls']]) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pose[key] = +b.dataset.v; edited(); });
 // flips: each hand over, each foot round, each head the other way (a key value: it changes at the key, like the draw order)
 const footName = i => (i === 0) === (pose.f > 0) ? 'storm' : 'ice';
-for (const s2 of ['A', 'B']) $('xf' + s2).onclick = () => { pose['hf' + s2] = !pose['hf' + s2]; edited(); };
+for (const s2 of ['A', 'B']) { $('xf' + s2).onclick = () => { pose['hf' + s2] = !pose['hf' + s2]; edited(); }; $('bk' + s2).onclick = () => { pose['hb' + s2] = !pose['hb' + s2]; edited(); }; }
 for (const i of [0, 1]) { $('xf' + i).onclick = () => { pose.ff = (pose.ff || [0, 0]).slice(); pose.ff[i] = pose.ff[i] ? 0 : 1; edited(); }; $('xh' + i).onclick = () => { pose.hfl = (pose.hfl || [0, 0]).slice(); pose.hfl[i] = pose.hfl[i] ? 0 : 1; edited(); }; }
 $('flA').onclick = () => { pose.eA *= -1; edited(); }; for (const s of ['A', 'B']) $('hd' + s).onclick = () => { pose['c' + s] = (pose['c' + s] || 0) > 0.5 ? 0 : 1; edited(); }; $('flB').onclick = () => { pose.eB *= -1; edited(); };
 $('fL').onclick = () => setFacing(-1); $('fR').onclick = () => setFacing(1);

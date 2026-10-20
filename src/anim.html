@@ -106,7 +106,7 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <label class="sl" title="Twist the chest toward or away from you">Torso twist <input type="range" id="yaw" min="-1.6" max="1.6" step="0.01"><output id="yawO"></output></label>
       <label class="sl" title="0 = ice head lit, 1 = storm head lit">Ice ↔ storm head <input type="range" id="act" min="0" max="1" step="0.01"><output id="actO"></output></label>
       <p class="note">Torso twist: + turns the far shoulder toward you, − the near one.</p>
-      <div class="row" style="margin-top:8px"><button id="bOrb" title="Show or hide the lightning in his storm hand">Lightning in hand: on</button></div>
+      <div class="row" style="margin-top:8px;display:none"><button id="bOrb" title="Show or hide the lightning in his storm hand">Lightning in hand: on</button></div>
     </section>
     <section>
       <h2>What's in front</h2>
@@ -114,7 +114,7 @@ textarea { width: 100%; height: 90px; font: 12px var(--mono); resize: vertical; 
       <div class="ord" style="margin-top:6px"><span><span class="tag tB">B</span> <span id="nB"></span></span><div class="seg" id="oB"><button data-v="0">Behind body</button><button data-v="1">In front of all</button></div></div>
       <div class="ord" style="margin-top:6px"><span>Legs</span><div class="seg" id="oL"><button data-v="0">Normal</button><button data-v="1">Other leg in front</button></div></div>
       <div class="ord" style="margin-top:6px"><span>Hands</span><div class="row"><button id="hdA" title="Open hand or fist"></button><button id="hdB" title="Open hand or fist"></button></div></div>
-      <div class="ord" style="margin-top:6px"><span>Flip</span><div class="row" style="flex-wrap:wrap"><button id="xfA" title="Turn this hand over (thumb on the other side)"></button><button id="xfB" title="Turn this hand over (thumb on the other side)"></button><button id="xf0" title="Point this foot the other way"></button><button id="xf1" title="Point this foot the other way"></button><button id="xh0" title="Turn this head to look the other way">Flip ice head</button><button id="xh1" title="Turn this head to look the other way">Flip storm head</button></div></div>
+      <div class="ord" style="margin-top:6px"><span>Flip</span><div class="row" style="flex-wrap:wrap"><button id="xfA" title="Turn this hand over (thumb on the other side)"></button><button id="xfB" title="Turn this hand over (thumb on the other side)"></button><button id="xf0" title="Point this foot the other way"></button><button id="xf1" title="Point this foot the other way"></button><button id="bkA" title="Show the back of this hand instead of the palm"></button><button id="bkB" title="Show the back of this hand instead of the palm"></button><button id="xh0" title="Turn this head to look the other way">Flip ice head</button><button id="xh1" title="Turn this head to look the other way">Flip storm head</button></div></div>
       <div class="ord" style="margin-top:6px"><span>Elbows</span><div class="row"><button id="flA" title="Bend this elbow the other way"></button><button id="flB" title="Bend this elbow the other way"></button></div></div>
     </section>
     <section>
@@ -142,7 +142,8 @@ const clone = o => JSON.parse(JSON.stringify(o));
 
 // ---- poses: what drawO2's rig takes (hands relative to their shoulders) ----
 // the storm hand's lightning: shown or not (a view setting, remembered), and always crackling on its own clock
-let orbOn = true; try { orbOn = localStorage.getItem('posebench-orb') !== '0'; } catch (e) {}
+// (2026-10-20, Elijah: no lightning in his hand in the bench for now; the toggle is hidden, he'll say when it goes back)
+let orbOn = false;
 // legs that walk with the player (clip.legs 'walk'): the game's gait draws them; the pose only gives the crouch (pelvis height vs standing)
 let walkPrev = true; try { walkPrev = localStorage.getItem('posebench-walk') !== '0'; } catch (e) {}
 const legWalk = () => typeof clips !== 'undefined' && clips && clips[ci] && clips[ci].legs === 'walk';
@@ -376,7 +377,7 @@ function ui() {
   $('fL').classList.toggle('on', pose.f < 0); $('fR').classList.toggle('on', pose.f > 0);
   { const v = pose.view || 0; $('vF').classList.toggle('on', v < 0.5); $('vB').classList.toggle('on', v >= 0.5); const G = !!clip().lib; $('clipName').readOnly = G; $('bDelClip') && ($('bDelClip').disabled = G); $('bReset').style.display = libChanged(clip()) ? '' : 'none'; $('linkOn').disabled = $('linkOn').disabled || G; }
   { const W = legWalk(); $('legP').classList.toggle('on', !W); $('legW').classList.toggle('on', W); $('walkRow').style.display = W ? '' : 'none'; $('bWalkPrev').textContent = 'Preview: ' + (walkPrev ? 'walking' : 'standing'); }
-  for (const s2 of ['A', 'B']) { $('xf' + s2).textContent = 'Flip ' + nameOf(s2).replace(' arm', ' hand'); $('xf' + s2).classList.toggle('on', !!pose['hf' + s2]); }
+  for (const s2 of ['A', 'B']) { $('xf' + s2).textContent = 'Flip ' + nameOf(s2).replace(' arm', ' hand'); $('xf' + s2).classList.toggle('on', !!pose['hf' + s2]); $('bk' + s2).textContent = cap(nameOf(s2).replace(' arm', ' hand')) + ': ' + (pose['hb' + s2] ? 'back' : 'palm') + ' showing'; $('bk' + s2).classList.toggle('on', !!pose['hb' + s2]); }
   for (const i of [0, 1]) { $('xf' + i).textContent = 'Flip ' + footName(i) + ' foot'; $('xf' + i).classList.toggle('on', !!(pose.ff || [])[i]); $('xh' + i).classList.toggle('on', !!(pose.hfl || [])[i]); }
   $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
@@ -391,7 +392,7 @@ for (const id of ['lean', 'yaw', 'act']) { $(id).addEventListener('input', e => 
 for (const [id, key] of [['oA', 'aF'], ['oB', 'bF'], ['oL', 'ls']]) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pose[key] = +b.dataset.v; edited(); });
 // flips: each hand over, each foot round, each head the other way (a key value: it changes at the key, like the draw order)
 const footName = i => (i === 0) === (pose.f > 0) ? 'storm' : 'ice';
-for (const s2 of ['A', 'B']) $('xf' + s2).onclick = () => { pose['hf' + s2] = !pose['hf' + s2]; edited(); };
+for (const s2 of ['A', 'B']) { $('xf' + s2).onclick = () => { pose['hf' + s2] = !pose['hf' + s2]; edited(); }; $('bk' + s2).onclick = () => { pose['hb' + s2] = !pose['hb' + s2]; edited(); }; }
 for (const i of [0, 1]) { $('xf' + i).onclick = () => { pose.ff = (pose.ff || [0, 0]).slice(); pose.ff[i] = pose.ff[i] ? 0 : 1; edited(); }; $('xh' + i).onclick = () => { pose.hfl = (pose.hfl || [0, 0]).slice(); pose.hfl[i] = pose.hfl[i] ? 0 : 1; edited(); }; }
 $('flA').onclick = () => { pose.eA *= -1; edited(); }; for (const s of ['A', 'B']) $('hd' + s).onclick = () => { pose['c' + s] = (pose['c' + s] || 0) > 0.5 ? 0 : 1; edited(); }; $('flB').onclick = () => { pose.eB *= -1; edited(); };
 $('fL').onclick = () => setFacing(-1); $('fR').onclick = () => setFacing(1);
