@@ -93,6 +93,7 @@ details.fold[open] > summary { margin-bottom: 6px; }
       <div class="seg"><button id="bFirst" title="First frame">⏮</button><button id="bPrevK" title="Previous key">◆◀</button><button id="bPrev" title="Back one frame (←)">◀</button><button id="bPlay" title="Play / pause (Space)">▶</button><button id="bNext" title="Forward one frame (→)">▶</button><button id="bNextK" title="Next key">▶◆</button></div>
       <span class="fr" id="frLbl"></span>
       <button class="primary" id="bSnap" title="Save this pose at the current frame (S)">Save key</button>
+      <button id="bCopyF" title="Copy the pose on this frame (as you see it now)">Copy frame</button><button id="bPasteF" title="Paste the copied pose over this frame and save it as a key here (Undo takes it back)" disabled>Paste frame</button>
     </div>
     <div class="tbar" id="pinBar" style="flex-wrap:nowrap;gap:6px;height:34px;overflow-x:auto;overflow-y:hidden;white-space:nowrap"><span class="note" id="pbName" style="flex:0 0 150px;overflow:hidden;text-overflow:ellipsis" title="Click a part of him to pin it">Pin: —</span>
       <span id="pbCtl" style="display:inline-flex;align-items:center;gap:6px;flex-wrap:nowrap;flex:0 0 auto"><label class="note"><input type="checkbox" id="pbPos" checked> Placement</label><label class="note"><input type="checkbox" id="pbRot" checked> Rotation</label>
@@ -1085,7 +1086,7 @@ const BACKH = (r, P) => [
     { id: 'beG', p: r.eG, k: 'elbowD', c: '--a', b: 'G' }, { id: 'beP', p: r.eP, k: 'elbowD', c: '--b', b: 'P' },
     { id: 'bxG', p: flipB(r.shG, r.hG, r.eG), k: 'elbow', c: '--a', b: 'G' }, { id: 'bxP', p: flipB(r.shP, r.hP, r.eP), k: 'elbow', c: '--b', b: 'P' },
     { id: 'hdI', p: headOf(r, P, 0), k: 'head', c: '--b', i: 0 }, { id: 'hdZ', p: headOf(r, P, 1), k: 'head', c: '--a', i: 1 } ];
-let SEL = null, PSELS = [], PCHK = {}, ppKey = ''; const partOf = h => h.b ? null : ({ hA: 'hA', hB: 'hB', f0: 'f0', t0: 'f0', f1: 'f1', t1: 'f1', pl: 'pel', ch: 'chest', hdI: 'h0', hdZ: 'h1' })[h.id] || null;
+let FCLIP = null, SEL = null, PSELS = [], PCHK = {}, ppKey = ''; const partOf = h => h.b ? null : ({ hA: 'hA', hB: 'hB', f0: 'f0', t0: 'f0', f1: 'f1', t1: 'f1', pl: 'pel', ch: 'chest', hdI: 'h0', hdZ: 'h1' })[h.id] || null;
 const pinnedHere = (part, t) => (clip().pins || []).filter(q => q.p === part && q.a <= t && t <= q.b);
 const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || locked()) return []; if (r.back) return BACKH(r, P); const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.95];
   return [
@@ -1187,7 +1188,7 @@ const nameOf = s => (pose.f > 0) === (s === 'A') ? 'storm arm' : 'ice arm';
 function stat() { const k = keyAt(fr), L = linkSrc(clip()); $('status').innerHTML = `<b>frame ${fr}</b> · ${(fr / FPS).toFixed(3)}s · ${playing ? 'playing' : fr === 0 && L ? `<span style="color:${performance.now() - lockMsgT < 1500 ? 'var(--warn)' : 'inherit'}">🔒 locked: the last frame of “${L.name.replace(/</g, '&lt;')}”</span>` : dirty ? '<span style="color:var(--warn)">changed, not saved · press Save key to keep it</span>' : k ? 'on a key' : 'in between (filled in)'}`; }
 function ui() {
   draw(); drawTrack(); stat();
-  $('frLbl').textContent = `Frame ${fr} of ${lastFr()}`; $('bPlay').textContent = playing ? '❚❚' : '▶';
+  $('frLbl').textContent = `Frame ${fr} of ${lastFr()}`; $('bPasteF').disabled = !FCLIP || locked(); $('bPasteF').textContent = FCLIP ? `Paste frame ${FCLIP.fr}` + (FCLIP.clip !== clip().name ? ` of ${FCLIP.clip}` : '') : 'Paste frame'; $('bCopyF').textContent = FCLIP && FCLIP.fr === fr && FCLIP.clip === clip().name ? 'Copied ✓' : 'Copy frame'; $('bPlay').textContent = playing ? '❚❚' : '▶';
   { const k = keyAt(fr), clean = k && !dirty; $('bSnap').textContent = clean ? 'Key saved ✓' : 'Save key'; $('bSnap').disabled = clean || !!(clip() && clip().game); $('bSnap').classList.toggle('primary', !clean); }
   $('bDel').disabled = !keyAt(fr) || keys().length < 2 || locked(); { const o = origKey(), k = keyAt(fr); $('bRestore').textContent = clip().lib ? "Reset key to the game's version" : 'Reset key to the original'; $('bRestore').disabled = !o || locked() || (!!k && !dirty && JSON.stringify(k.pose) === JSON.stringify(o.pose)); };
   const K = keys(), seg = [...K].reverse().find(k => k.fr <= fr); $('ease').value = seg ? seg.ease || 'smooth' : 'smooth';
@@ -1335,6 +1336,9 @@ function grouped(list, val) { const G = new Map(); for (const c of list) { const
   return order.map(k => `<optgroup label="${esc(k)}">` + G.get(k).map(c => `<option value="${val(c)}">${esc(c.name)}</option>`).join('') + '</optgroup>').join(''); }
 function snapshot() { if (clip().game) { lockMsg(); return; } if (locked()) { lockMsg(); return; } const k0 = keyAt(fr); if (k0 && !dirty) return; snap(); if (k0) k0.pose = clone(pose); else keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); save(); dirty = false; ui(); }
 $('bSnap').onclick = snapshot;
+// copy a frame's pose, then paste it over another frame: the paste is saved as a key there at once (Undo takes it back)
+$('bCopyF').onclick = () => { FCLIP = { pose: clone(pose), fr, clip: clip().name }; ui(); };
+$('bPasteF').onclick = () => { if (!FCLIP) return; if (clip().game || locked()) { lockMsg(); return; } snap(); const k0 = keyAt(fr), P = clone(FCLIP.pose); if (k0) k0.pose = P; else { keys().push({ fr, ease: 'smooth', pose: P }); sortKeys(); } pose = clone(P); save(); dirty = false; ui(); };
 // Save key from the question: saves at this frame without jumping ahead, then carries on to wherever you were going
 $('sqSave').onclick = () => { const k0 = keyAt(fr); snap(); if (k0) k0.pose = clone(pose); else { keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); } save(); dirty = false; askEnd(true); };
 $('sqDrop').onclick = () => { dirty = false; askEnd(true); }; $('sqCancel').onclick = () => askEnd(false);
