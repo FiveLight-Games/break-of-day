@@ -98,6 +98,7 @@ body.knight .og { display: none !important; } body:not(.knight) .kn { display: n
       <div class="seg"><button id="bFirst" title="First frame">⏮</button><button id="bPrevK" title="Previous key">◆◀</button><button id="bPrev" title="Back one frame (←)">◀</button><button id="bPlay" title="Play / pause (Space)">▶</button><button id="bNext" title="Forward one frame (→)">▶</button><button id="bNextK" title="Next key">▶◆</button></div>
       <span class="fr" id="frLbl"></span>
       <button class="primary" id="bSnap" title="Save this pose at the current frame (S)">Save key</button>
+      <button id="bUndo">Undo pose</button><button id="bRedo">Redo pose</button>
       <button id="bCopyF" title="Copy the pose on this frame (as you see it now)">Copy frame</button><button id="bPasteF" title="Paste the copied pose over this frame and save it as a key here (Undo takes it back)" disabled>Paste frame</button>
     </div>
     <div class="tbar" id="pinBar" style="flex-wrap:nowrap;gap:6px;height:34px;overflow-x:auto;overflow-y:hidden;white-space:nowrap"><span class="note" id="pbName" style="flex:0 0 150px;overflow:hidden;text-overflow:ellipsis" title="Click a part of him to pin it">Pin: —</span>
@@ -110,7 +111,7 @@ body.knight .og { display: none !important; } body:not(.knight) .kn { display: n
     <div class="tbar">
       <button id="bDel" class="danger" title="Delete the key at the current frame (Delete)">Delete key</button>
       <button id="bRestore" title="Put back this frame's key from the animation as it was saved: the game's version for a Storm Ogre animation, or how it was when you made it">Reset key to the game's version</button>
-      <button id="bUndo" title="Undo (Ctrl+Z)">Undo</button><button id="bRedo" title="Redo (Ctrl+Y)">Redo</button>
+      <button id="bUndoF">Undo frames</button><button id="bRedoF">Redo frames</button>
       <button id="bRev" title="Pick a run of frames on the timeline, then it is played back in reverse straight after it (the frames after it move along to make room)">Reverse…</button><span id="revBar" style="display:none;gap:6px;align-items:center"><span class="note" id="revMsg"></span><button id="revGo" class="primary" disabled>Confirm reverse</button><button id="revNo">Cancel</button></span>
       <label class="note">Motion to the next key <select id="ease"><option value="smooth">Smooth curve</option><option value="ease">Slow start and stop</option><option value="linear">Steady speed</option><option value="hold">Freeze, then jump</option></select></label>
       <label class="note">Playback speed <select id="spd"><option value="0.1">0.1×</option><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select></label>
@@ -399,20 +400,32 @@ const keyAt = fr => keys().find(k => k.fr === fr);
 const lastFr = () => keys().length ? keys()[keys().length - 1].fr : 0;
 
 // undo
-// undo / redo (2026-10-20): every change to the open animation is a step: saved keys, deletes, pins, motion types, reverse, facing, links...
-// and also a pose you've changed but not saved yet. After each ui() the state (the animation + any unsaved pose) is compared with the last step
-// and recorded if different; scrubbing frames isn't a change. The last HMAX steps are kept per animation (opening another starts a fresh list).
-const HMAX = 50, H = { list: [], i: -1, cid: null, busy: false };
-const hist = { length: 0 }; const snap = () => {}; // older callers; the record happens after the change in hRec
-const hKey = () => JSON.stringify(clips[ci]) + '|' + (dirty ? JSON.stringify(pose) : '');
-function hRec() { if (H.busy || !clips[ci] || drag || box || playing) return; const id = clips[ci].id;
-  if (H.cid !== id) { H.cid = id; H.list = []; H.i = -1; }
-  const k = hKey(), cur = H.list[H.i]; if (cur && cur.k === k) { cur.fr = fr; return; }
-  H.list.length = H.i + 1; H.list.push({ k, clip: JSON.stringify(clips[ci]), pose: dirty ? JSON.stringify(pose) : null, fr }); if (H.list.length > HMAX) H.list.shift(); H.i = H.list.length - 1; }
-function hGo(d) { const j = H.i + d; if (j < 0 || j >= H.list.length) return; stop(); askNext = null; $('saveQ').classList.remove('on'); H.i = j; const st = H.list[j]; H.busy = true;
-  try { clips[ci] = JSON.parse(st.clip); fr = st.fr; if (st.pose) { pose = JSON.parse(st.pose); dirty = true; } else { pose = poseAt(fr); dirty = false; } save(); ui(); } finally { H.busy = false; } hBtns(); }
-const undo = () => hGo(-1), redo = () => hGo(1);
-function hBtns() { $('bUndo').disabled = H.i <= 0; $('bRedo').disabled = H.i >= H.list.length - 1; $('bUndo').title = `Undo (Ctrl+Z) · ${Math.max(0, H.i)} step${H.i === 1 ? '' : 's'} back available`; $('bRedo').title = `Redo (Ctrl+Y or Ctrl+Shift+Z) · ${Math.max(0, H.list.length - 1 - H.i)} available`; }
+// two separate undo histories (2026-10-20):
+//  frames (HA): changes to the animation itself: saving or deleting keys, motion types, pins, reverse, facing, links... (Alt+Z / Alt+Y)
+//  pose (HP): changes to the parts on the frame you're on, saved or not; it starts fresh whenever you go to another frame (Ctrl+Z / Ctrl+Y)
+// Both are recorded after every ui() when something actually changed; scrubbing and playing aren't changes. HMAX steps each, per animation.
+const HMAX = 50, HA = { list: [], i: -1 }, HP = { list: [], i: -1, at: null }, HS = { cid: null, busy: false };
+const hist = { length: 0 }; const snap = () => {}; // older callers; recording happens after the change in hRec
+function hPush(Hx, e) { Hx.list.length = Hx.i + 1; Hx.list.push(e); if (Hx.list.length > HMAX) Hx.list.shift(); Hx.i = Hx.list.length - 1; }
+const hJ = c => JSON.stringify(c, function (k, v) { return this === c && k === 't' ? undefined : v; }); // the edit-time stamp isn't a change
+function hRec() { if (HS.busy || !clips[ci] || drag || box || playing) return; const id = clips[ci].id;
+  if (HS.cid !== id) { HS.cid = id; HA.list = []; HA.i = -1; HP.list = []; HP.i = -1; HP.at = null; }
+  const cj = hJ(clips[ci]), ca = HA.list[HA.i]; if (!ca || ca.clip !== cj) hPush(HA, { clip: cj, fr });
+  const pj = JSON.stringify(pose); if (HP.at !== fr) { HP.at = fr; HP.list = []; HP.i = -1; } const cp = HP.list[HP.i]; if (!cp || cp.pose !== pj) hPush(HP, { pose: pj }); }
+function hRun(f) { stop(); askNext = null; $('saveQ').classList.remove('on'); HS.busy = true; try { f(); save(); ui(); } finally { HS.busy = false; } hRec(); hBtns(); }
+// frames: put the animation back; an unsaved pose on this frame is kept, otherwise it goes to the frame where that change was made
+function frGo(d) { const j = HA.i + d; if (j < 0 || j >= HA.list.length) return; HA.i = j; const st = HA.list[d < 0 ? j + 1 : j];
+  hRun(() => { const f0 = fr; clips[ci] = Object.assign(JSON.parse(HA.list[j].clip), { t: Date.now() }); fr = cl(st.fr, 0, Math.max(lastFr(), 0)); pose = poseAt(fr); dirty = false;
+    // same frame: the restored pose goes on top of this frame's part history, so Ctrl+Z still reaches any unsaved pose; another frame starts a fresh one
+    const pj = JSON.stringify(pose); if (fr === f0 && HP.at === fr) { if (HP.list[HP.i]?.pose !== pj) hPush(HP, { pose: pj }); } else { HP.at = fr; HP.list = [{ pose: pj }]; HP.i = 0; } }); }
+// pose: put the parts on this frame back as they were one change ago (unsaved if that differs from the frame's saved pose)
+function poGo(d) { const j = HP.i + d; if (j < 0 || j >= HP.list.length) return; HP.i = j;
+  hRun(() => { pose = JSON.parse(HP.list[j].pose); dirty = JSON.stringify(poseAt(fr)) !== HP.list[j].pose; }); }
+const undo = () => poGo(-1), redo = () => poGo(1);
+function hBtns() { const n = (Hx, k) => k < 0 ? Math.max(0, Hx.i) : Math.max(0, Hx.list.length - 1 - Hx.i);
+  $('bUndo').disabled = HP.i <= 0; $('bRedo').disabled = HP.i >= HP.list.length - 1; $('bUndoF').disabled = HA.i <= 0; $('bRedoF').disabled = HA.i >= HA.list.length - 1;
+  $('bUndo').title = `Undo the last change to the parts on this frame (Ctrl+Z) · ${n(HP, -1)} available`; $('bRedo').title = `Redo a part change on this frame (Ctrl+Y) · ${n(HP, 1)} available`;
+  $('bUndoF').title = `Undo the last change to the animation's keys (Alt+Z) · ${n(HA, -1)} available`; $('bRedoF').title = `Redo a change to the keys (Alt+Y) · ${n(HA, 1)} available`; }
 
 // ---- interpolation ----
 const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
@@ -861,7 +874,7 @@ $('sqSave').onclick = () => { const k0 = keyAt(fr); snap(); if (k0) k0.pose = cl
 $('sqDrop').onclick = () => { dirty = false; askEnd(true); }; $('sqCancel').onclick = () => askEnd(false);
 $('saveQ').addEventListener('pointerdown', e => { if (e.target.id === 'saveQ') askEnd(false); });
 $('bDel').onclick = () => { const k = keyAt(fr); if (!k || keys().length < 2) return; if (locked()) { lockMsg(); return; } snap(); clip().keys = keys().filter(q => q !== k); pose = poseAt(fr); save(); ui(); };
-$('bUndo').onclick = undo; $('bRedo').onclick = redo;
+$('bUndo').onclick = undo; $('bRedo').onclick = redo; $('bUndoF').onclick = () => frGo(-1); $('bRedoF').onclick = () => frGo(1);
 // Reverse: pick frames a..b on the timeline; the section is played back in reverse straight after b (b..2b-a), every key after b moves along by (b - a) to make room.
 // The section's ends become keys first (the pose there as it plays now), and each reversed stretch keeps the motion type of the stretch it mirrors.
 let REV = null;
@@ -961,10 +974,10 @@ window.__benchBake = () => { const out = []; for (let i = 0; i <= lastFr(); i++)
 $('bLoad').onclick = () => { try { const c = JSON.parse($('io').value); if (!c.keys || !c.keys.length) throw 0; addClip({ name: c.name || 'Loaded clip', keys: c.keys, ...(c.actor ? { actor: c.actor } : {}) }); $('copyMsg').textContent = 'Opened'; } catch (e) { $('copyMsg').textContent = 'That isn’t animation text. Paste what Copy animation gave you.'; } };
 addEventListener('keydown', e => { if (e.target.matches('input, textarea, select')) return; const k = e.key;
   if (k === ' ') { e.preventDefault(); playing ? stop() : play(); } else if (k === 'ArrowLeft') { stop(); setFr(fr - 1); } else if (k === 'ArrowRight') { stop(); setFr(fr + 1); }
-  else if (k === 's' || k === 'S') snapshot(); else if (k === 'Delete' || k === 'Backspace') $('bDel').click(); else if ((e.ctrlKey || e.metaKey) && (k === 'z' || k === 'Z')) { e.preventDefault(); if (e.shiftKey) redo(); else undo(); } else if ((e.ctrlKey || e.metaKey) && (k === 'y' || k === 'Y')) { e.preventDefault(); redo(); } });
+  else if (k === 's' || k === 'S') snapshot(); else if (k === 'Delete' || k === 'Backspace') $('bDel').click(); else if (e.altKey && (e.code === 'KeyZ' || e.code === 'KeyY')) { e.preventDefault(); frGo(e.code === 'KeyZ' && !e.shiftKey ? -1 : 1); } else if ((e.ctrlKey || e.metaKey) && (k === 'z' || k === 'Z')) { e.preventDefault(); if (e.shiftKey) redo(); else undo(); } else if ((e.ctrlKey || e.metaKey) && (k === 'y' || k === 'Y')) { e.preventDefault(); redo(); } });
 addEventListener('resize', () => { size(); ui(); });
 new MutationObserver(() => ui()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 size(); setFr(0); for (const c of clips) LSAVE.set(c.id, c.lib ? libJ(c) : clipJ(c)); cloudInit();
-window.__pb = { clips: () => clips, setFr, pose: () => pose, rig: () => rig };
+window.__pb = { clips: () => clips, setFr, pose: () => pose, rig: () => rig, hist: () => ({ a: HA.list.map(e => JSON.parse(e.clip).keys.map(k => k.fr + ":" + (k.pose?.hA || []).map(v => v.toFixed(1))).join(" ")), ai: HA.i, p: HP.list.length, pi: HP.i }) };
 })();
 </script>
