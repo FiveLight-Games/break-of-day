@@ -771,7 +771,7 @@ function pauldron(c, s, f, far) {
   c.fillStyle = shade(STEELL, dk); c.beginPath(); c.ellipse(s[0] + 0.35, s[1] - 0.45, 0.6, 0.3, -0.2, 0, 7); c.fill();
   c.strokeStyle = GOLD; c.lineWidth = 0.22; c.beginPath(); c.ellipse(s[0], s[1] + 0.12, 1.1, 0.75, 0, Math.PI * 1.05, Math.PI * 1.95); c.stroke();
 }
-// X (optional, the Pose Bench): wrappers drawing each segment on its own: u upper arm (and pauldron), f forearm (and elbow cap), h wrist and glove
+// X (optional, the Pose Bench): wrappers drawing each segment on its own (X.noP: the bench draws the pauldron itself): u upper arm (and pauldron), f forearm (and elbow cap), h wrist and glove
 function arm(c, s, h, f, far, noGlove, es, X) { const XU = X ? X.u : g => g(), XF = X ? X.f : g => g(), XH = X ? X.h : g => g();
   // elbows point down and out, away from the body (es = a fixed bend side, used by the Pose Bench)
   const e1 = ik(s, h, 2.6, 2.6, 1), e2 = ik(s, h, 2.6, 2.6, -1), el = es ? ikv(s, h, 2.6, 2.6, es) : e1[1] >= e2[1] ? e1 : e2, dk = far ? -0.15 : 0; // the elbow hangs low, never up across the face
@@ -780,7 +780,7 @@ function arm(c, s, h, f, far, noGlove, es, X) { const XU = X ? X.u : g => g(), X
   c.strokeStyle = shade(MAIL, dk); c.lineWidth = 1.1; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke();
   // the pauldron rides on the upper arm: it tilts and lifts with it instead of the arm sliding under it
   const ua = Math.atan2(el[1] - s[1], el[0] - s[0]), tilt = (ua - Math.PI / 2 + (ua < -Math.PI / 2 ? Math.PI * 2 : 0)) * 0.75;
-  c.save(); c.translate(s[0] + Math.cos(ua) * 0.25, s[1] + Math.sin(ua) * 0.25); c.rotate(tilt); pauldron(c, [0, 0], f, far); c.restore(); });
+  if (!(X && X.noP)) { c.save(); c.translate(s[0] + Math.cos(ua) * 0.25, s[1] + Math.sin(ua) * 0.25); c.rotate(tilt); pauldron(c, [0, 0], f, far); c.restore(); } });
   const wr = L2(el, h, 0.7);
   XF(() => { c.lineCap = 'round'; c.strokeStyle = shade(STEELD, dk - 0.15); c.lineWidth = 1.4; c.beginPath(); c.moveTo(...el); c.lineTo(...wr); c.stroke();
   c.strokeStyle = shade(STEEL, dk); c.lineWidth = 1.05; c.beginPath(); c.moveTo(...el); c.lineTo(...wr); c.stroke();
@@ -8584,7 +8584,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '815d11';
+const KBUILD = '0c3fb2';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
