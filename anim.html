@@ -1393,7 +1393,7 @@ function draw() {
   ctx.strokeStyle = css('--line'); ctx.lineWidth = 1; ctx.beginPath(); for (let x = -12; x <= 12; x += 2) { const [sx] = w2s([x, 0]); ctx.moveTo(sx, OY - 26 * S); ctx.lineTo(sx, OY); } ctx.globalAlpha = 0.35; ctx.stroke(); ctx.globalAlpha = 1;
   ctx.strokeStyle = css('--mute'); ctx.beginPath(); ctx.moveTo(0, OY); ctx.lineTo(cv.width, OY); ctx.stroke();
   if (onion && !playing) { const K = keys(), p = [...K].reverse().find(k => k.fr < fr), n = K.find(k => k.fr > fr);
-    for (const [k, col] of [[p, '--b'], [n, '--a']]) if (k) { const g = ghost; g.width = cv.width; g.height = cv.height; const gc = g.getContext('2d'); gc.clearRect(0, 0, g.width, g.height); drawFig(gc, k.pose, 1); gc.setTransform(1, 0, 0, 1, 0, 0); gc.globalCompositeOperation = 'source-atop'; gc.fillStyle = css(col); gc.globalAlpha = 0.55; gc.fillRect(0, 0, g.width, g.height); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.22; ctx.drawImage(g, 0, 0); ctx.restore(); } }
+    for (const [k, col] of [[p, '--b'], [n, '--a']]) if (k) { const g = ghost; g.width = cv.width; g.height = cv.height; const gc = g.getContext('2d'); gc.clearRect(0, 0, g.width, g.height); drawFig(gc, k.pose, 1); gc.setTransform(1, 0, 0, 1, 0, 0); gc.globalCompositeOperation = 'source-atop'; gc.fillStyle = css(col); gc.globalAlpha = 0.55; gc.fillRect(0, 0, g.width, g.height); ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.132; ctx.drawImage(g, 0, 0); // 40% fainter than the first 0.22 ctx.restore(); } }
   rig = drawFig(ctx, pose, 1);
   if (!playing && PSELS.length) partOutline();
   if (!playing) handles();
