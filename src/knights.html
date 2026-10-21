@@ -8168,6 +8168,8 @@ window.__spawnK = (n, k) => spawnClump(n, k); window.__traps = () => TRAPS.filte
 function fillUlt(i) { const kn = KN[i]; if (kn) kn.ultBase = kn.kills - ultNeed(kn); }
 document.getElementById('fillUlt').addEventListener('pointerdown', e => { e.preventDefault(); fillUlt(ME); if (!AUTH()) NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'fillult', i: ME } }); });
 window.__fillUlt = () => fillUlt(ME); window.__ult = doUlt;
+// test render: knight i drawn alone into a canvas, his feet at (cx, cy), sc pixels per body unit (KS world units, the Pose Bench scale)
+window.__knPic = (cv, i, cx, cy, sc) => { const c = cv.getContext('2d'), k0 = K; K = KN[i]; c.save(); c.translate(cx, cy); c.scale(sc / KS, sc / KS); c.translate(-K.x, -K.y); drawKnight(c, t); c.restore(); K = k0; };
 const doClear = () => { if (!AUTH()) return NET.ch.send({ type: 'broadcast', event: 'rq', payload: { a: 'clear' } }); walkers = []; };
 // Restart: back to the start screen without reloading the page (works inside file previews too)
 document.getElementById('restartBtn').addEventListener('click', e => { e.currentTarget.blur(); SETP.classList.remove('open'); leave(); NP = 1; ME = 0; setup(); lobby('home'); });
