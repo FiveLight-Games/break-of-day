@@ -205,9 +205,17 @@ function frame(R) { const f = R.f, tw = R.yaw || 0, L = f * (R.lean || 0), pel =
   return { C, sh, head, shA: sh[near], shB: sh[far], far, near, L }; }
 // which hands hold the sword (gA / gB, default both): A holding = the grip is at hand A; only B = the grip sits below hand B; neither = the sword hangs where it was left (sg)
 const holds = R => R.sw ? [R.gA ?? 1, R.gB ?? 1] : [0, 0];
+// a hand's hold value: 0 not holding, 1 its usual spot (A lower, B upper), 2 the other spot
+const gU = (s2, v) => v ? ((s2 === 'A') === (v === 1) ? 0 : 0.9) : 0;
 function handsOf(R, F) { const fA = add(F.shA, R.hA), fB = add(F.shB, R.hB); if (!R.sw) return [fA, fB, null]; const d = [Math.cos(R.sa || 0), Math.sin(R.sa || 0)], [gA, gB] = holds(R);
-  if (gA) return [fA, gB ? [fA[0] + d[0] * 0.9, fA[1] + d[1] * 0.9] : fB, fA];
-  if (gB) return [fA, fB, [fB[0] - d[0] * 0.9, fB[1] - d[1] * 0.9]];
+  // each holding hand sits on one of two spots on the handle (gU: 0 lower by the pommel, 0.9 upper by the guard); the grip point G is the pommel end
+  const uA = gU('A', gA), uB = gU('B', gB);
+  if (gA && gB) { // both on the handle: the sword is moved until both hands are within their arm's reach (no arm ever stretches)
+    let G = [fA[0] - d[0] * uA, fA[1] - d[1] * uA]; const M = ARM - 0.01, pull = (u, sh) => { const h = [G[0] + d[0] * u, G[1] + d[1] * u], dx = h[0] - sh[0], dy = h[1] - sh[1], l = Math.hypot(dx, dy); if (l > M) G = [G[0] - dx * (1 - M / l), G[1] - dy * (1 - M / l)]; };
+    for (let i = 0; i < 12; i++) { pull(uB, F.shB); pull(uA, F.shA); }
+    return [[G[0] + d[0] * uA, G[1] + d[1] * uA], [G[0] + d[0] * uB, G[1] + d[1] * uB], G]; }
+  if (gA) { const G = [fA[0] - d[0] * uA, fA[1] - d[1] * uA]; return [fA, fB, G]; }
+  if (gB) return [fA, fB, [fB[0] - d[0] * uB, fB[1] - d[1] * uB]];
   return [fA, fB, R.sg ? R.sg.slice() : fA]; }
 const lowSide = (s, h) => ik(s, h, 2.6, 2.6, 1)[1] >= ik(s, h, 2.6, 2.6, -1)[1] ? 1 : -1;
 function draw(c, R, gate, t) { const f = R.f, F = frame(R), [hA, hB, G] = handsOf(R, F), [gA, gB] = holds(R), sa = R.sa || 0, tag = k => { if (gate) gate.cur = k; };
@@ -262,7 +270,7 @@ function lib() { const out = [], one = (folder, name, P, note) => out.push({ fol
     for (let fr = 0; ; fr += 2) { const q = Math.min(fr, N); keys.push({ fr: q, ease: 'smooth', pose: gameRig(kfnS(q / N, SW), 1, 1, { lb: 1, lz: SZ[j] }) }); if (q >= N) break; }
     out.push({ folder: 'Combo', name, note: 'The game’s swing (standing still), with the light blade', keys }); });
   return out; }
-return { draw, gameRig, idle, lib, frame, ARM, lowSide, ik, ikv };
+return { draw, gameRig, idle, lib, frame, ARM, lowSide, ik, ikv, gU };
 })();
 </script>
 <script>
@@ -579,7 +587,7 @@ cv.addEventListener('pointermove', e => { if (box) { const b = cv.getBoundingCli
     else if (drag.k === 'hand') { let v = [p[0] - sh[0], p[1] - sh[1]]; const d = Math.hypot(...v); if (d > ARM) v = [v[0] / d * ARM, v[1] / d * ARM]; B['h' + drag.b] = v; }
     else if (drag.k === 'elbowD') { const e0 = drag.b === 'G' ? r.eG : r.eP, h = B['h' + drag.b], D = Math.atan2(p[1] - sh[1], p[0] - sh[0]) - Math.atan2(e0[1] - sh[1], e0[0] - sh[0]), c2 = Math.cos(D), s2 = Math.sin(D); B['h' + drag.b] = [h[0] * c2 - h[1] * s2, h[0] * s2 + h[1] * c2]; }
     livePreview(); return; }
-  if (drag.k === 'hand' && P.knight && r.gA && r.gB && drag.id === 'hB') { const d = [Math.cos(P.sa || 0), Math.sin(P.sa || 0)], g = [p[0] - d[0] * 0.9, p[1] - d[1] * 0.9], AL = armL(); let v = [g[0] - r.shA[0], g[1] - r.shA[1]]; const dd = Math.hypot(...v); if (dd > AL) v = [v[0] / dd * AL, v[1] / dd * AL]; P.hA = v; }
+  if (drag.k === 'hand' && P.knight && r.gA && r.gB && drag.id === 'hB') { const d = [Math.cos(P.sa || 0), Math.sin(P.sa || 0)], uA = KNX.gU('A', r.gA), uB = KNX.gU('B', r.gB), g = [p[0] + d[0] * (uA - uB), p[1] + d[1] * (uA - uB)], AL = armL(); let v = [g[0] - r.shA[0], g[1] - r.shA[1]]; const dd = Math.hypot(...v); if (dd > AL) v = [v[0] / dd * AL, v[1] / dd * AL]; P.hA = v; }
   else if (drag.k === 'hand') { const s = drag.id === 'hA' ? r.shA : r.shB, AL = armL(); let v = [p[0] - s[0], p[1] - s[1]]; const d = Math.hypot(...v); if (d > AL) v = [v[0] / d * AL, v[1] / d * AL]; P[drag.id] = v; }
   else if (drag.k === 'tip') P.sa = Math.atan2(p[1] - r.g[1], p[0] - r.g[0]);
   else if (drag.k === 'grip') P.sg = p;
@@ -677,7 +685,7 @@ const cap = t => t[0].toUpperCase() + t.slice(1);
 const nameOf = s => isK() ? 'arm ' + s : (pose.f > 0) === (s === 'A') ? 'storm arm' : 'ice arm';
 function stat() { const k = keyAt(fr), L = linkSrc(clip()); $('status').innerHTML = `<b>frame ${fr}</b> · ${(fr / FPS).toFixed(3)}s · ${playing ? 'playing' : fr === 0 && L ? `<span style="color:${performance.now() - lockMsgT < 1500 ? 'var(--warn)' : 'inherit'}">🔒 locked: the last frame of “${L.name.replace(/</g, '&lt;')}”</span>` : dirty ? '<span style="color:var(--warn)">changed, not saved · press Save key to keep it</span>' : k ? 'on a key' : 'in between (filled in)'}`; }
 function ui() {
-  { const k = isK(); document.body.classList.toggle('knight', k); view(); for (const b of $('actSeg').children) b.classList.toggle('on', b.dataset.a === actorOf(clip())); $('bSw').textContent = 'Sword: ' + (pose.sw ? 'shown' : 'hidden'); $('bSw').classList.toggle('on', !!pose.sw); holds(pose).forEach((v, j) => { const b = $(j ? 'bHB' : 'bHA'); b.textContent = 'Hand ' + (j ? 'B' : 'A') + (v ? ' holds it' : ' let go'); b.classList.toggle('on', !!v); b.disabled = !pose.sw; }); }
+  { const k = isK(); document.body.classList.toggle('knight', k); view(); for (const b of $('actSeg').children) b.classList.toggle('on', b.dataset.a === actorOf(clip())); $('bSw').textContent = 'Sword: ' + (pose.sw ? 'shown' : 'hidden'); $('bSw').classList.toggle('on', !!pose.sw); holds(pose).forEach((v, j) => { const b = $(j ? 'bHB' : 'bHA'); b.textContent = 'Hand ' + (j ? 'B' : 'A') + ': ' + (v ? holdSpot(j ? 'B' : 'A', v) : 'let go'); b.classList.toggle('on', !!v); b.disabled = !pose.sw; }); }
   draw(); drawTrack(); stat();
   $('frLbl').textContent = `Frame ${fr} of ${lastFr()}`; $('bPasteF').disabled = !FCLIP || locked() || FCLIP.actor !== actorOf(clip()); $('bPasteF').textContent = FCLIP ? `Paste frame ${FCLIP.fr}` + (FCLIP.clip !== clip().name ? ` of ${FCLIP.clip}` : '') : 'Paste frame'; $('bCopyF').textContent = FCLIP && FCLIP.fr === fr && FCLIP.clip === clip().name ? 'Copied ✓' : 'Copy frame'; $('bPlay').textContent = playing ? '❚❚' : '▶';
   { const k = keyAt(fr), clean = k && !dirty; $('bSnap').textContent = clean ? 'Key saved ✓' : 'Save key'; $('bSnap').disabled = clean || !!(clip() && clip().game); $('bSnap').classList.toggle('primary', !clean); }
@@ -790,8 +798,8 @@ function ppSpec(k) { const S = [], twq = k === 'T' ? null : k[0] === 'H' || k[0]
     if (s2) { S.push({ t: 'g', id: 'g:arm', l: 'Arm drawn', get: () => s2 === 'A' ? pose.ao || (rig && rig.aoR) || 2 : pose.bo || 0, set: v => { pose[s2 === 'A' ? 'ao' : 'bo'] = v; }, o: s2 === 'A' ? [[1, 'Behind body'], [2, 'In front of body']] : [[0, 'In front of all'], [1, 'Behind body']] });
       tg('elbow', 'Bend the elbow the other way', () => 'Bend the elbow the other way', () => false, () => { pose['e' + s2] = -(pose['e' + s2] || KNX.lowSide(s2 === 'A' ? rig.shA : rig.shB, s2 === 'A' ? rig.hA : rig.hB)); }, 'Flip which way the elbow bends'); }
     if (k[0] === 'L' || k[0] === 'N') { const i = +k[1]; tg('knee', 'Bend the knee the other way', () => 'Bend the knee the other way', () => false, () => { pose.kn = pose.kn.slice(); pose.kn[i] *= -1; }, 'Flip which way the knee bends'); S.push({ t: 'g', id: 'g:legs', l: 'Order', get: () => pose.ls ? 1 : 0, set: v => { pose.ls = v; }, o: [[0, 'Normal'], [1, 'Other leg in front']] }); }
-    if ((k === 'hA' || k === 'hB') && pose.sw) tg('hold', 'Holding the sword', () => 'Holding the sword: ' + (holds(pose)[k === 'hA' ? 0 : 1] ? 'yes' : 'no'), () => !!holds(pose)[k === 'hA' ? 0 : 1], () => holdToggle(k[1]), 'Let go of the grip or take hold of it');
-    if (k === 'S') { for (const s3 of ['A', 'B']) tg('hold' + s3, 'Hand ' + s3 + ' holds it', () => 'Hand ' + s3 + ' holds it: ' + (holds(pose)[s3 === 'A' ? 0 : 1] ? 'yes' : 'no'), () => !!holds(pose)[s3 === 'A' ? 0 : 1], () => holdToggle(s3), 'Hand ' + s3 + ' lets go of the grip or takes hold of it'); tg('sw', 'Sword', () => 'Sword: ' + (pose.sw ? 'shown' : 'hidden'), () => !!pose.sw, () => swordToggle(), 'Show or hide the sword'); sl('Light blade', () => pose.lb || 0, v => { pose.lb = v; }, 0, 1, 0, 'The glowing blade of light round the sword'); sl('Light size', () => pose.lz || 1, v => { pose.lz = v; }, 0.5, 2, 1, 'How big the blade of light is');
+    if ((k === 'hA' || k === 'hB') && pose.sw) S.push({ t: 'g', id: 'g:hold', l: 'Holding the sword', get: () => HOLDN[holdSpot(k[1], holds(pose)[k === 'hA' ? 0 : 1])], set: v => holdSet(k[1], HOLDS[v - 1] || 'no'), o: [[1, 'Upper'], [2, 'Lower'], [3, 'No']] });
+    if (k === 'S') { for (const s3 of ['A', 'B']) S.push({ t: 'g', id: 'g:hold' + s3, l: 'Hand ' + s3 + ' holds it', get: () => HOLDN[holdSpot(s3, holds(pose)[s3 === 'A' ? 0 : 1])], set: v => holdSet(s3, HOLDS[v - 1] || 'no'), o: [[1, 'Upper'], [2, 'Lower'], [3, 'No']] }); tg('sw', 'Sword', () => 'Sword: ' + (pose.sw ? 'shown' : 'hidden'), () => !!pose.sw, () => swordToggle(), 'Show or hide the sword'); sl('Light blade', () => pose.lb || 0, v => { pose.lb = v; }, 0, 1, 0, 'The glowing blade of light round the sword'); sl('Light size', () => pose.lz || 1, v => { pose.lz = v; }, 0.5, 2, 1, 'How big the blade of light is');
       S.push({ t: 'g', id: 'g:sword', l: 'Sword drawn', get: () => pose.so || (rig && rig.soR) || 2, set: v => { pose.so = v; }, o: [[1, 'Behind him'], [2, 'In front']] }); }
     if (k[0] !== 'h') tg('mirror', 'Mirror', () => 'Mirror ↔', () => false, () => mirrorPart(k), MIRT[k[0] === 'f' ? 'f' : 'LNF'.includes(k[0]) ? k[0] + '0' : k] || 'Flip it left to right');
     return S; }
@@ -908,9 +916,14 @@ function setActor(a) { if (actorOf(clip()) === a) return; stop(); const go = () 
     ACTL[a] = clips[j].id; try { localStorage.setItem('posebench-actor', JSON.stringify(ACTL)); } catch (e) {} PSELS = []; PCHK = {}; SEL = null; ci = j; hist.length = 0; save(); dirty = false; setFr(0, true); }; if (pending()) ask(go); else go(); }
 $('actSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setActor(b.dataset.a); });
 // the Knight's sword: hidden, hand B lets go of the grip and stays where it was; shown, hand B takes the grip again
-function holdToggle(s2) { if (locked()) { lockMsg(); return; } const r = rig; if (!pose.sw) { swordToggle(); return; } const on = !!r['g' + s2], gA = s2 === 'A' ? !on : !!r.gA, gB = s2 === 'B' ? !on : !!r.gB, AL = armL(), rel = (h, sh) => { let v = [h[0] - sh[0], h[1] - sh[1]]; const d = Math.hypot(...v); return d > AL ? [v[0] / d * AL, v[1] / d * AL] : v; };
-  pose.hA = rel(gA ? (r.gA ? r.hA : r.g) : r.hA, r.shA); pose.hB = rel(gB && !gA ? (r.gB ? r.hB : [r.g[0] + Math.cos(pose.sa || 0) * 0.9, r.g[1] + Math.sin(pose.sa || 0) * 0.9]) : r.hB, r.shB); if (!gA && !gB) pose.sg = r.g.slice();
-  pose.gA = gA ? 1 : 0; pose.gB = gB ? 1 : 0; }
+// hold values: 0 not holding, 1 / 2 the hand's two spots on the handle (gU); the sword stays where it is and the hands move to their spots
+const holdSpot = (s2, v) => !v ? 'no' : KNX.gU(s2, v) > 0.45 ? 'upper' : 'lower', holdVal = (s2, sp) => sp === 'no' ? 0 : (sp === 'upper') === (s2 === 'B') ? 1 : 2;
+function holdSet(s2, sp) { if (locked()) { lockMsg(); return; } const r = rig; if (!pose.sw) { swordToggle(); return; } const v = holdVal(s2, sp), gA = s2 === 'A' ? v : (r.gA || 0), gB = s2 === 'B' ? v : (r.gB || 0), AL = armL(), d = [Math.cos(pose.sa || 0), Math.sin(pose.sa || 0)], G = r.g;
+  const rel = (h, sh) => { let q = [h[0] - sh[0], h[1] - sh[1]]; const l = Math.hypot(...q); return l > AL ? [q[0] / l * AL, q[1] / l * AL] : q; }, at = u => [G[0] + d[0] * u, G[1] + d[1] * u];
+  pose.hA = rel(gA ? at(KNX.gU('A', gA)) : r.hA, r.shA); pose.hB = rel(gB ? at(KNX.gU('B', gB)) : r.hB, r.shB); if (!gA && !gB) pose.sg = G.slice();
+  pose.gA = gA; pose.gB = gB; }
+const HOLDS = ['upper', 'lower', 'no'], HOLDN = { upper: 1, lower: 2, no: 3 };
+function holdToggle(s2) { const cur = holdSpot(s2, holds(pose)[s2 === 'A' ? 0 : 1]); holdSet(s2, HOLDS[(HOLDS.indexOf(cur) + 1) % 3]); } // the Body buttons cycle upper -> lower -> no
 function swordToggle() { if (locked()) { lockMsg(); return; } if (pose.sw) { pose.hB = [rig.hB[0] - rig.shB[0], rig.hB[1] - rig.shB[1]]; pose.sw = 0; } else { pose.sw = 1; if (pose.sa == null) pose.sa = pose.f > 0 ? -1.1 : Math.PI + 1.1; } }
 $('bSw').onclick = () => { swordToggle(); edited(); }; $('bHA').onclick = () => { holdToggle('A'); edited(); }; $('bHB').onclick = () => { holdToggle('B'); edited(); };
 // select all parts / drag a box on the stage round the parts you want
