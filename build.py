@@ -29,7 +29,11 @@ _kn = (d / 'knights.html').read_text(); _o0 = _kn.index('const OGX = (() => {');
 _h0 = _kn.index('const OGHK = '); _h1 = _kn.index('// where the fist is in the world', _h0)
 # + the ogre's recorded animation library (src/ogre-anims.json, made by tools/record-ogre.js)
 _lib = (d / 'ogre-anims.json').read_text() if (d / 'ogre-anims.json').exists() else '{"folders": []}'
-(root / 'anim.html').write_text((d / 'anim.html').read_text().replace('/*@OGX@*/', _kn[_o0:_o1] + '\n' + _kn[_h0:_h1]).replace('/*@OGLIB@*/', 'const OG_LIB = ' + _lib + ';'))
+# + the Knight's drawing (body parts, sword, light blade) and his swing keys, for the Knight actor (wrapped in the bench's KNX closure)
+_cut = lambda a, b: _kn[_kn.index(a):_kn.index(b, _kn.index(a))]
+_line = lambda a: _kn[_kn.index(a):_kn.index('\n', _kn.index(a))]
+_knx = '\n'.join([_line('function shade('), _line('function ik('), _line('const STEEL = '), _cut('function sword(c, g, a', '// ---------- knight state'), _cut('const G_ = [', '// light-blade size per swing'), _cut('function kfnS(', 'function kfn('), _cut('function leg(c, hip', '// ---------- enemies')])
+(root / 'anim.html').write_text((d / 'anim.html').read_text().replace('/*@OGX@*/', _kn[_o0:_o1] + '\n' + _kn[_h0:_h1]).replace('/*@KNX@*/', _knx).replace('/*@OGLIB@*/', 'const OG_LIB = ' + _lib + ';'))
 (root / 'audio').mkdir(exist_ok=True); (root / 'audio' / 'baroque-breakdown.mp3').write_bytes((d / 'assets' / 'baroque-breakdown.mp3').read_bytes())  # Knight Brawl music, served as a file (too big to inline)
 (root / 'version.json').write_text(json.dumps({'version': build, 'v': ver}) + '\n')
 print('v' + ver, 'build', build, len(out), 'bytes', '(shipped)' if shipping or known else '(unshipped)')

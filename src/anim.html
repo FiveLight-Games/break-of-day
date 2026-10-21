@@ -76,6 +76,9 @@ details.fold[open] > summary { margin-bottom: 6px; }
 #ppB .ppC label { display: flex; gap: 4px; align-items: center; }
 #ppB label.sl { grid-template-columns: 62px minmax(0, 1fr) 36px; }
 #ppB input[type=range] { min-width: 0; width: 100%; }
+body.knight .og { display: none !important; } body:not(.knight) .kn { display: none !important; }
+#zm { position: absolute; left: 10px; bottom: 8px; display: flex; gap: 4px; z-index: 2; } #zm button { padding: 3px 9px; }
+#selBox { position: absolute; border: 1px dashed var(--sel); background: rgba(29,78,216,.08); pointer-events: none; display: none; z-index: 2; }
 #saveQ { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: none; align-items: center; justify-content: center; z-index: 50; }
 #saveQ.on { display: flex; }
 #saveQ .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; max-width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
@@ -84,11 +87,11 @@ details.fold[open] > summary { margin-bottom: 6px; }
 
 <div class="top">
   <h1>Pose Bench</h1>
-  <p>Pose the Storm Ogre, save a key at each main moment, and the frames in between fill in. Press ▶ to watch it at game speed (60 fps).</p>
+  <p>Pick an actor, pose him, save a key at each main moment, and the frames in between fill in. Press ▶ to watch it at game speed (60 fps).</p>
 </div>
 
 <div class="wrap">
-  <div id="stage"><canvas id="cv"></canvas><div id="status"></div><div id="pp" hidden role="dialog" aria-labelledby="ppT"><div id="ppH" title="Drag to move this window"><span id="ppT"></span><button id="ppMin" title="Minimize to a bar (click again to open it back up)">–</button><button id="ppX" title="Close (click empty space on the stage to close it too)">✕</button></div><div id="ppB"></div></div><div id="hint">Click a part of him to open its settings (Ctrl/⌘-click to pick several) · Drag: hands, feet, toes (triangle) to turn a foot, the dot over a head to tilt it, hips (square), chest (diamond), elbow dot to swing the upper arm · Tap a ⇄ ring to bend that elbow or knee the other way</div></div>
+  <div id="stage"><canvas id="cv"></canvas><div id="selBox"></div><div id="zm"><button id="zIn" title="Zoom in (or scroll / pinch on the stage)">+</button><button id="zOut" title="Zoom out">−</button><button id="zFit" title="Back to the whole figure">Fit</button></div><div id="status"></div><div id="pp" hidden role="dialog" aria-labelledby="ppT"><div id="ppH" title="Drag to move this window"><span id="ppT"></span><button id="ppMin" title="Minimize to a bar (click again to open it back up)">–</button><button id="ppX" title="Close (click empty space on the stage to close it too)">✕</button></div><div id="ppB"></div></div><div id="hint">Click a part of him to open its settings (Ctrl/⌘-click to pick several) · Drag: hands, feet, toes (triangle) to turn a foot, the dot over a head to tilt it, hips (square), chest (diamond), elbow dot to swing the upper arm · Tap a ⇄ ring to bend that elbow or knee the other way</div></div>
 
   <div class="time">
     <div class="tbar">
@@ -117,6 +120,10 @@ details.fold[open] > summary { margin-bottom: 6px; }
 
   <div class="side">
     <section>
+      <h2>Actor</h2>
+      <div class="seg" id="actSeg"><button data-a="ogre">Storm Ogre</button><button data-a="knight">Knight</button></div>
+    </section>
+    <section>
       <h2>Animation</h2>
       <p class="note" id="syncNote" style="margin:-2px 0 6px">Saved on this device</p>
       <p class="note">Open:</p><div class="row" style="margin-top:4px"><select id="clipSel" style="flex:1;min-width:0" aria-label="Open animation"></select></div><p class="note" id="clipNote" style="margin-top:4px"></p>
@@ -124,8 +131,8 @@ details.fold[open] > summary { margin-bottom: 6px; }
       <div class="row" style="margin-top:6px"><span class="note">Name</span><input type="text" id="clipName" style="flex:1;min-width:0;cursor:text;background:transparent;border:1px solid var(--line);box-shadow:none" aria-label="Rename" placeholder="Name" title="Rename this animation"></div><div class="row" style="margin-top:6px"><button id="bNew" title="New animation, ogre standing idle">New blank</button><button id="bDup" title="Copy this animation">Copy this one</button></div>
       <div class="row" style="margin-top:8px"><label class="note" style="display:flex;gap:6px;align-items:center" title="Frame 0 of this animation becomes a locked copy of the last frame of the one you pick, and follows it when that one changes"><input type="checkbox" id="linkOn"> Start where this ends:</label></div>
       <div class="row" style="margin-top:4px"><select id="linkSel" style="flex:1;min-width:0" aria-label="Animation to start from"></select></div>
-      <div class="row" style="margin-top:8px"><span class="note">Legs</span><div class="seg"><button id="legP" title="The legs do what you pose here">Posed here</button><button id="legW" title="In the game the legs keep walking with the player's movement; only the upper body and the crouch come from here">Walk with the player</button></div></div>
-      <div class="row" style="margin-top:4px" id="walkRow"><button id="bWalkPrev" title="Preview the legs walking or standing (a view setting)">Preview: walking</button></div>
+      <div class="row og" style="margin-top:8px"><span class="note">Legs</span><div class="seg"><button id="legP" title="The legs do what you pose here">Posed here</button><button id="legW" title="In the game the legs keep walking with the player's movement; only the upper body and the crouch come from here">Walk with the player</button></div></div>
+      <div class="row og" style="margin-top:4px" id="walkRow"><button id="bWalkPrev" title="Preview the legs walking or standing (a view setting)">Preview: walking</button></div>
       <div class="row" style="margin-top:6px"><button id="bReset" class="danger" title="Throw away your changes to this animation and go back to how it is in the game">Reset to the game's version</button></div>
       <div class="row" style="margin-top:6px" id="delRow"><button id="bDelClip" class="danger">Delete this animation</button></div>
       <div class="row" style="margin-top:6px"><button id="bSaveAs" title="Save a copy of this animation under My animations, with a new name">Save As…</button></div>
@@ -134,13 +141,15 @@ details.fold[open] > summary { margin-bottom: 6px; }
     </section>
     <section>
       <h2>Body</h2>
-      <div class="row" style="margin-bottom:8px"><span class="note">View</span><div class="seg"><button id="vF" title="Seen from the front (three-quarter)">Front</button><button id="vB" title="Seen from behind, as when he throws a punch with his near arm. Between a front key and a behind key he turns round">From behind</button></div></div>
+      <div class="row" style="margin-bottom:8px"><button id="bAll" title="Select every part of him, to change them all at once in the parts window (or drag a box round the parts you want on the stage)">Select all parts</button></div>
+      <div class="row og" style="margin-bottom:8px"><span class="note">View</span><div class="seg"><button id="vF" title="Seen from the front (three-quarter)">Front</button><button id="vB" title="Seen from behind, as when he throws a punch with his near arm. Between a front key and a behind key he turns round">From behind</button></div></div>
       <div class="row" style="margin-bottom:8px"><span class="note">Facing</span><div class="seg"><button id="fL">◀ Left</button><button id="fR">Right ▶</button></div></div>
       <label class="sl" title="Tip the body back or forward">Lean <input type="range" id="lean" min="-0.8" max="0.8" step="0.01"><output id="leanO"></output></label>
       <label class="sl" title="Twist the chest toward or away from you">Torso twist <input type="range" id="yaw" min="-1.6" max="1.6" step="0.01"><output id="yawO"></output></label>
-      <label class="sl" title="0 = ice head lit, 1 = storm head lit">Ice ↔ storm head <input type="range" id="act" min="0" max="1" step="0.01"><output id="actO"></output></label>
-      <p class="note">Torso twist: + turns the far shoulder toward you, − the near one.</p>
-      <div class="row" style="margin-top:8px"><button id="bOrb" title="Show or hide the crackling lightning in his storm hand (a view setting, not saved in the animation)">Lightning in hand: off</button><button id="bIce" title="Show or hide the swirling ice ball in his ice hand (a view setting, not saved in the animation)">Ice ball in hand: off</button></div>
+      <label class="sl og" title="0 = ice head lit, 1 = storm head lit">Ice ↔ storm head <input type="range" id="act" min="0" max="1" step="0.01"><output id="actO"></output></label>
+      <div class="row kn" style="margin-top:8px"><button id="bSw" title="Show or hide his sword (saved in the key)"></button></div>
+      <p class="note og">Torso twist: + turns the far shoulder toward you, − the near one.</p>
+      <div class="row og" style="margin-top:8px"><button id="bOrb" title="Show or hide the crackling lightning in his storm hand (a view setting, not saved in the animation)">Lightning in hand: off</button><button id="bIce" title="Show or hide the swirling ice ball in his ice hand (a view setting, not saved in the animation)">Ice ball in hand: off</button></div>
     </section>
     <details class="fold" id="fdTw">
       <summary><h2>Twist</h2></summary>
@@ -152,7 +161,7 @@ details.fold[open] > summary { margin-bottom: 6px; }
       <p class="note" style="margin-bottom:6px">Squash or stretch a part side to side, always straight across the screen, whatever way it points. 1 = as drawn. Double-click a slider to reset it.</p>
       <div id="sqBox"></div>
     </details>
-    <section>
+    <section class="og">
       <h2>What's in front</h2>
       <div class="ord"><span><span class="tag tA">A</span> <span id="nA"></span></span><div class="seg" id="oA"><button data-v="0">Behind body</button><button data-v="1">In front of body</button><button data-v="2">In front of all</button></div></div>
       <div class="ord" style="margin-top:6px"><span><span class="tag tB">B</span> <span id="nB"></span></span><div class="seg" id="oB"><button data-v="0">Behind body</button><button data-v="1">In front of all</button></div></div>
@@ -177,6 +186,72 @@ details.fold[open] > summary { margin-bottom: 6px; }
 const cl = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, k) => a + (b - a) * k, sm = k => k * k * (3 - 2 * k);
 /*@OGX@*/
 /*@OGLIB@*/
+// ---- the Knight actor (2026-10-20): his game drawing (inlined from knights.html by build.py) driven by a bench rig ----
+// rig: { knight: 1, f, pel, lean, yaw (torso twist), feet[2], kn[2] knee bend sides, hA / hB hands from their shoulders, eA / eB elbow bend sides,
+//   sw sword shown (then hand A holds the grip and hand B sits on it below the guard), sa sword angle, lb light blade 0..1, lz its size, hr[0] head tilt,
+//   ao arm A order (0 auto, 1 behind body, 2 in front of body), bo arm B (0 in front of all, 1 behind body), so sword (0 auto, 1 behind, 2 in front), ls legs swapped }
+const KNX = (() => {
+let COL = '#3a7bd5', PLATE = 0, BROAD = 1; const K = { spd: 0, kn: 0, swing: -1, spin: -1, hold: 1, lszV: 1, glow: 0 }, RUN = 62, SWING = 1.02;
+const L2 = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k)], rot = (v, a) => [v[0] * Math.cos(a) - v[1] * Math.sin(a), v[0] * Math.sin(a) + v[1] * Math.cos(a)], add = (a, b) => [a[0] + b[0], a[1] + b[1]];
+/*@KNX@*/
+const ARM = 5.15;
+// shoulders, chest and head from the rig, exactly as the game's pose() builds them
+function frame(R) { const f = R.f, tw = R.yaw || 0, L = f * (R.lean || 0), pel = R.pel;
+  const C = add(add(pel, rot([0, -4.2], L)), [f * tw * 0.55, 0]), w = 1.95 * (1 - 0.22 * tw), sd = [Math.cos(L * 0.8), Math.sin(L * 0.8)];
+  const sh = [[C[0] - sd[0] * w, C[1] - sd[1] * w + f * tw * 0.18], [C[0] + sd[0] * w, C[1] + sd[1] * w - f * tw * 0.18]];
+  const head = add(C, rot([f * (0.35 + Math.max(0, tw) * 0.2), -2.15], L * 0.55)), far = f > 0 ? 0 : 1, near = 1 - far;
+  return { C, sh, head, shA: sh[near], shB: sh[far], far, near, L }; }
+function handsOf(R, F) { const hA = add(F.shA, R.hA); if (R.sw) { const d = [Math.cos(R.sa || 0), Math.sin(R.sa || 0)]; return [hA, [hA[0] + d[0] * 0.9, hA[1] + d[1] * 0.9]]; } return [hA, add(F.shB, R.hB)]; }
+const lowSide = (s, h) => ik(s, h, 2.6, 2.6, 1)[1] >= ik(s, h, 2.6, 2.6, -1)[1] ? 1 : -1;
+function draw(c, R, gate, t) { const f = R.f, F = frame(R), [hA, hB] = handsOf(R, F), sa = R.sa || 0, tag = k => { if (gate) gate.cur = k; };
+  const hips = [[R.pel[0] - 1.05, R.pel[1]], [R.pel[0] + 1.05, R.pel[1]]], kn = R.kn || [f > 0 ? -1 : 1, f > 0 ? -1 : 1];
+  // like the ogre: a foot further from its hip than the leg reaches is lifted along with it (the leg hangs straight toward where it was)
+  R = { ...R, feet: R.feet.map((p, i) => { const h = hips[i], dx = p[0] - h[0], dy = p[1] - h[1], d = Math.hypot(dx, dy), M = 6.2 * 0.995; return d > M ? [h[0] + dx / d * M, h[1] + dy / d * M] : p; }) };
+  const knees = hips.map((h, i) => ik(h, R.feet[i], 3.1, 3.1, kn[i]));
+  const P = { f, pel: R.pel, hips, feet: R.feet, knees, C: F.C, sh: F.sh, head: F.head, hands: [hA, hB], lean: R.lean || 0, tw: R.yaw || 0, bow: 0 };
+  K.hold = R.sw ? 1 : 0; K.lszV = R.lz || 1; COL = R.col || '#3a7bd5';
+  const eA = R.eA || lowSide(F.shA, hA), eB = R.eB || lowSide(F.shB, hB);
+  if (gate) c = gate.wrap(c);
+  // per part: mirror (R.mr[k]), squeeze (R.sq, screen x round its anchor), twist (R.tw: narrows a limb across its own length; a head turns its face)
+  const TW = R.tw || {}, SQ = R.sq || {}, gv = (T, g, i, d) => { const v = i === undefined ? T[g] : (T[g] || [])[i]; return v == null ? d : v; };
+  // every limb is drawn segment by segment (the game's arm()/leg() take wrappers): a squeezed segment slides the ones after it along with its moved end
+  const xf = (k, an, ax, tw, sq, dx, fn) => { const m = (R.mr || {})[k] ? -1 : 1, q = sq * m; if (q === 1 && !tw && !dx) return fn(); c.save(); if (dx) c.translate(dx, 0); c.translate(an[0], an[1]); if (q !== 1) c.scale(q, 1);
+    if (tw) { if (ax == null) { c.translate(f * Math.sin(tw) * 0.65, 0); c.scale(Math.max(0.35, Math.cos(tw)), 1); } else if (ax === 'x') c.scale(Math.max(0.35, Math.cos(tw)), 1); else { c.rotate(ax); c.scale(1, 1 - 0.45 * Math.abs(Math.sin(tw))); c.rotate(-ax); } } c.translate(-an[0], -an[1]); fn(); c.restore(); };
+  const ang = (a, b) => Math.atan2(b[1] - a[1], b[0] - a[0]), twv = (g, i) => gv(TW, g, i, 0), sqv = (g, i) => gv(SQ, g, i, 1);
+  const mir = (k, x, fn) => k === 'T' ? xf('T', [x, R.pel[1]], null, 0, sqv('T'), 0, fn) : xf('H0', F.head, null, twv('H', 0), sqv('H', 0), 0, fn);
+  const armXs = s2 => { const sh = s2 === 'A' ? F.shA : F.shB, h = s2 === 'A' ? hA : hB, el = ik(sh, h, 2.6, 2.6, s2 === 'A' ? eA : eB), wr = L2(el, h, 0.7), qU = sqv(s2), qF = sqv('f' + s2), dE = (qU - 1) * (el[0] - sh[0]), dW = dE + (qF - 1) * (wr[0] - el[0]);
+    return { u: g => { tag(s2); xf(s2, sh, ang(sh, el), twv(s2), qU, 0, g); }, f: g => { tag('f' + s2); xf('f' + s2, el, ang(el, wr), twv('f' + s2), qF, dE, g); }, h: g => { tag('h' + s2); xf('h' + s2, wr, ang(wr, h), twv('h' + s2), sqv('h' + s2), dW, g); } }; };
+  const legXs = i => { const hp = hips[i], kn2 = knees[i], an = L2(kn2, R.feet[i], 0.62), qT = sqv('L', i), qN = sqv('N', i), dK = (qT - 1) * (kn2[0] - hp[0]), dA = dK + (qN - 1) * (an[0] - kn2[0]);
+    return { t: g => { tag('L' + i); xf('L' + i, hp, ang(hp, kn2), twv('L', i), qT, 0, g); }, s: g => { tag('N' + i); xf('N' + i, kn2, ang(kn2, an), twv('N', i), qN, dK, g); }, b: g => { tag('F' + i); const a = -f * ((R.ff || [])[i] ? -1 : 1) * ((R.fa || [])[i] || 0); xf('F' + i, an, 'x', twv('F', i), sqv('F', i), dA, a ? () => { c.save(); c.translate(an[0], an[1]); c.rotate(a); c.translate(-an[0], -an[1]); g(); c.restore(); } : g); } }; };
+  tag(null); c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(R.pel[0] * 0.5, 0.4, 4.4, 1.5, 0, 0, 7); c.fill();
+  const hold = !!R.sw, d = [Math.cos(sa), Math.sin(sa)], L = 10.5 * (R.bl == null ? 1 : R.bl), ff = R.ff || [0, 0];
+  const blade = () => { if (!hold) return; tag('S'); lightSword(c, hA, sa, L, R.lb || 0, t); sword(c, hA, sa, L); armXs('B').h(() => glove(c, hB, true)); armXs('A').h(() => glove(c, hA, false)); };
+  const armA = () => arm(c, F.shA, hA, f, false, hold, eA, armXs('A')), armB = () => arm(c, F.shB, hB, f, true, hold, eB, armXs('B'));
+  const hx = (hA[0] - F.C[0]) * f, hy = hA[1] - F.C[1], bx = d[0] * f;
+  const swordBack = hold && (R.so === 1 || (!R.so && bx < -0.3 && hx < 0.5)), aBehind = R.ao === 1 || (!R.ao && hy > 3.8), bBehind = R.bo === 1;
+  const body = () => { const lb = R.ls ? F.far : F.near, lf = R.ls ? F.near : F.far; leg(c, hips[lb], knees[lb], R.feet[lb], ff[lb] ? -f : f, true, false, false, legXs(lb)); leg(c, hips[lf], knees[lf], R.feet[lf], ff[lf] ? -f : f, false, false, false, legXs(lf)); tag('T'); mir('T', R.pel[0], () => torso(c, P, f, false)); };
+  const hd = () => { tag('H0'); const pv = [F.head[0], F.head[1] + 1.6], a = -f * ((R.hr || [0])[0] || 0); c.save(); c.translate(pv[0], pv[1]); c.rotate(a); c.translate(-pv[0], -pv[1]); mir('H0', F.head[0], () => head(c, P, f, 1, false)); c.restore(); };
+  if (swordBack) blade(); if (bBehind) armB(); if (aBehind) armA(); body(); if (!aBehind) armA(); hd(); if (!bBehind) armB();
+  if (!swordBack) blade(); else if (hold) { armXs('B').h(() => glove(c, hB, true)); armXs('A').h(() => glove(c, hA, false)); }
+  tag(null);
+  return { ank: knees.map((k2, i) => L2(k2, R.feet[i], 0.62)), pel: R.pel, hips, feet: R.feet, knees, shA: F.shA, shB: F.shB, hA, hB, eA: ik(F.shA, hA, 2.6, 2.6, eA), eB: ik(F.shB, hB, 2.6, 2.6, eB), HI: F.head, HZ: F.head, g: hA, tip: [hA[0] + d[0] * (1.3 + L), hA[1] + d[1] * (1.3 + L)] }; }
+// a game pose as a rig: A = the game's action keys [u, crouch, lean, twist, hand x, hand y, sword angle, step] for a knight standing still (stance width sw 1 fighting, 0.4 relaxed)
+function gameRig(A, f, stW, extra) { const [, cr, lean, tw, hx, hy, a, stepA] = A, front = f > 0 ? 1 : 0, s = f > 0 ? -1 : 1;
+  const feet = [0, 1].map(i => i === front ? [f * (0.9 + stW * 0.6 + stepA * 1.3), 0] : [-f * (0.8 + stW * 0.7), -0.25]);
+  const R = { knight: 1, f, pel: [f * stepA * 0.55, -5.9 + cr * 0.95], lean, yaw: tw, feet, kn: [s, s], sw: 1, lb: 0, lz: 1, hr: [0, 0], ...(extra || {}) };
+  const F = frame(R), g = add(F.C, rot([f * hx, hy], F.L * 0.6)), sa = f > 0 ? a + F.L * 0.5 : Math.PI - a + F.L * 0.5, d = [Math.cos(sa), Math.sin(sa)], gB = [g[0] + d[0] * 0.9, g[1] + d[1] * 0.9];
+  R.hA = [g[0] - F.shA[0], g[1] - F.shA[1]]; R.hB = [gB[0] - F.shB[0], gB[1] - F.shB[1]]; R.sa = sa; R.eA = lowSide(F.shA, g); R.eB = lowSide(F.shB, gB); return R; }
+const idle = f => gameRig(G_, f, 1);
+// the Knight's library: his stances and the three swings from the game, a key every 2 frames
+function lib() { const out = [], one = (folder, name, P, note) => out.push({ folder, name, note, keys: [{ fr: 0, ease: 'smooth', pose: P }] });
+  one('Movement', 'Fighting stance', gameRig(G_, 1, 1), 'His guard in the game when enemies are near');
+  one('Movement', 'Sword lowered', gameRig([0, 0, 0, 0, 1.0, 4.3, 2.55, 0], 1, 0.4), 'Standing at ease, sword point down');
+  const SZ = [1, 1.35, 1.35 * 1.35]; [['Swing 1 (overhand)', SW_A], ['Swing 2 (rising)', SW_B], ['Swing 3 (twirl)', SW_C]].forEach(([name, SW], j) => { const N = Math.round(SWING * 60), keys = [];
+    for (let fr = 0; ; fr += 2) { const q = Math.min(fr, N); keys.push({ fr: q, ease: 'smooth', pose: gameRig(kfnS(q / N, SW), 1, 1, { lb: 1, lz: SZ[j] }) }); if (q >= N) break; }
+    out.push({ folder: 'Combo', name, note: 'The game’s swing (standing still), with the light blade', keys }); });
+  return out; }
+return { draw, gameRig, idle, lib, frame, ARM, lowSide, ik };
+})();
 </script>
 <script>
 (() => {
@@ -203,7 +278,7 @@ const shBack = (f, pel) => ({ G: [-3.4 * f + pel[0], pel[1] - 8.2], P: [3.7 * f 
 function renderBack(c, P, out) { const B = P.bk || backPose(P.f), S2 = shBack(P.f, B.pel), o = { pi: P.f > 0, iL: P.act, zL: 1 - P.act, gx: 0, outRig: out || {},
     rig: { pel: B.pel, aG: B.aG, aP: B.aP, hG: [S2.G[0] + B.hG[0], S2.G[1] + B.hG[1]], hP: [S2.P[0] + B.hP[0], S2.P[1] + B.hP[1]], eG: B.eG, eP: B.eP, hr: P.hr } };
   OGX.drawBack(c, OGX.V, T0, P.f, o); const r = o.outRig; r.back = 1; r.HI = o.pi ? r.HP : r.HG; r.HZ = o.pi ? r.HG : r.HP; return r; }
-function render(c, P, out) { const v = P.view || 0; if (v <= 0.001) return renderFront(c, P, out); if (v >= 0.999) return renderBack(c, P, out);
+function render(c, P, out) { if (P.knight) return KNX.draw(c, P, GATE, performance.now() / 1000); const v = P.view || 0; if (v <= 0.001) return renderFront(c, P, out); if (v >= 0.999) return renderBack(c, P, out);
   const sx = v < 0.5 ? 1 - v : v, px = v < 0.5 ? P.pel[0] : (P.bk || backPose(P.f)).pel[0]; c.save(); c.translate(px, 0); c.scale(sx, 1); c.translate(-px, 0); const r = v < 0.5 ? renderFront(c, P, out) : renderBack(c, P, out); c.restore(); r.turning = 1; return r; }
 // the back view's own pose, from the game's drawing (e how far the punch is out, cr crouch, gx guard arm thrown out)
 function backPose(f, e = 1, cr = 0, gx = 0) { const o = { e, pi: f > 0, cr, gx, iL: 0.5, zL: 0.5, outRig: {} }; OGX.drawBack(scratch, OGX.V, T0, f, o); const r = o.outRig;
@@ -214,10 +289,13 @@ function fromOut(o, f, act, yf) { const i = s => o.ord.indexOf(s), iT = i('T'), 
 function idlePose(f) { const o = { ord: [] }; OGX.drawO2(scratch, OGX.V, T0, f, 0, -1, -1, 'act', 0, -1, [], 0, { noFx: 1, noJet: 1, outRig: o }); return fromOut(o, f, 0); }
 function gamePose(k2, f, u) { const hk = ogHookPose({ f, ouK: k2, ouA: f > 0 ? 0 : Math.PI }, u), o = { ord: [] }, act = k2 === 0 ? 1 : 0;
   OGX.drawO2(scratch, OGX.V, T0, f, 0, -1, -1, 'act', act, -1, [], 0, { hk, yaw: hk.yaw, noFx: 1, noJet: 1, outRig: o }); return fromOut(o, f, act, hk.yf); }
-function mirror(P) { const m = q => [-q[0], q[1]], B = P.bk; return { ...P, f: -P.f, pel: m(P.pel), feet: P.feet.map(m), hA: m(P.hA), hB: m(P.hB), eA: -P.eA, eB: -P.eB, kn: P.kn.map(v => -v), bk: B ? { pel: m(B.pel), aG: m(B.aG), aP: m(B.aP), hG: m(B.hG), hP: m(B.hP), eG: -B.eG, eP: -B.eP } : B }; }
+function mirror(P) { const m = q => [-q[0], q[1]], B = P.bk; return { ...P, f: -P.f, pel: m(P.pel), feet: P.feet.map(m), hA: m(P.hA), hB: m(P.hB), eA: -P.eA, eB: -P.eB, kn: P.kn.map(v => -v), ...(P.sa != null ? { sa: Math.PI - P.sa } : {}), bk: B ? { pel: m(B.pel), aG: m(B.aG), aP: m(B.aP), hG: m(B.hG), hP: m(B.hP), eG: -B.eG, eP: -B.eP } : B }; }
 
 // ---- clips ----
-const blank = name => ({ name, keys: [{ fr: 0, ease: 'smooth', pose: idlePose(1) }] });
+// actors: every animation belongs to one (clip.actor; none = the Storm Ogre)
+const actorOf = c => c && c.actor === 'knight' ? 'knight' : 'ogre', isK = () => typeof clips !== 'undefined' && actorOf(clips[ci]) === 'knight';
+const idleFor = f => isK() ? KNX.idle(f) : idlePose(f), armL = () => isK() ? KNX.ARM : ARM;
+const blank = name => ({ name, ...(isK() ? { actor: 'knight' } : {}), keys: [{ fr: 0, ease: 'smooth', pose: idleFor(1) }] });
 // the hooks now take 1.625s in the game (x1.25 on 2026-10-19): 98 frames at 60fps, a key every 3
 const HOOKF = 98;
 // both face right, as they're normally thrown; facing right the ice punch is thrown with the near arm, so like the game he turns his back for it
@@ -249,6 +327,8 @@ for (const c of clips) c.name = c.name.replace(/ \(game, facing (left|right)\)/,
 const LIB = (typeof OG_LIB !== 'undefined' ? OG_LIB.folders : []).flatMap(F => F.clips.map(c => ({ id: 'lib:' + F.name + ':' + c.name, lib: 1, folder: 'Storm Ogre › ' + F.name, name: c.name, note: c.note, keys: c.keys })));
 const LIB0 = {}; for (const c of LIB) { LIB0[c.id] = JSON.stringify({ keys: c.keys }); const o = LIBO[c.id]; if (o) Object.assign(c, clone(o)); }
 const libChanged = c => c.lib && (JSON.stringify({ keys: c.keys }) !== LIB0[c.id] || c.legs === 'walk' || !!c.from || !!(c.pins && c.pins.length));
+for (const c of KNX.lib()) LIB.push({ id: 'lib:Knight › ' + c.folder + ':' + c.name, lib: 1, actor: 'knight', folder: 'Knight › ' + c.folder, name: c.name, note: c.note, keys: c.keys });
+for (const c of LIB) { if (LIB0[c.id]) continue; LIB0[c.id] = JSON.stringify({ keys: c.keys }); const o = LIBO[c.id]; if (o) Object.assign(c, clone(o)); }
 clips = clips.filter(c => !c.game && !c.lib).concat(LIB);
 ci = GI0 ? Math.max(0, clips.findIndex(c => c.id === GI0)) : 0; ci = Math.min(ci, clips.length - 1);
 // linking: an animation can start where another ends (clip.from = that one's id); its frame 0 is a locked copy of that one's last key
@@ -320,7 +400,7 @@ const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
 const cr = (p0, p1, p2, p3, u) => 0.5 * (2 * p1 + (-p0 + p2) * u + (2 * p0 - 5 * p1 + 4 * p2 - p3) * u * u + (-p0 + 3 * p1 - 3 * p2 + p3) * u * u * u);
 // pins (clip.pins = [{p, a, b}]): from frame a to frame b (both included) part p holds exactly what it is at frame a, whatever the curve does
 // a pin holds placement ('pos'), rotation ('rot') or, for old pins without k, both
-const PCAP = { hA: ['pos', 'rot'], hB: ['pos', 'rot'], f0: ['pos', 'rot'], f1: ['pos', 'rot'], pel: ['pos'], chest: ['rot'], h0: ['rot'], h1: ['rot'] };
+const PCAP0 = { hA: ['pos', 'rot'], hB: ['pos', 'rot'], f0: ['pos', 'rot'], f1: ['pos', 'rot'], pel: ['pos'], chest: ['rot'], h0: ['rot'], h1: ['rot'] }, PCAPK = { hA: ['pos'], hB: ['pos'], f0: ['pos', 'rot'], f1: ['pos', 'rot'], pel: ['pos'], chest: ['rot'], h0: ['rot'] }, PC = () => isK() ? PCAPK : PCAP0;
 const has = (q, k) => !q.k || q.k === k;
 function pinApply(P, t) { for (const q of clip().pins || []) { if (t < q.a || t > q.b) continue; const S = poseRaw(q.a), A = (k, i) => { P[k] = (P[k] || [0, 0]).slice(); P[k][i] = (S[k] || [0, 0])[i]; }, TW = (g, i) => { P.tw = clone(P.tw || {}); if (i === undefined) P.tw[g] = (S.tw || {})[g] || 0; else { P.tw[g] = (P.tw[g] || [0, 0]).slice(); P.tw[g][i] = ((S.tw || {})[g] || [0, 0])[i]; } };
     if (q.p === 'f0' || q.p === 'f1') { const i = +q.p[1]; if (has(q, 'pos')) { P.feet = P.feet.slice(); P.feet[i] = S.feet[i].slice(); } if (has(q, 'rot')) { A('fa', i); A('ff', i); TW('F', i); } }
@@ -330,7 +410,7 @@ function pinApply(P, t) { for (const q of clip().pins || []) { if (t < q.a || t 
     else if (q.p === 'h0' || q.p === 'h1') { const i = +q.p[1]; A('hr', i); A('hfl', i); TW('H', i); } }
   return P; }
 function poseAt(t) { return pinApply(poseRaw(t), t); }
-function poseRaw(t) { const K = keys(); if (!K.length) return idlePose(1); if (t <= K[0].fr) return clone(K[0].pose); if (t >= K[K.length - 1].fr) return clone(K[K.length - 1].pose);
+function poseRaw(t) { const K = keys(); if (!K.length) return idleFor(1); if (t <= K[0].fr) return clone(K[0].pose); if (t >= K[K.length - 1].fr) return clone(K[K.length - 1].pose);
   let i = 0; while (K[i + 1].fr <= t) i++; const a = K[i], b = K[i + 1], u = (t - a.fr) / (b.fr - a.fr), e = a.ease || 'smooth';
   if (e === 'hold') return clone(a.pose);
   const P = [K[Math.max(0, i - 1)].pose, a.pose, b.pose, K[Math.min(K.length - 1, i + 2)].pose], uu = e === 'ease' ? sm(u) : u;
@@ -338,6 +418,10 @@ function poseRaw(t) { const K = keys(); if (!K.length) return idlePose(1); if (t
   const ang = g => { const v = P.map(g); v[0] = v[1] + wrapA(v[0] - v[1]); v[2] = v[1] + wrapA(v[2] - v[1]); v[3] = v[2] + wrapA(v[3] - v[2]); return e === 'smooth' ? cr(v[0], v[1], v[2], v[3], u) : lerp(v[1], v[2], uu); };
   const pt = g => [num(p => g(p)[0]), num(p => g(p)[1])];
   const hand = g => { const A = ang(p => Math.atan2(g(p)[1], g(p)[0])), R = Math.min(ARM, Math.max(0, num(p => Math.hypot(g(p)[0], g(p)[1])))); return [Math.cos(A) * R, Math.sin(A) * R]; };
+  if (a.pose.knight) { const hk = g => { const A = ang(p => Math.atan2(g(p)[1], g(p)[0])), R = Math.min(KNX.ARM, Math.max(0, num(p => Math.hypot(g(p)[0], g(p)[1])))); return [Math.cos(A) * R, Math.sin(A) * R]; };
+    return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean || 0), yaw: num(p => p.yaw || 0), feet: [pt(p => p.feet[0]), pt(p => p.feet[1])], hA: hk(p => p.hA), hB: hk(p => p.hB), sa: ang(p => p.sa || 0), hr: [num(p => (p.hr || [0, 0])[0]), 0], fa: [num(p => (p.fa || [0, 0])[0]), num(p => (p.fa || [0, 0])[1])], lb: cl(num(p => p.lb || 0), 0, 1), lz: num(p => p.lz || 1), bl: num(p => p.bl == null ? 1 : p.bl),
+      tw: P.some(p => p.tw) ? (() => { const g = (k, i) => num(p => twGet(p, [k, i])); return { H: [g('H', 0), 0], A: g('A'), B: g('B'), fA: g('fA'), fB: g('fB'), hA: g('hA'), hB: g('hB'), L: [g('L', 0), g('L', 1)], N: [g('N', 0), g('N', 1)], F: [g('F', 0), g('F', 1)] }; })() : a.pose.tw,
+      sq: P.some(p => p.sq) ? (() => { const g = (k, i) => num(p => sqGet(p, [k, i])); return { H: [g('H', 0), 1], A: g('A'), B: g('B'), fA: g('fA'), fB: g('fB'), hA: g('hA'), hB: g('hB'), L: [g('L', 0), g('L', 1)], N: [g('N', 0), g('N', 1)], F: [g('F', 0), g('F', 1)], T: g('T') }; })() : a.pose.sq }; }
   return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean), yaw: num(p => p.yaw), act: cl(num(p => p.act), 0, 1), cA: cl(num(p => p.cA || 0), 0, 1), cB: cl(num(p => p.cB || 0), 0, 1), yf: a.pose.yf, view: cl(num(p => p.view || 0), 0, 1), tw: P.some(p => p.tw) ? (() => { const g = (k, i) => num(p => twGet(p, [k, i])); return { H: [g('H', 0), g('H', 1)], L: [g('L', 0), g('L', 1)], F: [g('F', 0), g('F', 1)], A: g('A'), B: g('B'), fA: g('fA'), fB: g('fB'), hA: g('hA'), hB: g('hB') }; })() : a.pose.tw, sq: P.some(p => p.sq) ? (() => { const g = (k, i) => num(p => sqGet(p, [k, i])); return { H: [g('H', 0), g('H', 1)], L: [g('L', 0), g('L', 1)], F: [g('F', 0), g('F', 1)], A: g('A'), B: g('B'), fA: g('fA'), fB: g('fB'), hA: g('hA'), hB: g('hB') }; })() : a.pose.sq, bk: P.some(p => (p.view || 0) > 0) ? (() => { const bq = p => p.bk || backDef(p.f), BP = g => pt(p => g(bq(p))), BH = g => hand(p => g(bq(p))); return { pel: BP(b => b.pel), aG: BP(b => b.aG), aP: BP(b => b.aP), hG: BH(b => b.hG), hP: BH(b => b.hP), eG: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eG, eP: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eP }; })() : a.pose.bk,
     feet: [pt(p => p.feet[0]), pt(p => p.feet[1])], fa: [num(p => (p.fa || [0, 0])[0]), num(p => (p.fa || [0, 0])[1])], hr: [num(p => (p.hr || [0, 0])[0]), num(p => (p.hr || [0, 0])[1])], hA: hand(p => p.hA), hB: hand(p => p.hB) }; }
 
@@ -356,13 +440,16 @@ let lockMsgT = 0; const lockMsg = () => { lockMsgT = performance.now(); stat(); 
 function edited() { if (locked()) { pose = poseAt(fr); dirty = false; lockMsg(); ui(); return; } dirty = true; ui(); }
 
 // ---- stage ----
-let S = 20, OX = 0, OY = 0, DPR = 1;
-function size() { const r = $('stage').getBoundingClientRect(); DPR = Math.min(2, devicePixelRatio || 1); cv.width = r.width * DPR; cv.height = r.height * DPR; S = Math.min(r.height / 27, r.width / 30); OX = r.width / 2; OY = r.height - r.height * 0.07;
+let S = 20, S0 = 20, OX = 0, OY = 0, DPR = 1, OXb = 0, OYb = 0, ZM = 1, PX = 0, PY = 0;
+// zoom and pan (a view setting): wheel or pinch zooms round the cursor / fingers, right- or middle-drag (or two fingers) pans, the corner buttons zoom or fit
+function view() { S = S0 * (isK() ? 1.3 : 1) * ZM; OX = OXb + PX; OY = OYb + PY; }
+function zoomAt(z, x, y) { const w = s2w(x, y); ZM = cl(z, 0.3, 6); view(); PX = x - w[0] * S - OXb; PY = y - w[1] * S - OYb; view(); draw(); }
+function size() { const r = $('stage').getBoundingClientRect(); DPR = Math.min(2, devicePixelRatio || 1); cv.width = r.width * DPR; cv.height = r.height * DPR; S0 = Math.min(r.height / 27, r.width / 30); OXb = r.width / 2; OYb = r.height - r.height * 0.07; view();
   const t = $('track').getBoundingClientRect(); tcv.width = t.width * DPR; tcv.height = t.height * DPR; }
 const w2s = p => [OX + p[0] * S, OY + p[1] * S], s2w = (x, y) => [(x - OX) / S, (y - OY) / S];
 const ghost = document.createElement('canvas');
 function drawFig(c, P, alpha) { c.save(); c.globalAlpha = alpha; c.setTransform(DPR * S, 0, 0, DPR * S, DPR * OX, DPR * OY); const o = render(c, P); c.restore(); return o; }
-function chestPt(P) { const L = 8; return [P.pel[0] + Math.sin(P.f * P.lean) * L, P.pel[1] - Math.cos(P.f * P.lean) * L]; }
+function chestPt(P) { const L = P.knight ? 4.2 : 8; return [P.pel[0] + Math.sin(P.f * P.lean) * L, P.pel[1] - Math.cos(P.f * P.lean) * L]; }
 function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -377,8 +464,11 @@ function draw() {
 }
 // where a foot's toe handle sits (the foot turned round its ankle by P.fa), and an elbow's flip bubble (just outside the bend)
 const toeOf = (r, P, i) => { const ff = (P.ff || [])[i] ? -1 : 1, a = -P.f * ff * ((P.fa || [0, 0])[i] || 0), an = [r.feet[i][0], r.feet[i][1] - 0.95], x = P.f * ff * 3.6 * Math.max(0.35, Math.cos(twGet(P, ['F', i]))), y = -0.6; return [an[0] + x * Math.cos(a) - y * Math.sin(a), an[1] + x * Math.sin(a) + y * Math.cos(a)]; };
+// the Knight's toe handle: the boot's toe, turned round his ankle by P.fa
+const toeV = (r, P, i) => { const fs = (P.ff || [])[i] ? -1 : 1, an = r.ank[i], ft = r.feet[i]; return [ft[0] - an[0] + P.f * fs * 1.9 * Math.max(0.35, Math.cos(twGet(P, ['F', i]))), ft[1] - an[1] - 0.1]; };
+const toeK = (r, P, i) => { const fs = (P.ff || [])[i] ? -1 : 1, a = -P.f * fs * ((P.fa || [0, 0])[i] || 0), v = toeV(r, P, i), an = r.ank[i]; return [an[0] + v[0] * Math.cos(a) - v[1] * Math.sin(a), an[1] + v[0] * Math.sin(a) + v[1] * Math.cos(a)]; };
 // each head's turn handle: a dot above it that swings with its tilt (P.hr: 0 ice, 1 storm; + tips the face up)
-const headOf = (r, P, i) => { const H = i ? r.HZ : r.HI, a = -P.f * ((P.hr || [0, 0])[i] || 0), d = 4.4; return [H[0] + Math.sin(a) * d, H[1] + 2.2 - Math.cos(a) * d]; };
+const headOf = (r, P, i) => { const H = i ? r.HZ : r.HI, a = -P.f * ((P.hr || [0, 0])[i] || 0), d = P.knight ? 3.6 : 4.4, hp = P.knight ? 1.6 : 2.2; return [H[0] + Math.sin(a) * d, H[1] + hp - Math.cos(a) * d]; };
 const flipOf = (r, s) => { const sh = s === 'A' ? r.shA : r.shB, h = s === 'A' ? r.hA : r.hB, e = s === 'A' ? r.eA : r.eB, m = [(sh[0] + h[0]) / 2, (sh[1] + h[1]) / 2];
   let v = [e[0] - m[0], e[1] - m[1]]; let d = Math.hypot(...v); if (d < 0.3) { v = [-(h[1] - sh[1]), h[0] - sh[0]]; d = Math.hypot(...v) || 1; } return [e[0] + v[0] / d * 20 / S, e[1] + v[1] / d * 20 / S]; };
 const flipB = (sh, h, e) => { const m = [(sh[0] + h[0]) / 2, (sh[1] + h[1]) / 2]; let v = [e[0] - m[0], e[1] - m[1]], d = Math.hypot(...v); if (d < 0.3) { v = [-(h[1] - sh[1]), h[0] - sh[0]]; d = Math.hypot(...v) || 1; } return [e[0] + v[0] / d * 20 / S, e[1] + v[1] / d * 20 / S]; };
@@ -391,7 +481,16 @@ const BACKH = (r, P) => [
     { id: 'hdI', p: headOf(r, P, 0), k: 'head', c: '--b', i: 0 }, { id: 'hdZ', p: headOf(r, P, 1), k: 'head', c: '--a', i: 1 } ];
 let FCLIP = null, SEL = null, PSELS = [], PCHK = {}, ppKey = ''; const partOf = h => h.b ? null : ({ hA: 'hA', hB: 'hB', f0: 'f0', t0: 'f0', f1: 'f1', t1: 'f1', pl: 'pel', ch: 'chest', hdI: 'h0', hdZ: 'h1' })[h.id] || null;
 const pinnedHere = (part, t) => (clip().pins || []).filter(q => q.p === part && q.a <= t && t <= q.b);
-const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || locked()) return []; if (r.back) return BACKH(r, P); const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.95];
+const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || locked()) return []; if (r.back) return BACKH(r, P);
+  if (P.knight) { const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.45]; return [
+    { id: 'hA', p: r.hA, k: 'hand', c: '--a', l: 'A' }, ...(P.sw ? [{ id: 'tp', p: r.tip, k: 'tip', c: '--accent' }] : [{ id: 'hB', p: r.hB, k: 'hand', c: '--b', l: 'B' }]),
+    { id: 'f0', p: r.feet[0], k: 'foot', c: '--ink', i: 0 }, { id: 'f1', p: r.feet[1], k: 'foot', c: '--ink', i: 1 },
+    { id: 'ch', p: chestPt(P), k: 'chest', c: '--ink' }, { id: 'pl', p: r.pel, k: 'pel', c: '--ink' },
+    { id: 'eA', p: r.eA, k: 'elbowD', c: '--a', a: 'A' }, ...(P.sw ? [] : [{ id: 'eB', p: r.eB, k: 'elbowD', c: '--b', a: 'B' }]),
+    { id: 'xA', p: flipOf(r, 'A'), k: 'elbow', c: '--a', a: 'A' }, { id: 'xB', p: flipOf(r, 'B'), k: 'elbow', c: '--b', a: 'B' },
+    { id: 'hdI', p: headOf(r, P, 0), k: 'head', c: '--b', i: 0 },
+    { id: 't0', p: toeK(r, P, 0), k: 'toe', c: '--accent', i: 0 }, { id: 't1', p: toeK(r, P, 1), k: 'toe', c: '--accent', i: 1 },
+    { id: 'k0', p: r.knees[0], k: 'knee', c: '--ink', i: 0, an: ankle(0) }, { id: 'k1', p: r.knees[1], k: 'knee', c: '--ink', i: 1, an: ankle(1) } ]; } const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.95];
   return [
     { id: 'hA', p: r.hA, k: 'hand', c: '--a', l: 'A' }, { id: 'hB', p: r.hB, k: 'hand', c: '--b', l: 'B' },
     { id: 'f0', p: r.feet[0], k: 'foot', c: '--ink', i: 0 }, { id: 'f1', p: r.feet[1], k: 'foot', c: '--ink', i: 1 },
@@ -403,7 +502,7 @@ const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || locked()
     { id: 'k0', p: r.knees[0], k: 'knee', c: '--ink', i: 0, an: ankle(0) }, { id: 'k1', p: r.knees[1], k: 'knee', c: '--ink', i: 1, an: ankle(1) } ].filter(h => !(legWalk() && /^(f|t|k)\d$/.test(h.id))); };
 function handles() { const H = HANDLES(), r = rig;
   // shoulders and arm reach (only the dragged hand's reach is drawn)
-  if (drag && drag.k === 'hand') { const s = w2s(drag.b ? (drag.b === 'G' ? r.shG : r.shP) : drag.id === 'hA' ? r.shA : r.shB); ctx.setLineDash([4, 4]); ctx.strokeStyle = css(drag.c); ctx.beginPath(); ctx.arc(s[0], s[1], ARM * S, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+  if (drag && drag.k === 'hand') { const s = w2s(drag.b ? (drag.b === 'G' ? r.shG : r.shP) : drag.id === 'hA' ? r.shA : r.shB); ctx.setLineDash([4, 4]); ctx.strokeStyle = css(drag.c); ctx.beginPath(); ctx.arc(s[0], s[1], armL() * S, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
   for (const h of H) { const [x, y] = w2s(h.p), pt = partOf(h), pn = pt && pinnedHere(pt, fr).filter(q => h.k === 'toe' ? has(q, 'rot') : h.k === 'foot' ? has(q, 'pos') : true).length; if (pt && pt === SEL) { ctx.save(); ctx.strokeStyle = css('--accent'); ctx.globalAlpha = 0.45; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(x, y, 14, 0, 7); ctx.stroke(); ctx.restore(); }
     ctx.lineWidth = 2; ctx.strokeStyle = pn ? '#c62828' : css(h.c); ctx.fillStyle = pn ? '#e53935' : css('--panel');
     ctx.beginPath();
@@ -418,12 +517,14 @@ function handles() { const H = HANDLES(), r = rig;
     else { ctx.globalAlpha = pn ? 1 : 0.85; ctx.fill(); ctx.globalAlpha = 1; ctx.stroke(); if (h.l) { if (pn) ctx.fillStyle = '#fff'; else ctx.font = '600 11px ' + css('--mono'); ctx.fillStyle = css(h.c); ctx.textAlign = 'center'; ctx.fillText(h.l, x, y + 4); } } } }
 
 // ---- pointer ----
-let drag = null;
+let drag = null, box = null;
+const boxShow = () => { const b = $('selBox'); if (!box || !box.moved) { b.style.display = 'none'; return; } Object.assign(b.style, { display: 'block', left: Math.min(box.x0, box.x1) + 'px', top: Math.min(box.y0, box.y1) + 'px', width: Math.abs(box.x1 - box.x0) + 'px', height: Math.abs(box.y1 - box.y0) + 'px' }); };
 cv.addEventListener('pointerdown', e => { if (playing) return; if (locked()) { lockMsg(); return; } const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top, R = e.pointerType === 'touch' ? 24 : 14;
   let best = null, bd = R; for (const h of HANDLES()) { const [sx, sy] = w2s(h.p), d = Math.hypot(sx - x, sy - y); if (d < bd) { bd = d; best = h; } }
   const multi = e.ctrlKey || e.metaKey;
-  if (!best || multi) { const k = (best && PIN2P[partOf(best)]) || pickPart(x, y); if (multi) { if (k) selToggle(k); } else selPart(k); return; } { const pt = partOf(best); if (pt) { if (SEL !== pt && $('pinA').value === '') $('pinA').value = fr; SEL = pt; PSELS = [PIN2P[pt]]; PCHK = { [PIN2P[pt]]: true }; ui(); } } drag = { ...best, x0: x, y0: y, moved: false }; cv.setPointerCapture(e.pointerId); e.preventDefault(); });
-cv.addEventListener('pointermove', e => { if (!drag) return; const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+  if (best && multi) { const k = PIN2P[partOf(best)]; if (k) selToggle(k); return; }
+  if (!best) { box = { x0: x, y0: y, x1: x, y1: y, multi, moved: false }; cv.setPointerCapture(e.pointerId); e.preventDefault(); return; } { const pt = partOf(best); if (pt) { if (SEL !== pt && $('pinA').value === '') $('pinA').value = fr; SEL = pt; PSELS = [PIN2P[pt]]; PCHK = { [PIN2P[pt]]: true }; ui(); } } drag = { ...best, x0: x, y0: y, moved: false }; cv.setPointerCapture(e.pointerId); e.preventDefault(); });
+cv.addEventListener('pointermove', e => { if (box) { const b = cv.getBoundingClientRect(); box.x1 = e.clientX - b.left; box.y1 = e.clientY - b.top; if (Math.hypot(box.x1 - box.x0, box.y1 - box.y0) > 5) box.moved = true; boxShow(); return; } if (!drag) return; const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
   if (!drag.moved && Math.hypot(x - drag.x0, y - drag.y0) < 4) return; drag.moved = true; const p = s2w(x, y), r = rig, P = pose;
   if (drag.b) { P.bk = P.bk ? { ...P.bk } : clone(backDef(P.f)); const B = P.bk, sh = drag.b === 'G' ? r.shG : r.shP;
     if (drag.k === 'pel') B.pel = p;
@@ -431,17 +532,38 @@ cv.addEventListener('pointermove', e => { if (!drag) return; const b = cv.getBou
     else if (drag.k === 'hand') { let v = [p[0] - sh[0], p[1] - sh[1]]; const d = Math.hypot(...v); if (d > ARM) v = [v[0] / d * ARM, v[1] / d * ARM]; B['h' + drag.b] = v; }
     else if (drag.k === 'elbowD') { const e0 = drag.b === 'G' ? r.eG : r.eP, h = B['h' + drag.b], D = Math.atan2(p[1] - sh[1], p[0] - sh[0]) - Math.atan2(e0[1] - sh[1], e0[0] - sh[0]), c2 = Math.cos(D), s2 = Math.sin(D); B['h' + drag.b] = [h[0] * c2 - h[1] * s2, h[0] * s2 + h[1] * c2]; }
     livePreview(); return; }
-  if (drag.k === 'hand') { const s = drag.id === 'hA' ? r.shA : r.shB; let v = [p[0] - s[0], p[1] - s[1]]; const d = Math.hypot(...v); if (d > ARM) v = [v[0] / d * ARM, v[1] / d * ARM]; P[drag.id] = v; }
+  if (drag.k === 'hand') { const s = drag.id === 'hA' ? r.shA : r.shB, AL = armL(); let v = [p[0] - s[0], p[1] - s[1]]; const d = Math.hypot(...v); if (d > AL) v = [v[0] / d * AL, v[1] / d * AL]; P[drag.id] = v; }
+  else if (drag.k === 'tip') P.sa = Math.atan2(p[1] - r.g[1], p[0] - r.g[0]);
   else if (drag.k === 'foot') P.feet[drag.i] = [p[0], Math.min(0.2, p[1])];
   else if (drag.k === 'pel') P.pel = p;
   else if (drag.k === 'chest') P.lean = cl(P.f * Math.atan2(p[0] - P.pel[0], -(p[1] - P.pel[1])), -1.2, 1.2);
   else if (drag.k === 'elbowD') { const s = drag.a === 'A' ? r.shA : r.shB, e0 = drag.a === 'A' ? r.eA : r.eB, h = P['h' + drag.a], D = Math.atan2(p[1] - s[1], p[0] - s[0]) - Math.atan2(e0[1] - s[1], e0[0] - s[0]), c2 = Math.cos(D), s2 = Math.sin(D); P['h' + drag.a] = [h[0] * c2 - h[1] * s2, h[0] * s2 + h[1] * c2]; }
-  else if (drag.k === 'head') { const H = drag.i ? r.HZ : r.HI, pv = [H[0], H[1] + 2.2], a = Math.atan2(p[0] - pv[0], -(p[1] - pv[1])); P.hr = (P.hr || [0, 0]).slice(); P.hr[drag.i] = cl(-P.f * a, -1.2, 1.2); }
+  else if (drag.k === 'head') { const H = drag.i ? r.HZ : r.HI, pv = [H[0], H[1] + (P.knight ? 1.6 : 2.2)], a = Math.atan2(p[0] - pv[0], -(p[1] - pv[1])); P.hr = (P.hr || [0, 0]).slice(); P.hr[drag.i] = cl(-P.f * a, -1.2, 1.2); }
+  else if (drag.k === 'toe' && P.knight) { const fs = (P.ff || [])[drag.i] ? -1 : 1, an = r.ank[drag.i], v = toeV(r, P, drag.i), a = Math.atan2(p[1] - an[1], p[0] - an[0]) - Math.atan2(v[1], v[0]); P.fa = (P.fa || [0, 0]).slice(); P.fa[drag.i] = cl(-P.f * fs * Math.atan2(Math.sin(a), Math.cos(a)), -1.3, 1.3); }
   else if (drag.k === 'toe') { const ff = (P.ff || [])[drag.i] ? -1 : 1, an = [r.feet[drag.i][0], r.feet[drag.i][1] - 0.95], a = Math.atan2(p[1] - an[1], p[0] - an[0]) - Math.atan2(-0.6, P.f * ff * 3.6 * Math.max(0.35, Math.cos(twGet(P, ['F', drag.i])))); P.fa = (P.fa || [0, 0]).slice(); P.fa[drag.i] = cl(-P.f * ff * Math.atan2(Math.sin(a), Math.cos(a)), -1.3, 1.3); }
   else if (drag.k === 'elbow') { const s = drag.a === 'A' ? r.shA : r.shB, h = drag.a === 'A' ? r.hA : r.hB, cz = (h[0] - s[0]) * (p[1] - s[1]) - (h[1] - s[1]) * (p[0] - s[0]); P['e' + drag.a] = cz > 0 ? 1 : -1; }
   else if (drag.k === 'knee') { const s = r.hips[drag.i], h = drag.an, cz = (h[0] - s[0]) * (p[1] - s[1]) - (h[1] - s[1]) * (p[0] - s[0]); P.kn[drag.i] = cz > 0 ? 1 : -1; }
   livePreview(); });
-const endDrag = () => { if (!drag) return; const P = pose;
+// zoom / pan
+cv.addEventListener('wheel', e => { e.preventDefault(); const b = cv.getBoundingClientRect(); zoomAt(ZM * Math.exp(-e.deltaY * 0.0015), e.clientX - b.left, e.clientY - b.top); }, { passive: false });
+cv.addEventListener('contextmenu', e => e.preventDefault());
+{ const TP = new Map(); let pin = null, pan = null; const loc = e => { const b = cv.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+  const pinStart = () => { const [a, b2] = [...TP.values()], m = [(a[0] + b2[0]) / 2, (a[1] + b2[1]) / 2]; pin = { d: Math.hypot(a[0] - b2[0], a[1] - b2[1]) || 1, z: ZM, w: s2w(...m) }; drag = null; box = null; boxShow(); };
+  cv.addEventListener('pointerdown', e => { if (e.button === 1 || e.button === 2) { pan = { x: e.clientX, y: e.clientY, px: PX, py: PY }; cv.setPointerCapture(e.pointerId); e.preventDefault(); e.stopImmediatePropagation(); return; }
+    if (e.pointerType !== 'touch') return; TP.set(e.pointerId, loc(e)); if (TP.size === 2) { pinStart(); e.stopImmediatePropagation(); } }, { capture: true });
+  cv.addEventListener('pointermove', e => { if (pan) { PX = pan.px + e.clientX - pan.x; PY = pan.py + e.clientY - pan.y; view(); draw(); e.stopImmediatePropagation(); return; }
+    if (!TP.has(e.pointerId)) return; TP.set(e.pointerId, loc(e)); if (!pin || TP.size < 2) return; e.stopImmediatePropagation();
+    const [a, b2] = [...TP.values()], m = [(a[0] + b2[0]) / 2, (a[1] + b2[1]) / 2]; ZM = cl(pin.z * Math.hypot(a[0] - b2[0], a[1] - b2[1]) / pin.d, 0.3, 6); view(); PX = m[0] - pin.w[0] * S - OXb; PY = m[1] - pin.w[1] * S - OYb; view(); draw(); }, { capture: true });
+  const up = e => { if (pan) { pan = null; e.stopImmediatePropagation(); return; } TP.delete(e.pointerId); if (pin) { e.stopImmediatePropagation(); if (TP.size < 2) pin = null; } };
+  cv.addEventListener('pointerup', up, { capture: true }); cv.addEventListener('pointercancel', up, { capture: true }); }
+$('zIn').onclick = () => { const b = cv.getBoundingClientRect(); zoomAt(ZM * 1.25, b.width / 2, b.height / 2); };
+$('zOut').onclick = () => { const b = cv.getBoundingClientRect(); zoomAt(ZM / 1.25, b.width / 2, b.height / 2); };
+$('zFit').onclick = () => { ZM = 1; PX = 0; PY = 0; view(); draw(); };
+const endDrag = () => { if (box) { const B = box; box = null; boxShow();
+    if (!B.moved) { const k = pickPart(B.x0, B.y0); if (B.multi) { if (k) selToggle(k); } else selPart(k); return; }
+    const ks = partsInBox(B.x0, B.y0, B.x1, B.y1); if (B.multi) { for (const k of ks) if (!PSELS.includes(k)) { PSELS.push(k); PCHK[k] = true; } selPin(PSELS[PSELS.length - 1] || null); }
+    else { PSELS = ks; PCHK = Object.fromEntries(ks.map(k => [k, true])); selPin(ks.includes('T') ? 'T' : ks[0] || null); } return; }
+  if (!drag) return; const P = pose;
   if (!drag.moved) { if (drag.b && drag.k === 'elbow') { P.bk = P.bk ? { ...P.bk } : clone(backDef(P.f)); P.bk['e' + drag.b] *= -1; } else if (drag.k === 'elbow') P['e' + drag.a] *= -1; else if (drag.k === 'knee') P.kn[drag.i] *= -1; else { drag = null; draw(); return; } }
   drag = null; edited(); };
 window.__bench.H = () => HANDLES().map(h => ({ id: h.id, s: w2s(h.p) })); window.__bench.pose = () => pose;
@@ -450,7 +572,7 @@ let pend = false; function livePreview() { if (pend) return; pend = true; reques
 
 // ---- timeline ----
 const tlLen = () => Math.max(60, lastFr() + 12, fr + 6);
-const pinName = q => q.p === 'pel' ? 'Hips' : q.p === 'chest' ? 'Chest' : q.p === 'h0' ? 'Ice head' : q.p === 'h1' ? 'Storm head' : q.p[0] === 'f' ? cap(footName(+q.p[1])) + ' foot' : cap(nameOf(q.p[1]).replace(' arm', ' hand'));
+const pinName = q => q.p === 'pel' ? 'Hips' : q.p === 'chest' ? 'Chest' : q.p === 'h0' ? (isK() ? 'Head' : 'Ice head') : q.p === 'h1' ? 'Storm head' : q.p[0] === 'f' ? cap(footName(+q.p[1])) + ' foot' : cap(nameOf(q.p[1]).replace(' arm', ' hand'));
 function drawTrack() { const W = tcv.width / DPR, H = tcv.height / DPR, L = tlLen(), X = f2 => 10 + f2 / L * (W - 20); tctx.setTransform(DPR, 0, 0, DPR, 0, 0); tctx.clearRect(0, 0, W, H);
   tctx.font = '10px ' + css('--mono'); tctx.fillStyle = css('--mute'); tctx.strokeStyle = css('--line'); tctx.textAlign = 'center';
   const st = L > 240 ? 30 : L > 120 ? 10 : 6; for (let f2 = 0; f2 <= L; f2++) { const x = X(f2); if (f2 % st === 0) { tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, 12); tctx.stroke(); tctx.fillText(f2, x, 22); } else if (L <= 120) { tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, 4); tctx.stroke(); } }
@@ -487,11 +609,12 @@ function stop() { if (!playing) return; playing = false; pose = poseAt(fr); ui()
 
 // ---- inspector ----
 const cap = t => t[0].toUpperCase() + t.slice(1);
-const nameOf = s => (pose.f > 0) === (s === 'A') ? 'storm arm' : 'ice arm';
+const nameOf = s => isK() ? 'arm ' + s : (pose.f > 0) === (s === 'A') ? 'storm arm' : 'ice arm';
 function stat() { const k = keyAt(fr), L = linkSrc(clip()); $('status').innerHTML = `<b>frame ${fr}</b> · ${(fr / FPS).toFixed(3)}s · ${playing ? 'playing' : fr === 0 && L ? `<span style="color:${performance.now() - lockMsgT < 1500 ? 'var(--warn)' : 'inherit'}">🔒 locked: the last frame of “${L.name.replace(/</g, '&lt;')}”</span>` : dirty ? '<span style="color:var(--warn)">changed, not saved · press Save key to keep it</span>' : k ? 'on a key' : 'in between (filled in)'}`; }
 function ui() {
+  { const k = isK(); document.body.classList.toggle('knight', k); view(); for (const b of $('actSeg').children) b.classList.toggle('on', b.dataset.a === actorOf(clip())); $('bSw').textContent = 'Sword: ' + (pose.sw ? 'shown' : 'hidden'); $('bSw').classList.toggle('on', !!pose.sw); }
   draw(); drawTrack(); stat();
-  $('frLbl').textContent = `Frame ${fr} of ${lastFr()}`; $('bPasteF').disabled = !FCLIP || locked(); $('bPasteF').textContent = FCLIP ? `Paste frame ${FCLIP.fr}` + (FCLIP.clip !== clip().name ? ` of ${FCLIP.clip}` : '') : 'Paste frame'; $('bCopyF').textContent = FCLIP && FCLIP.fr === fr && FCLIP.clip === clip().name ? 'Copied ✓' : 'Copy frame'; $('bPlay').textContent = playing ? '❚❚' : '▶';
+  $('frLbl').textContent = `Frame ${fr} of ${lastFr()}`; $('bPasteF').disabled = !FCLIP || locked() || FCLIP.actor !== actorOf(clip()); $('bPasteF').textContent = FCLIP ? `Paste frame ${FCLIP.fr}` + (FCLIP.clip !== clip().name ? ` of ${FCLIP.clip}` : '') : 'Paste frame'; $('bCopyF').textContent = FCLIP && FCLIP.fr === fr && FCLIP.clip === clip().name ? 'Copied ✓' : 'Copy frame'; $('bPlay').textContent = playing ? '❚❚' : '▶';
   { const k = keyAt(fr), clean = k && !dirty; $('bSnap').textContent = clean ? 'Key saved ✓' : 'Save key'; $('bSnap').disabled = clean || !!(clip() && clip().game); $('bSnap').classList.toggle('primary', !clean); }
   $('bDel').disabled = !keyAt(fr) || keys().length < 2 || locked(); { const o = origKey(), k = keyAt(fr); $('bRestore').textContent = clip().lib ? "Reset key to the game's version" : 'Reset key to the original'; $('bRestore').disabled = !o || locked() || (!!k && !dirty && JSON.stringify(k.pose) === JSON.stringify(o.pose)); };
   const K = keys(), seg = [...K].reverse().find(k => k.fr <= fr); $('ease').value = seg ? seg.ease || 'smooth' : 'smooth';
@@ -504,39 +627,45 @@ function ui() {
   {
     $('pbName').textContent = SEL ? 'Pin ' + pinName({ p: SEL }).toLowerCase() + ':' : 'Pin: —'; $('pbName').title = SEL ? $('pbName').textContent : 'Click a part of him (hand, foot, head or torso) to pin it';
     for (const el of $('pbCtl').querySelectorAll('input, button')) el.disabled = !SEL; $('pbCtl').style.opacity = SEL ? 1 : 0.45; if (!SEL) { $('pinA').value = ''; $('pinB').value = ''; }
-    if (SEL) { for (const [k, id] of [['pos', 'pbPos'], ['rot', 'pbRot']]) { const ok = PCAP[SEL].includes(k); $(id).disabled = !ok; $(id).parentElement.style.opacity = ok ? 1 : 0.4; } }
+    if (SEL) { for (const [k, id] of [['pos', 'pbPos'], ['rot', 'pbRot']]) { const ok = PC()[SEL].includes(k); $(id).disabled = !ok; $(id).parentElement.style.opacity = ok ? 1 : 0.4; } }
     // the selected part's pins, each editable in place: what it holds, from and to frames (the list is rebuilt only when the set of pins changes, so typing isn't interrupted)
     const PS = (clip().pins || []).map((q, j) => [q, j]).filter(([q]) => q.p === SEL), shape = PS.map(([q, j]) => j + q.p).join(',') + '|' + ci;
     $('pinHd').textContent = !SEL ? 'Its pins: —' : PS.length ? 'Its pins (edit here):' : 'Its pins: none yet';
-    if ($('pinList').dataset.s !== shape) { $('pinList').dataset.s = shape; $('pinList').innerHTML = PS.map(([q, j]) => { const caps = PCAP[q.p] || ['pos', 'rot'], opts = [...caps.map(k => [k, k === 'pos' ? 'placement' : 'rotation']), ...(caps.length > 1 ? [['', 'both']] : [])];
+    if ($('pinList').dataset.s !== shape) { $('pinList').dataset.s = shape; $('pinList').innerHTML = PS.map(([q, j]) => { const caps = PC()[q.p] || ['pos', 'rot'], opts = [...caps.map(k => [k, k === 'pos' ? 'placement' : 'rotation']), ...(caps.length > 1 ? [['', 'both']] : [])];
       return `<span class="note pinI" data-j="${j}" style="display:inline-flex;gap:4px;align-items:center;padding:1px 4px;border-radius:4px">📌 <select data-pe="${j}" data-f="k" aria-label="What the pin holds" style="padding:3px 4px">${opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select><input type="number" min="0" data-pe="${j}" data-f="a" style="width:52px" aria-label="Pin from frame">–<input type="number" min="0" data-pe="${j}" data-f="b" style="width:52px" aria-label="Pin to frame"><button data-pin="${j}" class="danger" style="padding:1px 7px" title="Remove this pin">✕</button></span>`; }).join(''); }
     for (const [q, j] of PS) { const box = $('pinList').querySelector(`[data-j="${j}"]`); if (!box) continue; box.style.background = q.a <= fr && fr <= q.b ? 'rgba(46,125,50,.15)' : ''; box.title = q.a <= fr && fr <= q.b ? 'This pin covers the frame you are on' : '';
       for (const el of box.querySelectorAll('[data-pe]')) { if (document.activeElement === el) continue; el.value = el.dataset.f === 'k' ? (q.k || '') : q[el.dataset.f]; } } }
-  TWS.forEach((q, j) => { $('sqn' + j).textContent = twName(q); const w = sqGet(pose, q); if (document.activeElement !== $('sq' + j)) $('sq' + j).value = w; $('sqo' + j).textContent = w.toFixed(2); }); TWS.forEach((q, j) => { $('twn' + j).textContent = twName(q); const v = twGet(pose, q); if (document.activeElement !== $('tw' + j)) $('tw' + j).value = v; $('two' + j).textContent = v.toFixed(2); });
+  twBuild(); TWS.forEach((q, j) => { $('sqn' + j).textContent = twName(q); const w = sqGet(pose, q); if (document.activeElement !== $('sq' + j)) $('sq' + j).value = w; $('sqo' + j).textContent = w.toFixed(2); }); TWS.forEach((q, j) => { $('twn' + j).textContent = twName(q); const v = twGet(pose, q); if (document.activeElement !== $('tw' + j)) $('tw' + j).value = v; $('two' + j).textContent = v.toFixed(2); });
   $('bOrb').textContent = 'Lightning in hand: ' + (orbOn ? 'on' : 'off'); $('bOrb').classList.toggle('on', orbOn); $('bIce').textContent = 'Ice ball in hand: ' + (iceOn ? 'on' : 'off'); $('bIce').classList.toggle('on', iceOn); $('nA').textContent = nameOf('A'); $('nB').textContent = nameOf('B');
   for (const [id, v] of [['oA', pose.aF], ['oB', pose.bF], ['oL', pose.ls ? 1 : 0]]) for (const b of $(id).children) b.classList.toggle('on', +b.dataset.v === v);
   for (const s of ['A', 'B']) { const fist = (pose['c' + s] || 0) > 0.5; $('hd' + s).textContent = cap(nameOf(s).replace(' arm', ' hand')) + (fist ? ': fist' : ': open'); $('fl' + s).textContent = 'Flip ' + nameOf(s).replace(' arm', ' elbow'); $('hd' + s).classList.toggle('on', fist); }
   $('bLoop').classList.toggle('on', loop); $('bOnion').classList.toggle('on', onion);
-  { const sel = $('clipSel'), h = grouped(clips, c => clips.indexOf(c)); if (sel.dataset.h !== h) { sel.innerHTML = h; sel.dataset.h = h; } sel.value = ci; $('clipNote').textContent = clip().note || ''; $('clipFolder').value = clip().game ? folderOf(clip()) : (document.activeElement === $('clipFolder') ? $('clipFolder').value : clip().folder || ''); $('clipFolder').readOnly = !!clip().lib;
+  { const sel = $('clipSel'), h = grouped(clips.filter(c => actorOf(c) === actorOf(clip())), c => clips.indexOf(c)); if (sel.dataset.h !== h) { sel.innerHTML = h; sel.dataset.h = h; } sel.value = ci; $('clipNote').textContent = clip().note || ''; $('clipFolder').value = clip().game ? folderOf(clip()) : (document.activeElement === $('clipFolder') ? $('clipFolder').value : clip().folder || ''); $('clipFolder').readOnly = !!clip().lib;
     $('folderList').innerHTML = [...new Set(clips.filter(c => !c.lib).map(folderOf))].map(f => `<option value="${esc(f)}">`).join(''); }
-  { const ls = $('linkSel'), lv = clip().from || ls.value, lo = grouped(clips.filter(c => c !== clip()), c => c.id); if (ls.innerHTML !== lo) ls.innerHTML = lo; if ([...ls.options].some(o => o.value === lv)) ls.value = lv; $('linkOn').checked = !!linkSrc(clip()); $('linkOn').disabled = !ls.options.length; }
+  { const ls = $('linkSel'), lv = clip().from || ls.value, lo = grouped(clips.filter(c => c !== clip() && actorOf(c) === actorOf(clip())), c => c.id); if (ls.innerHTML !== lo) ls.innerHTML = lo; if ([...ls.options].some(o => o.value === lv)) ls.value = lv; $('linkOn').checked = !!linkSrc(clip()); $('linkOn').disabled = !ls.options.length; }
   if (document.activeElement !== $('clipName')) $('clipName').value = clip().name;
   ppUpd();
 }
 // squeeze sliders: pose.sq, same keys as tw, 1 = as drawn (drawO2 scales the part along screen x round its anchor)
 const sqGet = (P, [g, i]) => { const T = P.sq || {}, v = i === undefined ? T[g] : (T[g] || [])[i]; return v === undefined || v === null ? 1 : v; };
 // twist sliders: pose.tw = {L: [leg 0, leg 1], F: [foot 0, foot 1], H: [ice head, storm head], A, B, hA, hB}
-const TWS = [['H', 0], ['H', 1], ['A'], ['B'], ['fA'], ['fB'], ['hA'], ['hB'], ['L', 0], ['L', 1], ['F', 0], ['F', 1]];
-const twName = ([g, i]) => g === 'H' ? (i ? 'Storm head' : 'Ice head') : g === 'A' || g === 'B' ? cap(nameOf(g).replace(' arm', ' upper arm')) : g === 'fA' || g === 'fB' ? cap(nameOf(g[1]).replace(' arm', ' forearm')) : g === 'hA' || g === 'hB' ? cap(nameOf(g[1]).replace(' arm', ' hand')) : cap(footName(i)) + (g === 'L' ? ' leg' : ' foot');
+const TWS0 = [['H', 0], ['H', 1], ['A'], ['B'], ['fA'], ['fB'], ['hA'], ['hB'], ['L', 0], ['L', 1], ['F', 0], ['F', 1]], TWSK = [['H', 0], ['A'], ['fA'], ['hA'], ['B'], ['fB'], ['hB'], ['L', 0], ['N', 0], ['F', 0], ['L', 1], ['N', 1], ['F', 1]];
+let TWS = TWS0;
+const twName = ([g, i]) => isK() ? partName(g === 'H' ? 'H0' : i === undefined ? g : g + i) : g === 'H' ? (i ? 'Storm head' : 'Ice head') : g === 'A' || g === 'B' ? cap(nameOf(g).replace(' arm', ' upper arm')) : g === 'fA' || g === 'fB' ? cap(nameOf(g[1]).replace(' arm', ' forearm')) : g === 'hA' || g === 'hB' ? cap(nameOf(g[1]).replace(' arm', ' hand')) : cap(footName(i)) + (g === 'L' ? ' leg' : ' foot');
 const twGet = (P, [g, i]) => { const T = P.tw || {}; return (i === undefined ? T[g] : (T[g] || [])[i]) || 0; };
+function twBuild() { TWS = isK() ? TWSK : TWS0; if ($('twBox').dataset.a === actorOf(clip())) return; $('twBox').dataset.a = actorOf(clip());
 $('twBox').innerHTML = TWS.map((q, j) => `<label class="sl"><span id="twn${j}"></span> <input type="range" id="tw${j}" min="-1.5" max="1.5" step="0.01"><output id="two${j}"></output></label>`).join('');
 $('sqBox').innerHTML = TWS.map((q, j) => `<label class="sl"><span id="sqn${j}"></span> <input type="range" id="sq${j}" min="0.3" max="1.6" step="0.01"><output id="sqo${j}"></output></label>`).join('');
 TWS.forEach((q, j) => { const [g, i] = q; $('sq' + j).addEventListener('input', e => { const v = +e.target.value, T = pose.sq = clone(pose.sq || {}); if (i === undefined) T[g] = v; else { T[g] = (T[g] || [1, 1]).slice(); T[g][i] = v; } $('sqo' + j).textContent = v.toFixed(2); livePreview(); }); $('sq' + j).addEventListener('change', edited); $('sq' + j).addEventListener('dblclick', () => { $('sq' + j).value = 1; $('sq' + j).dispatchEvent(new Event('input')); edited(); }); });
-TWS.forEach((q, j) => { const [g, i] = q; $('tw' + j).addEventListener('input', e => { const v = +e.target.value, T = pose.tw = clone(pose.tw || {}); if (i === undefined) T[g] = v; else { T[g] = (T[g] || [0, 0]).slice(); T[g][i] = v; } $('two' + j).textContent = v.toFixed(2); livePreview(); }); $('tw' + j).addEventListener('change', edited); $('tw' + j).addEventListener('dblclick', () => { $('tw' + j).value = 0; $('tw' + j).dispatchEvent(new Event('input')); edited(); }); });
+TWS.forEach((q, j) => { const [g, i] = q; $('tw' + j).addEventListener('input', e => { const v = +e.target.value, T = pose.tw = clone(pose.tw || {}); if (i === undefined) T[g] = v; else { T[g] = (T[g] || [0, 0]).slice(); T[g][i] = v; } $('two' + j).textContent = v.toFixed(2); livePreview(); }); $('tw' + j).addEventListener('change', edited); $('tw' + j).addEventListener('dblclick', () => { $('tw' + j).value = 0; $('tw' + j).dispatchEvent(new Event('input')); edited(); }); }); }
 // ---- parts: click on him to pick one; it gets an outline and its own window with everything that belongs to it ----
 // drawO2 tags what it draws (opts.gate): H0 ice head, H1 storm head, A/B arms, hA/hB hands, L0/L1 legs (the lower leg also F0/F1: shin and foot are one shape), T torso + belt + shoulder stones
-const PARTS = ['H0', 'H1', 'A', 'B', 'fA', 'fB', 'hA', 'hB', 'L0', 'L1', 'F0', 'F1', 'T'], PCOL = {}; PARTS.forEach((k, i) => { PCOL[k] = [20 + i * 21, 230 - i * 13, 60 + (i * 97) % 180]; });
-const P2PIN = { H0: 'h0', H1: 'h1', hA: 'hA', hB: 'hB', F0: 'f0', F1: 'f1', T: 'chest' }, PIN2P = { h0: 'H0', h1: 'H1', hA: 'hA', hB: 'hB', f0: 'F0', f1: 'F1', chest: 'T', pel: 'T' };
+const PARTS = ['H0', 'H1', 'A', 'B', 'fA', 'fB', 'hA', 'hB', 'L0', 'L1', 'F0', 'F1', 'T', 'S', 'N0', 'N1'], PCOL = {}; PARTS.forEach((k, i) => { PCOL[k] = [20 + i * 21, 230 - i * 13, 60 + (i * 97) % 180]; });
+const P2PIN0 = { H0: 'h0', H1: 'h1', hA: 'hA', hB: 'hB', F0: 'f0', F1: 'f1', T: 'chest' }, PIN2P0 = { h0: 'H0', h1: 'H1', hA: 'hA', hB: 'hB', f0: 'F0', f1: 'F1', chest: 'T', pel: 'T' };
+// the Knight's parts, every limb in segments: H0 head, A / fA / hA upper arm, forearm, hand (and B), L / N / F thigh, shin, boot (0 and 1), T torso, S sword
+const P2PINK = { H0: 'h0', hA: 'hA', hB: 'hB', F0: 'f0', F1: 'f1', T: 'chest' }, PIN2PK = { h0: 'H0', hA: 'hA', hB: 'hB', f0: 'F0', f1: 'F1', chest: 'T', pel: 'T' }, KPARTS = ['H0', 'A', 'fA', 'hA', 'B', 'fB', 'hB', 'L0', 'N0', 'F0', 'L1', 'N1', 'F1', 'T', 'S'];
+const P2PIN = new Proxy({}, { get: (t, k) => (isK() ? P2PINK : P2PIN0)[k] }), PIN2P = new Proxy({}, { get: (t, k) => (isK() ? PIN2PK : PIN2P0)[k] });
+const partsNow = () => isK() ? KPARTS.filter(k => k !== 'S' || pose.sw) : PARTS.filter(k => k !== 'S' && k[0] !== 'N');
 const DRAWM = new Set(['fill', 'stroke', 'fillRect', 'strokeRect', 'fillText', 'strokeText', 'drawImage', 'putImageData']);
 // mode 'only': draw the one part as it looks; 'pick': every part in its own flat colour (what's under the cursor is the part on top)
 function makeGate(mode, only) { const G = { cur: null, wrap(c) { return new Proxy(c, {
@@ -554,7 +683,7 @@ function pickPart(sx, sy) { if (!frontOnly()) return null; const g = pickCv; g.w
   for (let j = 0; j < d.length; j += 4) { if (d[j + 3] < 200) continue; let best = null, bd = 24; for (const k of PARTS) { const q = PCOL[k], e = Math.abs(q[0] - d[j]) + Math.abs(q[1] - d[j + 1]) + Math.abs(q[2] - d[j + 2]); if (e < bd) { bd = e; best = k; } } if (best) votes[best] = (votes[best] || 0) + 1; }
   let k = null, n = 0; for (const [kk, v] of Object.entries(votes)) if (v > n) { n = v; k = kk; } if (!k) return null;
   // the lower leg and the foot are one shape: below the ankle it's the foot
-  if (k[0] === 'L') { const i = +k[1], w = s2w(sx, sy); if (w[1] > rig.feet[i][1] - 1.9) k = 'F' + i; }
+  if (k[0] === 'L' && !isK()) { const i = +k[1], w = s2w(sx, sy); if (w[1] > rig.feet[i][1] - 1.9) k = 'F' + i; }
   return k; }
 // the selection: a plain click picks one part, Ctrl/Cmd-click adds or removes one; the pin bar follows the part clicked last
 function selPart(k) { PSELS = k ? [k] : []; PCHK = k ? { [k]: true } : {}; selPin(k); }
@@ -564,8 +693,8 @@ function selPin(k) { SEL = k ? P2PIN[k] || null : null; if (SEL && $('pinA').val
 function partOutline() { if (!frontOnly()) return; const W = cv.width, H = cv.height, R = Math.max(2, Math.round(2.5 * DPR));
   for (const g of [olA, olB]) { if (g.width !== W || g.height !== H) { g.width = W; g.height = H; } }
   const a = olA.getContext('2d'), b = olB.getContext('2d'); a.setTransform(1, 0, 0, 1, 0, 0); a.clearRect(0, 0, W, H);
-  const rest = PSELS.filter(k => k[0] !== 'F'); if (rest.length) { GATE = makeGate('only', rest); try { drawFig(a, pose, 1); } finally { GATE = null; } }
-  for (const k of PSELS.filter(k => k[0] === 'F')) { if (olC.width !== W || olC.height !== H) { olC.width = W; olC.height = H; } const g = olC.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
+  const rest = PSELS.filter(k => k[0] !== 'F' || isK()); if (rest.length) { GATE = makeGate('only', rest); try { drawFig(a, pose, 1); } finally { GATE = null; } }
+  for (const k of PSELS.filter(k => k[0] === 'F' && !isK())) { if (olC.width !== W || olC.height !== H) { olC.width = W; olC.height = H; } const g = olC.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
     GATE = makeGate('only', [k]); try { drawFig(g, pose, 1); } finally { GATE = null; } g.setTransform(1, 0, 0, 1, 0, 0); const y = w2s([0, rig.feet[+k[1]][1] - 1.9])[1] * DPR; g.clearRect(0, 0, W, Math.max(0, y)); a.setTransform(1, 0, 0, 1, 0, 0); a.drawImage(olC, 0, 0); }
   a.setTransform(1, 0, 0, 1, 0, 0);
   b.setTransform(1, 0, 0, 1, 0, 0); b.clearRect(0, 0, W, H); b.globalCompositeOperation = 'source-over';
@@ -574,12 +703,27 @@ function partOutline() { if (!frontOnly()) return; const W = cv.width, H = cv.he
   b.globalCompositeOperation = 'destination-out'; b.drawImage(olA, 0, 0); b.globalCompositeOperation = 'source-over';
   ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 0.18; ctx.drawImage(olA, 0, 0); ctx.globalAlpha = 1; ctx.drawImage(olB, 0, 0); ctx.restore(); }
 // the part window: what's in it depends on the part
-const partName = k => k === 'T' ? 'Torso' : k[0] === 'H' ? twName(['H', +k[1]]) : k === 'A' || k === 'B' || k[0] === 'f' ? twName([k]) : k[0] === 'h' ? cap(nameOf(k[1]).replace(' arm', ' hand')) : cap(footName(+k[1])) + (k[0] === 'L' ? ' leg' : ' foot');
+const partName = k => isK() ? ({ T: 'Torso', H0: 'Head', A: 'Upper arm A', B: 'Upper arm B', fA: 'Forearm A', fB: 'Forearm B', hA: 'Hand A', hB: 'Hand B', S: 'Sword' })[k] || cap(footName(+k[1])) + ({ L: ' thigh', N: ' shin', F: ' boot' })[k[0]] : k === 'T' ? 'Torso' : k[0] === 'H' ? twName(['H', +k[1]]) : k === 'A' || k === 'B' || k[0] === 'f' ? twName([k]) : k[0] === 'h' ? cap(nameOf(k[1]).replace(' arm', ' hand')) : cap(footName(+k[1])) + (k[0] === 'L' ? ' leg' : ' foot');
 const setTw = ([g, i], v) => { const T = pose.tw = clone(pose.tw || {}); if (i === undefined) T[g] = v; else { T[g] = (T[g] || [0, 0]).slice(); T[g][i] = v; } };
 const setSq = ([g, i], v) => { const T = pose.sq = clone(pose.sq || {}); if (i === undefined) T[g] = v; else { T[g] = (T[g] || [1, 1]).slice(); T[g][i] = v; } };
 const arrSet = (key, i, v, def) => { pose[key] = (pose[key] || def).slice(); pose[key][i] = v; };
 function ppSpec(k) { const S = [], twq = k === 'T' ? null : k[0] === 'H' || k[0] === 'L' || k[0] === 'F' ? [k[0], +k[1]] : [k], arm = k === 'A' || k === 'B' ? k : k[0] === 'f' ? k[1] : null;
   const sl = (l, get, set, min, max, def, title) => S.push({ t: 's', id: 's:' + l, l, get, set, min, max, def, title }), tg = (id, base, l, on, click, title) => S.push({ t: 'b', id: 'b:' + id, base, l, on, click, title });
+  if (isK()) { const s2 = k === 'A' || k === 'B' ? k : k[0] === 'f' ? k[1] : null;
+    if (k === 'T') { sl('Lean', () => pose.lean, v => { pose.lean = v; }, -0.8, 0.8, 0, 'Tip the body back or forward'); sl('Torso twist', () => pose.yaw || 0, v => { pose.yaw = v; }, -1.2, 1.2, 0, '+ turns his chest toward you'); }
+    if (k === 'H0') sl('Tilt', () => (pose.hr || [0, 0])[0] || 0, v => arrSet('hr', 0, v, [0, 0]), -1.2, 1.2, 0, '+ tips the face up');
+    { const q = k === 'H0' ? ['H', 0] : 'LNF'.includes(k[0]) ? [k[0], +k[1]] : k === 'T' || k === 'S' ? null : [k]; if (q) sl('Twist', () => twGet(pose, q), v => setTw(q, v), -1.5, 1.5, 0, k === 'H0' ? 'Turn the face' : 'Turn about its own length'); const qs = q || (k === 'T' ? ['T'] : null); if (qs) sl('Squeeze', () => sqGet(pose, qs), v => setSq(qs, v), 0.3, 1.6, 1, 'Squash or stretch it side to side, straight across the screen. 1 = as drawn'); }
+    if (k === 'H0') tg('flip', 'Flipped', () => 'Flipped: ' + ((pose.mr || {}).H0 ? 'yes' : 'no'), () => !!(pose.mr || {}).H0, () => { pose.mr = { ...(pose.mr || {}) }; pose.mr.H0 = pose.mr.H0 ? 0 : 1; }, 'Turn the head to look the other way');
+    if (k === 'T') tg('flip', 'Flipped', () => 'Flipped: ' + ((pose.mr || {}).T ? 'yes' : 'no'), () => !!(pose.mr || {}).T, () => { pose.mr = { ...(pose.mr || {}) }; pose.mr.T = pose.mr.T ? 0 : 1; }, 'Draw the torso flipped');
+    if (k[0] === 'F') { const i = +k[1]; sl('Turn', () => (pose.fa || [0, 0])[i] || 0, v => arrSet('fa', i, v, [0, 0]), -1.3, 1.3, 0, 'Turn the boot round its ankle: + lifts the toes'); tg('foot', 'Foot flipped', () => 'Foot flipped: ' + ((pose.ff || [])[i] ? 'yes' : 'no'), () => !!(pose.ff || [])[i], () => arrSet('ff', i, (pose.ff || [])[i] ? 0 : 1, [0, 0]), 'Point the boot the other way'); }
+    if (k === 'S') sl('Foreshorten', () => pose.bl == null ? 1 : pose.bl, v => { pose.bl = v; }, 0.15, 1, 1, 'Shorten the blade as if it points toward or away from you');
+    if (s2) { S.push({ t: 'g', id: 'g:arm', l: 'Arm drawn', get: () => s2 === 'A' ? pose.ao || 0 : pose.bo || 0, set: v => { pose[s2 === 'A' ? 'ao' : 'bo'] = v; }, o: s2 === 'A' ? [[0, 'Auto'], [1, 'Behind body'], [2, 'In front of body']] : [[0, 'In front of all'], [1, 'Behind body']] });
+      tg('elbow', 'Bend the elbow the other way', () => 'Bend the elbow the other way', () => false, () => { pose['e' + s2] = -(pose['e' + s2] || KNX.lowSide(s2 === 'A' ? rig.shA : rig.shB, s2 === 'A' ? rig.hA : rig.hB)); }, 'Flip which way the elbow bends'); }
+    if (k[0] === 'L' || k[0] === 'N') { const i = +k[1]; tg('knee', 'Bend the knee the other way', () => 'Bend the knee the other way', () => false, () => { pose.kn = pose.kn.slice(); pose.kn[i] *= -1; }, 'Flip which way the knee bends'); S.push({ t: 'g', id: 'g:legs', l: 'Order', get: () => pose.ls ? 1 : 0, set: v => { pose.ls = v; }, o: [[0, 'Normal'], [1, 'Other leg in front']] }); }
+    if (k === 'S') { tg('sw', 'Sword', () => 'Sword: ' + (pose.sw ? 'shown' : 'hidden'), () => !!pose.sw, () => swordToggle(), 'Show or hide the sword'); sl('Light blade', () => pose.lb || 0, v => { pose.lb = v; }, 0, 1, 0, 'The glowing blade of light round the sword'); sl('Light size', () => pose.lz || 1, v => { pose.lz = v; }, 0.5, 2, 1, 'How big the blade of light is');
+      S.push({ t: 'g', id: 'g:sword', l: 'Sword drawn', get: () => pose.so || 0, set: v => { pose.so = v; }, o: [[0, 'Auto'], [1, 'Behind him'], [2, 'In front']] }); }
+    if (k[0] !== 'h') tg('mirror', 'Mirror', () => 'Mirror ↔', () => false, () => mirrorPart(k), MIRT[k[0] === 'f' ? 'f' : 'LNF'.includes(k[0]) ? k[0] + '0' : k] || 'Flip it left to right');
+    return S; }
   if (k === 'T') { sl('Lean', () => pose.lean, v => { pose.lean = v; }, -0.8, 0.8, 0, 'Tip the body back or forward'); sl('Torso twist', () => pose.yaw, v => { pose.yaw = v; }, -1.6, 1.6, 0, '+ turns the far shoulder toward you, − the near one'); sl('Ice ↔ storm', () => pose.act, v => { pose.act = v; }, 0, 1, 0, '0 = ice head lit, 1 = storm head lit'); }
   if (k[0] === 'H') { const i = +k[1]; sl('Tilt', () => (pose.hr || [0, 0])[i] || 0, v => arrSet('hr', i, v, [0, 0]), -1.2, 1.2, 0, '+ tips the face up'); }
   if (k[0] === 'F') { const i = +k[1]; sl('Turn', () => (pose.fa || [0, 0])[i] || 0, v => arrSet('fa', i, v, [0, 0]), -1.3, 1.3, 0, 'Turn the foot round its ankle: + lifts the toes'); }
@@ -591,12 +735,27 @@ function ppSpec(k) { const S = [], twq = k === 'T' ? null : k[0] === 'H' || k[0]
   if (arm) { S.push({ t: 'g', id: 'g:arm', l: 'Arm drawn', get: () => arm === 'A' ? pose.aF || 0 : pose.bF || 0, set: v => { pose[arm === 'A' ? 'aF' : 'bF'] = v; }, o: arm === 'A' ? [[0, 'Behind body'], [1, 'In front of body'], [2, 'In front of all']] : [[0, 'Behind body'], [1, 'In front of all']] });
     tg('elbow', 'Bend the elbow the other way', () => 'Bend the elbow the other way', () => false, () => { pose['e' + arm] *= -1; }, 'Flip which way the elbow bends'); }
   if (k[0] === 'L') S.push({ t: 'g', id: 'g:legs', l: 'Order', get: () => pose.ls ? 1 : 0, set: v => { pose.ls = v; }, o: [[0, 'Normal'], [1, 'Other leg in front']] });
+  if (k !== 'T') tg('mirror', 'Mirror', () => 'Mirror ↔', () => false, () => mirrorPart(k), MIRT[k[0] === 'f' ? 'f' : k[0] === 'h' ? 'h' : k[0] === 'F' ? 'F' : k[0] === 'H' ? 'H0' : k] || 'Flip it left to right');
   return S; }
 let PPS = [];
+// Mirror: flips the picked part left to right. An arm swings to the other side of its shoulder (hand and elbow mirrored), a forearm to the other side of its elbow,
+// a leg to the other side of its hip (foot and knee); a hand, foot or head is turned over where it is; the Knight's torso is drawn flipped, his sword points the other way
+const MIRT = { N0: 'Swing the shin to the other side of its knee', F0: 'Point the boot the other way', A: 'Swing the whole arm to the other side of its shoulder', B: 'Swing the whole arm to the other side of its shoulder', f: 'Swing the forearm to the other side of its elbow', L0: 'Swing the leg to the other side of its hip', L1: 'Swing the leg to the other side of its hip', h: 'Turn the hand over', F: 'Point the foot the other way', H0: 'Turn the head to face the other way', T: 'Draw the torso flipped', S: 'Point the sword the other way' };
+function mirrorPart(k) { const r = rig, K2 = isK(), ikf = (s, h, l, sg) => { const dx = h[0] - s[0], dy = h[1] - s[1], d = cl(Math.hypot(dx, dy), 0.01, 2 * l - 0.01), an = Math.atan2(dy, dx) + sg * Math.acos(cl(d / (2 * l), -1, 1)); return [s[0] + Math.cos(an) * l, s[1] + Math.sin(an) * l]; };
+  if (K2 && (k === 'H0' || k === 'T')) { pose.mr = { ...(pose.mr || {}) }; pose.mr[k] = pose.mr[k] ? 0 : 1; return; }
+  if (K2 && k === 'S') { pose.sa = Math.PI - (pose.sa || 0); return; }
+  if (k === 'A' || k === 'B') { const h = pose['h' + k]; pose['h' + k] = [-h[0], h[1]]; pose['e' + k] = -(pose['e' + k] || (K2 ? KNX.lowSide(r['sh' + k], r['h' + k]) : 1)); if (K2 && k === 'A' && pose.sw) pose.sa = Math.PI - (pose.sa || 0); return; }
+  if (K2 && k[0] === 'N') { const i = +k[1], hp = r.hips[i], Kn = r.knees[i], Fo = pose.feet[i], F2 = [2 * Kn[0] - Fo[0], Fo[1]], e1 = ikf(hp, F2, 3.1, 1), e2 = ikf(hp, F2, 3.1, -1); pose.feet = pose.feet.slice(); pose.feet[i] = F2; pose.kn = pose.kn.slice(); pose.kn[i] = Math.hypot(e1[0] - Kn[0], e1[1] - Kn[1]) <= Math.hypot(e2[0] - Kn[0], e2[1] - Kn[1]) ? 1 : -1; return; }
+  if (k[0] === 'L') { const i = +k[1], hp = r.hips[i]; pose.feet = pose.feet.slice(); pose.feet[i] = [2 * hp[0] - pose.feet[i][0], pose.feet[i][1]]; pose.kn = pose.kn.slice(); pose.kn[i] *= -1; return; }
+  if (k === 'fA' || k === 'fB') { const sd = k[1], S2 = r['sh' + sd], E = r['e' + sd], H = r['h' + sd], H2 = [2 * E[0] - H[0], H[1]], l = K2 ? 2.6 : ARM / 2, e1 = ikf(S2, H2, l, 1), e2 = ikf(S2, H2, l, -1);
+    pose['h' + sd] = [H2[0] - S2[0], H2[1] - S2[1]]; pose['e' + sd] = Math.hypot(e1[0] - E[0], e1[1] - E[1]) <= Math.hypot(e2[0] - E[0], e2[1] - E[1]) ? 1 : -1; return; }
+  if (k === 'hA' || k === 'hB') { pose['hf' + k[1]] = !pose['hf' + k[1]]; return; }
+  if (k[0] === 'F') { const i = +k[1]; arrSet('ff', i, (pose.ff || [])[i] ? 0 : 1, [0, 0]); return; }
+  if (k[0] === 'H') { const i = +k[1]; arrSet('hfl', i, (pose.hfl || [])[i] ? 0 : 1, [0, 0]); return; } }
 // one control acting on several parts at once: shows the first part's value (– if they differ), sets them all
 function ppShared(ks) { const lists = ks.map(ppSpec), out = []; for (const q of lists[0]) { const M = lists.map(L => L.find(x => x.id === q.id)); if (M.some(x => !x)) continue;
     if (q.t === 's') out.push({ ...q, get: () => M[0].get(), same: () => M.every(x => Math.abs(x.get() - M[0].get()) < 1e-4), set: v => M.forEach(x => x.set(v)) });
-    else if (q.t === 'b') out.push({ ...q, l: () => M.every(x => x.on() === M[0].on()) ? M[0].l() : q.base + ': mixed', on: () => M.every(x => x.on()), click: () => { if (q.id === 'b:elbow') { M.forEach(x => x.click()); return; } const to = !M.every(x => x.on()); M.forEach(x => { if (x.on() !== to) x.click(); }); } });
+    else if (q.t === 'b') out.push({ ...q, l: () => M.every(x => x.on() === M[0].on()) ? M[0].l() : q.base + ': mixed', on: () => M.every(x => x.on()), click: () => { if (q.id === 'b:elbow' || q.id === 'b:knee' || q.id === 'b:mirror') { M.forEach(x => x.click()); return; } const to = !M.every(x => x.on()); M.forEach(x => { if (x.on() !== to) x.click(); }); } });
     else out.push({ ...q, get: () => M.every(x => x.get() === M[0].get()) ? M[0].get() : -1, set: v => M.forEach(x => x.set(v)) }); } return out; }
 const ppCtl = (q, j) => q.t === 's' ? `<label class="sl" title="${esc(q.title || '')}"><span>${q.l}</span><input type="range" id="pps${j}" min="${q.min}" max="${q.max}" step="0.01"><output id="ppo${j}"></output></label>`
   : q.t === 'b' ? `<div class="row"><button id="pps${j}" title="${esc(q.title || '')}" style="flex:1"></button></div>`
@@ -607,7 +766,7 @@ function ppBuild() { const ks = PSELS, on = ks.filter(k => PCHK[k]), off = ks.fi
   if (ks.length > 1) h += `<div class="ppC">${ks.map(k => `<label class="note"><input type="checkbox" data-pk="${k}"${PCHK[k] ? ' checked' : ''}> ${partName(k)}</label>`).join('')}</div><p class="note">Ticked parts share one set of settings. Ctrl-click (⌘ on a Mac) a part on him to add or remove it.</p>`;
   if (on.length) sec(ks.length > 1 ? 'Together: ' + on.map(partName).join(', ') : '', on.length === 1 ? ppSpec(on[0]) : ppShared(on));
   for (const k of off) sec(partName(k), ppSpec(k));
-  if (ks.length === 1 && P2PIN[ks[0]]) h += `<p class="note">To hold its ${PCAP[P2PIN[ks[0]]].map(x => x === 'pos' ? 'placement' : 'rotation').join(' or ')} still over a run of frames, use the pin bar above the timeline.</p>`;
+  if (ks.length === 1 && P2PIN[ks[0]]) h += `<p class="note">To hold its ${PC()[P2PIN[ks[0]]].map(x => x === 'pos' ? 'placement' : 'rotation').join(' or ')} still over a run of frames, use the pin bar above the timeline.</p>`;
   $('ppB').innerHTML = h + '<p class="note">Double-click a slider to reset it.</p>';
   for (const cb of $('ppB').querySelectorAll('[data-pk]')) cb.onchange = () => { PCHK[cb.dataset.pk] = cb.checked; ui(); };
   PPS.forEach((q, j) => { const el = $('pps' + j);
@@ -635,7 +794,7 @@ for (const id of ['fdTw', 'fdSq']) { try { $(id).open = localStorage.getItem('po
 for (const id of ['lean', 'yaw', 'act']) { $(id).addEventListener('input', e => { pose[id] = +e.target.value; $(id + 'O').textContent = (+e.target.value).toFixed(2); livePreview(); }); $(id).addEventListener('change', edited); }
 for (const [id, key] of [['oA', 'aF'], ['oB', 'bF'], ['oL', 'ls']]) $(id).addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; pose[key] = +b.dataset.v; edited(); });
 // flips: each hand over, each foot round, each head the other way (a key value: it changes at the key, like the draw order)
-const footName = i => (i === 0) === (pose.f > 0) ? 'storm' : 'ice';
+const footName = i => isK() ? ((i === 0) === (pose.f > 0) ? 'front' : 'back') : (i === 0) === (pose.f > 0) ? 'storm' : 'ice';
 for (const s2 of ['A', 'B']) { $('xf' + s2).onclick = () => { pose['hf' + s2] = !pose['hf' + s2]; edited(); }; $('bk' + s2).onclick = () => { pose['hb' + s2] = !pose['hb' + s2]; edited(); }; }
 for (const i of [0, 1]) { $('xf' + i).onclick = () => { pose.ff = (pose.ff || [0, 0]).slice(); pose.ff[i] = pose.ff[i] ? 0 : 1; edited(); }; $('xh' + i).onclick = () => { pose.hfl = (pose.hfl || [0, 0]).slice(); pose.hfl[i] = pose.hfl[i] ? 0 : 1; edited(); }; }
 $('flA').onclick = () => { pose.eA *= -1; edited(); }; for (const s of ['A', 'B']) $('hd' + s).onclick = () => { pose['c' + s] = (pose['c' + s] || 0) > 0.5 ? 0 : 1; edited(); }; $('flB').onclick = () => { pose.eB *= -1; edited(); };
@@ -644,19 +803,37 @@ function setFacing(f) { if (pose.f === f) return; if (clip().game) { lockMsg(); 
 // the Open list: own animations by folder first (no folder = 'My animations'), then the library folders
 const folderOf = c => c.folder || 'My animations', esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 function grouped(list, val) { const G = new Map(); for (const c of list) { const k = folderOf(c); if (!G.has(k)) G.set(k, []); G.get(k).push(c); }
-  const order = [...G.keys()].sort((a, b) => (a.startsWith('Storm Ogre') - b.startsWith('Storm Ogre')) || (a === 'My animations' ? -1 : b === 'My animations' ? 1 : 0));
+  const order = [...G.keys()].sort((a, b) => (a.includes(' › ') - b.includes(' › ')) || (a === 'My animations' ? -1 : b === 'My animations' ? 1 : 0));
   return order.map(k => `<optgroup label="${esc(k)}">` + G.get(k).map(c => `<option value="${val(c)}">${esc(c.name)}</option>`).join('') + '</optgroup>').join(''); }
 function snapshot() { if (clip().game) { lockMsg(); return; } if (locked()) { lockMsg(); return; } const k0 = keyAt(fr); if (k0 && !dirty) return; snap(); if (k0) k0.pose = clone(pose); else keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); save(); dirty = false; ui(); }
 $('bSnap').onclick = snapshot;
 // copy a frame's pose, then paste it over another frame: the paste is saved as a key there at once (Undo takes it back)
-$('bCopyF').onclick = () => { FCLIP = { pose: clone(pose), fr, clip: clip().name }; ui(); };
-$('bPasteF').onclick = () => { if (!FCLIP) return; if (clip().game || locked()) { lockMsg(); return; } snap(); const k0 = keyAt(fr), P = clone(FCLIP.pose); if (k0) k0.pose = P; else { keys().push({ fr, ease: 'smooth', pose: P }); sortKeys(); } pose = clone(P); save(); dirty = false; ui(); };
+$('bCopyF').onclick = () => { FCLIP = { pose: clone(pose), fr, clip: clip().name, actor: actorOf(clip()) }; ui(); };
+$('bPasteF').onclick = () => { if (!FCLIP || FCLIP.actor !== actorOf(clip())) return; if (clip().game || locked()) { lockMsg(); return; } snap(); const k0 = keyAt(fr), P = clone(FCLIP.pose); if (k0) k0.pose = P; else { keys().push({ fr, ease: 'smooth', pose: P }); sortKeys(); } pose = clone(P); save(); dirty = false; ui(); };
 // Save key from the question: saves at this frame without jumping ahead, then carries on to wherever you were going
 $('sqSave').onclick = () => { const k0 = keyAt(fr); snap(); if (k0) k0.pose = clone(pose); else { keys().push({ fr, ease: 'smooth', pose: clone(pose) }); sortKeys(); } save(); dirty = false; askEnd(true); };
 $('sqDrop').onclick = () => { dirty = false; askEnd(true); }; $('sqCancel').onclick = () => askEnd(false);
 $('saveQ').addEventListener('pointerdown', e => { if (e.target.id === 'saveQ') askEnd(false); });
 $('bDel').onclick = () => { const k = keyAt(fr); if (!k || keys().length < 2) return; if (locked()) { lockMsg(); return; } snap(); clip().keys = keys().filter(q => q !== k); pose = poseAt(fr); save(); ui(); };
 $('bUndo').onclick = undo;
+// actors: each remembers the animation it was last on
+let ACTL = {}; try { ACTL = JSON.parse(localStorage.getItem('posebench-actor') || '{}') || {}; } catch (e) {}
+function setActor(a) { if (actorOf(clip()) === a) return; stop(); const go = () => { ACTL[actorOf(clip())] = clip().id; let j = clips.findIndex(c => c.id === ACTL[a] && actorOf(c) === a); if (j < 0) j = clips.findIndex(c => actorOf(c) === a); if (j < 0) return;
+    ACTL[a] = clips[j].id; try { localStorage.setItem('posebench-actor', JSON.stringify(ACTL)); } catch (e) {} PSELS = []; PCHK = {}; SEL = null; ci = j; hist.length = 0; save(); dirty = false; setFr(0, true); }; if (pending()) ask(go); else go(); }
+$('actSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) setActor(b.dataset.a); });
+// the Knight's sword: hidden, hand B lets go of the grip and stays where it was; shown, hand B takes the grip again
+function swordToggle() { if (locked()) { lockMsg(); return; } if (pose.sw) { pose.hB = [rig.hB[0] - rig.shB[0], rig.hB[1] - rig.shB[1]]; pose.sw = 0; } else { pose.sw = 1; if (pose.sa == null) pose.sa = pose.f > 0 ? -1.1 : Math.PI + 1.1; } }
+$('bSw').onclick = () => { swordToggle(); edited(); };
+// select all parts / drag a box on the stage round the parts you want
+$('bAll').onclick = () => { stop(); const ks = partsNow(); PSELS = ks.slice(); PCHK = Object.fromEntries(ks.map(k => [k, true])); selPin(ks.includes('T') ? 'T' : ks[0]); };
+function partsInBox(x0, y0, x1, y1) { if (!frontOnly()) return []; const g = pickCv; g.width = cv.width; g.height = cv.height; const gc = g.getContext('2d', { willReadFrequently: true });
+  GATE = makeGate('pick'); try { drawFig(gc, pose, 1); } finally { GATE = null; }
+  const ax = Math.max(0, Math.round(Math.min(x0, x1) * DPR)), ay = Math.max(0, Math.round(Math.min(y0, y1) * DPR)), w = Math.max(1, Math.round(Math.abs(x1 - x0) * DPR)), h = Math.max(1, Math.round(Math.abs(y1 - y0) * DPR)), d = gc.getImageData(ax, ay, w, h).data, found = new Set(), all = partsNow();
+  for (let j = 0; j < d.length; j += 4) { if (d[j + 3] < 200) continue; for (const k of all) { const q = PCOL[k]; if (Math.abs(q[0] - d[j]) + Math.abs(q[1] - d[j + 1]) + Math.abs(q[2] - d[j + 2]) < 24) { found.add(k); break; } } }
+  // the Storm Ogre's lower leg and foot are one shape: a box reaching below the ankle takes the foot too
+  if (!isK()) for (const i of [0, 1]) if (found.has('L' + i) && s2w(0, Math.max(y0, y1))[1] > rig.feet[i][1] - 1.9) found.add('F' + i);
+  return all.filter(k => found.has(k)); }
+
 $('ease').onchange = e => { if (clip().game) { lockMsg(); ui(); return; } const seg = [...keys()].reverse().find(k => k.fr <= fr); if (!seg) return; snap(); seg.ease = e.target.value; pose = poseAt(fr); save(); ui(); };
 $('bPlay').onclick = () => playing ? stop() : play();
 $('bFirst').onclick = () => { stop(); setFr(0); }; $('bPrev').onclick = () => { stop(); setFr(fr - 1); }; $('bNext').onclick = () => { stop(); setFr(fr + 1); };
@@ -675,7 +852,7 @@ $('vF').onclick = () => setView(0); $('vB').onclick = () => setView(1);
 // pins
 $('pinSetA').onclick = () => { $('pinA').value = fr; }; $('pinSetB').onclick = () => { $('pinB').value = fr; };
 $('pinAdd').onclick = () => { if (!SEL) return; let a = Math.round(+$('pinA').value), b = Math.round(+$('pinB').value); if ($('pinA').value === '' || $('pinB').value === '' || !Number.isFinite(a) || !Number.isFinite(b)) return; if (b < a) [a, b] = [b, a]; if (b === a) return;
-  const ks = PCAP[SEL].filter(k => (k === 'pos' ? $('pbPos') : $('pbRot')).checked); if (!ks.length) return; snap(); const c = clip(); c.pins = (c.pins || []).concat(ks.map(k => ({ p: SEL, k, a, b }))); save(); if (!dirty) pose = poseAt(fr); ui(); draw(); };
+  const ks = PC()[SEL].filter(k => (k === 'pos' ? $('pbPos') : $('pbRot')).checked); if (!ks.length) return; snap(); const c = clip(); c.pins = (c.pins || []).concat(ks.map(k => ({ p: SEL, k, a, b }))); save(); if (!dirty) pose = poseAt(fr); ui(); draw(); };
 $('pinList').addEventListener('change', e => { const el = e.target, j = el.dataset && el.dataset.pe; if (j === undefined) return; const c = clip(), q = c.pins && c.pins[+j]; if (!q) return; snap();
   if (el.dataset.f === 'k') { if (el.value) q.k = el.value; else delete q.k; }
   else { const v = Math.round(+el.value); if (Number.isFinite(v)) q[el.dataset.f] = cl(v, 0, lastFr()); if (q.a > q.b) { const t = q.a; q.a = q.b; q.b = t; } }
@@ -683,7 +860,7 @@ $('pinList').addEventListener('change', e => { const el = e.target, j = el.datas
 $('pinList').addEventListener('click', e => { const j = e.target.dataset && e.target.dataset.pin; if (j === undefined) return; snap(); const c = clip(); c.pins = c.pins.filter((q, i) => i !== +j); if (!c.pins.length) delete c.pins; $('pinList').dataset.s = ''; save(); if (!dirty) pose = poseAt(fr); ui(); draw(); });
 $('linkOn').onchange = e => { if (clip().game) { e.target.checked = false; lockMsg(); return; } snap(); const c = clip(), was = !!linkSrc(c), on = e.target.checked && !!$('linkSel').value;
   if (on && !was) { for (const k of c.keys) k.fr += 1; c.from = $('linkSel').value; }
-  else if (!on && was) { c.from = null; c.keys = c.keys.filter(k => k.fr !== 0); for (const k of c.keys) k.fr -= 1; if (!c.keys.length) c.keys.push({ fr: 0, ease: 'smooth', pose: idlePose(1) }); }
+  else if (!on && was) { c.from = null; c.keys = c.keys.filter(k => k.fr !== 0); for (const k of c.keys) k.fr -= 1; if (!c.keys.length) c.keys.push({ fr: 0, ease: 'smooth', pose: idleFor(1) }); }
   save(); dirty = false; setFr(on && !was ? fr + 1 : !on && was ? Math.max(0, fr - 1) : fr, true); };
 $('linkSel').onchange = e => { if (!$('linkOn').checked) return; snap(); clip().from = e.target.value; save(); pose = poseAt(fr); dirty = false; ui(); };
 $('bLoop').onclick = () => { loop = !loop; ui(); }; $('bOnion').onclick = () => { onion = !onion; ui(); };
@@ -717,7 +894,7 @@ $('bCopy').onclick = () => { const s = clipJSON(); $('io').value = s; const ok =
   try { navigator.clipboard.writeText(s).then(ok, () => { $('io').select(); $('copyMsg').textContent = 'Selected: copy it from the box'; }); } catch (e) { $('io').select(); $('copyMsg').textContent = 'Selected: copy it from the box'; } };
 // for tools/bake-clip.js: the open animation's pose at every frame, exactly as the bench plays it
 window.__benchBake = () => { const out = []; for (let i = 0; i <= lastFr(); i++) out.push(clone(poseAt(i))); return out; };
-$('bLoad').onclick = () => { try { const c = JSON.parse($('io').value); if (!c.keys || !c.keys.length) throw 0; addClip({ name: c.name || 'Loaded clip', keys: c.keys }); $('copyMsg').textContent = 'Opened'; } catch (e) { $('copyMsg').textContent = 'That isn’t animation text. Paste what Copy animation gave you.'; } };
+$('bLoad').onclick = () => { try { const c = JSON.parse($('io').value); if (!c.keys || !c.keys.length) throw 0; addClip({ name: c.name || 'Loaded clip', keys: c.keys, ...(c.actor ? { actor: c.actor } : {}) }); $('copyMsg').textContent = 'Opened'; } catch (e) { $('copyMsg').textContent = 'That isn’t animation text. Paste what Copy animation gave you.'; } };
 addEventListener('keydown', e => { if (e.target.matches('input, textarea, select')) return; const k = e.key;
   if (k === ' ') { e.preventDefault(); playing ? stop() : play(); } else if (k === 'ArrowLeft') { stop(); setFr(fr - 1); } else if (k === 'ArrowRight') { stop(); setFr(fr + 1); }
   else if (k === 's' || k === 'S') snapshot(); else if (k === 'Delete' || k === 'Backspace') $('bDel').click(); else if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); undo(); } });

@@ -703,14 +703,16 @@ function drawKnight(c, t) {
   if (window.__labelArms && window.__tags) for (const [m, txt, col] of window.__tags) { c.save(); c.translate(m[0], m[1]); c.fillStyle = col; c.strokeStyle = '#fff'; c.lineWidth = 0.18; c.beginPath(); c.arc(0, 0, 0.62, 0, 7); c.fill(); c.stroke(); c.fillStyle = "#fff"; c.font = "700 0.85px system-ui"; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(txt, 0, 0.05); c.restore(); }
   c.restore();
 }
-function leg(c, hip, knee, foot, f, far, kneelBack, bv) {
-  const dk = far ? -0.14 : 0;
+// X (optional, the Pose Bench): wrappers drawing each segment on its own: t thigh (and knee cap), s shin, b boot
+function leg(c, hip, knee, foot, f, far, kneelBack, bv, X) {
+  const dk = far ? -0.14 : 0, XT = X ? X.t : g => g(), XS = X ? X.s : g => g(), XB = X ? X.b : g => g();
   c.lineCap = 'round';
-  c.strokeStyle = shade(STEELD, dk - 0.2); c.lineWidth = 1.9; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke();
-  c.strokeStyle = shade(STEEL, dk); c.lineWidth = 1.45; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke();
+  XT(() => { c.lineCap = 'round'; c.strokeStyle = shade(STEELD, dk - 0.2); c.lineWidth = 1.9; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke();
+  c.strokeStyle = shade(STEEL, dk); c.lineWidth = 1.45; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke(); });
   const ank = L2(knee, foot, 0.62);
-  c.strokeStyle = shade(STEELD, dk - 0.2); c.lineWidth = 1.7; c.beginPath(); c.moveTo(...knee); c.lineTo(...ank); c.stroke();
-  c.strokeStyle = shade(STEEL, dk); c.lineWidth = 1.25; c.beginPath(); c.moveTo(...knee); c.lineTo(...ank); c.stroke();
+  XS(() => { c.lineCap = 'round'; c.strokeStyle = shade(STEELD, dk - 0.2); c.lineWidth = 1.7; c.beginPath(); c.moveTo(...knee); c.lineTo(...ank); c.stroke();
+  c.strokeStyle = shade(STEEL, dk); c.lineWidth = 1.25; c.beginPath(); c.moveTo(...knee); c.lineTo(...ank); c.stroke(); });
+  XB(() => {
   const pl = PLATE > 0.5, bD = pl ? STEELD : LEAD, bM = pl ? STEEL : LEA, bL = pl ? STEELL : LEAL;
   // the boot is one silhouette: shaft from the ankle straight on into a short rounded foot (toe the way he faces), one fill + outline
   const d = kneelBack ? -f : f, X = v => foot[0] + d * v, g = foot[1] + 0.3, ay = foot[1] - 0.45;
@@ -736,8 +738,9 @@ function leg(c, hip, knee, foot, f, far, kneelBack, bv) {
   c.strokeStyle = shade(bL, dk); c.lineWidth = 0.18; c.beginPath(); c.moveTo(X(0.45), ay - 0.05); c.quadraticCurveTo(X(0.95), ay + 0.05, X(1.2), g - 0.45); c.stroke();
   c.strokeStyle = shade(bD, dk - 0.25); c.lineWidth = 0.2; c.beginPath(); c.moveTo(X(-0.5), g - 0.07); c.lineTo(X(1.0), g - 0.07); c.stroke();
   }
-  c.fillStyle = shade(STEELL, dk - 0.05); c.beginPath(); c.arc(knee[0], knee[1], 0.72, 0, 7); c.fill();
-  c.fillStyle = shade(STEELD, dk); c.beginPath(); c.arc(knee[0] + 0.15, knee[1] + 0.2, 0.32, 0, 7); c.fill();
+  });
+  XT(() => { c.fillStyle = shade(STEELL, dk - 0.05); c.beginPath(); c.arc(knee[0], knee[1], 0.72, 0, 7); c.fill();
+  c.fillStyle = shade(STEELD, dk); c.beginPath(); c.arc(knee[0] + 0.15, knee[1] + 0.2, 0.32, 0, 7); c.fill(); });
 }
 function torso(c, P, f, backView) {
   const hip = P.pel, [L, R] = P.sh, C = P.C, mx = (L[0] + R[0]) / 2, my = (L[1] + R[1]) / 2;
@@ -768,21 +771,22 @@ function pauldron(c, s, f, far) {
   c.fillStyle = shade(STEELL, dk); c.beginPath(); c.ellipse(s[0] + 0.35, s[1] - 0.45, 0.6, 0.3, -0.2, 0, 7); c.fill();
   c.strokeStyle = GOLD; c.lineWidth = 0.22; c.beginPath(); c.ellipse(s[0], s[1] + 0.12, 1.1, 0.75, 0, Math.PI * 1.05, Math.PI * 1.95); c.stroke();
 }
-function arm(c, s, h, f, far, noGlove) {
-  // elbows point down and out, away from the body
-  const e1 = ik(s, h, 2.6, 2.6, 1), e2 = ik(s, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2, dk = far ? -0.15 : 0; // the elbow hangs low, never up across the face
+// X (optional, the Pose Bench): wrappers drawing each segment on its own: u upper arm (and pauldron), f forearm (and elbow cap), h wrist and glove
+function arm(c, s, h, f, far, noGlove, es, X) { const XU = X ? X.u : g => g(), XF = X ? X.f : g => g(), XH = X ? X.h : g => g();
+  // elbows point down and out, away from the body (es = a fixed bend side, used by the Pose Bench)
+  const e1 = ik(s, h, 2.6, 2.6, 1), e2 = ik(s, h, 2.6, 2.6, -1), el = es ? (es > 0 ? e1 : e2) : e1[1] >= e2[1] ? e1 : e2, dk = far ? -0.15 : 0; // the elbow hangs low, never up across the face
   c.lineCap = 'round';
-  c.strokeStyle = shade(MAIL, dk - 0.15); c.lineWidth = 1.45; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke();
+  XU(() => { c.lineCap = 'round'; c.strokeStyle = shade(MAIL, dk - 0.15); c.lineWidth = 1.45; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke();
   c.strokeStyle = shade(MAIL, dk); c.lineWidth = 1.1; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke();
   // the pauldron rides on the upper arm: it tilts and lifts with it instead of the arm sliding under it
   const ua = Math.atan2(el[1] - s[1], el[0] - s[0]), tilt = (ua - Math.PI / 2 + (ua < -Math.PI / 2 ? Math.PI * 2 : 0)) * 0.75;
-  c.save(); c.translate(s[0] + Math.cos(ua) * 0.25, s[1] + Math.sin(ua) * 0.25); c.rotate(tilt); pauldron(c, [0, 0], f, far); c.restore();
+  c.save(); c.translate(s[0] + Math.cos(ua) * 0.25, s[1] + Math.sin(ua) * 0.25); c.rotate(tilt); pauldron(c, [0, 0], f, far); c.restore(); });
   const wr = L2(el, h, 0.7);
-  c.strokeStyle = shade(STEELD, dk - 0.15); c.lineWidth = 1.4; c.beginPath(); c.moveTo(...el); c.lineTo(...wr); c.stroke();
+  XF(() => { c.lineCap = 'round'; c.strokeStyle = shade(STEELD, dk - 0.15); c.lineWidth = 1.4; c.beginPath(); c.moveTo(...el); c.lineTo(...wr); c.stroke();
   c.strokeStyle = shade(STEEL, dk); c.lineWidth = 1.05; c.beginPath(); c.moveTo(...el); c.lineTo(...wr); c.stroke();
-  c.fillStyle = shade(STEELL, dk); c.beginPath(); c.arc(el[0], el[1], 0.5, 0, 7); c.fill();
-  c.strokeStyle = shade(PLATE > 0.5 ? STEEL : LEA, dk); c.lineWidth = 1.2; c.beginPath(); c.moveTo(...wr); c.lineTo(...h); c.stroke();
-  if (!noGlove) glove(c, h, far);
+  c.fillStyle = shade(STEELL, dk); c.beginPath(); c.arc(el[0], el[1], 0.5, 0, 7); c.fill(); });
+  XH(() => { c.lineCap = 'round'; c.strokeStyle = shade(PLATE > 0.5 ? STEEL : LEA, dk); c.lineWidth = 1.2; c.beginPath(); c.moveTo(...wr); c.lineTo(...h); c.stroke();
+  if (!noGlove) glove(c, h, far); });
 }
 function glove(c, h, far) { const dk = far ? -0.15 : 0, pl = PLATE > 0.5; c.fillStyle = shade(pl ? STEELD : LEA, dk); c.beginPath(); c.arc(h[0], h[1], pl ? 0.72 : 0.62, 0, 7); c.fill(); c.fillStyle = shade(pl ? STEELL : LEAL, dk); c.beginPath(); c.arc(h[0] - 0.15, h[1] - 0.2, 0.25, 0, 7); c.fill(); }
 function head(c, P, f, t, backView) {
