@@ -782,7 +782,7 @@ const setSq = ([g, i], v) => { const T = pose.sq = clone(pose.sq || {}); if (i =
 const arrSet = (key, i, v, def) => { pose[key] = (pose[key] || def).slice(); pose[key][i] = v; };
 function ppSpec(k) { const S = [], twq = k === 'T' ? null : k[0] === 'H' || k[0] === 'L' || k[0] === 'F' ? [k[0], +k[1]] : [k], arm = k === 'A' || k === 'B' ? k : k[0] === 'f' ? k[1] : null;
   const sl = (l, get, set, min, max, def, title) => S.push({ t: 's', id: 's:' + l, l, get, set, min, max, def, title }), tg = (id, base, l, on, click, title) => S.push({ t: 'b', id: 'b:' + id, base, l, on, click, title });
-  if (isK() && k === 'W') { sl('Rotate', () => pose.wr || 0, v => { pose.wr = v; }, -1, 1, 0, 'Turn the belt, mail skirt and tabard tail round his hips: + tips the front up'); return S; }
+  if (isK() && k === 'W') { sl('Rotate', () => pose.wr || 0, v => { pose.wr = v; }, -3.14, 3.14, 0, 'Turn the belt, mail skirt and tabard tail round his hips: + tips the front up'); return S; }
   if (isK() && k[0] === 'p') { const s2 = k[1], g = (n, d) => ((pose.pd || {})[s2] || {})[n] ?? d, set = (n, v) => { pose.pd = clone(pose.pd || {}); pose.pd[s2] = { ...(pose.pd[s2] || {}), [n]: v }; };
     sl('Stretch across', () => g('w', 1), v => set('w', v), 0.4, 2, 1, 'Wider or narrower across the shoulder. 1 = as drawn'); sl('Stretch down', () => g('l', 1), v => set('l', v), 0.4, 2, 1, 'Longer or shorter down the arm. 1 = as drawn');
     sl('Twist', () => g('tw', 0), v => set('tw', v), -1.5, 1.5, 0, 'Turn it round the shoulder');
