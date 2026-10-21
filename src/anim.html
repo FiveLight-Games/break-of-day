@@ -91,7 +91,7 @@ body.knight .og { display: none !important; } body:not(.knight) .kn { display: n
 </div>
 
 <div class="wrap">
-  <div id="stage"><canvas id="cv"></canvas><div id="selBox"></div><div id="zm"><button id="zIn" title="Zoom in (or scroll / pinch on the stage)">+</button><button id="zOut" title="Zoom out">−</button><button id="zFit" title="Back to the whole figure">Fit</button></div><div id="status"></div><div id="pp" hidden role="dialog" aria-labelledby="ppT"><div id="ppH" title="Drag to move this window"><span id="ppT"></span><button id="ppMin" title="Minimize to a bar (click again to open it back up)">–</button><button id="ppX" title="Close (click empty space on the stage to close it too)">✕</button></div><div id="ppB"></div></div><div id="hint">Click a part of him to open its settings (Ctrl/⌘-click to pick several) · Drag: hands, feet, toes (triangle) to turn a foot, the dot over a head to tilt it, hips (square), chest (diamond), elbow dot to swing the upper arm · Tap a ⇄ ring to bend that elbow or knee the other way</div></div>
+  <div id="stage"><canvas id="cv"></canvas><div id="selBox"></div><div id="zm"><button id="zIn" title="Zoom in (or scroll / pinch on the stage)">+</button><button id="zOut" title="Zoom out">−</button><button id="zFit" title="Back to the whole figure">Fit</button></div><div id="status"></div><div id="pp" hidden role="dialog" aria-labelledby="ppT"><div id="ppH" title="Drag to move this window"><span id="ppT"></span><button id="ppMin" title="Minimize to a bar (click again to open it back up)">–</button><button id="ppX" title="Close (click empty space on the stage to close it too)">✕</button></div><div id="ppB"></div></div><div id="hint">Click a part of him to open its settings (Ctrl/⌘-click to pick several) · Drag: hands, feet, toes (triangle) to turn a foot, the dot over a head to tilt it, hips (square), chest (diamond), elbow dot to swing the upper arm, knee dot to swing the leg · Tap a ⇄ ring to bend that elbow or knee the other way</div></div>
 
   <div class="time">
     <div class="tbar">
@@ -481,6 +481,8 @@ const BACKH = (r, P) => [
     { id: 'hdI', p: headOf(r, P, 0), k: 'head', c: '--b', i: 0 }, { id: 'hdZ', p: headOf(r, P, 1), k: 'head', c: '--a', i: 1 } ];
 let FCLIP = null, SEL = null, PSELS = [], PCHK = {}, ppKey = ''; const partOf = h => h.b ? null : ({ hA: 'hA', hB: 'hB', f0: 'f0', t0: 'f0', f1: 'f1', t1: 'f1', pl: 'pel', ch: 'chest', hdI: 'h0', hdZ: 'h1' })[h.id] || null;
 const pinnedHere = (part, t) => (clip().pins || []).filter(q => q.p === part && q.a <= t && t <= q.b);
+// knees: a dot on the knee drags the leg round its hip (the foot swings with it), a ⇄ ring just outside the bend flips it
+const kneeH = (r, ankle) => [0, 1].flatMap(i => [{ id: 'kd' + i, p: r.knees[i], k: 'kneeD', c: '--ink', i }, { id: 'k' + i, p: flipB(r.hips[i], ankle(i), r.knees[i]), k: 'knee', c: '--ink', i, an: ankle(i) }]);
 const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || locked()) return []; if (r.back) return BACKH(r, P);
   if (P.knight) { const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.45]; return [
     { id: 'hA', p: r.hA, k: 'hand', c: '--a', l: 'A' }, ...(P.sw ? [{ id: 'tp', p: r.tip, k: 'tip', c: '--accent' }] : [{ id: 'hB', p: r.hB, k: 'hand', c: '--b', l: 'B' }]),
@@ -490,7 +492,7 @@ const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || locked()
     { id: 'xA', p: flipOf(r, 'A'), k: 'elbow', c: '--a', a: 'A' }, { id: 'xB', p: flipOf(r, 'B'), k: 'elbow', c: '--b', a: 'B' },
     { id: 'hdI', p: headOf(r, P, 0), k: 'head', c: '--b', i: 0 },
     { id: 't0', p: toeK(r, P, 0), k: 'toe', c: '--accent', i: 0 }, { id: 't1', p: toeK(r, P, 1), k: 'toe', c: '--accent', i: 1 },
-    { id: 'k0', p: r.knees[0], k: 'knee', c: '--ink', i: 0, an: ankle(0) }, { id: 'k1', p: r.knees[1], k: 'knee', c: '--ink', i: 1, an: ankle(1) } ]; } const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.95];
+    ...kneeH(r, ankle) ]; } const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.95];
   return [
     { id: 'hA', p: r.hA, k: 'hand', c: '--a', l: 'A' }, { id: 'hB', p: r.hB, k: 'hand', c: '--b', l: 'B' },
     { id: 'f0', p: r.feet[0], k: 'foot', c: '--ink', i: 0 }, { id: 'f1', p: r.feet[1], k: 'foot', c: '--ink', i: 1 },
@@ -499,7 +501,7 @@ const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || locked()
     { id: 'xA', p: flipOf(r, 'A'), k: 'elbow', c: '--a', a: 'A' }, { id: 'xB', p: flipOf(r, 'B'), k: 'elbow', c: '--b', a: 'B' },
     { id: 'hdI', p: headOf(r, P, 0), k: 'head', c: '--b', i: 0 }, { id: 'hdZ', p: headOf(r, P, 1), k: 'head', c: '--a', i: 1 },
     { id: 't0', p: toeOf(r, P, 0), k: 'toe', c: '--accent', i: 0 }, { id: 't1', p: toeOf(r, P, 1), k: 'toe', c: '--accent', i: 1 },
-    { id: 'k0', p: r.knees[0], k: 'knee', c: '--ink', i: 0, an: ankle(0) }, { id: 'k1', p: r.knees[1], k: 'knee', c: '--ink', i: 1, an: ankle(1) } ].filter(h => !(legWalk() && /^(f|t|k)\d$/.test(h.id))); };
+    ...kneeH(r, ankle) ].filter(h => !(legWalk() && /^(f|t|k|kd)\d$/.test(h.id))); };
 function handles() { const H = HANDLES(), r = rig;
   // shoulders and arm reach (only the dragged hand's reach is drawn)
   if (drag && drag.k === 'hand') { const s = w2s(drag.b ? (drag.b === 'G' ? r.shG : r.shP) : drag.id === 'hA' ? r.shA : r.shB); ctx.setLineDash([4, 4]); ctx.strokeStyle = css(drag.c); ctx.beginPath(); ctx.arc(s[0], s[1], armL() * S, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
@@ -509,7 +511,7 @@ function handles() { const H = HANDLES(), r = rig;
     if (h.k === 'pel') ctx.rect(x - 7, y - 7, 14, 14);
     else if (h.k === 'chest') { ctx.moveTo(x, y - 9); ctx.lineTo(x + 9, y); ctx.lineTo(x, y + 9); ctx.lineTo(x - 9, y); ctx.closePath(); }
     else if (h.k === 'elbow' || h.k === 'knee') ctx.arc(x, y, 7, 0, 7);
-    else if (h.k === 'elbowD') ctx.arc(x, y, 6, 0, 7);
+    else if (h.k === 'elbowD' || h.k === 'kneeD') ctx.arc(x, y, 6, 0, 7);
     else if (h.k === 'head') { ctx.arc(x, y, 7, 0, 7); }
     else if (h.k === 'toe') { const ff = (pose.fa && 0, (pose.ff || [])[h.i] ? -1 : 1), a = -pose.f * ff * ((pose.fa || [0, 0])[h.i] || 0) + (pose.f * ff > 0 ? 0 : Math.PI); ctx.moveTo(x + Math.cos(a) * 11, y + Math.sin(a) * 11); ctx.lineTo(x + Math.cos(a + 2.4) * 8, y + Math.sin(a + 2.4) * 8); ctx.lineTo(x + Math.cos(a - 2.4) * 8, y + Math.sin(a - 2.4) * 8); ctx.closePath(); }
     else ctx.arc(x, y, 9, 0, 7);
@@ -542,6 +544,7 @@ cv.addEventListener('pointermove', e => { if (box) { const b = cv.getBoundingCli
   else if (drag.k === 'toe' && P.knight) { const fs = (P.ff || [])[drag.i] ? -1 : 1, an = r.ank[drag.i], v = toeV(r, P, drag.i), a = Math.atan2(p[1] - an[1], p[0] - an[0]) - Math.atan2(v[1], v[0]); P.fa = (P.fa || [0, 0]).slice(); P.fa[drag.i] = cl(-P.f * fs * Math.atan2(Math.sin(a), Math.cos(a)), -1.3, 1.3); }
   else if (drag.k === 'toe') { const ff = (P.ff || [])[drag.i] ? -1 : 1, an = [r.feet[drag.i][0], r.feet[drag.i][1] - 0.95], a = Math.atan2(p[1] - an[1], p[0] - an[0]) - Math.atan2(-0.6, P.f * ff * 3.6 * Math.max(0.35, Math.cos(twGet(P, ['F', drag.i])))); P.fa = (P.fa || [0, 0]).slice(); P.fa[drag.i] = cl(-P.f * ff * Math.atan2(Math.sin(a), Math.cos(a)), -1.3, 1.3); }
   else if (drag.k === 'elbow') { const s = drag.a === 'A' ? r.shA : r.shB, h = drag.a === 'A' ? r.hA : r.hB, cz = (h[0] - s[0]) * (p[1] - s[1]) - (h[1] - s[1]) * (p[0] - s[0]); P['e' + drag.a] = cz > 0 ? 1 : -1; }
+  else if (drag.k === 'kneeD') { const i = drag.i, hp = r.hips[i], k0 = r.knees[i], D = Math.atan2(p[1] - hp[1], p[0] - hp[0]) - Math.atan2(k0[1] - hp[1], k0[0] - hp[0]), F0 = P.feet[i], v = [F0[0] - hp[0], F0[1] - hp[1]], c2 = Math.cos(D), s2 = Math.sin(D); P.feet = P.feet.slice(); P.feet[i] = [hp[0] + v[0] * c2 - v[1] * s2, Math.min(0.2, hp[1] + v[0] * s2 + v[1] * c2)]; }
   else if (drag.k === 'knee') { const s = r.hips[drag.i], h = drag.an, cz = (h[0] - s[0]) * (p[1] - s[1]) - (h[1] - s[1]) * (p[0] - s[0]); P.kn[drag.i] = cz > 0 ? 1 : -1; }
   livePreview(); });
 // zoom / pan
@@ -660,7 +663,7 @@ TWS.forEach((q, j) => { const [g, i] = q; $('sq' + j).addEventListener('input', 
 TWS.forEach((q, j) => { const [g, i] = q; $('tw' + j).addEventListener('input', e => { const v = +e.target.value, T = pose.tw = clone(pose.tw || {}); if (i === undefined) T[g] = v; else { T[g] = (T[g] || [0, 0]).slice(); T[g][i] = v; } $('two' + j).textContent = v.toFixed(2); livePreview(); }); $('tw' + j).addEventListener('change', edited); $('tw' + j).addEventListener('dblclick', () => { $('tw' + j).value = 0; $('tw' + j).dispatchEvent(new Event('input')); edited(); }); }); }
 // ---- parts: click on him to pick one; it gets an outline and its own window with everything that belongs to it ----
 // drawO2 tags what it draws (opts.gate): H0 ice head, H1 storm head, A/B arms, hA/hB hands, L0/L1 legs (the lower leg also F0/F1: shin and foot are one shape), T torso + belt + shoulder stones
-const PARTS = ['H0', 'H1', 'A', 'B', 'fA', 'fB', 'hA', 'hB', 'L0', 'L1', 'F0', 'F1', 'T', 'S', 'N0', 'N1'], PCOL = {}; PARTS.forEach((k, i) => { PCOL[k] = [20 + i * 21, 230 - i * 13, 60 + (i * 97) % 180]; });
+const PARTS = ['H0', 'H1', 'A', 'B', 'fA', 'fB', 'hA', 'hB', 'L0', 'L1', 'F0', 'F1', 'T', 'S', 'N0', 'N1'], PCOL = {}; PARTS.forEach((k, i) => { PCOL[k] = [20 + (i * 37) % 220, 230 - (i * 53) % 200, 60 + (i * 97) % 180]; }); // all within 0-255 (the sword's colour used to run past 255 and was never matched)
 const P2PIN0 = { H0: 'h0', H1: 'h1', hA: 'hA', hB: 'hB', F0: 'f0', F1: 'f1', T: 'chest' }, PIN2P0 = { h0: 'H0', h1: 'H1', hA: 'hA', hB: 'hB', f0: 'F0', f1: 'F1', chest: 'T', pel: 'T' };
 // the Knight's parts, every limb in segments: H0 head, A / fA / hA upper arm, forearm, hand (and B), L / N / F thigh, shin, boot (0 and 1), T torso, S sword
 const P2PINK = { H0: 'h0', hA: 'hA', hB: 'hB', F0: 'f0', F1: 'f1', T: 'chest' }, PIN2PK = { h0: 'H0', hA: 'hA', hB: 'hB', f0: 'F0', f1: 'F1', chest: 'T', pel: 'T' }, KPARTS = ['H0', 'A', 'fA', 'hA', 'B', 'fB', 'hB', 'L0', 'N0', 'F0', 'L1', 'N1', 'F1', 'T', 'S'];
