@@ -705,7 +705,7 @@ function drawKnight(c, t) {
 }
 // X (optional, the Pose Bench): wrappers drawing each segment on its own: t thigh (and knee cap), s shin, b boot
 function leg(c, hip, knee, foot, f, far, kneelBack, bv, X) {
-  const dk = far ? -0.14 : 0, XT = X ? X.t : g => g(), XS = X ? X.s : g => g(), XB = X ? X.b : g => g(), FA = X && X.fa || 0;
+  const dk = far ? -0.14 : 0, XT = X ? X.t : g => g(), XS = X ? X.s : g => g(), XB = X ? X.b : g => g(), FA = X && X.fa != null ? X.fa : null;
   c.lineCap = 'round';
   XT(() => { c.lineCap = 'round'; c.strokeStyle = shade(STEELD, dk - 0.2); c.lineWidth = 1.9; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke();
   c.strokeStyle = shade(STEEL, dk); c.lineWidth = 1.45; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke(); });
@@ -718,8 +718,8 @@ function leg(c, hip, knee, foot, f, far, kneelBack, bv, X) {
   const d = kneelBack ? -f : f, X = v => foot[0] + d * v, g = foot[1] + 0.3, ay = foot[1] - 0.45;
   // the boot's top follows the shin's angle and is a touch wider than the shin, so no steel shows past its edges
   const ux0 = ank[0] - knee[0], uy0 = ank[1] - knee[1], ul = Math.hypot(ux0, uy0) || 1, ux = ux0 / ul, uy = uy0 / ul;
-  let nx = -uy, ny = ux; if (nx * d < 0) { nx = -nx; ny = -ny; }
-  const tb = [ank[0] - nx * 0.92 - ux * 0.25, ank[1] - ny * 0.92 - uy * 0.25], tf = [ank[0] + nx * 0.92 - ux * 0.25, ank[1] + ny * 0.92 - uy * 0.25];
+  let nx = -uy, ny = ux; if (nx * d < 0) { nx = -nx; ny = -ny; } 
+  let tb = [ank[0] - nx * 0.92 - ux * 0.25, ank[1] - ny * 0.92 - uy * 0.25], tf = [ank[0] + nx * 0.92 - ux * 0.25, ank[1] + ny * 0.92 - uy * 0.25];
   // seen from behind (kneeling at the stone, back to the camera) the toe points away from us: the boot is just the shaft
   // ending in a rounded heel, with the dark sole showing under it
   // kneeling, or seen from behind (back to the camera at the stone): the toe points away from us, so the boot just carries on
@@ -731,8 +731,11 @@ function leg(c, hip, knee, foot, f, far, kneelBack, bv, X) {
     c.save(); kb(); c.clip(); c.strokeStyle = shade(bD, dk - 0.3); c.lineWidth = 0.55; c.beginPath(); c.moveTo(eb[0] + ux * 0.55, eb[1] + uy * 0.55); c.quadraticCurveTo(e[0] + ux * 1.15 - nx * 0.9, e[1] + uy * 1.15 - ny * 0.9, e[0] + ux * 1.0, e[1] + uy * 1.0); c.quadraticCurveTo(e[0] + ux * 1.15 + nx * 0.9, e[1] + uy * 1.15 + ny * 0.9, ef[0] + ux * 0.55, ef[1] + uy * 0.55); c.stroke(); c.restore();
     c.strokeStyle = shade(bL, dk); c.lineWidth = 0.16; c.beginPath(); c.moveTo(tb[0] + nx * 0.4 + ux * 0.4, tb[1] + ny * 0.4 + uy * 0.4); c.lineTo(eb[0] + nx * 0.4, eb[1] + ny * 0.4); c.stroke();
   } else {
-  // the foot part turns round the ankle by FA (the Pose Bench's foot turn) while the top stays on the shin, so the ankle bends by the foot's angle to the leg
-  const cA = Math.cos(FA), sA = Math.sin(FA), Q = (v, y) => { const px = X(v) - ank[0], py = y - ank[1]; return [ank[0] + px * cA - py * sA, ank[1] + px * sA + py * cA]; };
+  // Pose Bench (FA given): the whole boot, top included, belongs to the foot: its standing shape turned round the ankle by FA (0 = upright, toe level toward his facing);
+  // the shin only goes into it, so moving the leg never bends or squashes the boot
+  let Q; if (FA !== null) { const Lf = Math.hypot(foot[0] - ank[0], foot[1] - ank[1]), cA = Math.cos(FA), sA = Math.sin(FA), RQ = (px, py) => [ank[0] + px * cA - py * sA, ank[1] + px * sA + py * cA];
+      Q = (v, y) => RQ(d * v, Lf + y - foot[1]); tb = RQ(-d * 0.92, -0.25); tf = RQ(d * 0.92, -0.25); }
+  else Q = (v, y) => [X(v), y];
   const boot = () => { c.beginPath(); c.moveTo(...tb); c.lineTo(...Q(-0.72, ay));
     c.quadraticCurveTo(...Q(-0.82, g - 0.1), ...Q(-0.52, g)); c.lineTo(...Q(0.95, g)); c.quadraticCurveTo(...Q(1.45, g), ...Q(1.42, g - 0.4));
     c.quadraticCurveTo(...Q(1.3, ay + 0.1), ...Q(0.68, ay - 0.18)); c.lineTo(...tf); c.closePath(); };
@@ -8586,7 +8589,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '6875f1';
+const KBUILD = 'ac1a9e';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }

@@ -502,7 +502,9 @@ function draw() {
 // where a foot's toe handle sits (the foot turned round its ankle by P.fa), and an elbow's flip bubble (just outside the bend)
 const toeOf = (r, P, i) => { const ff = (P.ff || [])[i] ? -1 : 1, a = -P.f * ff * ((P.fa || [0, 0])[i] || 0), an = [r.feet[i][0], r.feet[i][1] - 0.95], x = P.f * ff * 3.6 * Math.max(0.35, Math.cos(twGet(P, ['F', i]))), y = -0.6; return [an[0] + x * Math.cos(a) - y * Math.sin(a), an[1] + x * Math.sin(a) + y * Math.cos(a)]; };
 // the Knight's toe handle: the boot's toe, turned round his ankle by P.fa
-const toeV = (r, P, i) => { const fs = (P.ff || [])[i] ? -1 : 1, an = r.ank[i], ft = r.feet[i]; return [ft[0] - an[0] + P.f * fs * 1.9 * Math.max(0.35, Math.cos(twGet(P, ['F', i]))), ft[1] - an[1] - 0.1]; };
+const toeV = (r, P, i) => { const fs = (P.ff || [])[i] ? -1 : 1, an = r.ank[i], ft = r.feet[i], tx = P.f * fs * 1.9 * Math.max(0.35, Math.cos(twGet(P, ['F', i])));
+  if (P.knight) return [tx, Math.hypot(ft[0] - an[0], ft[1] - an[1]) - 0.1]; // the bench's knight boot: foot part hangs straight under the ankle at turn 0
+  return [ft[0] - an[0] + tx, ft[1] - an[1] - 0.1]; };
 const toeK = (r, P, i) => { const fs = (P.ff || [])[i] ? -1 : 1, a = -P.f * fs * ((P.fa || [0, 0])[i] || 0), v = toeV(r, P, i), an = r.ank[i]; return [an[0] + v[0] * Math.cos(a) - v[1] * Math.sin(a), an[1] + v[0] * Math.sin(a) + v[1] * Math.cos(a)]; };
 // each head's turn handle: a dot above it that swings with its tilt (P.hr: 0 ice, 1 storm; + tips the face up)
 const headOf = (r, P, i) => { const H = i ? r.HZ : r.HI, a = -P.f * ((P.hr || [0, 0])[i] || 0), d = P.knight ? 3.6 : 4.4, hp = P.knight ? 1.6 : 2.2; return [H[0] + Math.sin(a) * d, H[1] + hp - Math.cos(a) * d]; };
