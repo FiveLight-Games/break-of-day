@@ -756,25 +756,28 @@ function leg(c, hip, knee, foot, f, far, kneelBack, bv, X) {
 }
 function torso(c, P, f, backView) {
   const hip = P.pel, [L, R] = P.sh, C = P.C, mx = (L[0] + R[0]) / 2, my = (L[1] + R[1]) / 2;
-  const hw = 1.9 * (1 - 0.1 * Math.abs(P.tw)), hl = [hip[0] - hw, hip[1]], hr = [hip[0] + hw, hip[1]];
+  // the waist (belt, mail skirt, tabard tail) can be turned round the hips by P.wr; P.wB wraps its drawing (the Pose Bench uses both, the game neither)
+  const WR = P.wr || 0, WB = P.wB || (g => { if (!WR) return g(); c.save(); c.translate(hip[0], hip[1]); c.rotate(WR); c.translate(-hip[0], -hip[1]); g(); c.restore(); });
+  const hw = 1.9 * (1 - 0.1 * Math.abs(P.tw)), hl = [hip[0] - hw, hip[1]], hr = [hip[0] + hw, hip[1]], rW = q => { const dx = q[0] - hip[0], dy = q[1] - hip[1]; return [hip[0] + dx * Math.cos(WR) - dy * Math.sin(WR), hip[1] + dx * Math.sin(WR) + dy * Math.cos(WR)]; };
+  const hlT = rW([hl[0], hl[1] - 0.4]), hrT = rW([hr[0], hr[1] - 0.4]), hlS = rW([hl[0] + 0.3, hl[1] - 0.3]), hrS = rW([hr[0] - 0.3, hr[1] - 0.3]); // the surcoat's bottom corners sit on the turned waist
   // mail skirt, swinging with the hips
-  c.fillStyle = MAIL; c.beginPath(); c.moveTo(hl[0], hl[1] - 0.6); c.lineTo(hr[0], hr[1] - 0.6); c.lineTo(hr[0] + 0.4, hr[1] + 1.5); c.lineTo(hl[0] - 0.4, hl[1] + 1.5); c.closePath(); c.fill();
-  c.fillStyle = 'rgba(40,44,50,.45)'; for (let i = 0; i < 9; i++) for (let j = 0; j < 2; j++) { c.beginPath(); c.arc(hl[0] - 0.1 + i * 0.5 + j * 0.25, hip[1] + 0.1 + j * 0.6, 0.12, 0, 7); c.fill(); }
+  WB(() => { c.fillStyle = MAIL; c.beginPath(); c.moveTo(hl[0], hl[1] - 0.6); c.lineTo(hr[0], hr[1] - 0.6); c.lineTo(hr[0] + 0.4, hr[1] + 1.5); c.lineTo(hl[0] - 0.4, hl[1] + 1.5); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(40,44,50,.45)'; for (let i = 0; i < 9; i++) for (let j = 0; j < 2; j++) { c.beginPath(); c.arc(hl[0] - 0.1 + i * 0.5 + j * 0.25, hip[1] + 0.1 + j * 0.6, 0.12, 0, 7); c.fill(); } });
   // breastplate edge, then the surcoat stretched from hips to shoulders (it skews as he leans and twists)
-  c.fillStyle = STEELD; c.beginPath(); c.moveTo(hl[0], hl[1] - 0.4); c.lineTo(L[0] - 0.1, L[1] + 0.4); c.quadraticCurveTo(mx, my - 0.7, R[0] + 0.1, R[1] + 0.4); c.lineTo(hr[0], hr[1] - 0.4); c.closePath(); c.fill();
-  c.fillStyle = backView ? shade(COL, -0.12) : COL; c.beginPath(); c.moveTo(hl[0] + 0.3, hl[1] - 0.3); c.lineTo(L[0] + 0.55, L[1] + 0.6); c.lineTo(mx - 0.6, my + 0.1); c.lineTo(mx + 0.6, my + 0.1); c.lineTo(R[0] - 0.55, R[1] + 0.6); c.lineTo(hr[0] - 0.3, hr[1] - 0.3); c.closePath(); c.fill();
+  c.fillStyle = STEELD; c.beginPath(); c.moveTo(...hlT); c.lineTo(L[0] - 0.1, L[1] + 0.4); c.quadraticCurveTo(mx, my - 0.7, R[0] + 0.1, R[1] + 0.4); c.lineTo(...hrT); c.closePath(); c.fill();
+  c.fillStyle = backView ? shade(COL, -0.12) : COL; c.beginPath(); c.moveTo(...hlS); c.lineTo(L[0] + 0.55, L[1] + 0.6); c.lineTo(mx - 0.6, my + 0.1); c.lineTo(mx + 0.6, my + 0.1); c.lineTo(R[0] - 0.55, R[1] + 0.6); c.lineTo(...hrS); c.closePath(); c.fill();
   // shading on the side turned away
   c.fillStyle = 'rgba(0,0,0,.16)'; c.beginPath(); const sx = f > 0 ? [L, hl] : [R, hr]; c.moveTo(sx[0][0] + f * 0.55, sx[0][1] + 0.6); c.lineTo(lerp(sx[0][0], mx, 0.45), my + 0.4); c.lineTo(lerp(sx[1][0], hip[0], 0.45), hip[1] - 0.3); c.lineTo(sx[1][0] + f * 0.3, sx[1][1] - 0.3); c.closePath(); c.fill();
   // tabard tail, swinging behind the stride
   const sway = -f * cl(K.spd / RUN, 0, 1) * 0.9;
-  c.fillStyle = backView ? shade(COL, -0.12) : COL; c.beginPath(); c.moveTo(hip[0] - 1.2, hip[1] - 0.2); c.lineTo(hip[0] + 1.2, hip[1] - 0.2); c.lineTo(hip[0] + 0.95 + sway, hip[1] + 2.9 - K.kn * 1.4); c.lineTo(hip[0] - 0.95 + sway, hip[1] + 2.9 - K.kn * 1.4); c.closePath(); c.fill();
-  c.fillStyle = shade(COL, -0.3); c.beginPath(); c.moveTo(hip[0] - 0.95 + sway, hip[1] + 2.4 - K.kn * 1.4); c.lineTo(hip[0] + 0.95 + sway, hip[1] + 2.4 - K.kn * 1.4); c.lineTo(hip[0] + 0.95 + sway, hip[1] + 2.9 - K.kn * 1.4); c.lineTo(hip[0] - 0.95 + sway, hip[1] + 2.9 - K.kn * 1.4); c.fill();
+  WB(() => { c.fillStyle = backView ? shade(COL, -0.12) : COL; c.beginPath(); c.moveTo(hip[0] - 1.2, hip[1] - 0.2); c.lineTo(hip[0] + 1.2, hip[1] - 0.2); c.lineTo(hip[0] + 0.95 + sway, hip[1] + 2.9 - K.kn * 1.4); c.lineTo(hip[0] - 0.95 + sway, hip[1] + 2.9 - K.kn * 1.4); c.closePath(); c.fill();
+  c.fillStyle = shade(COL, -0.3); c.beginPath(); c.moveTo(hip[0] - 0.95 + sway, hip[1] + 2.4 - K.kn * 1.4); c.lineTo(hip[0] + 0.95 + sway, hip[1] + 2.4 - K.kn * 1.4); c.lineTo(hip[0] + 0.95 + sway, hip[1] + 2.9 - K.kn * 1.4); c.lineTo(hip[0] - 0.95 + sway, hip[1] + 2.9 - K.kn * 1.4); c.fill(); });
   // gold cross rides on the chest
   const cx = lerp(mx, hip[0], 0.42) + (backView ? 0 : f * P.tw * 0.3), cy = lerp(my, hip[1], 0.42);
   if (!backView) { c.save(); c.translate(cx, cy); c.rotate(Math.atan2(R[1] - L[1], R[0] - L[0])); c.fillStyle = GOLD; c.fillRect(-0.22, -1.0, 0.44, 2.0); c.fillRect(-0.75, -0.5, 1.5, 0.42); c.restore(); }
   if (!backView) { c.fillStyle = STEEL; c.beginPath(); c.ellipse(mx + f * 0.2, my - 0.15, 1.15, 0.55, 0, 0, 7); c.fill(); }
-  c.fillStyle = LEAD; c.beginPath(); c.moveTo(hl[0] + 0.05, hip[1] - 0.75); c.lineTo(hr[0] - 0.05, hip[1] - 0.75); c.lineTo(hr[0] - 0.05, hip[1] - 0.15); c.lineTo(hl[0] + 0.05, hip[1] - 0.15); c.fill();
-  if (!backView) { c.fillStyle = GOLD; c.fillRect(hip[0] - 0.3, hip[1] - 0.8, 0.6, 0.7); }
+  WB(() => { c.fillStyle = LEAD; c.beginPath(); c.moveTo(hl[0] + 0.05, hip[1] - 0.75); c.lineTo(hr[0] - 0.05, hip[1] - 0.75); c.lineTo(hr[0] - 0.05, hip[1] - 0.15); c.lineTo(hl[0] + 0.05, hip[1] - 0.15); c.fill();
+  if (!backView) { c.fillStyle = GOLD; c.fillRect(hip[0] - 0.3, hip[1] - 0.8, 0.6, 0.7); } });
 }
 function pauldron(c, s, f, far) {
   const dk = far ? -0.12 : 0;
