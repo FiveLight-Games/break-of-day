@@ -449,7 +449,7 @@ function edited() { if (locked()) { pose = poseAt(fr); dirty = false; lockMsg();
 
 // ---- stage ----
 let S = 20, S0 = 20, OX = 0, OY = 0, DPR = 1, OXb = 0, OYb = 0, ZM = 1, PX = 0, PY = 0;
-// zoom and pan (a view setting): wheel or pinch zooms round the cursor / fingers, right- or middle-drag (or two fingers) pans, the corner buttons zoom or fit
+// zoom and pan (a view setting): wheel or pinch zooms round the cursor / fingers, right-drag (or two fingers, or middle-drag with nothing selected) pans, middle-drag with parts selected moves them, the corner buttons zoom or fit
 function view() { S = S0 * (isK() ? 1.3 : 1) * ZM; OX = OXb + PX; OY = OYb + PY; }
 function zoomAt(z, x, y) { const w = s2w(x, y); ZM = cl(z, 0.3, 6); view(); PX = x - w[0] * S - OXb; PY = y - w[1] * S - OYb; view(); draw(); }
 function size() { const r = $('stage').getBoundingClientRect(); DPR = Math.min(2, devicePixelRatio || 1); cv.width = r.width * DPR; cv.height = r.height * DPR; S0 = Math.min(r.height / 27, r.width / 30); OXb = r.width / 2; OYb = r.height - r.height * 0.07; view();
@@ -567,14 +567,25 @@ cv.addEventListener('pointermove', e => { if (box) { const b = cv.getBoundingCli
 // zoom / pan
 cv.addEventListener('wheel', e => { e.preventDefault(); const b = cv.getBoundingClientRect(); zoomAt(ZM * Math.exp(-e.deltaY * 0.0015), e.clientX - b.left, e.clientY - b.top); }, { passive: false });
 cv.addEventListener('contextmenu', e => e.preventDefault());
-{ const TP = new Map(); let pin = null, pan = null; const loc = e => { const b = cv.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+// middle-drag with parts selected: moves them through space without changing their pose (whole body = hips + both feet, so he moves as one piece);
+// right-drag (or middle-drag with nothing selected) pans the view
+function moveSel(P0, d) { const P = clone(P0), sel = new Set(PSELS), add2 = (a, k = 1) => [a[0] + d[0] * k, a[1] + d[1] * k], AL = armL(), clampR = v => { const l = Math.hypot(v[0], v[1]); return l > AL ? [v[0] / l * AL, v[1] / l * AL] : v; };
+  const body = sel.has('T'); if (body) P.pel = add2(P0.pel);
+  for (const i of [0, 1]) if (['L', 'N', 'F'].some(g => sel.has(g + i))) P.feet[i] = [P0.feet[i][0] + d[0], Math.min(0.2, P0.feet[i][1] + d[1])];
+  if (!body) for (const s2 of ['A', 'B']) if (sel.has(s2) || sel.has('f' + s2) || sel.has('h' + s2)) P['h' + s2] = clampR(add2(P0['h' + s2]));
+  if (P.knight && P.sw && !(P.gA ?? 1) && !(P.gB ?? 1) && sel.has('S') && P0.sg) P.sg = add2(P0.sg);
+  return P; }
+{ const TP = new Map(); let pin = null, pan = null, mv = null; const loc = e => { const b = cv.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
   const pinStart = () => { const [a, b2] = [...TP.values()], m = [(a[0] + b2[0]) / 2, (a[1] + b2[1]) / 2]; pin = { d: Math.hypot(a[0] - b2[0], a[1] - b2[1]) || 1, z: ZM, w: s2w(...m) }; drag = null; box = null; boxShow(); };
-  cv.addEventListener('pointerdown', e => { if (e.button === 1 || e.button === 2) { pan = { x: e.clientX, y: e.clientY, px: PX, py: PY }; cv.setPointerCapture(e.pointerId); e.preventDefault(); e.stopImmediatePropagation(); return; }
+  cv.addEventListener('pointerdown', e => { if (e.button === 1 && PSELS.length && !playing && frontOnly()) { if (locked()) { lockMsg(); e.stopImmediatePropagation(); return; } mv = { x: e.clientX, y: e.clientY, P0: clone(pose) }; cv.setPointerCapture(e.pointerId); e.preventDefault(); e.stopImmediatePropagation(); return; }
+    if (e.button === 1 || e.button === 2) { pan = { x: e.clientX, y: e.clientY, px: PX, py: PY }; cv.setPointerCapture(e.pointerId); e.preventDefault(); e.stopImmediatePropagation(); return; }
     if (e.pointerType !== 'touch') return; TP.set(e.pointerId, loc(e)); if (TP.size === 2) { pinStart(); e.stopImmediatePropagation(); } }, { capture: true });
-  cv.addEventListener('pointermove', e => { if (pan) { PX = pan.px + e.clientX - pan.x; PY = pan.py + e.clientY - pan.y; view(); draw(); e.stopImmediatePropagation(); return; }
+  cv.addEventListener('pointermove', e => { if (mv) { pose = moveSel(mv.P0, [(e.clientX - mv.x) / S, (e.clientY - mv.y) / S]); dirty = true; livePreview(); e.stopImmediatePropagation(); return; }
+    if (pan) { PX = pan.px + e.clientX - pan.x; PY = pan.py + e.clientY - pan.y; view(); draw(); e.stopImmediatePropagation(); return; }
     if (!TP.has(e.pointerId)) return; TP.set(e.pointerId, loc(e)); if (!pin || TP.size < 2) return; e.stopImmediatePropagation();
     const [a, b2] = [...TP.values()], m = [(a[0] + b2[0]) / 2, (a[1] + b2[1]) / 2]; ZM = cl(pin.z * Math.hypot(a[0] - b2[0], a[1] - b2[1]) / pin.d, 0.3, 6); view(); PX = m[0] - pin.w[0] * S - OXb; PY = m[1] - pin.w[1] * S - OYb; view(); draw(); }, { capture: true });
-  const up = e => { if (pan) { pan = null; e.stopImmediatePropagation(); return; } TP.delete(e.pointerId); if (pin) { e.stopImmediatePropagation(); if (TP.size < 2) pin = null; } };
+  const up = e => { if (mv) { const moved = mv.x !== e.clientX || mv.y !== e.clientY; mv = null; e.stopImmediatePropagation(); if (moved) edited(); return; }
+    if (pan) { pan = null; e.stopImmediatePropagation(); return; } TP.delete(e.pointerId); if (pin) { e.stopImmediatePropagation(); if (TP.size < 2) pin = null; } };
   cv.addEventListener('pointerup', up, { capture: true }); cv.addEventListener('pointercancel', up, { capture: true }); }
 $('zIn').onclick = () => { const b = cv.getBoundingClientRect(); zoomAt(ZM * 1.25, b.width / 2, b.height / 2); };
 $('zOut').onclick = () => { const b = cv.getBoundingClientRect(); zoomAt(ZM / 1.25, b.width / 2, b.height / 2); };
