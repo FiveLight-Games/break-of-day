@@ -490,10 +490,10 @@ function jointT(base, end, l, p) { const dx = end[0] - base[0], dy = end[1] - ba
 const kneeH = (r, ankle) => [0, 1].flatMap(i => [{ id: 'kd' + i, p: r.knees[i], k: 'kneeD', c: '--ink', i }, { id: 'k' + i, p: flipB(r.hips[i], ankle(i), r.knees[i]), k: 'knee', c: '--ink', i, an: ankle(i) }]);
 const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || locked()) return []; if (r.back) return BACKH(r, P);
   if (P.knight) { const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.45]; return [
-    { id: 'hA', p: r.hA, k: 'hand', c: '--a', l: 'A' }, ...(P.sw ? [{ id: 'tp', p: r.tip, k: 'tip', c: '--accent' }] : [{ id: 'hB', p: r.hB, k: 'hand', c: '--b', l: 'B' }]),
+    { id: 'hA', p: r.hA, k: 'hand', c: '--a', l: 'A' }, { id: 'hB', p: r.hB, k: 'hand', c: '--b', l: 'B' }, ...(P.sw ? [{ id: 'tp', p: r.tip, k: 'tip', c: '--accent' }] : []),
     { id: 'f0', p: r.feet[0], k: 'foot', c: '--ink', i: 0 }, { id: 'f1', p: r.feet[1], k: 'foot', c: '--ink', i: 1 },
     { id: 'ch', p: chestPt(P), k: 'chest', c: '--ink' }, { id: 'pl', p: r.pel, k: 'pel', c: '--ink' },
-    { id: 'eA', p: r.eA, k: 'elbowD', c: '--a', a: 'A' }, ...(P.sw ? [] : [{ id: 'eB', p: r.eB, k: 'elbowD', c: '--b', a: 'B' }]),
+    { id: 'eA', p: r.eA, k: 'elbowD', c: '--a', a: 'A' }, { id: 'eB', p: r.eB, k: 'elbowD', c: '--b', a: 'B' },
     { id: 'xA', p: flipOf(r, 'A'), k: 'elbow', c: '--a', a: 'A' }, { id: 'xB', p: flipOf(r, 'B'), k: 'elbow', c: '--b', a: 'B' },
     { id: 'hdI', p: headOf(r, P, 0), k: 'head', c: '--b', i: 0 },
     { id: 't0', p: toeK(r, P, 0), k: 'toe', c: '--accent', i: 0 }, { id: 't1', p: toeK(r, P, 1), k: 'toe', c: '--accent', i: 1 },
@@ -539,13 +539,14 @@ cv.addEventListener('pointermove', e => { if (box) { const b = cv.getBoundingCli
     else if (drag.k === 'hand') { let v = [p[0] - sh[0], p[1] - sh[1]]; const d = Math.hypot(...v); if (d > ARM) v = [v[0] / d * ARM, v[1] / d * ARM]; B['h' + drag.b] = v; }
     else if (drag.k === 'elbowD') { const e0 = drag.b === 'G' ? r.eG : r.eP, h = B['h' + drag.b], D = Math.atan2(p[1] - sh[1], p[0] - sh[0]) - Math.atan2(e0[1] - sh[1], e0[0] - sh[0]), c2 = Math.cos(D), s2 = Math.sin(D); B['h' + drag.b] = [h[0] * c2 - h[1] * s2, h[0] * s2 + h[1] * c2]; }
     livePreview(); return; }
-  if (drag.k === 'hand') { const s = drag.id === 'hA' ? r.shA : r.shB, AL = armL(); let v = [p[0] - s[0], p[1] - s[1]]; const d = Math.hypot(...v); if (d > AL) v = [v[0] / d * AL, v[1] / d * AL]; P[drag.id] = v; }
+  if (drag.k === 'hand' && P.knight && P.sw && drag.id === 'hB') { const d = [Math.cos(P.sa || 0), Math.sin(P.sa || 0)], g = [p[0] - d[0] * 0.9, p[1] - d[1] * 0.9], AL = armL(); let v = [g[0] - r.shA[0], g[1] - r.shA[1]]; const dd = Math.hypot(...v); if (dd > AL) v = [v[0] / dd * AL, v[1] / dd * AL]; P.hA = v; }
+  else if (drag.k === 'hand') { const s = drag.id === 'hA' ? r.shA : r.shB, AL = armL(); let v = [p[0] - s[0], p[1] - s[1]]; const d = Math.hypot(...v); if (d > AL) v = [v[0] / d * AL, v[1] / d * AL]; P[drag.id] = v; }
   else if (drag.k === 'tip') P.sa = Math.atan2(p[1] - r.g[1], p[0] - r.g[0]);
   else if (drag.k === 'foot') P.feet[drag.i] = [p[0], Math.min(0.2, p[1])];
   else if (drag.k === 'pel') P.pel = p;
   else if (drag.k === 'chest') P.lean = cl(P.f * Math.atan2(p[0] - P.pel[0], -(p[1] - P.pel[1])), -1.2, 1.2);
   else if (drag.k === 'elbowD') { const s = drag.a === 'A' ? r.shA : r.shB, hw = drag.a === 'A' ? r.hA : r.hB, l = P.knight ? 2.6 : 3.5, t = jointT(s, hw, l, p);
-    if (t !== null && Math.abs(t) <= 1) P['e' + drag.a] = t;
+    if (t !== null && (Math.abs(t) <= 1 || (P.knight && P.sw && drag.a === 'B'))) P['e' + drag.a] = cl(t, -1, 1);
     else { const sg = t === null ? (P['e' + drag.a] >= 0 ? 1 : -1) : Math.sign(t); P['e' + drag.a] = sg; const e0 = KNX.ikv(s, hw, l, l, sg), h = P['h' + drag.a], D = Math.atan2(p[1] - s[1], p[0] - s[0]) - Math.atan2(e0[1] - s[1], e0[0] - s[0]), c2 = Math.cos(D), s2 = Math.sin(D); P['h' + drag.a] = [h[0] * c2 - h[1] * s2, h[0] * s2 + h[1] * c2]; } }
   else if (drag.k === 'head') { const H = drag.i ? r.HZ : r.HI, pv = [H[0], H[1] + (P.knight ? 1.6 : 2.2)], a = Math.atan2(p[0] - pv[0], -(p[1] - pv[1])); P.hr = (P.hr || [0, 0]).slice(); P.hr[drag.i] = cl(-P.f * a, -1.2, 1.2); }
   else if (drag.k === 'toe' && P.knight) { const fs = (P.ff || [])[drag.i] ? -1 : 1, an = r.ank[drag.i], v = toeV(r, P, drag.i), a = Math.atan2(p[1] - an[1], p[0] - an[0]) - Math.atan2(v[1], v[0]); P.fa = (P.fa || [0, 0]).slice(); P.fa[drag.i] = cl(-P.f * fs * Math.atan2(Math.sin(a), Math.cos(a)), -1.3, 1.3); }
