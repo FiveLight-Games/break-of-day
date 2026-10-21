@@ -734,13 +734,18 @@ function leg(c, hip, knee, foot, f, far, kneelBack, bv, X) {
   // Pose Bench (FA given): the boot's top stays on the shin; the rest is built in the shin's own frame (its standing shape) and only its foot part turns round the ankle,
   // by how far the foot's direction (level toward his facing, turned by FA) is from where it points in that frame: the ankle bends by the foot's angle to the leg,
   // so a leg swung away squashes the toe toward the shin, and turning the foot to follow the leg undoes it (foot along the shin = the boot's own shape)
-  let Q; if (FA !== null) { const nfx = d * uy, nfy = -d * ux, Lf = Math.hypot(foot[0] - ank[0], foot[1] - ank[1]), D = Math.atan2(Math.sin(FA) * d, Math.cos(FA) * d) - Math.atan2(nfy, nfx), cA = Math.cos(D), sA = Math.sin(D);
-      Q = (v, y) => { const dn = Lf + y - foot[1], px = nfx * v + ux * dn, py = nfy * v + uy * dn; return [ank[0] + px * cA - py * sA, ank[1] + px * sA + py * cA]; };
+  let Q; if (FA !== null) { const nfx = d * uy, nfy = -d * ux, Lf = Math.hypot(foot[0] - ank[0], foot[1] - ank[1]), D0 = Math.atan2(Math.sin(FA) * d, Math.cos(FA) * d) - Math.atan2(nfy, nfx), D = Math.atan2(Math.sin(D0), Math.cos(D0));
+      // skinned like a real ankle: the sole and toe turn the whole way (w 1), the heel and instep at ankle height only part way (w < 1), the top not at all, so the bend is spread smoothly
+      Q = (v, y, w = 1) => { const dn = Lf + y - foot[1], px = nfx * v + ux * dn, py = nfy * v + uy * dn, a = D * w, cA = Math.cos(a), sA = Math.sin(a); return [ank[0] + px * cA - py * sA, ank[1] + px * sA + py * cA]; };
       tb = [ank[0] - nfx * 0.92 - ux * 0.25, ank[1] - nfy * 0.92 - uy * 0.25]; tf = [ank[0] + nfx * 0.92 - ux * 0.25, ank[1] + nfy * 0.92 - uy * 0.25]; }
   else Q = (v, y) => [X(v), y];
-  const boot = () => { c.beginPath(); c.moveTo(...tb); c.lineTo(...Q(-0.72, ay));
-    c.quadraticCurveTo(...Q(-0.82, g - 0.1), ...Q(-0.52, g)); c.lineTo(...Q(0.95, g)); c.quadraticCurveTo(...Q(1.45, g), ...Q(1.42, g - 0.4));
-    c.quadraticCurveTo(...Q(1.3, ay + 0.1), ...Q(0.68, ay - 0.18)); c.lineTo(...tf); c.closePath(); };
+  const sk = FA !== null, boot = () => { c.beginPath(); c.moveTo(...tb);
+    // the bench's bending boot: the back and front run down from the top through the half-turned ankle in smooth curves (no corner at the heel or the instep)
+    if (sk) c.bezierCurveTo(tb[0] + ux * 0.7, tb[1] + uy * 0.7, ...Q(-0.86, g - 0.35, 0.85), ...Q(-0.42, g)); // leaves the top along the shin, so no corner where they meet
+    else { c.lineTo(...Q(-0.72, ay)); c.quadraticCurveTo(...Q(-0.82, g - 0.1), ...Q(-0.52, g)); }
+    if (sk) { c.lineTo(...Q(0.95, g)); c.bezierCurveTo(...Q(1.48, g), ...Q(1.52, g - 0.5), ...Q(1.12, g - 0.62)); // round toe, then the instep runs up into the shin in one curve
+      c.bezierCurveTo(...Q(0.72, g - 0.72, 0.9), tf[0] + ux * 0.75, tf[1] + uy * 0.75, ...tf); }
+    else { c.lineTo(...Q(0.95, g)); c.quadraticCurveTo(...Q(1.45, g), ...Q(1.42, g - 0.4)); c.quadraticCurveTo(...Q(1.3, ay + 0.1), ...Q(0.68, ay - 0.18)); c.lineTo(...tf); } c.closePath(); };
   c.lineJoin = 'round'; c.strokeStyle = shade(bD, dk - 0.1); c.lineWidth = 0.4; boot(); c.stroke(); c.fillStyle = shade(bM, dk); c.fill();
   c.strokeStyle = shade(bL, dk); c.lineWidth = 0.18; c.beginPath(); c.moveTo(...Q(0.45, ay - 0.05)); c.quadraticCurveTo(...Q(0.95, ay + 0.05), ...Q(1.2, g - 0.45)); c.stroke();
   c.strokeStyle = shade(bD, dk - 0.25); c.lineWidth = 0.2; c.beginPath(); c.moveTo(...Q(-0.5, g - 0.07)); c.lineTo(...Q(1.0, g - 0.07)); c.stroke();
