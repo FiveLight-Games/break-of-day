@@ -110,7 +110,7 @@ body.knight .og { display: none !important; } body:not(.knight) .kn { display: n
     <div class="tbar">
       <button id="bDel" class="danger" title="Delete the key at the current frame (Delete)">Delete key</button>
       <button id="bRestore" title="Put back this frame's key from the animation as it was saved: the game's version for a Storm Ogre animation, or how it was when you made it">Reset key to the game's version</button>
-      <button id="bUndo" title="Undo (Ctrl+Z)">Undo</button>
+      <button id="bUndo" title="Undo (Ctrl+Z)">Undo</button><button id="bRedo" title="Redo (Ctrl+Y)">Redo</button>
       <button id="bRev" title="Pick a run of frames on the timeline, then it is played back in reverse straight after it (the frames after it move along to make room)">Reverse…</button><span id="revBar" style="display:none;gap:6px;align-items:center"><span class="note" id="revMsg"></span><button id="revGo" class="primary" disabled>Confirm reverse</button><button id="revNo">Cancel</button></span>
       <label class="note">Motion to the next key <select id="ease"><option value="smooth">Smooth curve</option><option value="ease">Slow start and stop</option><option value="linear">Steady speed</option><option value="hold">Freeze, then jump</option></select></label>
       <label class="note">Playback speed <select id="spd"><option value="0.1">0.1×</option><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select></label>
@@ -399,8 +399,20 @@ const keyAt = fr => keys().find(k => k.fr === fr);
 const lastFr = () => keys().length ? keys()[keys().length - 1].fr : 0;
 
 // undo
-const hist = []; const snap = () => { hist.push(JSON.stringify(clips[ci])); if (hist.length > 60) hist.shift(); };
-function undo() { if (!hist.length) return; clips[ci] = JSON.parse(hist.pop()); fr = cl(fr, 0, Math.max(lastFr(), fr)); pose = poseAt(fr); dirty = false; save(); ui(); }
+// undo / redo (2026-10-20): every change to the open animation is a step: saved keys, deletes, pins, motion types, reverse, facing, links...
+// and also a pose you've changed but not saved yet. After each ui() the state (the animation + any unsaved pose) is compared with the last step
+// and recorded if different; scrubbing frames isn't a change. The last HMAX steps are kept per animation (opening another starts a fresh list).
+const HMAX = 50, H = { list: [], i: -1, cid: null, busy: false };
+const hist = { length: 0 }; const snap = () => {}; // older callers; the record happens after the change in hRec
+const hKey = () => JSON.stringify(clips[ci]) + '|' + (dirty ? JSON.stringify(pose) : '');
+function hRec() { if (H.busy || !clips[ci] || drag || box || playing) return; const id = clips[ci].id;
+  if (H.cid !== id) { H.cid = id; H.list = []; H.i = -1; }
+  const k = hKey(), cur = H.list[H.i]; if (cur && cur.k === k) { cur.fr = fr; return; }
+  H.list.length = H.i + 1; H.list.push({ k, clip: JSON.stringify(clips[ci]), pose: dirty ? JSON.stringify(pose) : null, fr }); if (H.list.length > HMAX) H.list.shift(); H.i = H.list.length - 1; }
+function hGo(d) { const j = H.i + d; if (j < 0 || j >= H.list.length) return; stop(); askNext = null; $('saveQ').classList.remove('on'); H.i = j; const st = H.list[j]; H.busy = true;
+  try { clips[ci] = JSON.parse(st.clip); fr = st.fr; if (st.pose) { pose = JSON.parse(st.pose); dirty = true; } else { pose = poseAt(fr); dirty = false; } save(); ui(); } finally { H.busy = false; } hBtns(); }
+const undo = () => hGo(-1), redo = () => hGo(1);
+function hBtns() { $('bUndo').disabled = H.i <= 0; $('bRedo').disabled = H.i >= H.list.length - 1; $('bUndo').title = `Undo (Ctrl+Z) · ${Math.max(0, H.i)} step${H.i === 1 ? '' : 's'} back available`; $('bRedo').title = `Redo (Ctrl+Y or Ctrl+Shift+Z) · ${Math.max(0, H.list.length - 1 - H.i)} available`; }
 
 // ---- interpolation ----
 const wrapA = a => Math.atan2(Math.sin(a), Math.cos(a));
@@ -677,7 +689,7 @@ function ui() {
     $('folderList').innerHTML = [...new Set(clips.filter(c => !c.lib).map(folderOf))].map(f => `<option value="${esc(f)}">`).join(''); }
   { const ls = $('linkSel'), lv = clip().from || ls.value, lo = grouped(clips.filter(c => c !== clip() && actorOf(c) === actorOf(clip())), c => c.id); if (ls.innerHTML !== lo) ls.innerHTML = lo; if ([...ls.options].some(o => o.value === lv)) ls.value = lv; $('linkOn').checked = !!linkSrc(clip()); $('linkOn').disabled = !ls.options.length; }
   if (document.activeElement !== $('clipName')) $('clipName').value = clip().name;
-  ppUpd();
+  ppUpd(); hRec(); hBtns();
 }
 // squeeze sliders: pose.sq, same keys as tw, 1 = as drawn (drawO2 scales the part along screen x round its anchor)
 const sqGet = (P, [g, i]) => { const T = P.sq || {}, v = i === undefined ? T[g] : (T[g] || [])[i]; return v === undefined || v === null ? 1 : v; };
@@ -849,7 +861,7 @@ $('sqSave').onclick = () => { const k0 = keyAt(fr); snap(); if (k0) k0.pose = cl
 $('sqDrop').onclick = () => { dirty = false; askEnd(true); }; $('sqCancel').onclick = () => askEnd(false);
 $('saveQ').addEventListener('pointerdown', e => { if (e.target.id === 'saveQ') askEnd(false); });
 $('bDel').onclick = () => { const k = keyAt(fr); if (!k || keys().length < 2) return; if (locked()) { lockMsg(); return; } snap(); clip().keys = keys().filter(q => q !== k); pose = poseAt(fr); save(); ui(); };
-$('bUndo').onclick = undo;
+$('bUndo').onclick = undo; $('bRedo').onclick = redo;
 // Reverse: pick frames a..b on the timeline; the section is played back in reverse straight after b (b..2b-a), every key after b moves along by (b - a) to make room.
 // The section's ends become keys first (the pose there as it plays now), and each reversed stretch keeps the motion type of the stretch it mirrors.
 let REV = null;
@@ -949,7 +961,7 @@ window.__benchBake = () => { const out = []; for (let i = 0; i <= lastFr(); i++)
 $('bLoad').onclick = () => { try { const c = JSON.parse($('io').value); if (!c.keys || !c.keys.length) throw 0; addClip({ name: c.name || 'Loaded clip', keys: c.keys, ...(c.actor ? { actor: c.actor } : {}) }); $('copyMsg').textContent = 'Opened'; } catch (e) { $('copyMsg').textContent = 'That isn’t animation text. Paste what Copy animation gave you.'; } };
 addEventListener('keydown', e => { if (e.target.matches('input, textarea, select')) return; const k = e.key;
   if (k === ' ') { e.preventDefault(); playing ? stop() : play(); } else if (k === 'ArrowLeft') { stop(); setFr(fr - 1); } else if (k === 'ArrowRight') { stop(); setFr(fr + 1); }
-  else if (k === 's' || k === 'S') snapshot(); else if (k === 'Delete' || k === 'Backspace') $('bDel').click(); else if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); undo(); } });
+  else if (k === 's' || k === 'S') snapshot(); else if (k === 'Delete' || k === 'Backspace') $('bDel').click(); else if ((e.ctrlKey || e.metaKey) && (k === 'z' || k === 'Z')) { e.preventDefault(); if (e.shiftKey) redo(); else undo(); } else if ((e.ctrlKey || e.metaKey) && (k === 'y' || k === 'Y')) { e.preventDefault(); redo(); } });
 addEventListener('resize', () => { size(); ui(); });
 new MutationObserver(() => ui()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 size(); setFr(0); for (const c of clips) LSAVE.set(c.id, c.lib ? libJ(c) : clipJ(c)); cloudInit();
