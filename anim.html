@@ -990,7 +990,7 @@ function kfnS(u, keys) { let i = 0; while (i < keys.length - 2 && keys[i + 1][0]
   return a.map((v, j) => { if (!j) return u; const ma = pa ? (b[j] - pa[j]) / (b[0] - pa[0]) * h : 0, mb = nb ? (nb[j] - v) / (nb[0] - a[0]) * h : 0; return h00 * v + h10 * ma + h01 * b[j] + h11 * mb; }); }
 
 function leg(c, hip, knee, foot, f, far, kneelBack, bv, X) {
-  const dk = far ? -0.14 : 0, XT = X ? X.t : g => g(), XS = X ? X.s : g => g(), XB = X ? X.b : g => g();
+  const dk = far ? -0.14 : 0, XT = X ? X.t : g => g(), XS = X ? X.s : g => g(), XB = X ? X.b : g => g(), FA = X && X.fa || 0;
   c.lineCap = 'round';
   XT(() => { c.lineCap = 'round'; c.strokeStyle = shade(STEELD, dk - 0.2); c.lineWidth = 1.9; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke();
   c.strokeStyle = shade(STEEL, dk); c.lineWidth = 1.45; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke(); });
@@ -1016,12 +1016,14 @@ function leg(c, hip, knee, foot, f, far, kneelBack, bv, X) {
     c.save(); kb(); c.clip(); c.strokeStyle = shade(bD, dk - 0.3); c.lineWidth = 0.55; c.beginPath(); c.moveTo(eb[0] + ux * 0.55, eb[1] + uy * 0.55); c.quadraticCurveTo(e[0] + ux * 1.15 - nx * 0.9, e[1] + uy * 1.15 - ny * 0.9, e[0] + ux * 1.0, e[1] + uy * 1.0); c.quadraticCurveTo(e[0] + ux * 1.15 + nx * 0.9, e[1] + uy * 1.15 + ny * 0.9, ef[0] + ux * 0.55, ef[1] + uy * 0.55); c.stroke(); c.restore();
     c.strokeStyle = shade(bL, dk); c.lineWidth = 0.16; c.beginPath(); c.moveTo(tb[0] + nx * 0.4 + ux * 0.4, tb[1] + ny * 0.4 + uy * 0.4); c.lineTo(eb[0] + nx * 0.4, eb[1] + ny * 0.4); c.stroke();
   } else {
-  const boot = () => { c.beginPath(); c.moveTo(...tb); c.lineTo(X(-0.72), ay);
-    c.quadraticCurveTo(X(-0.82), g - 0.1, X(-0.52), g); c.lineTo(X(0.95), g); c.quadraticCurveTo(X(1.45), g, X(1.42), g - 0.4);
-    c.quadraticCurveTo(X(1.3), ay + 0.1, X(0.68), ay - 0.18); c.lineTo(...tf); c.closePath(); };
+  // the foot part turns round the ankle by FA (the Pose Bench's foot turn) while the top stays on the shin, so the ankle bends by the foot's angle to the leg
+  const cA = Math.cos(FA), sA = Math.sin(FA), Q = (v, y) => { const px = X(v) - ank[0], py = y - ank[1]; return [ank[0] + px * cA - py * sA, ank[1] + px * sA + py * cA]; };
+  const boot = () => { c.beginPath(); c.moveTo(...tb); c.lineTo(...Q(-0.72, ay));
+    c.quadraticCurveTo(...Q(-0.82, g - 0.1), ...Q(-0.52, g)); c.lineTo(...Q(0.95, g)); c.quadraticCurveTo(...Q(1.45, g), ...Q(1.42, g - 0.4));
+    c.quadraticCurveTo(...Q(1.3, ay + 0.1), ...Q(0.68, ay - 0.18)); c.lineTo(...tf); c.closePath(); };
   c.lineJoin = 'round'; c.strokeStyle = shade(bD, dk - 0.1); c.lineWidth = 0.4; boot(); c.stroke(); c.fillStyle = shade(bM, dk); c.fill();
-  c.strokeStyle = shade(bL, dk); c.lineWidth = 0.18; c.beginPath(); c.moveTo(X(0.45), ay - 0.05); c.quadraticCurveTo(X(0.95), ay + 0.05, X(1.2), g - 0.45); c.stroke();
-  c.strokeStyle = shade(bD, dk - 0.25); c.lineWidth = 0.2; c.beginPath(); c.moveTo(X(-0.5), g - 0.07); c.lineTo(X(1.0), g - 0.07); c.stroke();
+  c.strokeStyle = shade(bL, dk); c.lineWidth = 0.18; c.beginPath(); c.moveTo(...Q(0.45, ay - 0.05)); c.quadraticCurveTo(...Q(0.95, ay + 0.05), ...Q(1.2, g - 0.45)); c.stroke();
+  c.strokeStyle = shade(bD, dk - 0.25); c.lineWidth = 0.2; c.beginPath(); c.moveTo(...Q(-0.5, g - 0.07)); c.lineTo(...Q(1.0, g - 0.07)); c.stroke();
   }
   });
   XT(() => { c.fillStyle = shade(STEELL, dk - 0.05); c.beginPath(); c.arc(knee[0], knee[1], 0.72, 0, 7); c.fill();
@@ -1159,7 +1161,7 @@ function draw(c, R, gate, t) { const f = R.f, F = frame(R), [hA, hB, G] = handsO
   const armXs = s2 => { const sh = s2 === 'A' ? F.shA : F.shB, h = s2 === 'A' ? hA : hB, el = ikv(sh, h, 2.6, 2.6, s2 === 'A' ? eA : eB), wr = L2(el, h, 0.7), qU = sqv(s2), qF = sqv('f' + s2), dE = (qU - 1) * (el[0] - sh[0]), dW = dE + (qF - 1) * (wr[0] - el[0]);
     return { noP: 1, u: g => { if (pdo(s2) === 1) pdraw(s2); tag(s2); xf(s2, sh, ang(sh, el), twv(s2), qU, 0, g); if (!pdo(s2)) pdraw(s2); }, f: g => { tag('f' + s2); xf('f' + s2, el, ang(el, wr), twv('f' + s2), qF, dE, g); }, h: g => { tag('h' + s2); xf('h' + s2, wr, ang(wr, h), twv('h' + s2), sqv('h' + s2), dW, g); } }; };
   const legXs = i => { const hp = hips[i], kn2 = knees[i], an = L2(kn2, R.feet[i], 0.62), qT = sqv('L', i), qN = sqv('N', i), dK = (qT - 1) * (kn2[0] - hp[0]), dA = dK + (qN - 1) * (an[0] - kn2[0]);
-    return { t: g => { tag('L' + i); xf('L' + i, hp, ang(hp, kn2), twv('L', i), qT, 0, g); }, s: g => { tag('N' + i); xf('N' + i, kn2, ang(kn2, an), twv('N', i), qN, dK, g); }, b: g => { tag('F' + i); const a = -f * ((R.ff || [])[i] ? -1 : 1) * ((R.fa || [])[i] || 0); xf('F' + i, an, 'x', twv('F', i), sqv('F', i), dA, a ? () => { c.save(); c.translate(an[0], an[1]); c.rotate(a); c.translate(-an[0], -an[1]); g(); c.restore(); } : g); } }; };
+    return { t: g => { tag('L' + i); xf('L' + i, hp, ang(hp, kn2), twv('L', i), qT, 0, g); }, s: g => { tag('N' + i); xf('N' + i, kn2, ang(kn2, an), twv('N', i), qN, dK, g); }, b: g => { tag('F' + i); xf('F' + i, an, 'x', twv('F', i), sqv('F', i), dA, g); }, fa: -f * ((R.ff || [])[i] ? -1 : 1) * ((R.fa || [])[i] || 0) }; };
   tag(null); c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(R.pel[0] * 0.5, 0.4, 4.4, 1.5, 0, 0, 7); c.fill();
   const hold = !!R.sw, d = [Math.cos(sa), Math.sin(sa)], L = 10.5 * (R.bl == null ? 1 : R.bl), ff = R.ff || [0, 0];
   const gloves = () => { if (gB) armXs('B').h(() => glove(c, hB, true)); if (gA) armXs('A').h(() => glove(c, hA, false)); }, blade = () => { if (!hold) return; tag('S'); lightSword(c, G, sa, L, R.lb || 0, t); sword(c, G, sa, L); gloves(); };

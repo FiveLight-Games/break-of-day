@@ -705,7 +705,7 @@ function drawKnight(c, t) {
 }
 // X (optional, the Pose Bench): wrappers drawing each segment on its own: t thigh (and knee cap), s shin, b boot
 function leg(c, hip, knee, foot, f, far, kneelBack, bv, X) {
-  const dk = far ? -0.14 : 0, XT = X ? X.t : g => g(), XS = X ? X.s : g => g(), XB = X ? X.b : g => g();
+  const dk = far ? -0.14 : 0, XT = X ? X.t : g => g(), XS = X ? X.s : g => g(), XB = X ? X.b : g => g(), FA = X && X.fa || 0;
   c.lineCap = 'round';
   XT(() => { c.lineCap = 'round'; c.strokeStyle = shade(STEELD, dk - 0.2); c.lineWidth = 1.9; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke();
   c.strokeStyle = shade(STEEL, dk); c.lineWidth = 1.45; c.beginPath(); c.moveTo(...hip); c.lineTo(...knee); c.stroke(); });
@@ -731,12 +731,14 @@ function leg(c, hip, knee, foot, f, far, kneelBack, bv, X) {
     c.save(); kb(); c.clip(); c.strokeStyle = shade(bD, dk - 0.3); c.lineWidth = 0.55; c.beginPath(); c.moveTo(eb[0] + ux * 0.55, eb[1] + uy * 0.55); c.quadraticCurveTo(e[0] + ux * 1.15 - nx * 0.9, e[1] + uy * 1.15 - ny * 0.9, e[0] + ux * 1.0, e[1] + uy * 1.0); c.quadraticCurveTo(e[0] + ux * 1.15 + nx * 0.9, e[1] + uy * 1.15 + ny * 0.9, ef[0] + ux * 0.55, ef[1] + uy * 0.55); c.stroke(); c.restore();
     c.strokeStyle = shade(bL, dk); c.lineWidth = 0.16; c.beginPath(); c.moveTo(tb[0] + nx * 0.4 + ux * 0.4, tb[1] + ny * 0.4 + uy * 0.4); c.lineTo(eb[0] + nx * 0.4, eb[1] + ny * 0.4); c.stroke();
   } else {
-  const boot = () => { c.beginPath(); c.moveTo(...tb); c.lineTo(X(-0.72), ay);
-    c.quadraticCurveTo(X(-0.82), g - 0.1, X(-0.52), g); c.lineTo(X(0.95), g); c.quadraticCurveTo(X(1.45), g, X(1.42), g - 0.4);
-    c.quadraticCurveTo(X(1.3), ay + 0.1, X(0.68), ay - 0.18); c.lineTo(...tf); c.closePath(); };
+  // the foot part turns round the ankle by FA (the Pose Bench's foot turn) while the top stays on the shin, so the ankle bends by the foot's angle to the leg
+  const cA = Math.cos(FA), sA = Math.sin(FA), Q = (v, y) => { const px = X(v) - ank[0], py = y - ank[1]; return [ank[0] + px * cA - py * sA, ank[1] + px * sA + py * cA]; };
+  const boot = () => { c.beginPath(); c.moveTo(...tb); c.lineTo(...Q(-0.72, ay));
+    c.quadraticCurveTo(...Q(-0.82, g - 0.1), ...Q(-0.52, g)); c.lineTo(...Q(0.95, g)); c.quadraticCurveTo(...Q(1.45, g), ...Q(1.42, g - 0.4));
+    c.quadraticCurveTo(...Q(1.3, ay + 0.1), ...Q(0.68, ay - 0.18)); c.lineTo(...tf); c.closePath(); };
   c.lineJoin = 'round'; c.strokeStyle = shade(bD, dk - 0.1); c.lineWidth = 0.4; boot(); c.stroke(); c.fillStyle = shade(bM, dk); c.fill();
-  c.strokeStyle = shade(bL, dk); c.lineWidth = 0.18; c.beginPath(); c.moveTo(X(0.45), ay - 0.05); c.quadraticCurveTo(X(0.95), ay + 0.05, X(1.2), g - 0.45); c.stroke();
-  c.strokeStyle = shade(bD, dk - 0.25); c.lineWidth = 0.2; c.beginPath(); c.moveTo(X(-0.5), g - 0.07); c.lineTo(X(1.0), g - 0.07); c.stroke();
+  c.strokeStyle = shade(bL, dk); c.lineWidth = 0.18; c.beginPath(); c.moveTo(...Q(0.45, ay - 0.05)); c.quadraticCurveTo(...Q(0.95, ay + 0.05), ...Q(1.2, g - 0.45)); c.stroke();
+  c.strokeStyle = shade(bD, dk - 0.25); c.lineWidth = 0.2; c.beginPath(); c.moveTo(...Q(-0.5, g - 0.07)); c.lineTo(...Q(1.0, g - 0.07)); c.stroke();
   }
   });
   XT(() => { c.fillStyle = shade(STEELL, dk - 0.05); c.beginPath(); c.arc(knee[0], knee[1], 0.72, 0, 7); c.fill();
