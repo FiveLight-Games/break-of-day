@@ -111,6 +111,7 @@ body.knight .og { display: none !important; } body:not(.knight) .kn { display: n
       <button id="bDel" class="danger" title="Delete the key at the current frame (Delete)">Delete key</button>
       <button id="bRestore" title="Put back this frame's key from the animation as it was saved: the game's version for a Storm Ogre animation, or how it was when you made it">Reset key to the game's version</button>
       <button id="bUndo" title="Undo (Ctrl+Z)">Undo</button>
+      <button id="bRev" title="Pick a run of frames on the timeline, then it is played back in reverse straight after it (the frames after it move along to make room)">Reverse…</button><span id="revBar" style="display:none;gap:6px;align-items:center"><span class="note" id="revMsg"></span><button id="revGo" class="primary" disabled>Confirm reverse</button><button id="revNo">Cancel</button></span>
       <label class="note">Motion to the next key <select id="ease"><option value="smooth">Smooth curve</option><option value="ease">Slow start and stop</option><option value="linear">Steady speed</option><option value="hold">Freeze, then jump</option></select></label>
       <label class="note">Playback speed <select id="spd"><option value="0.1">0.1×</option><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select></label>
       <button id="bLoop" class="on" title="Repeat playback">Loop</button>
@@ -1543,16 +1544,17 @@ function drawTrack() { const W = tcv.width / DPR, H = tcv.height / DPR, L = tlLe
     tctx.fillStyle = sel ? css('--sel') : css('--key'); tctx.beginPath(); tctx.moveTo(x, y - 7); tctx.lineTo(x + 7, y); tctx.lineTo(x, y + 7); tctx.lineTo(x - 7, y); tctx.closePath(); tctx.fill();
     if (k.ease === 'hold') { tctx.strokeStyle = css('--mute'); tctx.setLineDash([2, 3]); tctx.beginPath(); tctx.moveTo(x + 8, y); tctx.lineTo(i < K.length - 1 ? X(K[i + 1].fr) - 8 : x + 8, y); tctx.stroke(); tctx.setLineDash([]); } }
   (clip().pins || []).forEach((q, j) => { tctx.fillStyle = 'rgba(40,140,90,.55)'; tctx.fillRect(X(q.a) - 3, 48 + (j % 2) * 3, X(q.b) - X(q.a) + 6, 3); });
+  if (REV && REV.a != null) { const a = Math.min(REV.a, REV.b), b = Math.max(REV.a, REV.b); tctx.fillStyle = 'rgba(29,78,216,.18)'; tctx.fillRect(X(a), 0, Math.max(2, X(b) - X(a)), H); tctx.strokeStyle = css('--sel'); tctx.lineWidth = 1.5; tctx.strokeRect(X(a), 0.75, Math.max(2, X(b) - X(a)), H - 1.5); tctx.lineWidth = 1; }
   const x = X(fr); tctx.strokeStyle = css('--accent'); tctx.lineWidth = 2; tctx.beginPath(); tctx.moveTo(x, 0); tctx.lineTo(x, H); tctx.stroke(); tctx.lineWidth = 1;
   { const xb = X(fr) / (W) * 100; $('scrubB').style.left = 'calc(' + (X(fr)) + 'px)'; } }
 let tdrag = null;
 const tX = e => { const b = tcv.getBoundingClientRect(), L = tlLen(); return (e.clientX - b.left - 10) / (b.width - 20) * L; };
-$('track').addEventListener('pointerdown', e => { stop(); const f2 = tX(e), L = tlLen(), b = tcv.getBoundingClientRect(), px = (b.width - 20) / L, y = e.clientY - b.top;
+$('track').addEventListener('pointerdown', e => { if (REV) { stop(); const f0 = cl(Math.round(tX(e)), 0, lastFr()); REV.a = REV.b = f0; REV.drag = true; $('track').setPointerCapture(e.pointerId); revUi(); drawTrack(); return; } stop(); const f2 = tX(e), L = tlLen(), b = tcv.getBoundingClientRect(), px = (b.width - 20) / L, y = e.clientY - b.top;
   let k = y > 26 ? keys().find(k => Math.abs(k.fr - f2) * px < 10) : null; if (k && ((k.fr === 0 && linkSrc(clip())) || clip().game)) k = null; // the locked first key stays put
   tdrag = { key: k, fr0: k ? k.fr : 0, moved: false, x0: e.clientX }; $('track').setPointerCapture(e.pointerId); if (!k) setFr(f2); else setFr(k.fr); });
-$('track').addEventListener('pointermove', e => { if (!tdrag) return; if (!tdrag.key) { setFr(tX(e)); return; } if (!tdrag.moved && Math.abs(e.clientX - tdrag.x0) < 5) return; if (!tdrag.moved) snap(); tdrag.moved = true;
+$('track').addEventListener('pointermove', e => { if (REV && REV.drag) { REV.b = cl(Math.round(tX(e)), 0, lastFr()); revUi(); drawTrack(); return; } if (!tdrag) return; if (!tdrag.key) { setFr(tX(e)); return; } if (!tdrag.moved && Math.abs(e.clientX - tdrag.x0) < 5) return; if (!tdrag.moved) snap(); tdrag.moved = true;
   const n = Math.max(linkSrc(clip()) ? 1 : 0, Math.round(tX(e))); if (n !== tdrag.key.fr && !keyAt(n)) { tdrag.key.fr = n; sortKeys(); fr = n; pose = poseAt(fr); save(); ui(); } });
-$('track').addEventListener('pointerup', () => { tdrag = null; });
+$('track').addEventListener('pointerup', () => { tdrag = null; if (REV) REV.drag = false; });
 // the scrub bubble: dragging it only ever scrubs
 $('scrubB').addEventListener('pointerdown', e => { e.stopPropagation(); stop(); tdrag = { key: null, moved: false, x0: e.clientX }; $('scrubB').setPointerCapture(e.pointerId); });
 $('scrubB').addEventListener('pointermove', e => { if (tdrag && !tdrag.key) setFr(tX(e)); });
@@ -1775,6 +1777,21 @@ $('sqDrop').onclick = () => { dirty = false; askEnd(true); }; $('sqCancel').oncl
 $('saveQ').addEventListener('pointerdown', e => { if (e.target.id === 'saveQ') askEnd(false); });
 $('bDel').onclick = () => { const k = keyAt(fr); if (!k || keys().length < 2) return; if (locked()) { lockMsg(); return; } snap(); clip().keys = keys().filter(q => q !== k); pose = poseAt(fr); save(); ui(); };
 $('bUndo').onclick = undo;
+// Reverse: pick frames a..b on the timeline; the section is played back in reverse straight after b (b..2b-a), every key after b moves along by (b - a) to make room.
+// The section's ends become keys first (the pose there as it plays now), and each reversed stretch keeps the motion type of the stretch it mirrors.
+let REV = null;
+function revUi() { const on = !!REV; $('bRev').style.display = on ? 'none' : ''; $('revBar').style.display = on ? 'inline-flex' : 'none'; if (!on) return; const a = REV.a == null ? null : Math.min(REV.a, REV.b), b = REV.a == null ? null : Math.max(REV.a, REV.b);
+  $('revMsg').textContent = a == null ? 'Drag across the timeline to pick the frames' : `Frames ${a}–${b}: reversed copy goes in at ${b}–${2 * b - a}`; $('revGo').disabled = a == null || b - a < 1; }
+$('bRev').onclick = () => { if (clip().game) { lockMsg(); return; } const go = () => { stop(); REV = { a: null, b: null }; revUi(); drawTrack(); }; if (pending()) ask(go); else go(); };
+$('revNo').onclick = () => { REV = null; revUi(); drawTrack(); };
+$('revGo').onclick = () => { if (!REV || REV.a == null) return; const a = Math.min(REV.a, REV.b), b = Math.max(REV.a, REV.b), n = b - a; if (n < 1) return; snap();
+  for (const f of [a, b]) if (!keyAt(f)) { keys().push({ fr: f, ease: (([...keys()].reverse().find(k => k.fr < f)) || {}).ease || 'smooth', pose: clone(poseAt(f)) }); sortKeys(); }
+  const sec = keys().filter(k => k.fr >= a && k.fr <= b), endEase = sec.length > 1 ? sec[sec.length - 2].ease || 'smooth' : 'smooth';
+  for (const k of keys()) if (k.fr > b) k.fr += n;
+  const pv = keyAt(b), after = pv.ease || 'smooth'; pv.ease = endEase;
+  for (let j = sec.length - 2; j >= 0; j--) keys().push({ fr: b + (b - sec[j].fr), ease: j > 0 ? sec[j - 1].ease || 'smooth' : after, pose: clone(sec[j].pose) });
+  sortKeys(); for (const q of clip().pins || []) { if (q.a > b) q.a += n; if (q.b > b) q.b += n; }
+  REV = null; revUi(); save(); dirty = false; setFr(b + n, true); };
 // actors: each remembers the animation it was last on
 let ACTL = {}; try { ACTL = JSON.parse(localStorage.getItem('posebench-actor') || '{}') || {}; } catch (e) {}
 function setActor(a) { if (actorOf(clip()) === a) return; stop(); const go = () => { ACTL[actorOf(clip())] = clip().id; let j = clips.findIndex(c => c.id === ACTL[a] && actorOf(c) === a); if (j < 0) j = clips.findIndex(c => actorOf(c) === a); if (j < 0) return;
