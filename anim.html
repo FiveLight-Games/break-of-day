@@ -197,7 +197,7 @@ let COL = PAL[1], F = 1, WALK = 1, ACT = 0, actK = 0;
 const OUT = 'rgba(16,14,22,.9)', LIT = [-0.48, -0.88];
 const cl = (v, a, b) => Math.max(a, Math.min(b, v)), lerp = (a, b, k) => a + (b - a) * k, sm = k => k * k * (3 - 2 * k), L2 = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k)];
 function shade(h, k) { const p = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); return '#' + p.map(v => Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k))).toString(16).padStart(2, '0')).join(''); }
-function ik(a, b, l1, l2, s) { const dx = b[0] - a[0], dy = b[1] - a[1], d = cl(Math.hypot(dx, dy), 0.01, l1 + l2 - 0.01), ca = (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), an = Math.atan2(dy, dx) + s * Math.acos(cl(ca, -1, 1)); return [a[0] + Math.cos(an) * l1, a[1] + Math.sin(an) * l1]; }
+function ik(a, b, l1, l2, s) { const dx = b[0] - a[0], dy = b[1] - a[1], d = cl(Math.hypot(dx, dy), 0.01, l1 + l2 - 0.01), ca = (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), an = Math.atan2(dy, dx) + s * Math.acos(cl(ca, -1, 1)); return [a[0] + Math.cos(an) * l1, a[1] + Math.sin(an) * l1]; } function ikv(a, b, l1, l2, v) { const E = ik(a, b, l1, l2, 1), dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, q = (E[0] - a[0]) * ux + (E[1] - a[1]) * uy, Q = [a[0] + ux * q, a[1] + uy * q]; return [Q[0] + (E[0] - Q[0]) * v, Q[1] + (E[1] - Q[1]) * v]; } // the joint between the two bend sides: v 1 / -1 = ik's two solutions, in between = the joint turned toward the camera (Pose Bench)
 const elbow = (s, h, l) => { const e1 = ik(s, h, l, l, 1), e2 = ik(s, h, l, l, -1); return e1[1] >= e2[1] ? e1 : e2; };
 const line = (c, pts, w, col, out = true) => { c.lineCap = 'round'; c.lineJoin = 'round'; if (out) { c.strokeStyle = OUT; c.lineWidth = w + 0.34 * OLW; c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.stroke(); } c.strokeStyle = col; c.lineWidth = w; c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.stroke(); };
 const ell = (c, x, y, rx, ry, rot, fill, out = true) => { c.beginPath(); c.ellipse(x, y, Math.max(0.01, rx), Math.max(0.01, ry), rot, 0, 7); c.fillStyle = fill; c.fill(); if (out) { c.strokeStyle = OUT; c.lineWidth = 0.2 * OLW; c.stroke(); } };
@@ -371,7 +371,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   const ankles = hips.map((h, i) => { const a = [feet[i][0], feet[i][1] - 0.95], dx = a[0] - h[0], dy = a[1] - h[1], d = Math.hypot(dx, dy) || 1;
     if (d <= SOFT) return a; const ds = SOFT + (LL * 0.985 - SOFT) * (1 - Math.exp(-(d - SOFT) / (LL * 0.985 - SOFT))); return [h[0] + dx / d * ds, h[1] + dy / d * ds]; });
   for (let i = 0; i < 2; i++) feet[i] = [ankles[i][0], ankles[i][1] + 0.95];
-  const knees = hips.map((h, i) => ik(h, ankles[i], LEG, LEG, RG && !RW && LW < 0.5 ? RG.kn[i] : f > 0 ? -1 : 1));
+  const knees = hips.map((h, i) => RG && !RW && LW < 0.5 ? ikv(h, ankles[i], LEG, LEG, RG.kn[i]) : ik(h, ankles[i], LEG, LEG, f > 0 ? -1 : 1));
   const twk = HKo ? HKo.tw : u < 0 ? 0 : u < 0.25 ? sm(u / 0.25) : u < 0.55 ? 1 : 1 - sm((u - 0.55) / 0.45);
   const tw = Math.sin(ph) * 0.25 * w, iX = -0.45 * f, iY = 0.35, shA = T([4.15 - 0.9 * twk + tw * 0.55 + (SF ? 0 : iX), -7.9 + 0.2 * twk - tw * 0.3 + (SF ? 0 : iY)]), shB = T([-4.0 + 1.3 * twk + tw * 0.55 + (SF ? iX : 0), -7.7 + 0.3 * twk + tw * 0.3 + (SF ? iY : 0)]); if (YW) { shA[1] += Math.sin(YW) * 1.4; shB[1] -= Math.sin(YW) * 1.4; } // the frost shoulder sits a little further out to screen-left and lower
   const rear = bk >= 0 && bk < 0.2 ? Math.sin(Math.PI * bk / 0.2) : 0;
@@ -530,7 +530,7 @@ function drawO2(c, V, t, f, w, u, bk, bm, actK, sv = -1, foes = [], surfX = 0, o
   const SQ = RG && RG.sq && !RW ? RG.sq : null, sqv = (g, i) => { const v = SQ && SQ[g] !== undefined ? (i === undefined ? SQ[g] : SQ[g][i]) : 1; return v === undefined || v === null ? 1 : g === 'L' || g === 'F' ? lerp(v, 1, LW) : v; };
   const hsq = (o, k, fn) => { if (Math.abs(k - 1) < 1e-3) return fn(); c.save(); c.translate(o[0], 0); c.scale(k, 1); c.translate(-o[0], 0); const r = fn(); c.restore(); return r; };
   const arm = (s, h, sk, side, ice) => gp(side, () => { c.save(); const r = arm0(s, h, sk, side, ice); c.restore(); return r; });
-  const arm0 = (s, h, sk, side, ice) => { const e = (() => { const e1 = ik(s, h, 3.5, 3.5, 1), e2 = ik(s, h, 3.5, 3.5, -1); if (RG) return side === 'A' ? (RG.eA > 0 ? e1 : e2) : (RG.eB > 0 ? e1 : e2); if (HKo && HKo.gFlip && side === (HKo.arm ? 'A' : 'B')) return e1[1] > e2[1] ? e1 : e2; if (HKo && HKo.bs && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const cz = q => (h[0] - s[0]) * (q[1] - s[1]) - (h[1] - s[1]) * (q[0] - s[0]); return cz(e1) * f * HKo.bs >= 0 ? e1 : e2; } if (HKo && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const C0 = [pel[0], pel[1] - 7.3], d1 = Math.hypot(e1[0] - C0[0], (e1[1] - C0[1]) * 1.6), d2 = Math.hypot(e2[0] - C0[0], (e2[1] - C0[1]) * 1.6); return d1 > d2 ? e1 : e2; } return f * e1[0] < f * e2[0] ? e1 : e2; })(), dx = h[0] - e[0], dy = h[1] - e[1], dl = Math.hypot(dx, dy) || 1, d = [dx / dl, dy / dl], n = [-d[1], d[0]], fa0 = Math.atan2(dy, dx);
+  const arm0 = (s, h, sk, side, ice) => { const e = (() => { const e1 = ik(s, h, 3.5, 3.5, 1), e2 = ik(s, h, 3.5, 3.5, -1); if (RG) return ikv(s, h, 3.5, 3.5, side === 'A' ? RG.eA : RG.eB); if (HKo && HKo.gFlip && side === (HKo.arm ? 'A' : 'B')) return e1[1] > e2[1] ? e1 : e2; if (HKo && HKo.bs && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const cz = q => (h[0] - s[0]) * (q[1] - s[1]) - (h[1] - s[1]) * (q[0] - s[0]); return cz(e1) * f * HKo.bs >= 0 ? e1 : e2; } if (HKo && HKo.k > 0.05 && side === (HKo.arm ? 'B' : 'A')) { const C0 = [pel[0], pel[1] - 7.3], d1 = Math.hypot(e1[0] - C0[0], (e1[1] - C0[1]) * 1.6), d2 = Math.hypot(e2[0] - C0[0], (e2[1] - C0[1]) * 1.6); return d1 > d2 ? e1 : e2; } return f * e1[0] < f * e2[0] ? e1 : e2; })(), dx = h[0] - e[0], dy = h[1] - e[1], dl = Math.hypot(dx, dy) || 1, d = [dx / dl, dy / dl], n = [-d[1], d[0]], fa0 = Math.atan2(dy, dx);
     if (opts.outRig) { const e1 = ik(s, h, 3.5, 3.5, 1); opts.outRig['e' + side] = e.slice(); opts.outRig['s' + side] = Math.hypot(e[0] - e1[0], e[1] - e1[1]) < 1e-6 ? 1 : -1; opts.outRig.ord.push(side); }
     // a posed rig twists/squeezes the upper arm (tw/sq [side]) and the forearm (tw/sq ['f' + side]) on their own: each squeezes only itself (round the shoulder / the elbow); what hangs below just slides along with the joint so nothing comes apart (dE elbow shift, dW wrist shift)
     const SEG = !!(TW || SQ), Mb = SEG ? c.getTransform() : null, mk = (M, o, ang, kk, hk) => { let m = M.translate(o[0], o[1]); if (Math.abs(hk - 1) > 1e-3) m = m.scale(hk, 1); if (Math.abs(kk - 1) > 1e-3) m = m.rotate(ang * 57.29578).scale(1, kk).rotate(-ang * 57.29578); return m.translate(-o[0], -o[1]); };
@@ -942,7 +942,7 @@ const KNX = (() => {
 let COL = '#3a7bd5', PLATE = 0, BROAD = 1; const K = { spd: 0, kn: 0, swing: -1, spin: -1, hold: 1, lszV: 1, glow: 0 }, RUN = 62, SWING = 1.02;
 const L2 = (a, b, k) => [lerp(a[0], b[0], k), lerp(a[1], b[1], k)], rot = (v, a) => [v[0] * Math.cos(a) - v[1] * Math.sin(a), v[0] * Math.sin(a) + v[1] * Math.cos(a)], add = (a, b) => [a[0] + b[0], a[1] + b[1]];
 function shade(h, k) { const p = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); return '#' + p.map(v => Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k))).toString(16).padStart(2, '0')).join(''); }
-function ik(a, b, l1, l2, s) { const dx = b[0] - a[0], dy = b[1] - a[1], d = cl(Math.hypot(dx, dy), 0.01, l1 + l2 - 0.01), ca = (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), an = Math.atan2(dy, dx) + s * Math.acos(cl(ca, -1, 1)); return [a[0] + Math.cos(an) * l1, a[1] + Math.sin(an) * l1]; }
+function ik(a, b, l1, l2, s) { const dx = b[0] - a[0], dy = b[1] - a[1], d = cl(Math.hypot(dx, dy), 0.01, l1 + l2 - 0.01), ca = (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), an = Math.atan2(dy, dx) + s * Math.acos(cl(ca, -1, 1)); return [a[0] + Math.cos(an) * l1, a[1] + Math.sin(an) * l1]; } function ikv(a, b, l1, l2, v) { const E = ik(a, b, l1, l2, 1), dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L, q = (E[0] - a[0]) * ux + (E[1] - a[1]) * uy, Q = [a[0] + ux * q, a[1] + uy * q]; return [Q[0] + (E[0] - Q[0]) * v, Q[1] + (E[1] - Q[1]) * v]; } // the joint between the two bend sides: v 1 / -1 = ik's two solutions, in between = the joint turned toward the camera (Pose Bench)
 const STEEL = '#b4bcc6', STEELD = '#7f8893', STEELL = '#e3e8ed', MAIL = '#8a9098', LEA = '#6e4527', LEAD = '#4a2d18', LEAL = '#8d5d36', SKIN = '#d9a27a', SKIND = '#a9714f', HAIR = '#4a2f1c', GOLD = '#e0b84a', GOLDD = '#9c7a26';
 function sword(c, g, a, len, sc = 1) {
   const d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]];
@@ -1057,7 +1057,7 @@ function pauldron(c, s, f, far) {
 // X (optional, the Pose Bench): wrappers drawing each segment on its own: u upper arm (and pauldron), f forearm (and elbow cap), h wrist and glove
 function arm(c, s, h, f, far, noGlove, es, X) { const XU = X ? X.u : g => g(), XF = X ? X.f : g => g(), XH = X ? X.h : g => g();
   // elbows point down and out, away from the body (es = a fixed bend side, used by the Pose Bench)
-  const e1 = ik(s, h, 2.6, 2.6, 1), e2 = ik(s, h, 2.6, 2.6, -1), el = es ? (es > 0 ? e1 : e2) : e1[1] >= e2[1] ? e1 : e2, dk = far ? -0.15 : 0; // the elbow hangs low, never up across the face
+  const e1 = ik(s, h, 2.6, 2.6, 1), e2 = ik(s, h, 2.6, 2.6, -1), el = es ? ikv(s, h, 2.6, 2.6, es) : e1[1] >= e2[1] ? e1 : e2, dk = far ? -0.15 : 0; // the elbow hangs low, never up across the face
   c.lineCap = 'round';
   XU(() => { c.lineCap = 'round'; c.strokeStyle = shade(MAIL, dk - 0.15); c.lineWidth = 1.45; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke();
   c.strokeStyle = shade(MAIL, dk); c.lineWidth = 1.1; c.beginPath(); c.moveTo(...s); c.lineTo(...el); c.stroke();
@@ -1134,7 +1134,7 @@ function draw(c, R, gate, t) { const f = R.f, F = frame(R), [hA, hB] = handsOf(R
   const hips = [[R.pel[0] - 1.05, R.pel[1]], [R.pel[0] + 1.05, R.pel[1]]], kn = R.kn || [f > 0 ? -1 : 1, f > 0 ? -1 : 1];
   // like the ogre: a foot further from its hip than the leg reaches is lifted along with it (the leg hangs straight toward where it was)
   R = { ...R, feet: R.feet.map((p, i) => { const h = hips[i], dx = p[0] - h[0], dy = p[1] - h[1], d = Math.hypot(dx, dy), M = 6.2 * 0.995; return d > M ? [h[0] + dx / d * M, h[1] + dy / d * M] : p; }) };
-  const knees = hips.map((h, i) => ik(h, R.feet[i], 3.1, 3.1, kn[i]));
+  const knees = hips.map((h, i) => ikv(h, R.feet[i], 3.1, 3.1, kn[i]));
   const P = { f, pel: R.pel, hips, feet: R.feet, knees, C: F.C, sh: F.sh, head: F.head, hands: [hA, hB], lean: R.lean || 0, tw: R.yaw || 0, bow: 0 };
   K.hold = R.sw ? 1 : 0; K.lszV = R.lz || 1; COL = R.col || '#3a7bd5';
   const eA = R.eA || lowSide(F.shA, hA), eB = R.eB || lowSide(F.shB, hB);
@@ -1146,7 +1146,7 @@ function draw(c, R, gate, t) { const f = R.f, F = frame(R), [hA, hB] = handsOf(R
     if (tw) { if (ax == null) { c.translate(f * Math.sin(tw) * 0.65, 0); c.scale(Math.max(0.35, Math.cos(tw)), 1); } else if (ax === 'x') c.scale(Math.max(0.35, Math.cos(tw)), 1); else { c.rotate(ax); c.scale(1, 1 - 0.45 * Math.abs(Math.sin(tw))); c.rotate(-ax); } } c.translate(-an[0], -an[1]); fn(); c.restore(); };
   const ang = (a, b) => Math.atan2(b[1] - a[1], b[0] - a[0]), twv = (g, i) => gv(TW, g, i, 0), sqv = (g, i) => gv(SQ, g, i, 1);
   const mir = (k, x, fn) => k === 'T' ? xf('T', [x, R.pel[1]], null, 0, sqv('T'), 0, fn) : xf('H0', F.head, null, twv('H', 0), sqv('H', 0), 0, fn);
-  const armXs = s2 => { const sh = s2 === 'A' ? F.shA : F.shB, h = s2 === 'A' ? hA : hB, el = ik(sh, h, 2.6, 2.6, s2 === 'A' ? eA : eB), wr = L2(el, h, 0.7), qU = sqv(s2), qF = sqv('f' + s2), dE = (qU - 1) * (el[0] - sh[0]), dW = dE + (qF - 1) * (wr[0] - el[0]);
+  const armXs = s2 => { const sh = s2 === 'A' ? F.shA : F.shB, h = s2 === 'A' ? hA : hB, el = ikv(sh, h, 2.6, 2.6, s2 === 'A' ? eA : eB), wr = L2(el, h, 0.7), qU = sqv(s2), qF = sqv('f' + s2), dE = (qU - 1) * (el[0] - sh[0]), dW = dE + (qF - 1) * (wr[0] - el[0]);
     return { u: g => { tag(s2); xf(s2, sh, ang(sh, el), twv(s2), qU, 0, g); }, f: g => { tag('f' + s2); xf('f' + s2, el, ang(el, wr), twv('f' + s2), qF, dE, g); }, h: g => { tag('h' + s2); xf('h' + s2, wr, ang(wr, h), twv('h' + s2), sqv('h' + s2), dW, g); } }; };
   const legXs = i => { const hp = hips[i], kn2 = knees[i], an = L2(kn2, R.feet[i], 0.62), qT = sqv('L', i), qN = sqv('N', i), dK = (qT - 1) * (kn2[0] - hp[0]), dA = dK + (qN - 1) * (an[0] - kn2[0]);
     return { t: g => { tag('L' + i); xf('L' + i, hp, ang(hp, kn2), twv('L', i), qT, 0, g); }, s: g => { tag('N' + i); xf('N' + i, kn2, ang(kn2, an), twv('N', i), qN, dK, g); }, b: g => { tag('F' + i); const a = -f * ((R.ff || [])[i] ? -1 : 1) * ((R.fa || [])[i] || 0); xf('F' + i, an, 'x', twv('F', i), sqv('F', i), dA, a ? () => { c.save(); c.translate(an[0], an[1]); c.rotate(a); c.translate(-an[0], -an[1]); g(); c.restore(); } : g); } }; };
@@ -1161,7 +1161,7 @@ function draw(c, R, gate, t) { const f = R.f, F = frame(R), [hA, hB] = handsOf(R
   if (swordBack) blade(); if (bBehind) armB(); if (aBehind) armA(); body(); if (!aBehind) armA(); hd(); if (!bBehind) armB();
   if (!swordBack) blade(); else if (hold) { armXs('B').h(() => glove(c, hB, true)); armXs('A').h(() => glove(c, hA, false)); }
   tag(null);
-  return { ank: knees.map((k2, i) => L2(k2, R.feet[i], 0.62)), pel: R.pel, hips, feet: R.feet, knees, shA: F.shA, shB: F.shB, hA, hB, eA: ik(F.shA, hA, 2.6, 2.6, eA), eB: ik(F.shB, hB, 2.6, 2.6, eB), HI: F.head, HZ: F.head, g: hA, tip: [hA[0] + d[0] * (1.3 + L), hA[1] + d[1] * (1.3 + L)] }; }
+  return { ank: knees.map((k2, i) => L2(k2, R.feet[i], 0.62)), pel: R.pel, hips, feet: R.feet, knees, shA: F.shA, shB: F.shB, hA, hB, eA: ikv(F.shA, hA, 2.6, 2.6, eA), eB: ikv(F.shB, hB, 2.6, 2.6, eB), HI: F.head, HZ: F.head, g: hA, tip: [hA[0] + d[0] * (1.3 + L), hA[1] + d[1] * (1.3 + L)] }; }
 // a game pose as a rig: A = the game's action keys [u, crouch, lean, twist, hand x, hand y, sword angle, step] for a knight standing still (stance width sw 1 fighting, 0.4 relaxed)
 function gameRig(A, f, stW, extra) { const [, cr, lean, tw, hx, hy, a, stepA] = A, front = f > 0 ? 1 : 0, s = f > 0 ? -1 : 1;
   const feet = [0, 1].map(i => i === front ? [f * (0.9 + stW * 0.6 + stepA * 1.3), 0] : [-f * (0.8 + stW * 0.7), -0.25]);
@@ -1177,7 +1177,7 @@ function lib() { const out = [], one = (folder, name, P, note) => out.push({ fol
     for (let fr = 0; ; fr += 2) { const q = Math.min(fr, N); keys.push({ fr: q, ease: 'smooth', pose: gameRig(kfnS(q / N, SW), 1, 1, { lb: 1, lz: SZ[j] }) }); if (q >= N) break; }
     out.push({ folder: 'Combo', name, note: 'The game’s swing (standing still), with the light blade', keys }); });
   return out; }
-return { draw, gameRig, idle, lib, frame, ARM, lowSide, ik };
+return { draw, gameRig, idle, lib, frame, ARM, lowSide, ik, ikv };
 })();
 </script>
 <script>
@@ -1336,6 +1336,8 @@ function pinApply(P, t) { for (const q of clip().pins || []) { if (t < q.a || t 
     else if (q.p === 'chest') { P.lean = S.lean; P.yaw = S.yaw; }
     else if (q.p === 'h0' || q.p === 'h1') { const i = +q.p[1]; A('hr', i); A('hfl', i); TW('H', i); } }
   return P; }
+// elbow and knee bends are continuous (1 / -1 = bent to either side, in between = the joint turned toward or away from the camera), so they glide between keys instead of flipping at one
+const bends = (num, P) => ({ eA: cl(num(p => p.eA ?? 1), -1, 1), eB: cl(num(p => p.eB ?? 1), -1, 1), kn: [0, 1].map(i => cl(num(p => (p.kn || [1, 1])[i] ?? 1), -1, 1)) });
 function poseAt(t) { return pinApply(poseRaw(t), t); }
 function poseRaw(t) { const K = keys(); if (!K.length) return idleFor(1); if (t <= K[0].fr) return clone(K[0].pose); if (t >= K[K.length - 1].fr) return clone(K[K.length - 1].pose);
   let i = 0; while (K[i + 1].fr <= t) i++; const a = K[i], b = K[i + 1], u = (t - a.fr) / (b.fr - a.fr), e = a.ease || 'smooth';
@@ -1346,10 +1348,10 @@ function poseRaw(t) { const K = keys(); if (!K.length) return idleFor(1); if (t 
   const pt = g => [num(p => g(p)[0]), num(p => g(p)[1])];
   const hand = g => { const A = ang(p => Math.atan2(g(p)[1], g(p)[0])), R = Math.min(ARM, Math.max(0, num(p => Math.hypot(g(p)[0], g(p)[1])))); return [Math.cos(A) * R, Math.sin(A) * R]; };
   if (a.pose.knight) { const hk = g => { const A = ang(p => Math.atan2(g(p)[1], g(p)[0])), R = Math.min(KNX.ARM, Math.max(0, num(p => Math.hypot(g(p)[0], g(p)[1])))); return [Math.cos(A) * R, Math.sin(A) * R]; };
-    return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean || 0), yaw: num(p => p.yaw || 0), feet: [pt(p => p.feet[0]), pt(p => p.feet[1])], hA: hk(p => p.hA), hB: hk(p => p.hB), sa: ang(p => p.sa || 0), hr: [num(p => (p.hr || [0, 0])[0]), 0], fa: [num(p => (p.fa || [0, 0])[0]), num(p => (p.fa || [0, 0])[1])], lb: cl(num(p => p.lb || 0), 0, 1), lz: num(p => p.lz || 1), bl: num(p => p.bl == null ? 1 : p.bl),
+    return { ...clone(a.pose), ...bends(num, P), pel: pt(p => p.pel), lean: num(p => p.lean || 0), yaw: num(p => p.yaw || 0), feet: [pt(p => p.feet[0]), pt(p => p.feet[1])], hA: hk(p => p.hA), hB: hk(p => p.hB), sa: ang(p => p.sa || 0), hr: [num(p => (p.hr || [0, 0])[0]), 0], fa: [num(p => (p.fa || [0, 0])[0]), num(p => (p.fa || [0, 0])[1])], lb: cl(num(p => p.lb || 0), 0, 1), lz: num(p => p.lz || 1), bl: num(p => p.bl == null ? 1 : p.bl),
       tw: P.some(p => p.tw) ? (() => { const g = (k, i) => num(p => twGet(p, [k, i])); return { H: [g('H', 0), 0], A: g('A'), B: g('B'), fA: g('fA'), fB: g('fB'), hA: g('hA'), hB: g('hB'), L: [g('L', 0), g('L', 1)], N: [g('N', 0), g('N', 1)], F: [g('F', 0), g('F', 1)] }; })() : a.pose.tw,
       sq: P.some(p => p.sq) ? (() => { const g = (k, i) => num(p => sqGet(p, [k, i])); return { H: [g('H', 0), 1], A: g('A'), B: g('B'), fA: g('fA'), fB: g('fB'), hA: g('hA'), hB: g('hB'), L: [g('L', 0), g('L', 1)], N: [g('N', 0), g('N', 1)], F: [g('F', 0), g('F', 1)], T: g('T') }; })() : a.pose.sq }; }
-  return { ...clone(a.pose), pel: pt(p => p.pel), lean: num(p => p.lean), yaw: num(p => p.yaw), act: cl(num(p => p.act), 0, 1), cA: cl(num(p => p.cA || 0), 0, 1), cB: cl(num(p => p.cB || 0), 0, 1), yf: a.pose.yf, view: cl(num(p => p.view || 0), 0, 1), tw: P.some(p => p.tw) ? (() => { const g = (k, i) => num(p => twGet(p, [k, i])); return { H: [g('H', 0), g('H', 1)], L: [g('L', 0), g('L', 1)], F: [g('F', 0), g('F', 1)], A: g('A'), B: g('B'), fA: g('fA'), fB: g('fB'), hA: g('hA'), hB: g('hB') }; })() : a.pose.tw, sq: P.some(p => p.sq) ? (() => { const g = (k, i) => num(p => sqGet(p, [k, i])); return { H: [g('H', 0), g('H', 1)], L: [g('L', 0), g('L', 1)], F: [g('F', 0), g('F', 1)], A: g('A'), B: g('B'), fA: g('fA'), fB: g('fB'), hA: g('hA'), hB: g('hB') }; })() : a.pose.sq, bk: P.some(p => (p.view || 0) > 0) ? (() => { const bq = p => p.bk || backDef(p.f), BP = g => pt(p => g(bq(p))), BH = g => hand(p => g(bq(p))); return { pel: BP(b => b.pel), aG: BP(b => b.aG), aP: BP(b => b.aP), hG: BH(b => b.hG), hP: BH(b => b.hP), eG: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eG, eP: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eP }; })() : a.pose.bk,
+  return { ...clone(a.pose), ...bends(num, P), pel: pt(p => p.pel), lean: num(p => p.lean), yaw: num(p => p.yaw), act: cl(num(p => p.act), 0, 1), cA: cl(num(p => p.cA || 0), 0, 1), cB: cl(num(p => p.cB || 0), 0, 1), yf: a.pose.yf, view: cl(num(p => p.view || 0), 0, 1), tw: P.some(p => p.tw) ? (() => { const g = (k, i) => num(p => twGet(p, [k, i])); return { H: [g('H', 0), g('H', 1)], L: [g('L', 0), g('L', 1)], F: [g('F', 0), g('F', 1)], A: g('A'), B: g('B'), fA: g('fA'), fB: g('fB'), hA: g('hA'), hB: g('hB') }; })() : a.pose.tw, sq: P.some(p => p.sq) ? (() => { const g = (k, i) => num(p => sqGet(p, [k, i])); return { H: [g('H', 0), g('H', 1)], L: [g('L', 0), g('L', 1)], F: [g('F', 0), g('F', 1)], A: g('A'), B: g('B'), fA: g('fA'), fB: g('fB'), hA: g('hA'), hB: g('hB') }; })() : a.pose.sq, bk: P.some(p => (p.view || 0) > 0) ? (() => { const bq = p => p.bk || backDef(p.f), BP = g => pt(p => g(bq(p))), BH = g => hand(p => g(bq(p))); return { pel: BP(b => b.pel), aG: BP(b => b.aG), aP: BP(b => b.aP), hG: BH(b => b.hG), hP: BH(b => b.hP), eG: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eG, eP: (u < 0.5 ? bq(a.pose) : bq(b.pose)).eP }; })() : a.pose.bk,
     feet: [pt(p => p.feet[0]), pt(p => p.feet[1])], fa: [num(p => (p.fa || [0, 0])[0]), num(p => (p.fa || [0, 0])[1])], hr: [num(p => (p.hr || [0, 0])[0]), num(p => (p.hr || [0, 0])[1])], hA: hand(p => p.hA), hB: hand(p => p.hB) }; }
 
 // ---- state ----
@@ -1409,6 +1411,9 @@ const BACKH = (r, P) => [
 let FCLIP = null, SEL = null, PSELS = [], PCHK = {}, ppKey = ''; const partOf = h => h.b ? null : ({ hA: 'hA', hB: 'hB', f0: 'f0', t0: 'f0', f1: 'f1', t1: 'f1', pl: 'pel', ch: 'chest', hdI: 'h0', hdZ: 'h1' })[h.id] || null;
 const pinnedHere = (part, t) => (clip().pins || []).filter(q => q.p === part && q.a <= t && t <= q.b);
 // knees: a dot on the knee drags the leg round its hip (the foot swings with it), a ⇄ ring just outside the bend flips it
+// where the pointer puts a joint across its limb: t 1 / -1 = fully bent to either side (the limb's end stays put), null = the limb is straight (no room to bend)
+function jointT(base, end, l, p) { const dx = end[0] - base[0], dy = end[1] - base[1], d = Math.hypot(dx, dy); if (d < 1e-6) return null; const R = Math.sqrt(Math.max(0, l * l - d * d / 4)); if (R < 0.15) return null;
+  const E = KNX.ikv(base, end, l, l, 1), Q = [(base[0] + end[0]) / 2, (base[1] + end[1]) / 2], n = [(E[0] - Q[0]) / R, (E[1] - Q[1]) / R]; return ((p[0] - Q[0]) * n[0] + (p[1] - Q[1]) * n[1]) / R; }
 const kneeH = (r, ankle) => [0, 1].flatMap(i => [{ id: 'kd' + i, p: r.knees[i], k: 'kneeD', c: '--ink', i }, { id: 'k' + i, p: flipB(r.hips[i], ankle(i), r.knees[i]), k: 'knee', c: '--ink', i, an: ankle(i) }]);
 const HANDLES = () => { const r = rig, P = pose; if (!r || r.turning || locked()) return []; if (r.back) return BACKH(r, P);
   if (P.knight) { const ankle = i => [r.feet[i][0], r.feet[i][1] - 0.45]; return [
@@ -1466,12 +1471,15 @@ cv.addEventListener('pointermove', e => { if (box) { const b = cv.getBoundingCli
   else if (drag.k === 'foot') P.feet[drag.i] = [p[0], Math.min(0.2, p[1])];
   else if (drag.k === 'pel') P.pel = p;
   else if (drag.k === 'chest') P.lean = cl(P.f * Math.atan2(p[0] - P.pel[0], -(p[1] - P.pel[1])), -1.2, 1.2);
-  else if (drag.k === 'elbowD') { const s = drag.a === 'A' ? r.shA : r.shB, e0 = drag.a === 'A' ? r.eA : r.eB, h = P['h' + drag.a], D = Math.atan2(p[1] - s[1], p[0] - s[0]) - Math.atan2(e0[1] - s[1], e0[0] - s[0]), c2 = Math.cos(D), s2 = Math.sin(D); P['h' + drag.a] = [h[0] * c2 - h[1] * s2, h[0] * s2 + h[1] * c2]; }
+  else if (drag.k === 'elbowD') { const s = drag.a === 'A' ? r.shA : r.shB, hw = drag.a === 'A' ? r.hA : r.hB, l = P.knight ? 2.6 : 3.5, t = jointT(s, hw, l, p);
+    if (t !== null && Math.abs(t) <= 1) P['e' + drag.a] = t;
+    else { const sg = t === null ? (P['e' + drag.a] >= 0 ? 1 : -1) : Math.sign(t); P['e' + drag.a] = sg; const e0 = KNX.ikv(s, hw, l, l, sg), h = P['h' + drag.a], D = Math.atan2(p[1] - s[1], p[0] - s[0]) - Math.atan2(e0[1] - s[1], e0[0] - s[0]), c2 = Math.cos(D), s2 = Math.sin(D); P['h' + drag.a] = [h[0] * c2 - h[1] * s2, h[0] * s2 + h[1] * c2]; } }
   else if (drag.k === 'head') { const H = drag.i ? r.HZ : r.HI, pv = [H[0], H[1] + (P.knight ? 1.6 : 2.2)], a = Math.atan2(p[0] - pv[0], -(p[1] - pv[1])); P.hr = (P.hr || [0, 0]).slice(); P.hr[drag.i] = cl(-P.f * a, -1.2, 1.2); }
   else if (drag.k === 'toe' && P.knight) { const fs = (P.ff || [])[drag.i] ? -1 : 1, an = r.ank[drag.i], v = toeV(r, P, drag.i), a = Math.atan2(p[1] - an[1], p[0] - an[0]) - Math.atan2(v[1], v[0]); P.fa = (P.fa || [0, 0]).slice(); P.fa[drag.i] = cl(-P.f * fs * Math.atan2(Math.sin(a), Math.cos(a)), -1.3, 1.3); }
   else if (drag.k === 'toe') { const ff = (P.ff || [])[drag.i] ? -1 : 1, an = [r.feet[drag.i][0], r.feet[drag.i][1] - 0.95], a = Math.atan2(p[1] - an[1], p[0] - an[0]) - Math.atan2(-0.6, P.f * ff * 3.6 * Math.max(0.35, Math.cos(twGet(P, ['F', drag.i])))); P.fa = (P.fa || [0, 0]).slice(); P.fa[drag.i] = cl(-P.f * ff * Math.atan2(Math.sin(a), Math.cos(a)), -1.3, 1.3); }
   else if (drag.k === 'elbow') { const s = drag.a === 'A' ? r.shA : r.shB, h = drag.a === 'A' ? r.hA : r.hB, cz = (h[0] - s[0]) * (p[1] - s[1]) - (h[1] - s[1]) * (p[0] - s[0]); P['e' + drag.a] = cz > 0 ? 1 : -1; }
-  else if (drag.k === 'kneeD') { const i = drag.i, hp = r.hips[i], k0 = r.knees[i], D = Math.atan2(p[1] - hp[1], p[0] - hp[0]) - Math.atan2(k0[1] - hp[1], k0[0] - hp[0]), F0 = P.feet[i], v = [F0[0] - hp[0], F0[1] - hp[1]], c2 = Math.cos(D), s2 = Math.sin(D); P.feet = P.feet.slice(); P.feet[i] = [hp[0] + v[0] * c2 - v[1] * s2, Math.min(0.2, hp[1] + v[0] * s2 + v[1] * c2)]; }
+  else if (drag.k === 'kneeD' && (() => { const i = drag.i, an = P.knight ? r.feet[i] : [r.feet[i][0], r.feet[i][1] - 0.95], t = jointT(r.hips[i], an, P.knight ? 3.1 : 4.55, p); if (t !== null && Math.abs(t) <= 1) { P.kn = P.kn.slice(); P.kn[i] = t; return true; } P.kn = P.kn.slice(); P.kn[i] = t === null ? (P.kn[i] >= 0 ? 1 : -1) : Math.sign(t); return false; })()) {}
+  else if (drag.k === 'kneeD') { const i = drag.i, hp = r.hips[i], k0 = P.knight ? KNX.ikv(hp, r.feet[i], 3.1, 3.1, P.kn[i]) : KNX.ikv(hp, [r.feet[i][0], r.feet[i][1] - 0.95], 4.55, 4.55, P.kn[i]), D = Math.atan2(p[1] - hp[1], p[0] - hp[0]) - Math.atan2(k0[1] - hp[1], k0[0] - hp[0]), F0 = P.feet[i], v = [F0[0] - hp[0], F0[1] - hp[1]], c2 = Math.cos(D), s2 = Math.sin(D); P.feet = P.feet.slice(); P.feet[i] = [hp[0] + v[0] * c2 - v[1] * s2, Math.min(0.2, hp[1] + v[0] * s2 + v[1] * c2)]; }
   else if (drag.k === 'knee') { const s = r.hips[drag.i], h = drag.an, cz = (h[0] - s[0]) * (p[1] - s[1]) - (h[1] - s[1]) * (p[0] - s[0]); P.kn[drag.i] = cz > 0 ? 1 : -1; }
   livePreview(); });
 // zoom / pan
