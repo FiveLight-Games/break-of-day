@@ -348,7 +348,7 @@ for (const c of clips) c.name = c.name.replace(/ \(game, facing (left|right)\)/,
 const LIB = (typeof OG_LIB !== 'undefined' ? OG_LIB.folders : []).flatMap(F => F.clips.map(c => ({ id: 'lib:' + F.name + ':' + c.name, lib: 1, folder: 'Storm Ogre › ' + F.name, name: c.name, note: c.note, keys: c.keys })));
 const LIB0 = {}; for (const c of LIB) { LIB0[c.id] = JSON.stringify({ keys: c.keys }); const o = LIBO[c.id]; if (o) Object.assign(c, clone(o)); }
 const libChanged = c => c.lib && (JSON.stringify({ keys: c.keys }) !== LIB0[c.id] || c.legs === 'walk' || !!c.from || !!(c.pins && c.pins.length));
-for (const c of KNX.lib()) LIB.push({ id: 'lib:Knight › ' + c.folder + ':' + c.name, lib: 1, actor: 'knight', folder: 'Knight › ' + c.folder, name: c.name, note: c.note, keys: c.keys });
+for (const c of [...KNX.lib(), ...(typeof KN_LIB !== 'undefined' ? KN_LIB.clips : [])]) LIB.push({ id: 'lib:Knight › ' + c.folder + ':' + c.name, lib: 1, actor: 'knight', folder: 'Knight › ' + c.folder, name: c.name, note: c.note, keys: c.keys });
 for (const c of LIB) { if (LIB0[c.id]) continue; LIB0[c.id] = JSON.stringify({ keys: c.keys }); const o = LIBO[c.id]; if (o) Object.assign(c, clone(o)); }
 clips = clips.filter(c => !c.game && !c.lib).concat(LIB);
 ci = GI0 ? Math.max(0, clips.findIndex(c => c.id === GI0)) : 0; ci = Math.min(ci, clips.length - 1);

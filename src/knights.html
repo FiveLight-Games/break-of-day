@@ -666,6 +666,7 @@ function drawKnight(c, t) {
   const blade = () => { drawBlade(); if (holding) { glove(c, P.hands[1], true); glove(c, P.hands[0], false); } };
   const hx = (P.hands[0][0] - P.C[0]) * f, hy = P.hands[0][1] - P.C[1]; // grip relative to the chest, in facing terms
   const bx = Math.cos(P.a) * f, swordBack = K.hold && P.th == null && bx < -0.3 && hx < 0.5; // blade pointing back past him
+  if (window.__knRec) window.__knRec.push({ f, pel: P.pel, feet: P.feet, knees: P.knees, hips: P.hips, sh: P.sh, near, far, C: P.C, hands: P.hands, g: P.g, a: P.a, lean: P.lean, tw: P.tw, blade: P.th != null ? P.blade : 1, back: !!(P.back || P.away), sb: swordBack ? 1 : 0, ab: hy > 3.8 ? 1 : 0, hold: K.hold ? 1 : 0, glow: K.glow || 0, lsz: K.lszV || 1, z: (K.z || 0) / KZ, flip: (K.flipA || 0) * f, bury: P.bury || 0, plate: PLATE, sz: K.sz || 1, tag: { ab: K.ab, abT: K.abT, spin: K.spin, pre: K.preGlow ? K.pre : -1, post: K.post || 0, swing: K.swing, ultPh: K.ultPh, ult: K.ult } }); // the Pose Bench recorder (tools/record-knight.js)
   if (window.__labelArms) { const tag = (sh, h, txt, col) => { const e1 = ik(sh, h, 2.6, 2.6, 1), e2 = ik(sh, h, 2.6, 2.6, -1), el = e1[1] >= e2[1] ? e1 : e2; window.__tags.push([L2(sh, el, 0.6), txt, col]); }; window.__tags = []; tag(P.sh[near], P.hands[0], 'A', '#ff3b30'); tag(P.sh[far], P.hands[1], 'B', '#1e90ff'); }
   const body = () => {
     // legs: facing the camera, the one on the facing side is in front (drawn last), the other behind (darker);
