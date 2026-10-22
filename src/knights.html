@@ -8117,7 +8117,7 @@ function draw() {
     const lab = live ? (TV ? '' : NV ? (K.nPh === 1 ? 'strike' : '') : FV ? (K.vPh === 1 ? Math.ceil(V.T - K.vT) + 's' : '') : WPV ? (K.pPh === 1 ? Math.ceil(WP.PEN.T - K.pT) + 's' : '') : K.ultPh === 1 ? Math.ceil(ULT_T - K.ult) + 's' : '') : pr >= 1 ? 'ready' : (TV && K.ulOn ? 0 : K.kills - (K.ultBase || 0)) + '/' + ultNeed(K); if (ULS.textContent !== lab) ULS.textContent = lab;
     document.body.classList.toggle('pen', WPV && live); if (WPV && live && !PENPOS) penPos(); if (!(WPV && live)) PENPOS = 0;
     if (WPV) { dialIdle(K); if (K.hRet >= 0 && !(K.hRetSeen >= 0)) cancelSweepAim(); K.hRetSeen = K.hRet; DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); // while a slam's head is in the air the button is only ever Go to (lit once that's allowed), never another slam
-    const early = K.ab === 'slam' && K.abT >= WP.SL.GOEARLY && gd(K.x, K.y, K.sx, K.sy) > WP.DRAG + 2, hOut = K.hOut > 0 || K.hRet >= 0 || early; const abBusy = !!K.penRet || K.ab === 'sweep' || K.ab === 'reel' || (K.ab === 'slam' && !early) || (!hOut && (K.slCd > 0 || K.slWait)); AOE.classList.toggle('out', hOut && !abBusy); AOE.classList.toggle('dim', abBusy); DASHE.classList.toggle('dim', !!K.penRet); if (K.penRet) cancelSweepAim(); BRB.classList.toggle('ready', K.hOut > 0); const al = hOut ? 'go to' : 'slam'; if (AOEL.textContent !== al) AOEL.textContent = al; { const hb = AOE.querySelector(':scope > .hkb'); if (hb) { const t = hOut ? 'G' : 'Q'; if (hb.textContent !== t) hb.textContent = t; } } SMI.style.height = (K.pPh === 1 ? 100 * cl(Math.hypot(K.hvx || 0, K.hvy || 0) / WP.PEN.MAXV, 0, 1) : 0) + '%'; } else if (!FV) { DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); } else { DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); } }
+    const early = K.ab === 'slam' && K.abT >= WP.SL.GOEARLY && gd(K.x, K.y, K.sx, K.sy) > WP.DRAG + 2, hOut = K.hOut > 0 || K.hRet >= 0 || early; const abBusy = !!K.penRet || K.ab === 'sweep' || K.ab === 'reel' || (K.ab === 'slam' && !early) || (!hOut && (K.slCd > 0 || K.slWait)); AOE.classList.toggle('out', hOut && !abBusy); AOE.classList.toggle('dim', abBusy); DASHE.classList.toggle('dim', !!K.penRet); if (K.penRet) cancelSweepAim(); BRB.classList.toggle('ready', K.hOut > 0); const al = hOut ? 'go to' : 'slam'; if (AOEL.textContent !== al) AOEL.textContent = al; { const hb = AOE.querySelector(':scope > .hkb'); if (hb) { const t = ctlKeyFor('priest', hOut ? 'goto' : 'leap'); if (hb.textContent !== t) hb.textContent = t; } } SMI.style.height = (K.pPh === 1 ? 100 * cl(Math.hypot(K.hvx || 0, K.hvy || 0) / WP.PEN.MAXV, 0, 1) : 0) + '%'; } else if (!FV) { DASHE.classList.toggle('off', live); sb.classList.toggle('off', live); AOE.classList.toggle('off', live && (!!K.ultLeapt || K.ultPh !== 1)); } else { DASHE.classList.remove('off'); sb.classList.remove('off'); AOE.classList.remove('off'); } }
   { const want = LUI.style.display !== 'none' || (EDIT && EDIT.back === 'lobby') ? CHAR : K.kind || 'knight'; if (want !== CHAR_UI) { charUI(want); applyLayout(); } } // switching character in game puts that character's control layout on
   if (K.kind === 'time') AOEI.style.height = (K.wpn === 4 ? ((K.trQ ?? TT.TRAP.N) < TT.TRAP.N ? cl((K.trCd || 0) / TT.TRAP.CD, 0, 1) : 0) : K.wpn === 3 ? (K.hu === 1 || K.hu === 3 ? 1 : cl((K.huCd || 0) / TT.HURL.RECD, 0, 1)) : K.wpn === 1 ? (K.sc === 1 ? 1 : cl((K.scCd || 0) / TT.SHIP.CD, 0, 1)) : K.wpn === 2 ? (K.hl >= 0 ? 1 : cl((K.hlCd || 0) / TT.HELI.CD, 0, 1)) : 0) * 100 + '%';
   if (HDRAW && !hdOK()) HDRAW = null; HDT.classList.toggle('on', !!HDRAW && !HDRAW.s);
@@ -8322,6 +8322,39 @@ document.addEventListener('dblclick', e => e.preventDefault());
 window.__horde = (r, k) => setHorde(r, k); window.__dash = v => doDash(typeof v === 'number' ? DIR8[v] : v); window.__aimDash = v => { DASHAIM = v; }; window.__DA = () => DASHAIM; window.__leap = doLeap; window.__aimLeap = v => { LEAPAIM = v; };
 const ub = document.getElementById('ult'), ULI = ub.querySelector('i'), ULS = ub.querySelector('small');
 function doUlt() { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.ultN = (IN.ultN || 0) + 1; markIn(); }
+// Default controls from Elijah's controls editor (src/controls.json, pasted 2026-10-21): keybinds per character and touch-control spots per device.
+// Keys: every action's bound key is turned into the key the game itself listens for (CTL_ACTS default), so all the handlers below stay as they are;
+// a game key that isn't bound to its action any more does nothing, and keys bound to nothing pass through.
+const CTL_CFG = {"keys": {"knight": {"spin": ["KeyE", ""]}, "ninja": {"breath": ["KeyQ", ""], "dash": ["KeyE", ""], "leap": ["ShiftLeft", ""]}, "time": {"leap": ["KeyE", ""], "spin": ["KeyQ", ""]}, "priest": {"goto": ["ShiftLeft", ""], "dash": ["KeyQ", ""], "leap": ["KeyE", ""], "spin": ["Space", ""]}}};
+const CFGLAY = {"knight": {"phoneL": {"dash": {"x": 0.7009, "y": 0.4949, "s": 100}, "spin": {"x": 0.9384, "y": 0.5231, "s": 71}, "ult": {"x": 0.9384, "y": 0.2949, "s": 64}}, "phoneP": {"dash": {"x": 0.7521, "y": 0.7691, "s": 88}, "leap": {"x": 0.4802, "y": 0.8732, "s": 88}}, "tabL": {"dash": {"x": 0.8506, "y": 0.6825, "s": 100}, "leap": {"x": 0.726, "y": 0.8993, "s": 100}, "move": {"x": 0.1481, "y": 0.8644, "s": 144}, "spin": {"x": 0.9371, "y": 0.6097, "s": 78}, "swing": {"x": 0.8435, "y": 0.858, "s": 144}, "ult": {"x": 0.955, "y": 0.4492, "s": 64}}}};
+const CTL_ACTS = {
+  knight: [['attack', 'Swing', 'M0', 'hold to swing toward the cursor'], ['spin', 'Spin', 'Space'], ['dash', 'Dash', 'ShiftLeft', 'the way you are moving'], ['leap', 'Leap', 'KeyQ', 'hold to aim at the cursor, release to jump'], ['ult', 'Ult', 'KeyR']],
+  fire: [['attack', 'Breath', 'M0', 'hold to breathe at the cursor'], ['attack2', 'Breath (key)', 'Space'], ['spin', 'Lava', 'KeyE'], ['dash', 'Plume', 'ShiftLeft', 'hold, flies the way you move'], ['leap', 'Coals', 'KeyQ', 'hold to aim, release to run them'], ['ult', 'Volcano', 'KeyR', 'then click to erupt']],
+  priest: [['attack', 'Censer', 'M0'], ['dash', 'Sweep', 'ShiftLeft', 'opens the aim: move the mouse round him, click to send'], ['leap', 'Slam', 'KeyQ'], ['goto', 'Go to', 'KeyG', 'while the head is out'], ['bring', 'Bring in', 'KeyF'], ['spin', 'Holy', 'KeyE'], ['ult', 'Penance', 'KeyR'], ['smash', 'Penance smash', 'Space', 'during Penance']],
+  time: [['attack', 'Cane / weapon', 'M0'], ['spin', 'Portal', 'KeyE', 'random weapon'], ['dash', 'Bike', 'ShiftLeft', 'the way you are moving'], ['leap', 'Weapon ability', 'KeyQ', 'ship / toss / strafe / trap'], ['ult', 'Time ride', 'KeyR']],
+  ninja: [['attack', 'Cuts', 'M0'], ['dash', 'Kama', 'ShiftLeft', 'at the enemy nearest the cursor'], ['breath', 'Shadow clones', 'KeyE'], ['leap', 'Leap', 'KeyQ', 'hold to aim, release to leap'], ['ult', 'Ult', 'KeyR', 'again to strike now']],
+  ogre: [['attack', 'Smash', 'M0'], ['dash', 'Frost surf', 'ShiftLeft'], ['leap', 'Storm cloud', 'KeyQ', 'hold to aim'], ['breath', 'Ice spikes', 'KeyE'], ['ult', 'Rampage', 'KeyR']],
+  rooster: [['attack', 'Laser', 'M0'], ['dash', 'Bombing run', 'ShiftLeft'], ['leap', 'Egg barrage', 'KeyQ', 'hold to aim, release to fire'], ['spin', 'Egg mines', 'KeyE'], ['ult', 'Chick storm', 'KeyR']],
+  gi: [['attack', 'M16', 'M0'], ['dash', 'Gunner', 'ShiftLeft'], ['spin', 'Missile', 'KeyE'], ['leap', 'Supply drop', 'KeyQ', 'hold to aim'], ['fire', 'Door gun fire / boost', 'Space', 'in the Huey or the missile'], ['rocket', 'Rocket', 'KeyE', 'in the Huey']]
+};
+const CTL_COMMON = [['up', 'KeyW'], ['left', 'KeyA'], ['down', 'KeyS'], ['right', 'KeyD']];
+const ctlKind = () => { const kn = KN[ME]; return (kn && kn.kind && CTL_ACTS[kn.kind]) ? kn.kind : CTL_ACTS[CHAR] ? CHAR : 'knight'; };
+const ctlBind = ch => { const o = (CTL_CFG.keys[ch] || {}), out = []; for (const [id, def] of [...CTL_COMMON, ...(CTL_ACTS[ch] || []).map(a => [a[0], a[2]])]) out.push([id, def, o[id] || [def, '']]); return out; };
+const CTLT = {};
+function ctlTable(ch) { if (CTLT[ch]) return CTLT[ch]; const T = {}, nat = new Set(); for (const [, def, codes] of ctlBind(ch)) { if (!/^M\d/.test(def)) nat.add(def); for (const c of codes) if (c && !/^M\d/.test(c) && !/^M\d/.test(def)) { const a = T[c] = T[c] || []; if (!a.includes(def)) a.push(def); } }
+  return CTLT[ch] = { T, nat }; }
+const CTLKEY = { Space: ' ', ShiftLeft: 'Shift', ShiftRight: 'Shift', ControlLeft: 'Control', AltLeft: 'Alt', Tab: 'Tab', Enter: 'Enter', Backquote: '`', CapsLock: 'CapsLock' };
+const ctlKeyOf = c => CTLKEY[c] || (/^Key/.test(c) ? c.slice(3).toLowerCase() : /^Digit/.test(c) ? c.slice(5) : /^Arrow/.test(c) ? c : c);
+function ctlRemap(e) { if (e.__ctl || (e.target && e.target.closest && e.target.closest('input,textarea,select'))) return;
+  const code = e.code === 'ShiftRight' ? 'ShiftLeft' : e.code; if (!code) return; const { T, nat } = ctlTable(ctlKind()), to = T[code] || (nat.has(code) ? [] : null);
+  if (!to || (to.length === 1 && to[0] === code)) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  for (const d of to) { const ev = new KeyboardEvent(e.type, { key: ctlKeyOf(d), code: d, repeat: e.repeat, bubbles: true, cancelable: true, shiftKey: e.shiftKey }); ev.__ctl = 1; (document.body || document).dispatchEvent(ev); } }
+addEventListener('keydown', ctlRemap, true); addEventListener('keyup', ctlRemap, true);
+// the key shown on a control's badge (PC): what that action is bound to
+const CTLNM = { Space: 'Space', ShiftLeft: 'Shift', ShiftRight: 'Shift', ControlLeft: 'Ctrl', AltLeft: 'Alt', M0: 'Mouse', M1: 'Mouse M', M2: 'Mouse R' };
+const ctlName = c => !c ? '' : CTLNM[c] || c.replace(/^Key/, '').replace(/^Digit/, '').replace(/^Arrow/, '');
+const ctlKeyFor = (ch, id) => { const b = ctlBind(ch).find(q => q[0] === id); return b ? ctlName(b[2][0] || b[2][1]) : ''; };
 // G.I. door gun: FIRE button (held) and Space while his ult is up
 { const GF = document.getElementById('gfire'), set = v => { const kn = KN[ME]; if (!kn) return; if (!!kn.in.gf !== !!v) { kn.in.gf = v ? 1 : 0; markIn(); } GF.classList.toggle('on', !!v); };
   GF.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); try { GF.setPointerCapture(e.pointerId); } catch (er) { } set(1); });
@@ -8360,7 +8393,8 @@ const HK = { knight: { lst: 'WASD', rst: 'Mouse', spin: 'Space', dash: 'Shift', 
   priest: { lst: 'WASD', rst: 'Mouse', dash: 'Shift', aoe: 'Q', bring: 'F', spin: 'E', ult: 'R', smash: 'Space', pst: 'Mouse' }, time: { lst: 'WASD', rst: 'Mouse', spin: 'E', dash: 'Shift', aoe: 'Q', ult: 'R' },
   ninja: { lst: 'WASD', rst: 'Mouse', dash: 'Shift', bst: 'E', aoe: 'Q', ult: 'R' }, ogre: { lst: 'WASD', rst: 'Mouse', dash: 'Shift', aoe: 'Q', bst: 'E', ult: 'R' },
   rooster: { lst: 'WASD', rst: 'Mouse', dash: 'Shift', aoe: 'Q', spin: 'E', ult: 'R' }, gi: { lst: 'WASD', rst: 'Mouse', dash: 'Shift', spin: 'E', aoe: 'Q', gfire: 'Mouse L', grk: 'Space', gboost: 'Space' }, sword: { lst: 'WASD', rst: 'Mouse' } };
-function hkBadges(kind) { const pc = matchMedia('(hover: hover) and (pointer: fine)').matches, M = HK[kind] || HK.knight; document.body.classList.toggle('pc', pc);
+const HKACT = { spin: 'spin', dash: 'dash', aoe: 'leap', ult: 'ult', bst: 'breath', bring: 'bring', smash: 'smash' };
+function hkBadges(kind) { const pc = matchMedia('(hover: hover) and (pointer: fine)').matches, M = Object.assign({}, HK[kind] || HK.knight); if (CTL_ACTS[kind]) for (const [id, act] of Object.entries(HKACT)) if (M[id] && kind !== 'gi') { const n = ctlKeyFor(kind, act); if (n) M[id] = n; } document.body.classList.toggle('pc', pc);
   for (const id of ['lst', 'rst', 'spin', 'dash', 'aoe', 'ult', 'bst', 'bring', 'smash', 'pst', 'gfire', 'grk', 'gboost']) { const el = document.getElementById(id); if (!el) continue; let b = el.querySelector(':scope > .hkb'); const k = pc && M[id];
     if (!k) { if (b) b.remove(); continue; } if (!b) { b = document.createElement('b'); b.className = 'hkb'; el.appendChild(b); } if (b.textContent !== k) b.textContent = k; } }
 matchMedia('(hover: hover) and (pointer: fine)').addEventListener('change', () => hkBadges(CHAR_UI || CHAR));
@@ -8634,7 +8668,10 @@ if (LAY.fire && !LAY.fire.lv1) { for (const o of ['landscape', 'portrait']) if (
 const orient = () => innerWidth > innerHeight ? 'landscape' : 'portrait';
 // built-in default layouts (used until the player saves their own): Warpriest portrait from Elijah's phone setup
 const DEFLAY = { priest: { portrait: { move: { x: 0.1723, y: 0.8739, s: 113 }, swing: { x: 0.7812, y: 0.8739, s: 113 }, dash: { x: 0.7963, y: 0.6888, s: 87 }, leap: { x: 0.5255, y: 0.7273, s: 87 }, bring: { x: 0.48, y: 0.9011, s: 88 }, spin: { x: 0.8917, y: 0.4781, s: 63 }, ult: { x: 0.8917, y: 0.3429, s: 63 } } } };
-const layNow = () => (LAY[layCh()] || {})[orient()] || (DEFLAY[layCh()] || {})[orient()];
+// built-in default: the game's own layout (DEFLAY) with the controls editor's spots for this kind of device on top (phone or tablet by the short side, 600px)
+const platKey = () => (Math.min(innerWidth, innerHeight) >= 600 ? 'tab' : 'phone') + (orient() === 'landscape' ? 'L' : 'P');
+const defLay = () => { const a = (DEFLAY[layCh()] || {})[orient()], b = (CFGLAY[layCh()] || {})[platKey()]; return a || b ? Object.assign({}, a ? JSON.parse(JSON.stringify(a)) : {}, b ? JSON.parse(JSON.stringify(b)) : {}) : undefined; };
+const layNow = () => (LAY[layCh()] || {})[orient()] || defLay();
 const LPROPS = ['left', 'top', 'right', 'bottom', 'width', 'height'];
 function applyLayout() {
   const L = layNow();
@@ -8648,7 +8685,7 @@ function applyLayout() {
   if (EDIT) layMarks();
 }
 function ctlBox(k) { const r = document.getElementById(CTLS[k][0]).getBoundingClientRect(); return { x: (r.left + r.width / 2) / innerWidth, y: (r.top + r.height / 2) / innerHeight, s: Math.round(r.width) }; }
-function layEnsure() { const o = orient(); LAY[layCh()] = LAY[layCh()] || {}; if (!LAY[layCh()][o] && (DEFLAY[layCh()] || {})[o]) LAY[layCh()][o] = JSON.parse(JSON.stringify(DEFLAY[layCh()][o])); const S = LAY[layCh()][o]; if (S) { for (const k in CTLS) if (!S[k]) { const el = document.getElementById(CTLS[k][0]); if (getComputedStyle(el).display !== 'none') S[k] = ctlBox(k); } return S; } if (!S) { const L = {}; for (const k in CTLS) { const el = document.getElementById(CTLS[k][0]); if (el.offsetParent || getComputedStyle(el).position === 'fixed' && getComputedStyle(el).display !== 'none') L[k] = ctlBox(k); } LAY[layCh()][o] = L; } return LAY[layCh()][o]; }
+function layEnsure() { const o = orient(); LAY[layCh()] = LAY[layCh()] || {}; if (!LAY[layCh()][o] && defLay()) LAY[layCh()][o] = defLay(); const S = LAY[layCh()][o]; if (S) { for (const k in CTLS) if (!S[k]) { const el = document.getElementById(CTLS[k][0]); if (getComputedStyle(el).display !== 'none') S[k] = ctlBox(k); } return S; } if (!S) { const L = {}; for (const k in CTLS) { const el = document.getElementById(CTLS[k][0]); if (el.offsetParent || getComputedStyle(el).position === 'fixed' && getComputedStyle(el).display !== 'none') L[k] = ctlBox(k); } LAY[layCh()][o] = L; } return LAY[layCh()][o]; }
 function laySave() { try { localStorage.setItem('kn_layout', JSON.stringify(LAY)); } catch (e) { } }
 let EDIT = null; // { sel, back } while editing
 const LE = document.getElementById('layEd');
