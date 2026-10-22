@@ -20,6 +20,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   await A.keyboard.down('d'); await B.keyboard.down('a'); await sleep(1500); await A.keyboard.up('d'); await B.keyboard.up('a');
   await A.evaluate(() => { window.__bhGod = 1; const e = __cp.STAGES[0].E[0]; __cp.tp(e.x, e.y); const g = window.__KN()[1]; g.x = e.x + 20; g.y = e.y; g.T && (g.T.x = g.x, g.T.y = g.y); });
   await sleep(4000); console.log('fight A', await st(A)); console.log('fight B', await st(B)); await B.screenshot({ path: OUT + '/cp-guest.png' });
+  await A.evaluate(() => { __cp.STAGES[0].E[1].w = ['naga*2']; __cp.STAGES[0].name = 'Edited'; }); await sleep(3500); console.log('stage synced to guest', await B.evaluate(() => __cp.STAGES[0].name + ' ' + __cp.STAGES[0].E[1].w));
   await A.evaluate(() => { __bh.BH.xp = __bh.BH.need + 1; }); await sleep(800);
   await B.keyboard.press('t'); await sleep(300); await B.click('#cpTree .nd.can'); await sleep(1200);
   console.log('skill A sees guest', await A.evaluate(() => (window.__KN()[1].ups || []).join(',')), 'B', await st(B));

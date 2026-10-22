@@ -11,18 +11,18 @@ const XPV = k => UK[k] && UK[k].heavy ? 10 : (UK[k] && UK[k].hp > 350 ? 3 : 1);
 // encounters (`E`) lock the players in a ring (`r`) until every wave is dead; a `g` encounter is just a group standing about (no ring);
 // the last encounter is the boss fight; `P` = the road drawn across the ground
 const STAGES = [
-  { id: 'road', name: 'The Old Road', blurb: 'Footmen and the walking dead hold the road east.', th: 'grass', mul: 1, mx: 120, my: 330,
+  { id: 'road', name: 'The Old Road', blurb: 'Deserters and sellswords hold the road east, led by an ogre warchief.', th: 'grass', mul: 1, mx: 120, my: 330,
     R: [[110, 110, 930, 390], [800, 20, 1520, 330], [1380, 120, 1960, 470]], P: [[160, 250], [620, 250], [900, 190], [1150, 170], [1450, 230], [1690, 300], [1900, 310]],
-    E: [{ g: 1, x: 430, y: 180, w: ['zombie*3'] }, { x: 640, y: 255, r: 105, w: ['foot*5,zombie*3', 'foot*4,skel*3'] }, { g: 1, x: 960, y: 300, w: ['foot*3,skel*1'] },
-      { x: 1160, y: 175, r: 115, w: ['zombie*7,foot*3', 'skel*4,scout*3,foot*3', 'shield*2,foot*4'] }, { x: 1690, y: 300, r: 135, boss: 'chief', w: ['foot*6,shield*1', 'chief*1,foot*4'] }] },
+    E: [{ g: 1, x: 430, y: 180, w: ['foot*3'] }, { x: 640, y: 255, r: 105, w: ['foot*5', 'foot*4,scout*2'] }, { g: 1, x: 960, y: 300, w: ['scout*3'] },
+      { x: 1160, y: 175, r: 115, w: ['foot*5,scout*2', 'shield*2,foot*4', 'fknight*1,foot*4'] }, { x: 1690, y: 300, r: 135, boss: 'chief', w: ['foot*6,shield*2', 'chief*1,foot*4'] }] },
   { id: 'wood', name: 'Darkwood', blurb: 'Gnoll packs and wolf riders hunt under the trees.', th: 'wood', mul: 1.35, mx: 300, my: 210,
     R: [[110, 130, 720, 400], [600, -320, 900, 400], [780, -420, 1520, -110], [1400, -420, 1820, 120]], P: [[160, 260], [520, 270], [750, 200], [760, -120], [900, -270], [1300, -260], [1600, -180], [1620, 0]],
-    E: [{ x: 470, y: 260, r: 105, w: ['gnoll*6', 'gnoll*4,skel*3'] }, { g: 1, x: 750, y: 40, w: ['warg*2'] }, { x: 760, y: -200, r: 110, w: ['gnoll*5,naga*2', 'warg*3,gnoll*3'] },
-      { g: 1, x: 1100, y: -330, w: ['naga*2,skel*2'] }, { x: 1250, y: -260, r: 115, w: ['naga*3,scout*4', 'gnoll*6,warg*2', 'troll*1,gnoll*3'] }, { x: 1610, y: -60, r: 140, boss: 'ent', w: ['gnoll*5,naga*2', 'ent*1,gnoll*4'] }] },
+    E: [{ x: 470, y: 260, r: 105, w: ['gnoll*6', 'gnoll*4,warg*1'] }, { g: 1, x: 750, y: 40, w: ['warg*2'] }, { x: 760, y: -200, r: 110, w: ['gnoll*5,naga*2', 'warg*3,gnoll*3'] },
+      { g: 1, x: 1100, y: -330, w: ['naga*3'] }, { x: 1250, y: -260, r: 115, w: ['naga*3,gnoll*3', 'gnoll*6,warg*2', 'troll*1,gnoll*3'] }, { x: 1610, y: -60, r: 140, boss: 'ent', w: ['gnoll*5,naga*2', 'ent*1,gnoll*4'] }] },
   { id: 'fort', name: 'Ironhold', blurb: 'The fort’s garrison, its necromancers and what they keep chained inside.', th: 'fort', mul: 1.8, mx: 480, my: 120,
     R: [[110, 120, 640, 390], [520, -40, 1660, 600]], P: [[160, 255], [560, 255], [900, 280], [1300, 280]],
-    E: [{ x: 480, y: 255, r: 100, w: ['shield*3,foot*4', 'sapper*4,foot*3'] }, { g: 1, x: 780, y: 60, w: ['fknight*2'] }, { x: 820, y: 300, r: 120, w: ['fknight*2,shield*3', 'necro*2,skel*4,foot*3', 'sapper*5,ogre*1'] },
-      { g: 1, x: 1080, y: 520, w: ['necro*1,skel*3'] }, { x: 1150, y: 120, r: 125, w: ['ogre*2,shield*2', 'golem*1,foot*4'] }, { x: 1350, y: 340, r: 165, boss: 'tarrasque', w: ['fknight*2,necro*2,shield*3', 'tarrasque*1,skel*4'] }] }
+    E: [{ x: 480, y: 255, r: 100, w: ['shield*3,foot*4', 'sapper*4,foot*3'] }, { g: 1, x: 780, y: 60, w: ['fknight*2'] }, { x: 820, y: 300, r: 120, w: ['fknight*2,shield*3', 'sapper*5,ogre*1'] },
+      { g: 1, x: 1080, y: 520, w: ['necro*1,skel*3'] }, { x: 1150, y: 120, r: 125, w: ['zombie*8', 'skel*5,necro*2', 'golem*1,zombie*4'] }, { x: 1350, y: 340, r: 165, boss: 'tarrasque', w: ['necro*2,skel*4,zombie*4', 'tarrasque*1,skel*4'] }] }
 ];
 const cpS = () => STAGES[CMP.st] || STAGES[0];
 const cpIn = (S, x, y, m = 0) => S.R.some(r => x >= r[0] + m && x <= r[2] - m && y >= r[1] + m && y <= r[3] - m);
@@ -76,9 +76,7 @@ function eAI(w, T, dx, dy, d, reach, U, dt) {
   const k = w.k, a = Math.atan2(dy, dx), near = (n, R) => walkers.filter(o => o !== w && o.k === n && o.hp > 0 && Math.hypot(o.x - w.x, o.y - w.y) < R);
   switch (k) {
     case 'foot': if (d < 34 && d > 12 && eCd(w, 'l')) { eSet(w, 'l', rr(5, 8)); eStart(w, 'lunge', { a, dur: 0.42 }); cpEv(['l', w.x, w.y, a, 30, 3, 0.42, 0]); return true; } return false;
-    case 'zombie': if (d < 28 && d > 10 && eCd(w, 'g')) { eSet(w, 'g', rr(5, 8)); eStart(w, 'grab', { a, dur: 0.38 }); cpEv(['l', w.x, w.y, a, 24, 3, 0.38, 0]); return true; }
-      // lurches now and then
-      if ((w.ai = w.ai || { lt: rr(1, 4) }).lt > 0) w.ai.lt -= dt; else { w.ai.lt = rr(3, 5); w.ai.lu = 0.6; } if (w.ai.lu > 0) { w.ai.lu -= dt; if (d > reach) { eGo(w, T.x, T.y, w.sp * 2.2, dt); return true; } } return false;
+    case 'zombie': if (d < reach + 5 && eCd(w, 'g')) { eSet(w, 'g', rr(5, 8)); eStart(w, 'grab', { a, dur: 0.38 }); cpEv(['l', w.x, w.y, a, 14, 3, 0.38, 0]); return true; } return false; // a grab where it stands, no lunge
     case 'skel': case 'scout': { const S = k === 'skel' ? [70, 120, 'sh', [3.5, 5], 0.55] : [80, 130, 'dg', [3, 4.5], 0.35];
       if (k === 'scout' && d < 32 && eCd(w, 'roll')) { eSet(w, 'roll', 4.5); eStart(w, 'roll', { a: a + Math.PI + rr(-0.6, 0.6), dur: 0.3 }); return true; }
       if (d < 210 && d > 40 && eCd(w, S[2])) { eSet(w, S[2], rr(S[3][0], S[3][1])); eStart(w, 'shoot', { a, dur: S[4] }); cpEv(['l', w.x, w.y - 4, a, Math.min(d, 140), 0.8, S[4], 1]); return true; }
@@ -121,7 +119,7 @@ function eAI(w, T, dx, dy, d, reach, U, dt) {
 // an ability under way: warning first (`dur`), then the action
 function eTick(w, T, dx, dy, d, U, dt) { const E = w.ea; E.t += dt; w.atk = -1; if (U.heavy) w.atkH = -1; const pre = E.t < E.dur;
   switch (E.k) {
-    case 'lunge': case 'grab': if (pre) return true; { const go = E.t - E.dur, L = E.k === 'lunge' ? 0.22 : 0.26, sp = E.k === 'lunge' ? 135 : 100; if (go < L) { w.x += Math.cos(E.a) * sp * dt; w.y += Math.sin(E.a) * sp * dt * ARY; cpLaneP(w, 4, E.k === 'lunge' ? 12 : 10); } else if (go > L + 0.35) w.ea = null; } return true;
+    case 'lunge': case 'grab': if (pre) return true; { const go = E.t - E.dur, L = E.k === 'lunge' ? 0.22 : 0.26, sp = E.k === 'lunge' ? 135 : 100; if (go < L) { if (E.k === 'lunge') { w.x += Math.cos(E.a) * sp * dt; w.y += Math.sin(E.a) * sp * dt * ARY; } cpLaneP(w, 4, E.k === 'lunge' ? 12 : 10); } else if (go > L + 0.35) w.ea = null; } return true;
     case 'roll': { w.x += Math.cos(E.a) * 120 * dt; w.y += Math.sin(E.a) * 120 * dt * ARY; if (E.t >= E.dur) w.ea = null; } return true;
     case 'shoot': if (pre) return true; if (!E.fired) { E.fired = 1; if (w.k === 'skel') bhFire(w.x, w.y - 4, E.a, 1, 0, 95, 9, 0); else bhFire(w.x, w.y - 4, E.a, 2, 0.22, 110, 7, 0); } if (E.t > E.dur + 0.25) w.ea = null; return true;
     case 'bolt': if (pre) return true; if (!E.fired) { E.fired = 1; bhFire(w.x, w.y - 5, E.a, 3, 0.35, 60, 8, 1); } if (E.t > E.dur + 0.3) w.ea = null; return true;
@@ -148,8 +146,8 @@ function cpWave(e, i, pre) { const list = cpParse(e.w[i]); for (const [k, n] of 
     const w = cpSpawn(k, x, y); w.enc = e.i; if (pre || e.g) { w.idle = 1; w.grp = e.i; } else cpEv(['s', w.x, w.y, 0]); } } }
 function cpBegin(i) { const S = STAGES[i]; if (!S) return; Object.assign(CMP, { ph: 1, st: i, clrT: 0 }); CMP.E = S.E.map((e, j) => ({ s: 0, w: 0, t: 0 }));
   walkers = []; HDEAD = []; parts = []; blood = []; splats = []; BUL.length = 0; CPHZ = []; CPFX = []; BH.over = 0; BH.go = 1;
-  LIVE().forEach((kn, j) => { const sx = 200 + (j % 2) * 26, sy = 230 + j * 14; kn.x = sx; kn.y = sy; kn.T = { x: sx - HOME.x, y: sy - HOME.y }; Object.assign(kn, { rDn: 0, rRv: 0, rHp: kn.rHm || BHC.HP, rIv: 1 }); });
-  S.E.forEach((e, j) => { e.i = j; if (e.g) cpWave(e, 0, 1); else cpWave(e, 0, 1); }); camX = KN[ME].x; camY = KN[ME].y; }
+  LIVE().forEach((kn, j) => { const S0 = S.S || [200, 230], sx = S0[0] + (j % 2) * 26, sy = S0[1] + j * 14; kn.x = sx; kn.y = sy; kn.T = { x: sx - HOME.x, y: sy - HOME.y }; Object.assign(kn, { rDn: 0, rRv: 0, rHp: kn.rHm || BHC.HP, rIv: 1 }); });
+  S.E.forEach((e, j) => { e.i = j; if (e.g) cpWave(e, 0, 1); else cpWave(e, 0, 1); }); camX = KN[ME].x; camY = KN[ME].y; CPDEC = null; }
 function cpStep(dt) { if (!BH.cp) return; for (const f of CPFX) f.t += dt; CPFX = CPFX.filter(f => f.t < f.max);
   if (!AUTH() || CMP.ph !== 1) return; const S = cpS(), L = LIVE().filter(k => !k.rDn);
   // experience: every enemy killed by anyone, straight to the team
@@ -158,7 +156,7 @@ function cpStep(dt) { if (!BH.cp) return; for (const f of CPFX) f.t += dt; CPFX 
   S.E.forEach((e, j) => { const st = CMP.E[j]; if (e.g || st.s === 2) return;
     const alive = walkers.some(w => w.enc === j && w.hp > 0);
     if (st.s === 0) { if (L.some(k => Math.hypot(k.x - e.x, (k.y - e.y) / ARY) < e.r * 0.9)) { st.s = 1; st.w = 0; for (const w of walkers) if (w.enc === j) w.idle = 0; if (e.boss) note('Boss: ' + UK[e.boss].n, 3.5); snd('roar', e.x, e.y); } return; }
-    if (!alive) { st.t += dt; if (st.t > 1.4) { st.t = 0; if (st.w + 1 < e.w.length) { st.w++; cpWave(e, st.w, 0); } else { st.s = 2; snd('ult', e.x, e.y); if (j === S.E.length - 1) { CMP.ph = 2; cpSave({ done: CMP.done |= 1 << CMP.st, lvl: BH.lvl, xp: BH.xp }); } } } } else st.t = 0; });
+    if (!alive) { st.t += dt; if (st.t > 1.4) { st.t = 0; if (st.w + 1 < e.w.length) { st.w++; cpWave(e, st.w, 0); } else { st.s = 2; snd('ult', e.x, e.y); if (S.E.every((e2, j2) => e2.g || CMP.E[j2].s === 2)) { CMP.ph = 2; cpSave({ done: CMP.done |= 1 << CMP.st, lvl: BH.lvl, xp: BH.xp }); } } } } else st.t = 0; });
   if (BH.over && CMP.ph === 1) CMP.ph = 3; }
 // keep everyone on the stage, and inside a ring that's fighting (anyone already in can't leave; anyone outside can walk in)
 function cpClampK(kn) { if (!BH.cp || CMP.ph !== 1 || !kn) return; const S = cpS(); [kn.x, kn.y] = cpClampPt(S, kn.x, kn.y, 4);
@@ -167,8 +165,11 @@ function cpClampK(kn) { if (!BH.cp || CMP.ph !== 1 || !kn) return; const S = cpS
 function cpClampW() { if (!BH.cp || CMP.ph !== 1) return; const S = cpS(); for (const w of walkers) if (!(w.z > 1)) [w.x, w.y] = cpClampPt(S, w.x, w.y, 3); }
 // ---- sync ----
 const cpPack = () => BH.cp ? [CMP.ph, CMP.st, CMP.sel, CMP.done, CMP.E.map(e => e.s * 16 + e.w)] : undefined;
+let CPSYN = { h: '', n: 0 };
+const cpStageSync = () => { if (!BH.cp) return; const i = CMP.ph === 0 ? CMP.sel : CMP.st, S = STAGES[i]; if (!S) return; const j = JSON.stringify(S); if (j !== CPSYN.h || ++CPSYN.n > 40) { CPSYN.h = j; CPSYN.n = 0; return [i, j, STAGES.length]; } };
 const cpTakeEv = () => { const e = CPE; CPE = []; return e.length ? e : undefined; };
-function cpApplySnap(S) { if (S.cp) { const [ph, st, sel, done, E] = S.cp; if (ph === 2 && CMP.ph !== 2) cpSave({ done, lvl: BH.lvl, xp: BH.xp }); Object.assign(CMP, { ph, st, sel, done }); CMP.E = E.map(v => ({ s: v >> 4, w: v & 15, t: 0 })); } if (S.ce) for (const e of S.ce) cpFxAdd(e); }
+function cpApplySnap(S) { if (S.cp) { const [ph, st, sel, done, E] = S.cp; if (ph === 2 && CMP.ph !== 2) cpSave({ done, lvl: BH.lvl, xp: BH.xp }); Object.assign(CMP, { ph, st, sel, done }); CMP.E = E.map(v => ({ s: v >> 4, w: v & 15, t: 0 })); } if (S.ce) for (const e of S.ce) cpFxAdd(e);
+  if (S.cs) { const [i, j, n] = S.cs; while (STAGES.length < n) STAGES.push({ name: 'Stage ' + (STAGES.length + 1), blurb: '', th: 'grass', mul: 1, R: [[0, 0, 400, 300]], P: [], E: [] }); if (JSON.stringify(STAGES[i]) !== j) { try { STAGES[i] = JSON.parse(j); CPDEC = null; CPUI.last = ''; } catch (e) { } } } }
 // ---- drawing ----
 const CPTH = { grass: { out: '#24451c', tint: null, edge: '#1a3314', tree: ['#2f5e25', '#3f7a30'] }, wood: { out: '#11240f', tint: 'rgba(8,30,14,.32)', edge: '#0c1a0b', tree: ['#1d3d1a', '#2a5524'] }, fort: { out: '#2a2a2e', tint: 'rgba(60,55,50,.25)', edge: '#18181a', tree: null } };
 let cpOff = null, CPDEC = null, CPDECS = -1;
@@ -225,30 +226,30 @@ function cpCss() { if (document.getElementById('cpCss')) return; const s = docum
 #cpSk.has{animation:cpP 1s infinite}@keyframes cpP{50%{box-shadow:0 0 14px #ffcf40}}
 #cpTree{position:fixed;inset:6% 4%;z-index:61;display:none;flex-direction:column;gap:8px;background:#141a12f2;border:2px solid #c9a65a;border-radius:14px;padding:14px;color:#f3ead2;font:500 13px system-ui;box-sizing:border-box}
 #cpTree .hd{display:flex;justify-content:space-between;align-items:center;font:800 18px system-ui}#cpTree .hd button{padding:6px 14px;border-radius:8px;border:1px solid #c9a65a;background:#3a2a10;color:#fff;font:700 14px system-ui;cursor:pointer}
-#cpTree .cols{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;overflow:auto;min-height:0}#cpTree .col{display:flex;flex-direction:column;gap:6px}#cpTree .col b{font:800 12px system-ui;letter-spacing:.1em;opacity:.7}
+#cpTree .cols,#cpTree .cols *{touch-action:pan-y !important}#cpTree .cols{-webkit-overflow-scrolling:touch;overscroll-behavior:contain;flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;overflow:auto;min-height:0}#cpTree .col{display:flex;flex-direction:column;gap:6px}#cpTree .col b{font:800 12px system-ui;letter-spacing:.1em;opacity:.7}
 #cpTree .nd{text-align:left;padding:8px 10px;border-radius:10px;border:2px solid #4a4a3a;background:#232a1e;color:#ddd;cursor:default;font:500 12px system-ui}
 #cpTree .nd span{display:block;font:800 14px system-ui;color:#fff}#cpTree .nd em{display:block;font-style:normal;opacity:.75;margin-top:2px}#cpTree .nd i{display:block;font-style:normal;margin-top:4px;font:700 11px system-ui;color:#ffcf6a}
 #cpTree .nd.own{border-color:#c9a65a;background:#3a3218}#cpTree .nd.can{border-color:#7ad06a;background:#20361a;cursor:pointer}#cpTree .nd.can:hover{background:#2a4a22}#cpTree .nd.lock{opacity:.5}
 @media (max-width:640px){#cpTree .cols{grid-template-columns:1fr}}`; document.head.appendChild(s); }
-const MAPXY = [[16, 66], [50, 36], [84, 62]];
+const MAPXY = [[16, 66], [50, 36], [84, 62]], mapXY = i => (STAGES[i] && STAGES[i].mp) || MAPXY[i] || [10 + (i * 22) % 80, i % 2 ? 36 : 66];
 function cpMapUI() { const el = cpEl('cpMap'); const host = AUTH(), un = i => i === 0 || (CMP.done >> (i - 1)) & 1, S = STAGES[CMP.sel] || STAGES[0];
-  const key = [CMP.sel, CMP.done, host, BH.lvl].join(); if (CPUI.last === key && el.style.display === 'flex') return; CPUI.last = key; el.style.display = 'flex';
-  el.innerHTML = `<h2>World Map</h2><div style="opacity:.8">Team level ${BH.lvl} · ${cpPts(KN[ME])} skill point${cpPts(KN[ME]) === 1 ? '' : 's'} to spend</div><div class="mp"><svg viewBox="0 0 100 50" preserveAspectRatio="none"><path d="M16,33 C30,10 40,15 50,18 S70,40 84,31" fill="none" stroke="#c9a65a" stroke-width=".8" stroke-dasharray="2 1.5"/></svg>${STAGES.map((s, i) => `<div class="nd ${un(i) ? '' : 'lock'} ${(CMP.done >> i) & 1 ? 'done' : ''} ${CMP.sel === i ? 'sel' : ''}" data-i="${i}" style="left:${MAPXY[i][0]}%;top:${MAPXY[i][1]}%">${(CMP.done >> i) & 1 ? '✓' : i + 1}</div><div class="nl" style="left:${MAPXY[i][0]}%;top:${MAPXY[i][1] + 14}%">${s.name}</div>`).join('')}</div>
-  <div class="card"><b>${S.name}</b><br>${S.blurb}</div><div class="row">${host ? `<button class="go" id="cpGo" ${un(CMP.sel) ? '' : 'disabled'}>Start ${S.name}</button>` : '<div>Waiting for the host to choose a stage…</div>'}<button class="go" id="cpMapSk">Skills</button></div>`;
+  const key = [CMP.sel, CMP.done, host, BH.lvl, STAGES.length, STAGES.map(s2 => s2.name).join()].join(); if (CPUI.last === key && el.style.display === 'flex') return; CPUI.last = key; el.style.display = 'flex';
+  el.innerHTML = `<h2>World Map</h2><div style="opacity:.8">Team level ${BH.lvl} · ${cpPts(KN[ME])} skill point${cpPts(KN[ME]) === 1 ? '' : 's'} to spend</div><div class="mp"><svg viewBox="0 0 100 50" preserveAspectRatio="none"><polyline points="${STAGES.map((s2, i) => mapXY(i)[0] + ',' + mapXY(i)[1] / 2).join(' ')}" fill="none" stroke="#c9a65a" stroke-width=".8" stroke-dasharray="2 1.5"/></svg>${STAGES.map((s, i) => `<div class="nd ${un(i) ? '' : 'lock'} ${(CMP.done >> i) & 1 ? 'done' : ''} ${CMP.sel === i ? 'sel' : ''}" data-i="${i}" style="left:${mapXY(i)[0]}%;top:${mapXY(i)[1]}%">${(CMP.done >> i) & 1 ? '✓' : i + 1}</div><div class="nl" style="left:${mapXY(i)[0]}%;top:${mapXY(i)[1] + 14}%">${s.name}</div>`).join('')}</div>
+  <div class="card"><b>${S.name}</b><br>${S.blurb}</div><div class="row">${host ? `<button class="go" id="cpGo" ${un(CMP.sel) ? '' : 'disabled'}>Start ${S.name}</button>` : '<div>Waiting for the host to choose a stage…</div>'}<button class="go" id="cpMapSk">Skills</button>${host ? '<button class="go sedBtn" id="cpSed">Map designer</button>' : ''}</div>`;
   el.querySelectorAll('.nd').forEach(n => n.onclick = () => { const i = +n.dataset.i; if (host && un(i)) { CMP.sel = i; cpMapUI(); } });
   const g = document.getElementById('cpGo'); if (g) g.onclick = () => { if (un(CMP.sel)) { cpBegin(CMP.sel); el.style.display = 'none'; } };
-  document.getElementById('cpMapSk').onclick = () => cpTreeUI(1); }
+  document.getElementById('cpMapSk').onclick = () => cpTreeUI(1); const sd = document.getElementById('cpSed'); if (sd) sd.onclick = () => sedOpen(CMP.sel); }
 function cpEndUI() { const el = cpEl('cpEnd'), win = CMP.ph === 2, host = AUTH(), key = 'e' + CMP.ph + host; if (CPUI.last === key && el.style.display === 'flex') return; CPUI.last = key; el.style.display = 'flex';
   el.innerHTML = `<h2>${win ? 'Stage cleared!' : 'Defeated'}</h2><div>${cpS().name} · team level ${BH.lvl}</div><div class="row">${host ? (win ? '<button id="cpBack">World map</button>' : '<button id="cpRetry">Try again</button><button id="cpBack">World map</button>') : '<div>Waiting for the host…</div>'}</div>`;
   const b = document.getElementById('cpBack'); if (b) b.onclick = () => { CMP.ph = 0; walkers = []; BH.over = 0; LIVE().forEach(k => Object.assign(k, { rDn: 0, rHp: k.rHm })); if (CMP.done >> CMP.sel & 1 && STAGES[CMP.sel + 1]) CMP.sel++; };
   const r = document.getElementById('cpRetry'); if (r) r.onclick = () => cpBegin(CMP.st); }
 function cpTreeUI(open) { const el = cpEl('cpTree'), me = KN[ME]; if (open !== undefined) CPUI.open = open; if (!CPUI.open || !me) { el.style.display = 'none'; return; }
-  const ch = me.kind || 'knight', N = cpTree(ch), key = 't' + ch + (me.ups || []).join() + BH.lvl; el.style.display = 'flex'; if (CPUI.tk === key) return; CPUI.tk = key;
+  const ch = me.kind || 'knight', N = cpTree(ch), key = 't' + ch + (me.ups || []).join() + BH.lvl; el.style.display = 'flex'; if (CPUI.tk === key) return; CPUI.tk = key; const sc0 = (el.querySelector('.cols') || {}).scrollTop || 0;
   const nm = id => (N.find(q => q.id === id) || {}).n || id, cols = ['Abilities', 'Specials', 'Boosts'];
-  el.innerHTML = `<div class="hd"><span>${CNAME[ch] || ch} · Skill tree · ${cpPts(me)} point${cpPts(me) === 1 ? '' : 's'}</span><button id="cpTX">Close</button></div><div class="cols">${cols.map((cn, ci) => `<div class="col"><b>${cn.toUpperCase()}</b>${N.filter(q => q.c === ci).map(q => { const own = bhN(me, q.id), can = cpCan(me, q.id), full = own >= q.mx;
+  el.innerHTML = `<div class="hd"><span>${CNAME[ch] || ch} · Skill tree · ${cpPts(me)} point${cpPts(me) === 1 ? '' : 's'}</span><button id="cpTX">Close</button></div><div class="cols scrollOk">${cols.map((cn, ci) => `<div class="col"><b>${cn.toUpperCase()}</b>${N.filter(q => q.c === ci).map(q => { const own = bhN(me, q.id), can = cpCan(me, q.id), full = own >= q.mx;
     const why = full ? (q.mx > 1 ? 'Maxed' : 'Learned') : BH.lvl < q.lv ? 'Needs team level ' + q.lv : q.req && !(me.ups || []).includes(q.req) ? 'Needs ' + nm(q.req) : cpPts(me) ? 'Tap to learn (1 point)' : 'No points left';
     return `<button class="nd ${full ? 'own' : can ? 'can' : own ? 'own' : 'lock'}" data-id="${q.id}"><span>${q.n}${q.mx > 1 ? ` <small>${own}/${q.mx}</small>` : ''}</span><em>${q.d}</em><i>${why}</i></button>`; }).join('') || '<em style="opacity:.5">None yet</em>'}</div>`).join('')}</div>`;
-  document.getElementById('cpTX').onclick = () => cpTreeUI(0);
+  { const cc = el.querySelector('.cols'); if (cc) cc.scrollTop = sc0; } document.getElementById('cpTX').onclick = () => cpTreeUI(0);
   el.querySelectorAll('.nd.can').forEach(b => b.onclick = e => { e.stopPropagation(); const id = b.dataset.id, IN = me.in; IN.upN = (IN.upN || 0) + 1; IN.upC = id; if (typeof markIn === 'function') markIn(); if (AUTH()) { me.upSeen = IN.upN; if (cpCan(me, id)) cpBuy(me, id); } CPUI.tk = ''; setTimeout(() => cpTreeUI(), 120); }); }
 function cpUI() { cpCss(); const on = BH.on && BH.cp, me = KN[ME], sk = cpEl('cpSk');
   if (!on || !me) { for (const id of ['cpMap', 'cpEnd', 'cpTree']) cpEl(id).style.display = 'none'; sk.style.display = 'none'; return; }

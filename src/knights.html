@@ -216,6 +216,7 @@ let NET = null;
 const AUTH = () => !NET || NET.mode === 'host';
 /*@SURVIVAL@*/
 /*@CAMPAIGN@*/
+/*@STAGEDIT@*/
 const stoneW = () => [K.T.x + STONE.x, K.T.y + STONE.y];
 function inLeash(w) { return Math.hypot(w.x - K.T.x, (w.y - K.T.y) * 1.2) < LEASH; }
 function pickTarget() { let best = null, bd = 1e9; for (const w of walkers) { if (w.hp <= 0 || !inLeash(w)) continue; const d = Math.hypot(w.x - K.x, w.y - K.y); if (d < bd) { bd = d; best = w; } } return best; }
@@ -8345,7 +8346,7 @@ cv.addEventListener('pointermove', e => { if (!pinch.has(e.pointerId)) return; p
 const pinchEnd = e => { pinch.delete(e.pointerId); pinchD = 0; };
 cv.addEventListener('pointerup', pinchEnd); cv.addEventListener('pointercancel', pinchEnd);
 cv.addEventListener('wheel', e => { ZOOM = cl(ZOOM * Math.exp(-e.deltaY * 0.0012), ZMIN, 2.6); e.preventDefault(); }, { passive: false });
-document.addEventListener('touchmove', e => { if (LUI.style.display === 'none') e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', e => { if (e.target.closest && e.target.closest('.scrollOk')) return; if (LUI.style.display === 'none') e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('dblclick', e => e.preventDefault());
 window.__horde = (r, k) => setHorde(r, k); window.__dash = v => doDash(typeof v === 'number' ? DIR8[v] : v); window.__aimDash = v => { DASHAIM = v; }; window.__DA = () => DASHAIM; window.__leap = doLeap; window.__aimLeap = v => { LEAPAIM = v; };
@@ -8593,7 +8594,7 @@ function lobby(screen, extra) {
     <div class="gh"><b>Open games</b><span id="lDirNote">${DIR.ready ? '' : 'Looking…'}</span></div><div class="games" id="lGames"></div>
     <button class="big pri" id="lHost" ${getSB() ? '' : 'disabled'}>Host a game</button>
     <button class="big" id="lChars"><img src="${charPic(CHAR)}" alt=""><span><small>Character</small>${CNAME[CHAR] || 'Knight'}</span></button>
-    <div class="modeSeg"><button id="mRun" class="${BHMODE !== 'box' ? 'on' : ''}">Campaign</button><button id="mBox" class="${BHMODE === 'box' ? 'on' : ''}">Sandbox</button></div>
+    <div class="modeSeg"><button id="mRun" class="${BHMODE !== 'box' ? 'on' : ''}">Campaign</button><button id="mBox" class="${BHMODE === 'box' ? 'on' : ''}">Sandbox</button></div>${BHMODE !== 'box' ? '<button class="big sedBtn" id="lSed">Map designer</button>' : ''}
     <button class="big" id="lSolo">Play solo</button><button class="fsBtn">&#x26F6; Full screen</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
   else if (screen === 'chars') LC.innerHTML = `<h1>Characters</h1>${[['', ['knight', 'fire', 'priest', 'time']], ['In Development', ['ninja', 'ogre', 'rooster', 'gi']]].map(([h, ks]) => `${h ? `<h2 class="cdev">${h}</h2>` : ''}<div class="cgrid">${ks.map(k => `<button data-ch="${k}" class="${CHAR === k ? 'on' : ''}"><img src="${charPic(k)}" alt=""><span>${CNAME[k]}</span></button>`).join('')}</div>`).join('')}
     <button class="big" id="lLay">Control layout · ${CNAME[CHAR] || 'Knight'}</button><button class="big pri" id="lBack">Done</button>`;
@@ -8602,7 +8603,7 @@ function lobby(screen, extra) {
   else if (screen === 'joining') LC.innerHTML = `<h1>Knight Brawl</h1><p>Joining <b>${NET.code}</b>…</p><button id="lCancel">Cancel</button>`;
   const on = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
   on('lHost', host); on('lLay', () => layOpen(true)); const pick = c => { CHAR = c; try { localStorage.setItem('kn_char', c); } catch (e) { } charUI(c); applyLayout(); lobby('chars'); }; on('lChars', () => lobby('chars')); on('lBack', () => lobby('home')); LC.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => { audioInit(); pick(b.dataset.ch); if (b.dataset.ch === 'time') setTimeout(() => snd('tick'), 30); }); on('cKnight', () => pick('knight')); on('cFire', () => pick('fire')); on('cPriest', () => pick('priest')); on('cTime', () => pick('time')); on('cSword', () => pick('sword')); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
-  const setMode = m => { BHMODE = m; try { localStorage.setItem('kn_mode', m); } catch (e) { } lobby('home'); }; on('mRun', () => setMode('camp')); on('mBox', () => setMode('box'));
+  const setMode = m => { BHMODE = m; try { localStorage.setItem('kn_mode', m); } catch (e) { } lobby('home'); }; on('mRun', () => setMode('camp')); on('lSed', () => sedOpen(0)); on('mBox', () => setMode('box'));
   if (screen === 'home') renderGames(); if (typeof fsLabel === 'function') fsLabel();
   on('lCancel', () => { leave(); lobby('home'); });
 }
@@ -8647,7 +8648,7 @@ function netTick(dt) {
   if (NET.mode === 'host') {
     // 15 snapshots/s, 10/s once there are big hordes about (keeps each guest's download near 200KB/s on MAX)
     // at most ~15 a second, and spaced out further when they're big so a guest's connection never falls behind (~80KB/s); walkers only go to guests that are near them
-    if (now - (NET.lastSend || 0) > Math.max(66, (NET.lastLen || 0) / 80)) { NET.lastSend = now; const wl = [], an = []; walkers.filter(w => LIVE().some(k2 => k2.i !== ME && Math.abs(w.x - k2.x) < 300)).slice(0, 900).forEach(w => packW(w, wl, an, now)); const full = !(now - (NET.lastFull || 0) < 1000); if (full) NET.lastFull = now; const pl = { k: KN.map((kn, i) => packK(kn, i, full)), w: wl, an, rn: bhPack(), bl: bhTakeEv(), gm: gemPack(), cp: cpPack(), ce: cpTakeEv(), e: EV.splice(0), sw: SAWS.map(q => [q.i, q.n, r1(q.x), r1(q.y), Math.round(q.a * 100) / 100, q.out ? 1 : 0]), sp: speed, hz: [HZ.rate, HZ.kinds] }; NET.lastLen = JSON.stringify(pl).length; if (window.__snapStat) { window.__snapB = Math.max(window.__snapB || 0, NET.lastLen); window.__snapP = { k: JSON.stringify(pl.k).length, w: JSON.stringify(pl.w).length, an: JSON.stringify(pl.an).length, e: JSON.stringify(pl.e).length, n: pl.w.length / WN }; } NET.ch.send({ type: 'broadcast', event: 's', payload: pl }); }
+    if (now - (NET.lastSend || 0) > Math.max(66, (NET.lastLen || 0) / 80)) { NET.lastSend = now; const wl = [], an = []; walkers.filter(w => LIVE().some(k2 => k2.i !== ME && Math.abs(w.x - k2.x) < 300)).slice(0, 900).forEach(w => packW(w, wl, an, now)); const full = !(now - (NET.lastFull || 0) < 1000); if (full) NET.lastFull = now; const pl = { k: KN.map((kn, i) => packK(kn, i, full)), w: wl, an, rn: bhPack(), bl: bhTakeEv(), gm: gemPack(), cp: cpPack(), ce: cpTakeEv(), cs: cpStageSync(), e: EV.splice(0), sw: SAWS.map(q => [q.i, q.n, r1(q.x), r1(q.y), Math.round(q.a * 100) / 100, q.out ? 1 : 0]), sp: speed, hz: [HZ.rate, HZ.kinds] }; NET.lastLen = JSON.stringify(pl).length; if (window.__snapStat) { window.__snapB = Math.max(window.__snapB || 0, NET.lastLen); window.__snapP = { k: JSON.stringify(pl.k).length, w: JSON.stringify(pl.w).length, an: JSON.stringify(pl.an).length, e: JSON.stringify(pl.e).length, n: pl.w.length / WN }; } NET.ch.send({ type: 'broadcast', event: 's', payload: pl }); }
   } else {
     if ((NET.inDirty && now - (NET.lastIn || 0) > 50) || now - (NET.lastIn || 0) > 250) { NET.lastIn = now; NET.inDirty = 0; NET.ch.send({ type: 'broadcast', event: 'in', payload: Object.assign(packIn(KN[ME].in), { s: ME, ts: Math.round(now) }) }); }
     // where my knight was, frame by frame, so the host's view of me can be checked against where I was when it got my input
