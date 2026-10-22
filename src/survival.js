@@ -22,7 +22,7 @@ const BHSP = {
   knight: [['k_combo', 'Three-cut combo', 'Swings chain into a rising cut and a twirl, each with a longer light blade'], ['k_spinspd', 'Whirlwind', 'Spinning speeds you up to over twice your run', 'spin'], ['k_spinsz', 'Wide spin', 'The spin reaches 30% further', 'spin'], ['k_dash', 'Long blade dash', 'The dash goes 60% further and cuts a 40% wider path', 'dash']],
   priest: [['p_censer', 'Holy fire', 'The censer also burns away 3.5% of max health per second for 5s'], ['p_plow', 'Unstoppable', 'Walk straight through crowds, shoving and hurting them'], ['p_chain', 'Burning chain', 'While HOLY burns, the chain burns everyone it touches', 'spin']],
   fire: [['f_blue', 'Blue flame', 'Full-heat breath reaches 65% further and 35% wider'], ['f_coals', 'Bed of coals', 'Coals keep burning whoever walks on them', 'leap']],
-  ninja: [['n_kunai', 'Kunai fan', 'The third attack throws a fan of kunai'], ['n_hop', 'Hop throw', 'Every kunai throw is a hop the way you move', 'n_kunai'], ['n_clones', 'Three clones', 'Shadow clones come out three at a time (from one)', 'breath'], ['n_charges', 'Three charges', 'Leap holds three charges (from one)', 'leap'], ['n_shur', 'Shuriken storm', 'Shuriken rain into the middle of every leap', 'leap']],
+  ninja: [['n_kunai', 'Kunai fan', 'The third attack throws a fan of kunai'], ['n_hop', 'Hop throw', 'Every kunai throw is a hop the way you move', 'n_kunai'], ['n_clones', 'Three clones', 'Shadow clones come out three at a time (from one)', 'breath'], ['n_charge2', 'Second charge', 'Leap holds two charges (from one)', 'leap'], ['n_charge3', 'Third charge', 'Leap holds three charges', 'n_charge2'], ['n_shur', 'Shuriken storm', 'Shuriken rain into the middle of every leap', 'leap']],
   time: [['t_saber', 'Dashing slice', 'Saber swings carry you forward through enemies', 'spin'], ['t_bounce', 'Ricochet', 'Saws bounce on through up to 30 enemies (from 4)', 'spin'], ['t_skew', 'Skewer', 'Alien tentacles skewer up to 2 more enemies behind the first', 'spin']]
 };
 // stat boosts [name, what it does, most you can take]
@@ -31,7 +31,7 @@ const bhDmg = kn => BH.on && kn ? 1 + 0.12 * bhN(kn, 'dmg') : 1;
 const bhNeed = l => Math.round(14 + 9 * l + 1.1 * l * l);
 // abilities come at set levels, in this order (the ult last); cards never offer them
 // per character: the level each ability unlocks at (set with the Survival tuner; a slot left out uses the default order at levels 3, 6, 10, 15)
-const BHLV = {}, BHSPMIN = {}; // BHSPMIN: per character, the earliest level a special's card can come up
+const BHLV = {}, BHSPMIN = { ninja: { n_kunai: 4, n_hop: 6, n_clones: 12, n_charge2: 8, n_charge3: 10, n_shur: 8 } }; // BHSPMIN: per character, the earliest level a special's card can come up
 const BHUNL = [3, 6, 10, 15], BHORD = ['dash', 'leap', 'spin', 'breath', 'ult'];
 const bhUnlocks = (ch, lvl) => { const S = bhSlots(ch), L = BHLV[ch]; if (L) return S.filter(s => L[s] === lvl); const O = BHORD.filter(s => S.includes(s)), j = BHUNL.indexOf(lvl); return j >= 0 && O[j] ? [O[j]] : []; };
 function bhInit(kn) { Object.assign(kn, { rHp: BHC.HP, rHm: BHC.HP, rDn: 0, rRv: 0, rIv: 0, rPk: 0, ups: [], upSeen: (kn.in && kn.in.upN) || 0, kSeen: kn.kills || 0, pkT: 0 }); if (BH.on) kn.ups = bhUnlocks(kn.kind || 'knight', 1).map(q => 'a_' + q); }

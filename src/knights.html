@@ -4602,7 +4602,7 @@ function njPose(kn, t) {
   return { f, pel, hips, feet, knees, C, sh, head, lean, tw, cr, hA: hand(ax, ay), hB: hand(bx, by), aB: ang(ba), run, tuck, bk, bL, kh, af, kt, ef, kmh, kmHip, kmPh, kmTw };
 }
 // survival: one leap charge until Three charges is picked
-const njLN = kn => bhUp(kn, 'n_charges') ? NJ.LEAP.N : 1;
+const njLN = kn => !BH.on ? NJ.LEAP.N : bhUp(kn, 'n_charge3') ? 3 : bhUp(kn, 'n_charge2') ? 2 : 1;
 function makeNinja(kn) { Object.assign(kn, { kind: 'ninja', st: kn.st === 'fight' ? 'fight' : 'kneel', u: 0, kn: 0, hold: 1, cut: -1, cutN: 0, cutA: 0, cutTl: 0, cutE: -9, njP: null, nl: -1, nw: -1, nQ: NJ.LEAP.N, nCd: 0, nlN: 0, nlm: 1, nlk: 0, nx0: 0, ny0: 0, nx1: 0, ny1: 0, nPh: -1, nT: 0, nUN: 0, nSd: 1, njJ: null, nSp0: 1, nqL: null, nqU: 0, km: -1, kmN: 0, kmCd: 0, kmT: -1, kmH: 0, kmq: null, clN: 0, clCd: 0, hsT: -1, dashSeen: kn.in.dashN || 0, leapSeen: kn.in.leapN || 0, ultSeen: kn.in.ultN || 0, lvSeen: kn.in.lvN || 0 }); }
 const njWorld = (kn, v) => [kn.x + v[0] * KS, kn.y - (kn.z || 0) + v[1] * KS];
 function njSweep(t) { const P = njPose(K, t), d = [Math.cos(P.aB) * (P.bL ?? 1), Math.sin(P.aB) * (P.bL ?? 1)], h = P.hB, seg = [njWorld(K, [h[0] + d[0] * 0.8, h[1] + d[1] * 0.8]), njWorld(K, [h[0] + d[0] * (NJ.LEN + 0.4), h[1] + d[1] * (NJ.LEN + 0.4)])], id = K.i * 1e6 + (K.cutN || 0), pv = K.njBp, prev = pv && pv.id === id ? pv.s : null, dt = Math.max(1e-3, t - ((pv && pv.t) ?? t)), ad = [Math.cos(K.cutA), Math.sin(K.cutA)]; K.njBp = { id, s: seg, t };
