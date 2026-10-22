@@ -11,7 +11,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     p.on('pageerror', e => errs.push(tag + ': ' + e.message + ' ' + (e.stack || '').split('\n')[1]));
     await p.route('**/supabase-js@*/**', r => r.fulfill({ body: fs.readFileSync(ROOT + '/tests/supabase-mock.js', 'utf8'), contentType: 'application/javascript' }));
     await p.exposeFunction('__relayOut', msg => { for (const o of pages) if (o !== p && !o.isClosed()) o.evaluate(m => window.__relayIn && window.__relayIn(m), msg).catch(() => { }); });
-    pages.add(p); await p.goto('http://localhost:8782/knights.html'); await sleep(300); if (ch) { await p.click('#lChars'); await p.click(`[data-ch=${ch}]`); await p.click('#lBack'); } return p; }
+    pages.add(p); await p.goto('http://localhost:8782/knights.html?mode=box'); await sleep(300); if (ch) { await p.click('#lChars'); await p.click(`[data-ch=${ch}]`); await p.click('#lBack'); } return p; }
   const A = await mk('A', { width: 844, height: 390 }), B = await mk('B', { width: 844, height: 390 }, 'ninja');
   await A.click('#lHost'); await sleep(300); const code = await A.evaluate(() => document.querySelector('.code').textContent);
   await B.evaluate(c => window.__join(c), code); await sleep(1500);

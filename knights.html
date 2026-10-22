@@ -59,6 +59,20 @@ body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !
 #bring{display:none;position:fixed;right:calc(10vw + 128px);bottom:150px;width:62px;height:62px;border-radius:50%;padding:0;font:800 10px/1.1 system-ui;background:#f0c4191a;border:2px solid #f0c41966;color:#f0c41999;opacity:.45;transition:opacity .2s,box-shadow .2s}body.priest #bring{display:block}#recall{display:none;position:fixed;width:64px;height:30px;border-radius:15px;padding:0;font:800 11px/1 system-ui;background:#b05cff33;border:2px solid #d9a6ff;color:#f3e3ff;z-index:5;touch-action:none}body.time.recall #recall{display:block}body.priest #aoe.dim,#dash.dim{opacity:.45;pointer-events:none;transition:none}#bring.ready{opacity:1;background:#f0c41940;border-color:#fff3c4;color:#fff8e0;box-shadow:0 0 12px #f0c419aa}body.pen #bring,body.volc #bring{display:none}@media (orientation:portrait){#bring{right:calc(8vw + 44px);bottom:228px;width:52px;height:52px}}
 #help{position:fixed;left:50%;transform:translateX(-50%);bottom:6px;font-size:11px;color:#fff9;text-align:center;pointer-events:none}
 #fps{display:none;position:fixed;left:8px;bottom:6px;z-index:40;font:12px monospace;color:#fff;background:#000a;padding:2px 6px;border-radius:6px;pointer-events:none}
+
+#bhHud{position:fixed;left:50%;top:64px;transform:translateX(-50%);width:min(420px,70vw);z-index:6;pointer-events:none;font:700 13px system-ui;color:#fff;text-shadow:0 1px 2px #000}
+#bhHud .bhTop{display:flex;justify-content:space-between;margin-bottom:3px}#bhHud .bhBar{height:7px;border-radius:4px;background:#0009;border:1px solid #ffffff40;overflow:hidden}#bhHud .bhBar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4fb3ff,#9fe2ff)}
+#bhHud .bhHpW{display:flex;align-items:center;gap:6px;margin-top:4px}#bhHud .bhHpW .bhBar{flex:1;height:9px}#bhHud .bhBar.hp i{background:linear-gradient(90deg,#d8382a,#ff7a52)}#bhHpT{font-size:11px;min-width:64px;text-align:right}
+#bhCards{position:fixed;inset:0;z-index:40;background:#000a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:#fff;font:800 22px system-ui}
+#bhCards .bhRow{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;padding:0 12px}
+.bhCard{position:relative;width:min(200px,28vw);min-height:150px;display:flex;flex-direction:column;gap:8px;padding:14px 12px;border-radius:12px;border:2px solid #f0c41966;background:#1c1914;color:#efe7d6;text-align:left;cursor:pointer;font:600 13px system-ui}
+.bhCard:hover{border-color:#f0c419;transform:translateY(-2px)}.bhCard small{font:700 11px system-ui;letter-spacing:.06em;text-transform:uppercase;color:#a59c88}.bhCard span{font:800 17px system-ui;color:#f0c419}.bhCard em{font-style:normal;color:#d8cfbd;line-height:1.35}.bhCard i{position:absolute;right:10px;top:8px;font:700 11px ui-monospace,monospace;color:#7d745f;font-style:normal}
+.bhCard.bh-ab{border-color:#58d0ff88}.bhCard.bh-ab span{color:#7fdcff}.bhCard.bh-sp{border-color:#c46bff88}.bhCard.bh-sp span{color:#d79bff}
+#bhWait{position:fixed;left:50%;top:40%;transform:translateX(-50%);z-index:30;background:#000b;color:#fff;padding:10px 16px;border-radius:10px;font:700 15px system-ui}
+#bhOver{position:fixed;inset:0;z-index:45;background:#000c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#fff;font:600 15px system-ui}#bhOver b{font:900 36px system-ui;color:#ff6a4d}#bhOver button{min-width:220px}
+body.bh #hordeBtn,body.bh #charBtn,body.bh #reset,body.bh #slow{display:none!important}
+body.bhL-dash #dash,body.bhL-leap #aoe,body.bhL-spin #spin,body.bhL-breath #bst,body.bhL-ult #ult{display:none!important}
+.modeSeg{display:flex;gap:6px;width:100%}.modeSeg button{flex:1}.modeSeg button.on{border-color:#f0c419;color:#f0c419}
 </style></head><body>
 <canvas id="c"></canvas>
 <div id="lobbyUI"><div class="card" id="lcard"></div></div>
@@ -70,6 +84,7 @@ body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !
 <div id="layEd"><b id="layTitle">Control layout</b><span id="layHint">Drag a button's middle to move it, its rim to resize it.</span><div class="lrow"><span id="layName">Move stick</span><input type="range" id="laySize" min="44" max="230" step="1"><span id="laySizeV" class="lnum"></span></div><span id="layWarn"></span><div id="qcBox"></div><div class="lrow"><button id="layReset">Reset</button><button id="layDone" class="pri2">Done</button></div></div>
 <div id="exitQ"><div><p>Exit to main menu?</p><div class="row"><button id="exitNo">Stay</button><button id="exitYes">Exit</button></div></div></div>
 <div id="top"><button id="setBtn" title="Menu">&#9881; Menu</button><button id="hordeBtn">&#9776; Horde</button><button id="charBtn" title="Change character">&#9823; Character</button><button id="reset">Reset</button><button class="fsBtn fsIco" id="fsTop" title="Full screen" aria-label="Full screen">&#x26F6;</button><button id="slow">Slow-mo: off</button><div id="stats"></div></div>
+<div id="bhHud" style="display:none"><div class="bhTop"><span id="bhClock"></span><span id="bhLv"></span></div><div class="bhBar"><i id="bhXp"></i></div><div class="bhHpW"><div class="bhBar hp"><i id="bhHp"></i></div><span id="bhHpT"></span></div></div><div id="bhCards" style="display:none"></div><div id="bhWait" style="display:none">Waiting for the others to pick…</div><div id="bhOver" style="display:none"></div>
 <div id="vol" title="Music volume"><span>&#9835;</span><div class="vtr"><div class="vfill"></div></div></div>
 <div id="setP" class="pnl"><div class="hrow"><b>Menu</b></div><div class="hrow"><a id="menuBtn" href="./">&#8962; Main Menu</a><button id="restartBtn" title="Back to the start screen (pick a character, host or join)">&#8635; Restart</button></div><div class="hrow"><button id="sound">Sound: on</button><button id="music">Music: on</button></div><div class="hrow"><button id="layBtn" title="Control layout">&#10021; Controls setup</button><button id="zones">Hit zones: off</button></div><div class="hrow"><button id="fpsBtn">FPS: off</button></div></div><div id="fps"></div>
 <div class="stick" id="lst"><div class="knob"></div><small>move</small></div>
@@ -183,7 +198,7 @@ function mkKnight(i, near) {
 function switchChar(kn, ch) {
   if ((kn.kind || 'knight') === ch) return;
   for (const w of walkers) { if (w.hook === kn.i) w.hook = null; if (w.bnd === kn.i) { w.bT = 0; w.bnd = null; } }
-  const keep = { i: kn.i, on: kn.on, col: kn.col, x: kn.x, y: kn.y, f: kn.f || 1, kills: kn.kills || 0, hits: kn.hits || 0, ultBase: kn.ultBase || 0, in: kn.in, chSeen: kn.chSeen, drT: kn.drT };
+  const keep = { i: kn.i, on: kn.on, col: kn.col, x: kn.x, y: kn.y, f: kn.f || 1, kills: kn.kills || 0, hits: kn.hits || 0, ultBase: kn.ultBase || 0, in: kn.in, chSeen: kn.chSeen, drT: kn.drT, rHp: kn.rHp, rHm: kn.rHm, rDn: kn.rDn, rRv: kn.rRv, rPk: kn.rPk, ups: kn.ups, upSeen: kn.upSeen, kSeen: kn.kSeen };
   for (const k of Object.keys(kn)) delete kn[k];
   Object.assign(kn, mkKnight(keep.i), keep, { T: { x: keep.x - HOME.x, y: keep.y - HOME.y }, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, dashSeen: keep.in.dashN || 0, leapSeen: keep.in.leapN || 0, ultSeen: keep.in.ultN || 0 });
   const k0 = K; K = kn; if (ch === 'fire') makeFire(kn); else if (ch === 'priest') makePriest(kn); else if (ch === 'sword') makeSword(kn); else if (ch === 'time') makeTime(kn); else if (ch === 'rooster') makeRooster(kn); else if (ch === 'gi') makeGI(kn); else if (ch === 'ninja') makeNinja(kn); else if (ch === 'ogre') makeOgre(kn); K = k0;
@@ -199,6 +214,162 @@ let camX = 0, camY = 0, hurtT = 0, lastHits = 0;
 // net: null = solo; {mode:'host'|'guest', ch, ...}
 let NET = null;
 const AUTH = () => !NET || NET.mode === 'host';
+// ===================== Survival: a bullet-hell run (BH) =====================
+// Inlined into knights.html by build.py (at /*@SURVIVAL@*/). The run is host-authoritative like the rest of Knight Brawl:
+// the host spawns, levels the team up, applies picked cards and deals all damage; guests get BH in the snapshot (`rn`)
+// and every bullet volley as a spawn event (`bl`), which every screen flies the same way.
+// Characters as they are now are their final form: a run starts with the basic attack only; level-up cards unlock
+// each ability (Dash, Leap, Spin ...), the ult, the character's special upgrades (the things added to their kits over time)
+// and stat boosts that go past the final form.
+const BH = { on: 0, go: 0, t: 0, lvl: 1, xp: 0, need: 10, over: 0, pause: 0, spT: 0, elT: 60, boss: 0, best: 0 };
+let BHMODE = (() => { const q = new URLSearchParams(location.search).get('mode'); if (q === 'box' || q === 'run') return q; try { return localStorage.getItem('kn_mode') || 'run'; } catch (e) { return 'run'; } })();
+const BHC = { HP: 100, IV: 0.35, CONTACT: 5, REV: 2.5, REVR: 20, AUTO: 25, BR: 2.1, KR: 3.2, BMAX: 380 };
+const BUL = []; let BEV = [];
+const bhUp = (kn, id) => !BH.on || !!(kn && kn.ups && kn.ups.indexOf(id) >= 0);
+const bhN = (kn, id) => kn && kn.ups ? kn.ups.reduce((a, u) => a + (u === id ? 1 : 0), 0) : 0;
+const bhAb = (kn, slot) => bhUp(kn, 'a_' + slot);
+// the ability slots a character has (from the controls editor's action list); the Time Traveler's weapon ability comes with his portal
+const BHSLOT = { dash: 'Dash', leap: 'Leap', spin: 'Spin', breath: 'Breath', ult: 'Ult' };
+const bhSlots = ch => { const A = (typeof CTL_ACTS !== 'undefined' && CTL_ACTS[ch]) || []; return A.map(a => a[0]).filter(s => BHSLOT[s] && !(ch === 'time' && s === 'leap')); };
+const bhSlotName = (ch, s) => { const a = ((typeof CTL_ACTS !== 'undefined' && CTL_ACTS[ch]) || []).find(q => q[0] === s); return a ? a[1] : BHSLOT[s]; };
+const bhLvSlot = ch => bhSlots(ch).includes('breath') ? 'breath' : 'spin';
+// special upgrades: the things each kit gained over time, now earned in a run [id, name, what it does, ability it needs]
+const BHSP = {
+  knight: [['k_combo', 'Three-cut combo', 'Swings chain into a rising cut and a twirl, each with a longer light blade'], ['k_spinspd', 'Whirlwind', 'Spinning speeds you up to over twice your run', 'spin'], ['k_spinsz', 'Wide spin', 'The spin reaches 30% further', 'spin'], ['k_dash', 'Long blade dash', 'The dash goes 60% further and cuts a 40% wider path', 'dash']],
+  priest: [['p_censer', 'Holy fire', 'The censer also burns away 3.5% of max health per second for 5s'], ['p_plow', 'Unstoppable', 'Walk straight through crowds, shoving and hurting them'], ['p_chain', 'Burning chain', 'While HOLY burns, the chain burns everyone it touches', 'spin']],
+  fire: [['f_blue', 'Blue flame', 'Full-heat breath reaches 65% further and 35% wider'], ['f_coals', 'Bed of coals', 'Coals keep burning whoever walks on them', 'leap']],
+  time: [['t_saber', 'Dashing slice', 'Saber swings carry you forward through enemies', 'spin'], ['t_bounce', 'Ricochet', 'Saws bounce on through up to 30 enemies (from 4)', 'spin'], ['t_skew', 'Skewer', 'Alien tentacles skewer up to 2 more enemies behind the first', 'spin']]
+};
+// stat boosts [name, what it does, most you can take]
+const BHST = { dmg: ['Might', '+12% damage', 8], hp: ['Vigor', '+20 max health', 8], rgn: ['Second wind', '+0.6 health a second', 6], cdr: ['Focus', '8% shorter cooldowns', 5], spd: ['Fleet', '+7% move speed', 5], arm: ['Plating', 'Take 1 less damage from every hit', 5], xp: ['Insight', '+15% experience', 5] };
+const bhDmg = kn => BH.on && kn ? 1 + 0.12 * bhN(kn, 'dmg') : 1;
+const bhNeed = l => Math.round(6 + 4 * l + 0.35 * l * l);
+function bhInit(kn) { Object.assign(kn, { rHp: BHC.HP, rHm: BHC.HP, rDn: 0, rRv: 0, rIv: 0, rPk: 0, ups: [], upSeen: (kn.in && kn.in.upN) || 0, kSeen: kn.kills || 0, pkT: 0 }); }
+function bhStart() { Object.assign(BH, { on: BHMODE === 'run' ? 1 : 0, go: 0, t: 0, lvl: 1, xp: 0, need: bhNeed(1), over: 0, pause: 0, spT: 0, elT: 75, boss: 0 }); BUL.length = 0; BEV = []; for (const k in BHG) delete BHG[k]; BHUI.wait = -1; for (const kn of KN) bhInit(kn); bhUI(); }
+// ---- cards ----
+function bhPool(kn) { const ch = kn.kind || 'knight', P = [], slots = bhSlots(ch), have = s => bhAb(kn, s);
+  for (const s of slots) if (!have(s) && (s !== 'ult' || (BH.lvl >= 6 && slots.some(q => q !== 'ult' && have(q))))) P.push(['a_' + s, 'Unlock: ' + bhSlotName(ch, s), s === 'ult' ? 'Your ultimate. It charges with kills as usual' : 'A new ability', 3, 'ab']);
+  for (const [id, n, d, req] of BHSP[ch] || []) if (!bhUp(kn, id) && (!req || have(req))) P.push([id, n, d, 2, 'sp']);
+  for (const [id, [n, d, mx]] of Object.entries(BHST)) if (bhN(kn, id) < mx) P.push([id, n, d, 1, 'st']);
+  return P; }
+function bhRoll(kn, n = 3) { const P = bhPool(kn), out = []; while (out.length < n && P.length) { let s = P.reduce((a, c) => a + c[3], 0), r = Math.random() * s, i = 0; while ((r -= P[i][3]) > 0 && i < P.length - 1) i++; out.push(P.splice(i, 1)[0]); } return out; }
+const bhValid = (kn, id) => bhPool(kn).some(c => c[0] === id);
+function bhApply(kn, id) { kn.ups = (kn.ups || []).concat([id]); kn.rPk = Math.max(0, (kn.rPk || 0) - 1); kn.pkT = 0; if (id === 'hp') { kn.rHm += 20; kn.rHp += 20; } }
+// ---- input gate: locked abilities don't fire (my own knight; the guest gates its own before it sends) ----
+const BHG = {};
+function bhGate(kn) { if (!BH.on || !kn || !kn.in) return; const IN = kn.in, ch = kn.kind || 'knight', S = bhSlots(ch), lock = s => S.includes(s) && !bhAb(kn, s);
+  const cnt = (f, s) => { if (lock(s)) IN[f] = BHG[f] || 0; else BHG[f] = IN[f] || 0; };
+  cnt('dashN', 'dash'); if (lock('dash')) IN.pl = null; cnt('leapN', 'leap'); cnt('coN', 'leap'); cnt('ultN', 'ult');
+  const ls = bhLvSlot(ch); cnt('lvN', ls); if (lock(ls)) { IN.spin = false; IN.mnD = null; }
+  if (kn.rDn || BH.over) { IN.mv = [0, 0]; IN.aim = null; IN.spin = false; IN.br = null; IN.pl = null; } }
+// ---- around each character's own step: downed players stand still; Fleet moves them further; Focus shortens any cooldown that just started ----
+const BHCD = ['spinCd', 'dashCd', 'leapCd', 'slCd', 'swCd', 'hoCd', 'smCd', 'plCd', 'coCd', 'lvCd', 'wpCd', 'bkCd', 'sbCd', 'scCd', 'huCd', 'hlCd', 'trCd', 'nCd', 'kmCd', 'clCd', 'svCd', 'spCd', 'grCd', 'brCd', 'mnCd', 'bmCd'];
+let BHPRE = null;
+function bhPre(kn) { if (!BH.on) return; if (kn.rDn && kn.in) { kn.in.mv = [0, 0]; kn.in.aim = null; kn.in.spin = false; kn.in.br = null; } const o = { x: kn.x, y: kn.y }; for (const f of BHCD) if (typeof kn[f] === 'number') o[f] = kn[f]; BHPRE = o; }
+function bhPost(kn) { if (!BH.on || !BHPRE) return; const o = BHPRE; BHPRE = null; const cd = Math.max(0.6, 1 - 0.08 * bhN(kn, 'cdr')), sp = 0.07 * bhN(kn, 'spd');
+  if (cd < 1) for (const f of BHCD) if (typeof kn[f] === 'number' && o[f] !== undefined && kn[f] > o[f] + 0.05) kn[f] = o[f] + (kn[f] - o[f]) * cd;
+  if (sp && !kn.rDn) { const dx = kn.x - o.x, dy = kn.y - o.y; if (Math.hypot(dx, dy) < 20) { kn.x += dx * sp; kn.y = cl(kn.y + dy * sp, 16, H - 4); } } }
+// ---- damage to players ----
+function bhHurt(kn, d) { if (!BH.on || !AUTH() || !kn || kn.rDn || kn.rIv > 0 || BH.over) return; d = Math.max(1, d - bhN(kn, 'arm')); kn.rHp -= d; kn.rIv = BHC.IV; kn.hits = (kn.hits || 0) + 1;
+  if (kn.rHp <= 0) { kn.rHp = 0; kn.rDn = 1; kn.rRv = 0; for (let i = 0; i < 20; i++) { const a = rr(0, 6.28); sparks.push({ x: kn.x, y: kn.y - 6, vx: Math.cos(a) * rr(10, 40), vy: Math.sin(a) * rr(10, 30) - 10, t: 0, max: rr(0.4, 0.8) }); } } }
+// ---- enemy fire: every volley is one event that every screen turns into the same bullets ----
+// [x, y, angle, count, spread (>= 6.2 = full ring), speed, damage, colour index]
+const BHCOL = ['#ff5a4a', '#c46bff', '#58d0ff', '#ffcf40', '#7dff6a'];
+function bhFire(x, y, a, n, spr, spd, dmg, col) { const e = [Math.round(x * 10) / 10, Math.round(y * 10) / 10, Math.round(a * 1000) / 1000, n, spr, spd, dmg, col]; bhVolley(e); if (NET && NET.mode === 'host') BEV.push(e); }
+function bhVolley(e) { const [x, y, a, n, spr, spd, dmg, col] = e, ring = spr >= 6.2;
+  for (let i = 0; i < n; i++) { const g = n === 1 ? a : ring ? a + i * Math.PI * 2 / n : a + (i / (n - 1) - 0.5) * spr; BUL.push({ x, y, vx: Math.cos(g) * spd, vy: Math.sin(g) * spd * 0.8, t: 0, d: dmg, c: col }); } }
+// who shoots what: [first delay, gap, range, pattern]
+function bhShoot(w, T2, dt) { if (w.hp <= 0 || w.air || w.gr > 0 || w.ogFz > 0 || w.bT > 0 || w.dead) return; const U = UK[w.k];
+  const d = Math.hypot(T2.x - w.x, T2.y - w.y); if (d > 210) return; if (BUL.length > BHC.BMAX && !UK[w.k].heavy) { w.sh = rr(1, 2); return; } if (w.sh === undefined) w.sh = rr(1, 3); if ((w.sh -= dt) > 0) return;
+  const a = Math.atan2((T2.y - 5) - (w.y - 5 * U.sc), T2.x - w.x), y0 = w.y - 5 * U.sc;
+  switch (w.k) {
+    case 'skel': bhFire(w.x, y0, a, 1, 0, 70, 8, 0); w.sh = rr(3.5, 5); break;
+    case 'scout': bhFire(w.x, y0, a, 2, 0.18, 85, 7, 0); w.sh = rr(3, 4); break;
+    case 'naga': bhFire(w.x, y0, a, 3, 0.55, 60, 9, 2); w.sh = rr(3.2, 4); break;
+    case 'necro': bhFire(w.x, y0, rr(0, 1), 8, 6.3, 42, 9, 1); w.sh = rr(4.5, 6); break;
+    case 'troll': bhFire(w.x, y0, a, 5, 0.9, 65, 11, 0); w.sh = 2.4; break;
+    case 'chief': bhFire(w.x, y0, rr(0, 1), 16, 6.3, 48, 12, 3); w.sh = 2.8; break;
+    case 'ent': bhFire(w.x, y0, rr(0, 1), 22, 6.3, 34, 10, 4); w.sh = 3.2; break;
+    case 'golem': case 'tarrasque': case 'mammoth': { // spiral: a short burst every 0.12s, turning
+      w.spA = (w.spA || 0) + 0.38; w.spN = (w.spN || 0) + 1; const big = w.k === 'tarrasque'; bhFire(w.x, y0, w.spA, big ? 5 : 3, 6.3, big ? 52 : 46, big ? 14 : 11, big ? 1 : 3);
+      if (w.spN % (big ? 24 : 14) === 0) { w.sh = big ? 1.6 : 2.6; if (big) bhFire(w.x, y0, a, 7, 1.1, 80, 14, 0); } else w.sh = 0.12; break; }
+    default: w.sh = 99; } }
+function bhBullets(dt) { const L = LIVE();
+  for (let i = BUL.length - 1; i >= 0; i--) { const b = BUL[i]; b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; let gone = b.t > 6 || b.y < -10 || b.y > H + 10;
+    if (!gone) for (const kn of L) { if (kn.rDn) continue; const dx = kn.x - b.x, dy = (kn.y - 5 * (kn.sz || 1)) - b.y; if (dx * dx + dy * dy < (BHC.BR + BHC.KR * (kn.sz || 1)) ** 2 && !((kn.z || 0) > 6)) { if (AUTH()) { if (kn.rIv > 0) continue; bhHurt(kn, b.d); } gone = true; break; } }
+    if (gone) BUL.splice(i, 1); } if (BUL.length > 1500) BUL.splice(0, BUL.length - 1500); }
+// ---- spawning: from every side, harder as the clock runs ----
+const BHKIND = [[0, 'foot', 1], [0, 'zombie', 1], [25, 'skel', 1], [50, 'scout', 0.7], [60, 'gnoll', 1], [90, 'warg', 0.6], [110, 'naga', 0.7], [130, 'shield', 0.6], [150, 'necro', 0.5], [170, 'ogre', 0.4], [200, 'fknight', 0.6], [220, 'sapper', 0.4]];
+const BHELITE = [[75, 'troll'], [180, 'chief'], [300, 'golem'], [360, 'ent'], [420, 'ram'], [480, 'mammoth']];
+function bhSpawnAt(kind, x, y, mul) { const w = spawnWalker(x, undefined, cl(y, 14, H - 6), kind); w.hp = w.max = Math.round(UK[kind].hp * mul); return w; }
+function bhEdge(kn) { const sc = viewScale(), hw = cv.width / 2 / sc + 14, hh = cv.height / 2 / sc + 14, a = rr(0, Math.PI * 2), r = 1 / Math.max(Math.abs(Math.cos(a)) / hw, Math.abs(Math.sin(a)) / hh); return [kn.x + Math.cos(a) * r, kn.y - 6 + Math.sin(a) * r]; }
+function bhSpawn(dt) { if (!BH.go || BH.over || !AUTH()) return; const L = LIVE().filter(k => !k.rDn); if (!L.length) return; const t = BH.t, mul = 1 + t / 150;
+  if ((BH.elT -= dt) <= 0) { const el = BHELITE.filter(e => e[0] <= t), e = el.length ? el[Math.floor(Math.random() * el.length)] : null; BH.elT = Math.max(25, 60 - t / 20); if (e) { const p = bhEdge(L[Math.floor(Math.random() * L.length)]); bhSpawnAt(e[1], p[0], p[1], 1 + t / 200); } }
+  if (t >= 600 + BH.boss * 240) { BH.boss++; const p = bhEdge(L[0]); bhSpawnAt('tarrasque', p[0], p[1], 1 + BH.boss * 0.6); note('The Tarrasque is coming', 4); }
+  if ((BH.spT -= dt) > 0) return; BH.spT = 0.6; const cap = Math.min(700, 120 + t * 1.2 + 80 * (L.length - 1)); if (walkers.length >= cap) return;
+  let budget = (2 + t / 14) * 0.6 * (1 + 0.6 * (L.length - 1)); const K2 = BHKIND.filter(k => k[0] <= t), tw = K2.reduce((a, k) => a + k[2], 0);
+  while (budget > 0) { const kn = L[Math.floor(Math.random() * L.length)], p = bhEdge(kn), m = Math.min(Math.ceil(budget), 2 + Math.floor(Math.random() * 5)); budget -= m;
+    for (let i = 0; i < m; i++) { let r = Math.random() * tw, k = K2[0]; for (const q of K2) { if ((r -= q[2]) <= 0) { k = q; break; } } bhSpawnAt(k[1], p[0] + rr(-8, 8), p[1] + rr(-6, 6), mul); } } }
+// ---- the run's clock, experience, level-ups, revives, game over (host); the pause while anyone picks a card ----
+function bhStep0(dt, t) { if (!BH.on) return false;
+  bhGate(KN[ME]);
+  if (AUTH()) { for (const kn of LIVE()) { if ((kn.in.upN || 0) !== (kn.upSeen || 0)) { kn.upSeen = kn.in.upN || 0; const id = kn.in.upC; if (kn.rPk > 0 && bhValid(kn, id)) bhApply(kn, id); }
+      if (kn.rPk > 0) { kn.pkT = (kn.pkT || 0) + dt; if (kn.pkT > BHC.AUTO) { const c = bhRoll(kn, 1)[0]; if (c) bhApply(kn, c[0]); else kn.rPk = 0; } } }
+    BH.pause = LIVE().some(k => k.rPk > 0) ? 1 : 0; }
+  bhUI(); if (BH.pause || BH.over) { netTick(dt, t); return true; } return false; }
+function bhStep(dt) { if (!BH.on) return; const L = LIVE();
+  for (const kn of KN) { if (kn.rIv > 0) kn.rIv -= dt; }
+  if (!BH.go && L.some(k => k.st && k.st !== 'kneel')) BH.go = 1;
+  bhBullets(dt);
+  if (!AUTH()) return;
+  if (BH.go && !BH.over) BH.t += dt;
+  for (const kn of L) { const dk = (kn.kills || 0) - (kn.kSeen || 0); kn.kSeen = kn.kills || 0; if (dk > 0 && dk < 5000) BH.xp += dk * (1 + 0.15 * bhN(kn, 'xp'));
+    if (!kn.rDn && kn.rHp < kn.rHm) kn.rHp = Math.min(kn.rHm, kn.rHp + 0.6 * bhN(kn, 'rgn') * dt);
+    if (kn.rDn) { const near = L.some(o => o !== kn && !o.rDn && Math.hypot(o.x - kn.x, o.y - kn.y) < BHC.REVR); kn.rRv = near ? kn.rRv + dt : Math.max(0, kn.rRv - dt * 0.5); if (kn.rRv >= BHC.REV) Object.assign(kn, { rDn: 0, rRv: 0, rHp: Math.round(kn.rHm * 0.5), rIv: 1.5 }); } }
+  while (BH.xp >= BH.need) { BH.xp -= BH.need; BH.lvl++; BH.need = bhNeed(BH.lvl); for (const kn of L) kn.rPk = (kn.rPk || 0) + 1; snd('ult', L[0].x, L[0].y); }
+  if (BH.go && L.length && L.every(k => k.rDn)) { BH.over = 1; BH.best = Math.max(BH.best, BH.t); } }
+// ---- sync ----
+const bhPack = () => BH.on ? [Math.round(BH.t * 10) / 10, BH.lvl, Math.round(BH.xp * 10) / 10, BH.need, BH.over, BH.pause, BH.go] : null;
+const bhTakeEv = () => { const e = BEV; BEV = []; return e.length ? e : undefined; };
+function bhApplySnap(S) { if (S.rn) { BH.on = 1; [BH.t, BH.lvl, BH.xp, BH.need, BH.over, BH.pause, BH.go] = S.rn; } else BH.on = 0; if (S.bl) for (const e of S.bl) bhVolley(e); }
+function bhOwn(kn, v) { for (const f of ['rHp', 'rHm', 'rDn', 'rRv', 'rPk', 'ups']) if (v[f] !== undefined) kn[f] = v[f]; }
+// ---- drawing: bullets glow over everything on the ground; health bars over each player; a revive ring round the downed ----
+function bhDraw(c, t) { if (!BH.on) return; c.save();
+  for (const b of BUL) { const col = BHCOL[b.c] || BHCOL[0], f = b.t < 0.08 ? b.t / 0.08 : 1; c.globalAlpha = 0.35 * f; c.fillStyle = col; c.beginPath(); c.arc(b.x, b.y, BHC.BR * 1.6, 0, 7); c.fill(); c.globalAlpha = f; c.beginPath(); c.arc(b.x, b.y, BHC.BR, 0, 7); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.arc(b.x, b.y, BHC.BR * 0.5, 0, 7); c.fill(); }
+  c.globalAlpha = 1;
+  for (const kn of LIVE()) { const top = kn.y - 20 * (kn.sz || 1) - (kn.z || 0) - (kn.kind === 'ogre' ? 14 : kn.kind === 'priest' ? 4 : 0), w = 12, k = cl((kn.rHp || 0) / (kn.rHm || 1), 0, 1);
+    c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(kn.x - w / 2 - 0.3, top - 0.3, w + 0.6, 1.8); c.fillStyle = k > 0.5 ? '#5fd35a' : k > 0.25 ? '#e8c440' : '#e8503a'; c.fillRect(kn.x - w / 2, top, w * k, 1.2);
+    if (kn.rIv > 0 && !kn.rDn) { c.globalAlpha = 0.25; c.strokeStyle = '#fff'; c.lineWidth = 0.4; c.beginPath(); c.ellipse(kn.x, kn.y - 6, 7, 9, 0, 0, 7); c.stroke(); c.globalAlpha = 1; }
+    if (kn.rDn) { c.strokeStyle = 'rgba(255,255,255,.35)'; c.lineWidth = 0.5; c.setLineDash([1.5, 1.2]); c.beginPath(); c.ellipse(kn.x, kn.y, BHC.REVR, BHC.REVR * 0.5, 0, 0, 7); c.stroke(); c.setLineDash([]);
+      if (kn.rRv > 0) { c.strokeStyle = '#7dff9a'; c.lineWidth = 1; c.beginPath(); c.arc(kn.x, kn.y - 12, 4, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * kn.rRv / BHC.REV); c.stroke(); }
+      c.fillStyle = '#fff'; c.font = '700 3px system-ui'; c.textAlign = 'center'; c.fillText(LIVE().length > 1 ? 'DOWN · stand near to revive' : 'DOWN', kn.x, top - 1.5); } }
+  c.restore(); }
+// ---- HUD: clock, level and experience, my health; the card picker; game over ----
+const BHUI = { wait: -1, waitT: 0, open: 0, cards: null };
+function bhUI() { const on = !!BH.on, me = KN[ME]; document.body.classList.toggle('bh', on); const hud = document.getElementById('bhHud'); if (!hud) return;
+  const ch = (me && me.kind) || CHAR || 'knight', S = bhSlots(ch); for (const s of Object.keys(BHSLOT)) document.body.classList.toggle('bhL-' + s, on && S.includes(s) && !(me && bhAb(me, s)));
+  if (!on || !me) { hud.style.display = 'none'; bhPick(null); bhOver(false); return; } hud.style.display = '';
+  const m = Math.floor(BH.t / 60), sec = Math.floor(BH.t % 60); document.getElementById('bhClock').textContent = BH.go ? m + ':' + String(sec).padStart(2, '0') : 'Pull your weapon to begin';
+  document.getElementById('bhLv').textContent = 'Lv ' + BH.lvl; document.getElementById('bhXp').style.width = (100 * cl(BH.xp / BH.need, 0, 1)) + '%';
+  document.getElementById('bhHp').style.width = (100 * cl((me.rHp || 0) / (me.rHm || 1), 0, 1)) + '%'; document.getElementById('bhHpT').textContent = Math.ceil(me.rHp || 0) + ' / ' + (me.rHm || 0);
+  // the card picker: open while I have a pick; after choosing, wait for the host to take it (or 1.5s) before showing the next
+  if (BHUI.wait >= 0 && ((me.ups || []).length > BHUI.wait || performance.now() - BHUI.waitT > 1500)) BHUI.wait = -1;
+  if (me.rPk > 0 && BHUI.wait < 0 && !BH.over) { if (!BHUI.open) bhPick(bhRoll(me)); } else if (BHUI.open) bhPick(null);
+  const pw = document.getElementById('bhWait'); if (pw) pw.style.display = BH.pause && !(me.rPk > 0) && !BH.over ? '' : 'none';
+  bhOver(!!BH.over); }
+function bhPick(cards) { const el = document.getElementById('bhCards'); if (!el) return; BHUI.cards = cards; BHUI.open = cards ? 1 : 0; if (!cards) { el.style.display = 'none'; return; }
+  el.style.display = 'flex'; el.innerHTML = `<b>Level ${BH.lvl}! Pick one</b><div class="bhRow">${cards.map((c, i) => `<button class="bhCard bh-${c[4]}" data-i="${i}"><small>${c[4] === 'ab' ? 'Ability' : c[4] === 'sp' ? 'Special' : 'Boost'}${c[4] === 'st' && bhN(KN[ME], c[0]) ? ' · ' + (bhN(KN[ME], c[0]) + 1) : ''}</small><span>${c[1]}</span><em>${c[2]}</em><i>${i + 1}</i></button>`).join('')}</div>`;
+  el.querySelectorAll('.bhCard').forEach(b => b.onclick = e => { e.stopPropagation(); bhChoose(+b.dataset.i); }); }
+function bhChoose(i) { const c = BHUI.cards && BHUI.cards[i], me = KN[ME]; if (!c || !me) return; BHUI.wait = (me.ups || []).length; BHUI.waitT = performance.now(); const IN = me.in; IN.upN = (IN.upN || 0) + 1; IN.upC = c[0]; if (typeof markIn === 'function') markIn(); bhPick(null);
+  if (AUTH()) { me.upSeen = IN.upN; if (me.rPk > 0) bhApply(me, c[0]); } }
+function bhOver(show) { const el = document.getElementById('bhOver'); if (!el) return; if (!show) { el.style.display = 'none'; el.dataset.on = ''; return; } if (el.dataset.on) return; el.dataset.on = '1'; el.style.display = 'flex';
+  const m = Math.floor(BH.t / 60), sec = Math.floor(BH.t % 60), kills = LIVE().reduce((a, k) => a + (k.kills || 0), 0);
+  el.innerHTML = `<b>Overrun</b><p>Survived ${m}:${String(sec).padStart(2, '0')} · Level ${BH.lvl} · ${kills} kills</p>${AUTH() ? '<button class="big pri" id="bhAgain">Play again</button>' : '<p>Waiting for the host…</p>'}<button class="big" id="bhMenu">Back to start</button>`;
+  const a = document.getElementById('bhAgain'); if (a) a.onclick = () => { setup(); bhStart(); }; document.getElementById('bhMenu').onclick = () => document.getElementById('restartBtn').click(); }
+addEventListener('keydown', e => { if (!BHUI.open) return; const n = '123'.indexOf(e.key); if (n >= 0) { e.preventDefault(); e.stopImmediatePropagation(); bhChoose(n); } }, true);
+window.__bh = { BH, BUL, roll: () => bhRoll(KN[ME]) };
+window.__bhFire = bhFire;
+
 const stoneW = () => [K.T.x + STONE.x, K.T.y + STONE.y];
 function inLeash(w) { return Math.hypot(w.x - K.T.x, (w.y - K.T.y) * 1.2) < LEASH; }
 function pickTarget() { let best = null, bd = 1e9; for (const w of walkers) { if (w.hp <= 0 || !inLeash(w)) continue; const d = Math.hypot(w.x - K.x, w.y - K.y); if (d < bd) { bd = d; best = w; } } return best; }
@@ -216,7 +387,9 @@ const SW_C = [G_, [0.2, 1.1, -0.1, -0.7, 0.2, 2.6, 2.9, 0.2], [0.3, 1.0, -0.12, 
 // each swing deals damage for as long as the blade is moving at speed (over SWFAST rad/s, wind-ups included): worked out from its keys
 const SWFAST = 6;
 const SWWIN = [SW_A, SW_B, SW_C].map(ks => { let a = 1, b = 0, pv = kfnS(0, ks)[6]; for (let u = 0.01; u <= 1; u += 0.01) { const v = kfnS(u, ks)[6]; if (Math.abs(v - pv) / 0.01 / SWING > SWFAST) { a = Math.min(a, u - 0.01); b = u; } pv = v; } return [a, b]; });
-const SWSZ = [1, 1.35, 1.35 * 1.35], swSz = kn => kn.swing >= 0 && !(kn.ultPh >= 0) ? SWSZ[(kn.swN || 0) % 3] : (kn.spin >= 0 || kn.preGlow) && !(kn.ultPh >= 0) ? SPIN_SZ : kn.ab === 'dash' && !(kn.ultPh >= 0) ? DASH_W : 1;
+const SWSZ = [1, 1.35, 1.35 * 1.35], swSz = kn => kn.swing >= 0 && !(kn.ultPh >= 0) ? SWSZ[bhUp(kn, 'k_combo') ? (kn.swN || 0) % 3 : 0] : (kn.spin >= 0 || kn.preGlow) && !(kn.ultPh >= 0) ? spinSz(kn) : kn.ab === 'dash' && !(kn.ultPh >= 0) ? dashW(kn) : 1;
+// survival upgrades (always on outside a run): Wide spin, Long blade dash
+const spinSz = kn => bhUp(kn, 'k_spinsz') ? SPIN_SZ : 1, dashW = kn => bhUp(kn, 'k_dash') ? DASH_W : 1, dashD = kn => bhUp(kn, 'k_dash') ? DASH_D : 52;
 const PRE = [0, 1.3, 0.25, -1.0, -1.6, 4.0, 2.75, 0.6];
 // ---------------- abilities: dashing slice (8-way pad) and leap slam (aimed circle) ----------------
 const GIANT_DR = 0.65, PART_CAP = 900, US_HIT = 0.62, US_END = 1.35, ULT_KILLS = 1350, ULT_KILLS_FIRE = 900, ULT_T = 12, UT_IN = 1.2, UT_OUT = 0.7, ULT_SZ = 3, ULT_DMG = 700, ULT_SLAM_R = 78, ULT_LEAP = 2.25 / 1.2, ULT_CR = 1.0;
@@ -280,7 +453,7 @@ function chainOut() {
 }
 function startSpin() { K.preGlow = 1; K.pre = PRE_T; K.spinA0 = K.f > 0 ? 0 : Math.PI; K.spinDir = K.f; }
 function startDash(v) {
-  const l = Math.hypot(v[0], v[1]) || 1, d = [v[0] / l, v[1] / l]; Object.assign(K, { dvx: d[0], dvy: d[1], slice: [], ab: 'dash', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: K.x + d[0] * DASH_D, ay1: cl(K.y + d[1] * DASH_D * 0.8, 16, H - 4), dashCd: DASH_CD + DT_PREP + DT_GO + DT_REC });
+  const l = Math.hypot(v[0], v[1]) || 1, d = [v[0] / l, v[1] / l]; Object.assign(K, { dvx: d[0], dvy: d[1], slice: [], ab: 'dash', abT: 0, abId: (K.abId || 0) + 1, swing: -1, ax0: K.x, ay0: K.y, ax1: K.x + d[0] * dashD(K), ay1: cl(K.y + d[1] * dashD(K) * 0.8, 16, H - 4), dashCd: DASH_CD + DT_PREP + DT_GO + DT_REC });
   if (Math.abs(d[0]) > 0.2) K.f = d[0] > 0 ? 1 : -1;
 }
 function leapTarget(kn, v) { if (kn.kind === 'priest') return slamTarget(kn, v); if (kn.kind === 'gi') { const R = GI.CP.RANGE; return [kn.x + v[0] * R, cl(kn.y + v[1] * R * 0.8, 16, H - 4)]; } if (kn.kind === 'rooster') { const R = CR.BAR.RANGE; return [kn.x + v[0] * R, cl(kn.y + v[1] * R * 0.8, 16, H - 4)]; } if (kn.kind === 'ogre') { const l = Math.hypot(v[0], v[1]), k = l > 1 ? 1 / l : 1, R = OG.CLOUD.RANGE; return [kn.x + v[0] * k * R, cl(kn.y + v[1] * k * R * 0.8, 16, H - 4)]; } if (kn.kind === 'ninja') { const l = Math.hypot(v[0], v[1]), d = l > 0.05 ? [v[0] / l, v[1] / l] : [kn.f || 1, 0], D = NJ.LEAP.D * njLm(v); return [kn.x + d[0] * D, cl(kn.y + d[1] * D * 0.8, 16, H - 4)]; } if (kn.kind === 'time') { const R = kn.wpn === 4 ? TT.TRAP.RANGE : kn.wpn === 1 ? TT.SHIP.RANGE : kn.wpn === 2 ? TT.HELI.LMAX + 16 : TT.HURL.RANGE, out = kn.wpn === 3 && kn.hu === 2, bx = out ? kn.hux : kn.x, by = out ? kn.huy : kn.y; return [bx + v[0] * R, cl(by + v[1] * R * 0.8, 16, H - 4)]; } const R = LEAP_R * (kn.ultPh >= 0 ? ULT_LEAP : 1); return [kn.x + v[0] * R, cl(kn.y + v[1] * R * 0.8, 16, H - 4)]; }
@@ -328,7 +501,7 @@ function stepAbility(dt) {
       const ease = q => 1 - (1 - q) * (1 - q), qa = ease(cl((t0 - g0) / DT_GO, 0, 1)), qb = ease(cl((t - g0) / DT_GO, 0, 1));
       const pa = [lerp(K.ax0, K.ax1, qa), lerp(K.ay0, K.ay1, qa)], pb = [lerp(K.ax0, K.ax1, qb), lerp(K.ay0, K.ay1, qb)], ang = Math.atan2(K.ay1 - K.ay0, K.ax1 - K.ax0);
       K.x = pb[0]; K.y = pb[1];
-      if (AUTH()) for (const w of walkers) { if (w.hp <= 0 || w.dashed === K.i * 1e6 + K.abId) continue; if (segDist(w.x, w.y, pa, pb) < DASH_R + UK[w.k].r) { w.dashed = K.i * 1e6 + K.abId; w.atk = -1; w.kx += Math.cos(ang) * 90; w.ky += Math.sin(ang) * 50; hurt(w, DASH_DMG, ww => dashFx(ww, ang)); } }
+      if (AUTH()) for (const w of walkers) { if (w.hp <= 0 || w.dashed === K.i * 1e6 + K.abId) continue; if (segDist(w.x, w.y, pa, pb) < 11 * dashW(K) + UK[w.k].r) { w.dashed = K.i * 1e6 + K.abId; w.atk = -1; w.kx += Math.cos(ang) * 90; w.ky += Math.sin(ang) * 50; hurt(w, DASH_DMG, ww => dashFx(ww, ang)); } }
     }
     if (t >= g1 + DT_REC) { K.ab = null; if (K.slice && K.slice.length > 1) FX.push({ k: 'slice', pts: K.slice, t: 0, max: 0.3 }); K.slice = null; }
   } else if (K.ab === 'uslam') {
@@ -356,6 +529,7 @@ const wCap = () => HZ.rate === 'apoc' ? 2000 : HZ.rate === 'thou' ? 1500 : HZ.ra
 let HZ = { rate: 'off', kinds: ['foot', 'zombie', 'scout'], t: 0 };
 // waves come in from the right, just past what the host can see, spread down the field in clumps
 function hordeStep(dt) {
+  if (BH.on) return bhSpawn(dt);
   if (!AUTH() || HZ.rate === 'off' || !HZ.kinds.length) return;
   // safety brake: if this device is already at its lowest render quality and still slow, hold new spawns until it recovers
   if (FP.slow) return;
@@ -440,10 +614,10 @@ function drawSlice(c, pts, fade, rgb) { const C3 = rgb || [255, 236, 175], hi = 
 function drawDashPreview(c, t) {
   const kn = KN[ME]; if (DASHAIM && kn && kn.kind === 'rooster') return crBombPreview(c, t, kn, DASHAIM); if (DASHAIM && kn && kn.kind === 'ninja') return njKmPreview(c, t, kn, DASHAIM); if (!DASHAIM || !kn || kn.st === 'kneel' || kn.kind === 'priest' || kn.kind === 'time' || kn.kind === 'gi') return;
   if (kn.kind === 'ogre') { if (kn.svCd > 0 || kn.ogDT >= 0) return; const l = Math.hypot(...DASHAIM) || 1, a = Math.atan2(DASHAIM[1] / l, DASHAIM[0] / l), L = 60; c.save(); c.strokeStyle = 'rgba(210,240,255,.85)'; c.lineWidth = 0.7; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 10; c.beginPath(); c.moveTo(kn.x, kn.y); c.lineTo(kn.x + Math.cos(a) * L, kn.y + Math.sin(a) * L * 0.8); c.stroke(); c.setLineDash([]); c.fillStyle = 'rgba(210,240,255,.85)'; c.translate(kn.x + Math.cos(a) * L, kn.y + Math.sin(a) * L * 0.8); c.rotate(Math.atan2(Math.sin(a) * 0.8, Math.cos(a))); c.beginPath(); c.moveTo(3, 0); c.lineTo(-2, -2.4); c.lineTo(-2, 2.4); c.closePath(); c.fill(); c.restore(); return; }
-  const l = Math.hypot(...DASHAIM) || 1, d = [DASHAIM[0] / l, DASHAIM[1] / l], ex = kn.x + d[0] * DASH_D, ey = cl(kn.y + d[1] * DASH_D * 0.8, 16, H - 4), a = Math.atan2(ey - kn.y, ex - kn.x), len = Math.hypot(ex - kn.x, ey - kn.y);
+  const l = Math.hypot(...DASHAIM) || 1, d = [DASHAIM[0] / l, DASHAIM[1] / l], ex = kn.x + d[0] * dashD(kn), ey = cl(kn.y + d[1] * dashD(kn) * 0.8, 16, H - 4), a = Math.atan2(ey - kn.y, ex - kn.x), len = Math.hypot(ex - kn.x, ey - kn.y);
   c.save(); c.translate(kn.x, kn.y); c.rotate(a);
   const g = c.createLinearGradient(0, 0, len, 0); g.addColorStop(0, 'rgba(255,220,120,.05)'); g.addColorStop(1, 'rgba(255,220,120,.35)'); c.fillStyle = g;
-  c.beginPath(); c.moveTo(0, -DASH_R * 0.5); c.lineTo(len, -DASH_R); c.lineTo(len + 4, 0); c.lineTo(len, DASH_R); c.lineTo(0, DASH_R * 0.5); c.closePath(); c.fill();
+  { const DASH_R = 11 * dashW(kn); c.beginPath(); c.moveTo(0, -DASH_R * 0.5); c.lineTo(len, -DASH_R); c.lineTo(len + 4, 0); c.lineTo(len, DASH_R); c.lineTo(0, DASH_R * 0.5); } c.closePath(); c.fill();
   c.strokeStyle = 'rgba(255,240,190,.8)'; c.lineWidth = 0.5; c.setLineDash([2, 1.6]); c.lineDashOffset = -t * 10; c.stroke(); c.restore();
 }
 function drawLeapPreview(c, t) {
@@ -537,7 +711,7 @@ function pose(t) {
   if (K.hold && !combat && K.st === 'return') A = [0, 0.1, 0.05, 0.2, 1.2, 0.6, -2.45, 0]; // walking back: blade resting on his shoulder
   // carrying the sword low while running hard
   if (combat && K.swing < 0 && K.spin < 0 && !K.preGlow) { const k = run; A = A.map((v, j) => j ? lerp(v, [0, 0.45, 0.3, 0.1, 1.5, 2.6, -0.65, 0][j], k) : 0); }
-  if (K.swing >= 0) A = kfnS(K.swing / SWING, [SW_A, SW_B, SW_C][K.swN % 3]);
+  if (K.swing >= 0) A = kfnS(K.swing / SWING, [SW_A, SW_B, SW_C][bhUp(K, 'k_combo') ? K.swN % 3 : 0]);
   // bridge into / out of the spin: blend from the current pose to the spin's own start pose (same pose it ends on)
   const kp = K.preGlow && K.spin < 0 ? 1 - cl(K.pre / PRE_T, 0, 1) : 0, sdir = K.spinDir || f;
   const kb = K.spin >= 0 || K.swing >= 0 || K.preGlow ? 0 : K.post > 0 ? sm(K.post / 0.25) : 0;
@@ -1992,7 +2166,7 @@ function fireStep(dt, t) {
   if (K.coT >= 0) { coalStep(dt, mvL > 0.12); FBX.emitBreath(K, dt); FBX.stepBreath(K, dt); K.st = 'fight'; return; }
   if (K.plT >= 0) { plumeStep(dt, IN); FBX.emitBreath(K, dt); FBX.stepBreath(K, dt); K.st = 'fight'; return; }
   const breath = !!K.brOn, hk = K.lvOn ? 1 : breath ? FIRE.BR_LO + (1 - FIRE.BR_LO) * Math.min(1, (K.brH || 0) / FIRE.BR_HEAT) : 1; // a breath starts small and weak and builds to full
-  K.reach = FIRE.R * (breath ? FIRE.BR_LEN * (FIRE.BR_SZ0 + (1 - FIRE.BR_SZ0) * (hk - FIRE.BR_LO) / (1 - FIRE.BR_LO)) : 1); K.half = FIRE.HALF * (breath ? FIRE.BR_WIDE * (FIRE.BR_W0 + (1 - FIRE.BR_W0) * (hk - FIRE.BR_LO) / (1 - FIRE.BR_LO)) : 1); K.brK = hk;
+  K.reach = FIRE.R * (breath ? (bhUp(K, 'f_blue') ? FIRE.BR_LEN : 1) * (FIRE.BR_SZ0 + (1 - FIRE.BR_SZ0) * (hk - FIRE.BR_LO) / (1 - FIRE.BR_LO)) : 1); K.half = FIRE.HALF * (breath ? (bhUp(K, 'f_blue') ? FIRE.BR_WIDE : 1) * (FIRE.BR_W0 + (1 - FIRE.BR_W0) * (hk - FIRE.BR_LO) / (1 - FIRE.BR_LO)) : 1); K.brK = hk;
   if (breath && brIn) { const want = Math.atan2(brIn[1], brIn[0]); let d = want - K.aimS; d = Math.atan2(Math.sin(d), Math.cos(d)); K.aimS += d * Math.min(1, dt * (K.att > 0.5 ? (K.lvOn ? LAVA.TURN : 9) : 30)); K.att = Math.min(1, K.att + dt * 5); K.cone = K.att >= 0.8 ? Math.min(1, K.cone + dt * 4) : 0; }
   else { K.att = Math.max(0, K.att - dt * 3); K.cone = Math.max(0, K.cone - dt * 6); }
   // torch swings: right, left, right... for as long as the stick is held; each one throws a wave of fire the size of his breath
@@ -2060,7 +2234,7 @@ function coalStep(dt, mvOn) {
 }
 // the coals keep burning anyone standing on them until they fade
 function coalBurn(dt) {
-  if (!AUTH()) return;
+  if (!AUTH() || !bhUp(K, 'f_coals')) return;
   for (const f of FX) { if (f.k !== 'coals' || f.src !== K.i) continue; const laid = coalFront(f);
     for (const w of walkers) { if (w.hp <= 0) continue; const [a, b] = coalUV(w.x, w.y, f); if (a < 0 || a > laid || Math.abs(b) > coW(f.L) / 2 + UK[w.k].r * 0.5) continue; w.bd = FIRE.BURN; w.bsrc = K.i; w.hp -= CO.DPS * dt; if (w.hp <= 0) { K.kills++; burnFx(w); } } }
 }
@@ -2270,7 +2444,7 @@ function priestStep(dt, t) {
   if (K.swCd > 0) K.swCd -= dt; if (K.slCd > 0) K.slCd -= dt; if (K.hoCd > 0 && !(K.hoT > 0)) K.hoCd -= dt;
   // holy flame on the flail head, any time
   if (mine && lvP && !(K.hoT > 0) && !(K.hoCd > 0)) { K.hoT = WP.HO.T; K.hoCd = WP.HO.CD; }
-  if (K.hoT > 0) { K.hoT -= dt; if (AUTH()) { if (K.hz < 10) holyBurn(K.hx, K.hy, WP.HO.R, WP.HO.DPS, dt); chainBurn(dt); } }
+  if (K.hoT > 0) { K.hoT -= dt; if (AUTH()) { if (K.hz < 10) holyBurn(K.hx, K.hy, WP.HO.R, WP.HO.DPS, dt); if (bhUp(K, 'p_chain')) chainBurn(dt); } }
   // abilities are buffered for a moment and chain out of each other's follow-through
   if (mine && dashP && IN.dashD && !K.penRet) K.wq = { k: 'sweep', v: IN.dashD, t: 0.6 };
   // no slam (or go to) during a sweep or a slam: the press is ignored and the button is greyed out
@@ -2299,7 +2473,7 @@ function priestStep(dt, t) {
 }
 // nothing stops him: anyone in his way is nudged aside just enough for him to pass (the biggest, mammoth and tarrasque, slow him 20% while he shoulders past);
 // walking into enemies knocks them back and hurts a little, and his heavy footfalls shake the screen
-function wpPlow(dt, ox, oy) { const P = WP.PLOW, mx = K.x - ox, my = K.y - oy, md = Math.hypot(mx, my); if (md < 1e-4 || (K.z || 0) > 2) return;
+function wpPlow(dt, ox, oy) { if (!bhUp(K, 'p_plow')) return; const P = WP.PLOW, mx = K.x - ox, my = K.y - oy, md = Math.hypot(mx, my); if (md < 1e-4 || (K.z || 0) > 2) return;
   const ux = mx / md, uy = my / md, tn = performance.now() / 1000; let big = 0;
   for (const w of walkers) { if (w.hp <= 0 || w.air || w.gr > 0 || w.bT > 0 || w.hook != null || Math.abs(w.x - K.x) > 16) continue; const U = UK[w.k], R = P.BR + U.r, dx = w.x - K.x, dy = (w.y - K.y) * 1.3, d = Math.hypot(dx, dy); if (d >= R) continue;
     if (U.r >= P.BIGR) big = 1;
@@ -2322,7 +2496,7 @@ function censerHit(u0, u1) {
   for (const w of walkers) { if (w.hp <= 0 || w.cenCut === id) continue; const U = UK[w.k], dx = w.x - K.x, dy = w.y - K.y, d = Math.hypot(dx, dy * 1.25); if (d > WP.CEN.R + U.r) continue;
     let da = wrapA((Math.atan2(dy, dx) - a0) * s); if (d > 7 + U.r && (da < -0.12 - U.r / Math.max(d, 4) || da > span + 0.12 + U.r / Math.max(d, 4))) continue;
     if (d <= 7 + U.r && Math.cos(Math.atan2(dy, dx) - K.cenA) < 0) continue;
-    w.cenCut = id; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; w.cb = FIRE.BURN; w.cbs = K.i; const a = Math.atan2(dy, dx); w.kx += Math.cos(a) * WP.CEN.KB; w.ky += Math.sin(a) * WP.CEN.KB * 0.55; hurt(w, WP.CEN.DMG, spinFx); }
+    w.cenCut = id; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; if (bhUp(K, 'p_censer')) { w.cb = FIRE.BURN; w.cbs = K.i; } const a = Math.atan2(dy, dx); w.kx += Math.cos(a) * WP.CEN.KB; w.ky += Math.sin(a) * WP.CEN.KB * 0.55; hurt(w, WP.CEN.DMG, spinFx); }
 }
 // HOLY sets the chain alight too: anyone touching it from his hand to the head burns
 function chainBurn(dt) { const a = [K.x, K.y], b = [K.hx, K.hy];
@@ -5458,7 +5632,7 @@ function ttGrab(j) { const A = TT.ALIEN, a0 = K.alA, [ox, oy, full] = ttO(K), RR
   // which attack: big ones can only be squeezed or eaten; the heavies (troll and up) only squeezed
   let m = 1; if (UK[best.k].heavy) m = 1; else if (big) m = Math.random() < 0.6 ? 1 : 3; else { let x = Math.random(); for (let i = 0; i < 5; i++) { x -= A.W[i]; if (x < 0) { m = i; break; } } }
   // skewer: the tentacle punches through and keeps going into the one or two behind
-  const ex = []; if (!big && Math.random() < A.SKEW.P) { const ax = best.x - ox, ay = (best.y - oy) * 1.25, ad = Math.hypot(ax, ay) || 1, ux = ax / ad, uy = ay / ad, L = [];
+  const ex = []; if (!big && bhUp(K.isA2 ? K.own : K, 't_skew') && Math.random() < A.SKEW.P) { const ax = best.x - ox, ay = (best.y - oy) * 1.25, ad = Math.hypot(ax, ay) || 1, ux = ax / ad, uy = ay / ad, L = [];
     for (const w of walkers) { if (w === best || w.hp <= 0 || w.air || w.gr > 0 || taken.has(w.id) || UK[w.k].sc > 1.1) continue; const dx = w.x - ox, dy = (w.y - oy) * 1.25, along = dx * ux + dy * uy, side = Math.abs(dx * uy - dy * ux); if (along > bd && along < bd + A.SKEW.GAP && side < UK[w.k].r + 3) L.push([along, w.id]); }
     L.sort((p, q) => p[0] - q[0]); for (const [, id] of L.slice(0, A.SKEW.MAX)) ex.push(id); }
   K.tc[j] = [best.id, m, Math.round(K.alC * 100) / 100, 0, ex]; K.alG = (K.alG || 0) + 1; }
@@ -5590,7 +5764,7 @@ function timeStep(dt, t) {
     if (W0 === 2 && K.gq && K.cs >= (K.gR || 0)) ttShot(t);
     if (W0 === 0 && c0 < TT.CANE.T * TT.CANE.HIT && K.cs >= TT.CANE.T * TT.CANE.HIT && AUTH()) ttCone(TT.CANE.R, TT.CANE.HALF, TT.CANE.DMG, TT.CANE.KB, (w, a) => flingFx(w, a, 0.9));
     // (while the bike is on its way to him the slices don't carry him, so he can't outrun it)
-    if (W0 === 1 && K.dsP && !ttRiding(K) && K.bk !== 0 && !(K.cr >= 0)) { const D = TT.SABER.DASH, qf = c => smt(cl((c - D.T0) / (D.T1 - D.T0), 0, 1)), dq = qf(K.cs) - qf(c0), d = gDir(K.dsA), ox = K.x, oy = K.y; K.x += d[0] * D.D * dq; K.y = cl(K.y + d[1] * D.D * dq, 16, H - 4); K.dsd = (K.dsd || 0) + Math.hypot(K.x - ox, K.y - oy);
+    if (W0 === 1 && K.dsP && bhUp(K, 't_saber') && !ttRiding(K) && K.bk !== 0 && !(K.cr >= 0)) { const D = TT.SABER.DASH, qf = c => smt(cl((c - D.T0) / (D.T1 - D.T0), 0, 1)), dq = qf(K.cs) - qf(c0), d = gDir(K.dsA), ox = K.x, oy = K.y; K.x += d[0] * D.D * dq; K.y = cl(K.y + d[1] * D.D * dq, 16, H - 4); K.dsd = (K.dsd || 0) + Math.hypot(K.x - ox, K.y - oy);
       // cut along the path: anyone he dashes past is sliced once per swing
       if (AUTH() && (K.x !== ox || K.y !== oy)) for (const w of walkers) { if (w.hp <= 0 || w.air || w.sdH === K.csN || Math.abs(w.x - K.x) > 20) continue; if (ptSeg([w.x, w.y], [ox, oy], [K.x, K.y]) > D.R + UK[w.k].r) continue; w.sdH = K.csN; w.atk = -1; w.bd = FIRE.BURN; w.bsrc = K.i; const aa = Math.atan2(w.y - K.y, w.x - K.x); hurt(w, TT.SABER.DMG, ww => ttKillFx(ww, aa, 0)); } }
     if (K.cs >= T) { K.cs = -1; K.dsP = null; if (W0 === 2) { K.gEnd = t; if (K.ammo <= 0) K.rl = 0; } } }
@@ -5731,7 +5905,7 @@ function ttFx(dt, t) {
       for (const w of walkers) { if (w.hp <= 0 || w.dead || s.hit.has(w.id) || Math.abs(w.x - s.x) > 30) continue; if (ptSeg([w.x, w.y], [x0, y0], [s.x, s.y]) > TT.SAW.W + UK[w.k].r) continue; s.hit.add(w.id); hurt(w, TT.SAW.DMG, ww => ttKillFx(ww, s.a, 3)); for (let i = 0; i < 4; i++) sparks.push({ x: w.x, y: w.y - TT.SAW.Z, vx: rr(-30, 30), vy: -rr(10, 30), t: 0, max: rr(0.15, 0.35) }); if (!hitW || w.id === s.tg) hitW = w; }
       K = k0;
       // a hit (or a target lost on the way): pick the next one, or fly off once it has bounced enough / nobody is near
-      if (hitW || s.tg === -2) { if (hitW) s.b++; let nb = null, bd = TT.SAW.BR; const away = gAng(s.x - s.fx, s.y - s.fy); if (s.b <= TT.SAW.BOUNCE) for (const w of walkers) { if (w.hp <= 0 || w.dead || s.hit.has(w.id) || Math.abs(w.x - s.x) > bd) continue; if (Math.abs(wrapA(gAng(w.x - s.x, w.y - s.y) - away)) > TT.SAW.CONE) continue; const dd = Math.hypot(w.x - s.x, (w.y - s.y) * 1.25); if (dd < bd) { bd = dd; nb = w; } }
+      if (hitW || s.tg === -2) { if (hitW) s.b++; let nb = null, bd = TT.SAW.BR; const away = gAng(s.x - s.fx, s.y - s.fy); if (s.b <= (bhUp(KN[s.i], 't_bounce') ? TT.SAW.BOUNCE : 4)) for (const w of walkers) { if (w.hp <= 0 || w.dead || s.hit.has(w.id) || Math.abs(w.x - s.x) > bd) continue; if (Math.abs(wrapA(gAng(w.x - s.x, w.y - s.y) - away)) > TT.SAW.CONE) continue; const dd = Math.hypot(w.x - s.x, (w.y - s.y) * 1.25); if (dd < bd) { bd = dd; nb = w; } }
         if (nb) { s.tg = nb.id; s.a = gAng(nb.x - s.x, nb.y - s.y); snd('saw', s.x, s.y); } else s.out = 0.001; } }
     if (s.pa !== undefined && Math.abs(wrapA(s.a - s.pa)) > 0.35) { const zz = s.z0 ?? TT.SAW.Z, b0 = s.pa + Math.PI; for (let i = 0; i < 9; i++) { const b = b0 + rr(-1.1, 1.1), v = rr(50, 120), gd = gDir(b); sparks.push({ x: s.x, y: s.y - zz, vx: gd[0] * v, vy: gd[1] * v - rr(10, 40), t: 0, max: rr(0.12, 0.3) }); } TTFX.push({ k: 'glint', x: s.x, y: s.y - zz, t: 0, max: 0.14 }); } s.pa = s.a;
     (s.tr || (s.tr = [])).push([s.x + s.ox, s.y + s.oy]); if (s.tr.length > 9) s.tr.shift();
@@ -7831,13 +8005,15 @@ function giCdShow(K) { const k = K.kills, PM = GI.PM, RD = GI.RD, CP = GI.CP, ro
     const tx = act >= 0 ? act.toFixed(1) + ' Sec' : act === -2 ? 'CRATE OUT' : got >= n ? 'READY' : `${got}/${n} kills`; if (el) el.style.height = (act >= 0 ? 1 : 1 - got / n) * 100 + '%'; if (CDT[id] && CDT[id].textContent !== tx) CDT[id].textContent = tx; }
   for (const id of ['bst', 'smash']) if (CDT[id] && CDT[id].textContent) CDT[id].textContent = '';
   const RS = document.querySelector('#rst small'), lab = K.gu >= 0 ? 'M16' : K.gqT > 0 ? `SHOTGUNS ${K.gqT.toFixed(1)}s` : 'M16'; if (RS && RS.textContent !== lab) RS.textContent = lab; }
-function hurt(w, d, kill) { if (K && K.isCl) d *= K.ulD > 0 ? NJ.CL.UDM : NJ.CL.DM; w.hp -= d; w.hit = 0.1; if (w.hp <= 0) { K.kills++; kill(w); } else hitSnd(w); }
+function hurt(w, d, kill) { if (K && K.isCl) d *= K.ulD > 0 ? NJ.CL.UDM : NJ.CL.DM; w.hp -= d * bhDmg(K); w.hit = 0.1; if (w.hp <= 0) { K.kills++; kill(w); } else hitSnd(w); }
 const cleaveFx = (w, dir) => { EV.push([w.id, 0, dir, K.i, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10]); cleaveKill(w, dir); };
 const spinFx = w => { EV.push([w.id, 1, 0, K.i, Math.round(w.x * 10) / 10, Math.round(w.y * 10) / 10]); spinKill(w); };
 function step(dt, t) {
+  if (bhStep0(dt, t)) return;
   worldStep(dt, t);
-  for (const kn of KN) { if (kn.on === 0) continue; if (kn.in.col && kn.in.col !== kn.col && /^#[0-9a-f]{6}$/i.test(kn.in.col)) kn.col = kn.in.col; if ((kn.in.chN || 0) !== (kn.chSeen || 0)) { kn.chSeen = kn.in.chN || 0; switchChar(kn, kn.in.ch || 'knight'); } K = kn; if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else if (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) priestStep(dt, t); else if (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) swordStep(dt, t); else if (kn.kind === 'time' || (kn.in && kn.in.ch === 'time')) timeStep(dt, t); else if (kn.kind === 'ninja' || (kn.in && kn.in.ch === 'ninja')) { ninjaStep(dt, t); njCloneStep(kn, dt, t); K = kn; } else if (kn.kind === 'ogre' || (kn.in && kn.in.ch === 'ogre')) ogreStep(dt, t); else if (kn.kind === 'rooster' || (kn.in && kn.in.ch === 'rooster')) roosterStep(dt, t); else if (kn.kind === 'gi' || (kn.in && kn.in.ch === 'gi')) giStep(dt, t); else knightStep(dt, t);
-    { const SB = shipBlockers(); if (SB.length && (kn.z || 0) < 8 && !(kn.vPh >= 0)) shipPush(kn, 3 * (kn.sz || 1), SB); } }
+  for (const kn of KN) { if (kn.on === 0) continue; if (kn.in.col && kn.in.col !== kn.col && /^#[0-9a-f]{6}$/i.test(kn.in.col)) kn.col = kn.in.col; if ((kn.in.chN || 0) !== (kn.chSeen || 0)) { kn.chSeen = kn.in.chN || 0; switchChar(kn, kn.in.ch || 'knight'); } K = kn; bhPre(kn); if (kn.kind === 'fire' || (kn.in && kn.in.ch === 'fire')) fireStep(dt, t); else if (kn.kind === 'priest' || (kn.in && kn.in.ch === 'priest')) priestStep(dt, t); else if (kn.kind === 'sword' || (kn.in && kn.in.ch === 'sword')) swordStep(dt, t); else if (kn.kind === 'time' || (kn.in && kn.in.ch === 'time')) timeStep(dt, t); else if (kn.kind === 'ninja' || (kn.in && kn.in.ch === 'ninja')) { ninjaStep(dt, t); njCloneStep(kn, dt, t); K = kn; } else if (kn.kind === 'ogre' || (kn.in && kn.in.ch === 'ogre')) ogreStep(dt, t); else if (kn.kind === 'rooster' || (kn.in && kn.in.ch === 'rooster')) roosterStep(dt, t); else if (kn.kind === 'gi' || (kn.in && kn.in.ch === 'gi')) giStep(dt, t); else knightStep(dt, t);
+    bhPost(kn); { const SB = shipBlockers(); if (SB.length && (kn.z || 0) < 8 && !(kn.vPh >= 0)) shipPush(kn, 3 * (kn.sz || 1), SB); } }
+  bhStep(dt);
   K = KN[ME];
   volcFx(dt, t); wpFx(dt, t); ttFx(dt, t); crFx(dt, t); giFx(dt, t); njGhostStep(dt); ogFxStep(dt); njHeliAudio();
   if (K.hits > lastHits) { hurtT = 0.12; } lastHits = K.hits; hurtT = Math.max(0, hurtT - dt);
@@ -7845,7 +8021,7 @@ function step(dt, t) {
 }
 function knightStep(dt, t) {
   if (K.ab === 'dash' && K.abT >= DT_PREP && K.abT < DT_PREP + DT_GO + 0.06) { const P = pose(t); if (P.g) { const d = [Math.cos(P.a), Math.sin(P.a)], w2 = v => [K.x + v[0] * KS * (K.sz || 1), K.y + v[1] * KS * (K.sz || 1)], grow = cl((K.abT - DT_PREP) / DT_GO, 0, 1);
-    (K.slice = K.slice || []).push({ b: w2([P.g[0] + d[0] * 2, P.g[1] + d[1] * 2]), e: w2([P.g[0] + d[0] * (11 + 9 * grow) * DASH_W, P.g[1] + d[1] * (11 + 9 * grow) * DASH_W]), g: grow }); if (K.slice.length > 40) K.slice.shift(); } }
+    (K.slice = K.slice || []).push({ b: w2([P.g[0] + d[0] * 2, P.g[1] + d[1] * 2]), e: w2([P.g[0] + d[0] * (11 + 9 * grow) * dashW(K), P.g[1] + d[1] * (11 + 9 * grow) * dashW(K)]), g: grow }); if (K.slice.length > 40) K.slice.shift(); } }
   if (K.spin >= 0 || (K.swing >= 0 && (K.glow > 0.3 || K.ultPh >= 0)) || (K.preGlow && K.glow > 0.3)) { const P = pose(t); if (P.g) { const L = 10.5 * (P.th != null ? (P.blade || 1) : 1) * (K.ultPh >= 0 ? 1.05 : 1.85 * (K.lszV || 1)), d = [Math.cos(P.a), Math.sin(P.a)], kz = KS * (K.sz || 1), zy = K.z || 0, w2 = v => [K.x + v[0] * kz, K.y - zy + v[1] * kz]; (K.trail = K.trail || []).push({ t, b: w2([P.g[0] + d[0] * 1.5, P.g[1] + d[1] * 1.5]), e: w2([P.g[0] + d[0] * (1 + L), P.g[1] + d[1] * (1 + L)]) }); if (K.trail.length > 30) K.trail.shift(); } }
   else if (K.trail && K.trail.length) { if (t - K.trail[K.trail.length - 1].t > 0.2) K.trail = []; }
   if (K.ab === 'leap' && K.ultPh >= 0 && K.abT < lcr() && Math.random() < dt * 40) { const a = rr(0, 6.28), r = rr(28, 40); dust.push({ x: K.x + Math.cos(a) * r, y: K.y + Math.sin(a) * r * 0.45, vx: -Math.cos(a) * r * 1.6, vy: -Math.sin(a) * r * 0.7, r: rr(0.8, 1.6), t: 0, max: 0.55 });
@@ -7925,7 +8101,7 @@ function stepK(dt, t) {
     if (K.ab) { K.vx = K.vy = 0; stepAbility(dt); abilityBody(); K.st = 'fight'; return; }
     abilityBody();
     // movement: full speed, slower mid-swing, a bit slower while spinning
-    const v = RUN * (K.ultPh >= 0 ? 0.9 : 1) * (K.spin >= 0 ? spinSpd(K.spin) : K.swing >= 0 ? 0.55 : K.preGlow ? 0.3 : 1);
+    const v = RUN * (K.ultPh >= 0 ? 0.9 : 1) * (K.spin >= 0 ? (bhUp(K, 'k_spinspd') ? spinSpd(K.spin) : 1) : K.swing >= 0 ? 0.55 : K.preGlow ? 0.3 : 1);
     // stick held: move at full speed; released: carry on a few pixels, sliding to a stop
     if (mvL > 0.12) { const k = Math.min(1, mvL); K.vx = IN.mv[0] / mvL * k * v; K.vy = IN.mv[1] / mvL * k * v; } else { const dmp = Math.exp(-dt * 13); K.vx = (K.vx || 0) * dmp; K.vy = (K.vy || 0) * dmp; }
     K.x += (K.vx || 0) * dt; K.y += (K.vy || 0) * dt;
@@ -7936,7 +8112,7 @@ function stepK(dt, t) {
       const sw = spinSwept(), th = K.spinA0 + K.spinDir * (sw - SPIN_O), bs = spinSector(Math.atan2(Math.sin(th) * 0.45, Math.cos(th)));
       if (bs !== K.sec) { K.sec = bs; K.secN = (K.secN || 0) + 1; }
       // 8 pie slices round him, in screen space: only the slice the blade is in can be hit, once per pass, and only after the blade has come round from the coil
-      if (sw >= SPIN_MOM && AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.x, dy = (w.y - 5 * UK[w.k].sc) - (K.y - 7), rx = 25 * SPIN_SZ + UK[w.k].r - 2.1; if ((dx / rx) ** 2 + (dy / (12 * SPIN_SZ + UK[w.k].r - 2.1)) ** 2 > 1) continue; if (spinSector(Math.atan2(dy, dx)) !== bs || w.spun === K.secN) continue; w.spun = K.secN; const a = Math.atan2(w.y - K.y, w.x - K.x); w.kx += Math.cos(a) * 40; w.ky += Math.sin(a) * 22; w.atk = -1; hurt(w, SPIN_DMG, spinFx); }
+      if (sw >= SPIN_MOM && AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.x, dy = (w.y - 5 * UK[w.k].sc) - (K.y - 7), rx = 25 * spinSz(K) + UK[w.k].r - 2.1; if ((dx / rx) ** 2 + (dy / (12 * spinSz(K) + UK[w.k].r - 2.1)) ** 2 > 1) continue; if (spinSector(Math.atan2(dy, dx)) !== bs || w.spun === K.secN) continue; w.spun = K.secN; const a = Math.atan2(w.y - K.y, w.x - K.x); w.kx += Math.cos(a) * 40; w.ky += Math.sin(a) * 22; w.atk = -1; hurt(w, SPIN_DMG, spinFx); }
       // a tight core round him that always cuts while he spins, so nothing he walks through slips between the blade's passes
       if (sw >= SPIN_MOM && AUTH()) for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.x, dy = (w.y - K.y) * 1.3; if (Math.hypot(dx, dy) > 4.2 + UK[w.k].r) continue; const key = 'core' + K.i; if (w[key] && K.spin - w[key] < 0.22 && w[key] <= K.spin) continue; w[key] = K.spin; w.atk = -1; const a = Math.atan2(dy / 1.3, dx); w.kx += Math.cos(a) * 30; w.ky += Math.sin(a) * 16; hurt(w, SPIN_DMG, spinFx); }
       if (K.spin >= SPIN_T) { K.spin = -1; K.spinCd = SPIN_CD; K.preGlow = 0; K.post = 0.25; K.sec = -1; walkers.forEach(w => w.spun = 0); K.f = Math.cos(K.spinA0) >= 0 ? 1 : -1; }
@@ -7959,7 +8135,7 @@ function worldStep(dt, t) {
   hordeStep(dt);
   if (AUTH()) {
     // anything left far behind the knights is dropped
-    const minX = Math.min(...LIVE().map(k2 => k2.x)); walkers = walkers.filter(w => w.x > minX - 420);
+    const minX = Math.min(...LIVE().map(k2 => k2.x)); walkers = BH.on ? walkers.filter(w => LIVE().some(k2 => Math.abs(w.x - k2.x) < 520 && Math.abs(w.y - k2.y) < 520)) : walkers.filter(w => w.x > minX - 420);
   // enemies run at the knight, crowd round him and club him
   for (const w of walkers) {
     w.hit = Math.max(0, w.hit - dt); w.cd -= dt; if (w.sl > 0) w.sl -= dt; if (w.pSl > 0) w.pSl -= dt; if (w.ogFs > 0) w.ogFs -= dt;
@@ -7977,10 +8153,11 @@ function worldStep(dt, t) {
     if (w.gr > 0) { w.gr -= dt; w.atk = -1; w.kx = w.ky = 0; if (w.gr <= 0 && w.z > 0.3) Object.assign(w, { air: 1, vz: 0, tvx: 0, tvy: 0 }); continue; }
     if (w.air) { w.vz -= 90 * dt; w.z += w.vz * dt; w.x += w.tvx * dt; w.y = cl(w.y + w.tvy * dt, 12, H - 4); w.atk = -1; ttBowl(w); if (w.z <= 0) ttLand(w); continue; }
     // run at the nearest knight
-    if (w.atk < 0) { let bd = 1e9; KN.forEach((kn, i) => { if (kn.on === 0 || kn.nPh >= 1 || kn.gHide) return; const dd = Math.hypot(kn.x - w.x, kn.y - w.y); if (dd < bd) { bd = dd; w.tk = i; } }); }
+    if (w.atk < 0) { let bd = 1e9; KN.forEach((kn, i) => { if (kn.on === 0 || kn.nPh >= 1 || kn.gHide || kn.rDn) return; const dd = Math.hypot(kn.x - w.x, kn.y - w.y); if (dd < bd) { bd = dd; w.tk = i; } }); }
     const T2 = (KN[w.tk] && KN[w.tk].on !== 0 ? KN[w.tk] : LIVE()[0]) || KN[0], dx = T2.x - w.x, dy = (T2.y - w.y), d = Math.hypot(dx, dy * 1.3) || 1;
     const U = UK[w.k], reach = 4.4 + U.r + ((T2.sz || 1) - 1) * 3.5 + (T2.kind === 'priest' ? 1.6 : 0);
-    if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5 && !((T2.z || 0) > 4) && !(T2.cr >= 0) && !(T2.nPh >= 1) && !T2.gHide) { T2.hits += (w.k === 'sapper' ? 3 : U.hw || 1) * (T2.kind !== 'fire' && T2.ultPh >= 0 ? 1 - GIANT_DR : 1); if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
+    if (BH.on && AUTH()) bhShoot(w, T2, dt);
+    if (w.atk >= 0) { const u0 = w.atk / U.atkT; w.atk += dt; const u1 = w.atk / U.atkT; if (u0 < 0.66 && u1 >= 0.66 && d < reach + 2.5 && !((T2.z || 0) > 4) && !(T2.cr >= 0) && !(T2.nPh >= 1) && !T2.gHide) { if (BH.on) bhHurt(T2, BHC.CONTACT * (w.k === 'sapper' ? 3 : U.hw || 1) * (T2.ultPh >= 0 ? 1 - GIANT_DR : 1)); else T2.hits += (w.k === 'sapper' ? 3 : U.hw || 1) * (T2.kind !== 'fire' && T2.ultPh >= 0 ? 1 - GIANT_DR : 1); if (w.k === 'sapper') { w.hp = 0; boom(w); } } if (u1 >= 1) { w.atk = -1; w.cd = rr(0.4, 0.9); } }
     else if (T2.nPh >= 1 || T2.gHide) { }
     else if (d > reach) { const sp = w.sp * Math.min(w.pSl > 0 ? WP.PEN.ASLOW : w.sl > 0 ? WP.SLOWK : 1, 1 - OGHM.ZONE.MAX * (w.ogZs || 0), w.ogFs > 0 ? 1 - OG.SW.WSLK * w.ogFs / OG.SW.WSL : 1); w.x += dx / d * sp * dt; w.y += dy / d * sp * dt; }
     else if (w.cd <= 0 && T2.st !== 'kneel') w.atk = 0;
@@ -8056,6 +8233,7 @@ function draw() {
   const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(LIVE().filter(kn => kn.CLS && kn.kind === 'ninja').flatMap(kn => kn.CLS.map(P => [P.y + 0.01, 14, P]))).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(TRAPS.filter(q => q.t >= TT.TRAP.FLY).flatMap(q => { const G = trapGeo(q); return [[q.y, 6, q], [G.ey + 0.01, 7, q]]; })).concat(dinoList()).concat(crList()).concat(dgList()).concat(ogSpikes()).concat(KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.cr >= 0).map(kn => [kn.cyp, 10, kn])).concat(WRECKS.flatMap(q => [[q.y, 11, { q, ship: 0 }], [q.sy + 0.01, 11, { q, ship: 1 }]])).concat(HDEAD.filter(inV).map(q => [q.y - 0.3, 9, q])).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
   HPQ = [];
   for (const [, k, o] of list) {
+    x.globalAlpha = k === 1 && BH.on && o.rDn ? 0.4 : 1;
     if (k < 2) { K = o; COL = o.col; }
     if (k === 4) { COL = o.col; drawFlail(x, o, t); K = KN[ME]; continue; }
     if (k === 0 && (K.kind === 'priest' || K.kind === 'sword' || K.kind === 'time' || K.kind === 'ninja' || K.kind === 'ogre' || K.kind === 'rooster' || K.kind === 'gi')) continue;
@@ -8088,7 +8266,7 @@ function draw() {
   for (const f of FX) if (f.k === 'lick') drawLick(x, f, t);
   for (const kn of KN) if (kn.kind === 'fire' && kn.fp && kn.fp.length) FBX.drawBreath(x, kn, t);
   for (const kn of KN) if (kn.kind === 'fire') drawLava(x, kn, t);
-  drawFxAir(x); drawVolcAir(x, t); ttAir(x, t); crAir(x, t); giAir(x, t); njAir(x, t); ogAir(x, t); if (ZONES) ttZones(x);
+  drawFxAir(x); drawVolcAir(x, t); ttAir(x, t); crAir(x, t); giAir(x, t); njAir(x, t); ogAir(x, t); bhDraw(x, t); if (ZONES) ttZones(x);
   // blade trail: a short ribbon the length of the light blade, fading behind it
   for (const kn of KN) { K = kn; if (K.trail && K.trail.length > 1) { x.save(); const now = K.trail[K.trail.length - 1].t, TL = 0.11;
     for (let i = K.trail.length - 1; i > 0; i--) { const A2 = K.trail[i], B2 = K.trail[i - 1], age = now - B2.t; if (age > TL) break; const al = 0.42 * (1 - age / TL) ** 1.6;
@@ -8099,7 +8277,7 @@ function draw() {
   // the swing's damage area: every quad its blade has swept this swing (fades out after it ends)
   if (ZONES && K.swZ && K.swZ.q.length) { const al = K.swing >= 0 ? 0.22 : Math.max(0, 0.22 - (K.swZ.ft = (K.swZ.ft || 0) + 1 / 60) * 0.3); if (K.swing >= 0) K.swZ.ft = 0; if (al > 0) { x.fillStyle = `rgba(255,70,50,${al})`; x.beginPath(); for (const q of K.swZ.q) { x.moveTo(q[0][0], q[0][1]); x.lineTo(q[1][0], q[1][1]); x.lineTo(q[2][0], q[2][1]); x.lineTo(q[3][0], q[3][1]); x.closePath(); } x.fill(); } }
   if (ZONES && (K.spin >= 0 || K.preGlow)) { // spin pie: 8 slices, the live one lit
-    x.save(); x.translate(K.x, K.y - 7); x.scale(SPIN_SZ, SPIN_SZ * 12 / 25); const live = K.spin >= 0 && spinSwept() >= SPIN_MOM;
+    x.save(); x.translate(K.x, K.y - 7); x.scale(spinSz(K), spinSz(K) * 12 / 25); const live = K.spin >= 0 && spinSwept() >= SPIN_MOM;
     for (let i = 0; i < 8; i++) { const a0 = (i - 0.5) * Math.PI / 4; const sa = Math.atan2(Math.sin(a0) * 25 / 12, Math.cos(a0)), sb = Math.atan2(Math.sin(a0 + Math.PI / 4) * 25 / 12, Math.cos(a0 + Math.PI / 4)); x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, 25, sa, sb); x.closePath(); x.fillStyle = live && i === K.sec ? 'rgba(255,60,40,.35)' : 'rgba(255,255,255,.06)'; x.fill(); x.strokeStyle = 'rgba(255,255,255,.35)'; x.lineWidth = 0.3; x.stroke(); }
     x.restore(); }
   njOverlay(x); njTop(x, t); giView(t);
@@ -8503,9 +8681,9 @@ const getSB = () => { if (!sbc && window.supabase) { try { sbc = window.supabase
 // the same id every time this device joins, so a player who drops and rejoins gets his own seat (and knight) back instead of a new one
 const myPid = (() => { let id = null; try { id = localStorage.getItem('kn_pid'); } catch (e) { } if (!id) { id = Math.random().toString(36).slice(2, 10); try { localStorage.setItem('kn_pid', id); } catch (e) { } } return id; })();
 const myName = (() => { try { return localStorage.getItem('td_name') || ''; } catch (e) { return ''; } })() || 'Knight';
-const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plE', 'plD', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'a2T', 'a2s', 'wpM', 'hl', 'hla', 'hlL', 'hlx', 'hly', 'hlN', 'hlCd', 'dn', 'dnf', 'dnx', 'dny', 'dnN', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc', 'cr', 'crT', 'crN', 'crh', 'cv', 'cvx', 'cvy', 'cyr', 'cxp', 'cyp', 'cx0', 'cy0', 'ctx', 'cty', 'cph', 'cHit', 'ulOn', 'cdn', 'ctu', 'cfx', 'cfy', 'cfvx', 'cfvy', 'ckx', 'cky', 'csx', 'csy', 'clx', 'cly', 'uC', 'dg', 'dgN', 'cHitN', 'chd', 'cHT', 'spx', 'spy', 'spz', 'sdx', 'sdy', 'sdz', 'sd0x', 'sd0y', 'sd0z', 'spv', 'sTr', 'cEj', 'cBl', 'ex0', 'ey0', 'ez0', 'cBk', 'nl', 'nw', 'nwB', 'nQ', 'nCd', 'nlN', 'nlm', 'km', 'kmN', 'kmT', 'kmH', 'kmCd', 'kmX0', 'kmY0', 'kmX1', 'kmY1', 'kmTX', 'kmTY', 'kmTZ', 'kmEx', 'kmA', 'clN', 'clP', 'clCd', 'clUl', 'hsT', 'kmZ0', 'kmFr', 'nlBx', 'nlBy', 'nlBT', 'nx0', 'ny0', 'nx1', 'ny1', 'nPh', 'nT', 'nUN', 'nSd', 'njF', 'ou', 'ouN', 'ouS', 'ouA', 'sv', 'svA', 'svCd', 'clN', 'clX', 'clY', 'clT', 'clCd', 'spN', 'spX', 'spY', 'spA', 'spCd', 'ogDN', 'ogDX', 'ogDY', 'ogDA', 'ogDT', 'ogDSX', 'ogDSY', 'ogH', 'ogS', 'ogZ', 'ogSN', 'ouC', 'ouK', 'ogC', 'ogCN', 'svN', 'ogX', 'ogXN', 'lsT', 'lsN', 'lsA', 'lsS', 'brT', 'brN', 'brX', 'brY', 'brCd', 'mtT', 'mtN', 'mnX', 'mnY', 'mnA', 'mnCd', 'bmT', 'bmN', 'bmX', 'bmY', 'bmA', 'bmCd', 'cu', 'cuN', 'egN', 'ogR', 'ogRA', 'ogRV', 'ogRB', 'ogRN', 'ogHs', 'ogHk', 'ogHa', 'ogHd', 'ogHn', 'ogHq', 'ogFn', 'ogZc', 'ogIc', 'ogZn', 'ogIn', 'ogA', 'ogAN', 'grN', 'grX', 'grY', 'grCd', 'rdT', 'rdK', 'pmT', 'pmX', 'pmY', 'pmZ', 'pmA', 'pmP', 'pmB', 'pmK', 'pmN', 'pmBX', 'pmBY', 'cpT', 'cpX', 'cpY', 'cpK', 'cpN', 'cpG', 'gqT', 'gqN', 'gqS', 'gsN', 'gsA', 'gu', 'guN', 'guO', 'gcx', 'gcy', 'gtN', 'gtX', 'gtY', 'ghN', 'guK'];
+const KF = ['x', 'y', 'f', 'st', 'u', 'kn', 'hold', 'pullUp', 'swing', 'swN', 'spin', 'spinA0', 'spinDir', 'pre', 'preGlow', 'glow', 'post', 'spinCd', 'el', 'aimA', 'look', 'hits', 'kills', 'sec', 'secN', 'hitDone', 'downK', 'ab', 'abT', 'ax0', 'ay0', 'ax1', 'ay1', 'dashCd', 'leapCd', 'abId', 'sx', 'sy', 'dvx', 'dvy', 'ultPh', 'ult', 'ultBase', 'sz', 'ultLeapt', 'lcr', 'kind', 'att', 'cone', 'aimS', 'wph', 'dph', 'tsw', 'tswN', 'brOn', 'brC', 'brH', 'fpos', 'landT', 'plT', 'plE', 'plD', 'plCd', 'pdx', 'pdy', 'z', 'coT', 'coCd', 'coId', 'cx0', 'cy0', 'cdx', 'cdy', 'cL', 'lava', 'lvCd', 'lvOn', 'lvC', 'lvW', 'on', 'vPh', 'vT', 'vcx', 'vcy', 'vSh', 'vSN', 'vBel', 'vTX', 'vTY', 'hx', 'hy', 'hz', 'hL', 'hOut', 'hRet', 'hrx', 'hry', 'cen', 'cenN', 'cenA', 'sa0', 'sa1', 'az0', 'swCd', 'slCd', 'hoT', 'hoCd', 'pPh', 'pT', 'hvx', 'hvy', 'smCd', 'smT', 'smK', 'impN', 'impX', 'impY', 'impR', 'retN', 'sr0', 'sr1', 'sGo', 'swOut', 'slWait', 'bx0', 'by0', 'sfT', 'col', 'cut', 'cutN', 'cutA', 'cutTl', 'cs', 'csN', 'csA', 'csW', 'csTl', 'wpn', 'wpL', 'wpS', 'wpT', 'wpCd', 'ammo', 'rl', 'gunN', 'gR', 'ttSd', 'bh0', 'bjt', 'bkNo', 'bz0', 'a2T', 'a2s', 'wpM', 'hl', 'hla', 'hlL', 'hlx', 'hly', 'hlN', 'hlCd', 'dn', 'dnf', 'dnx', 'dny', 'dnN', 'wpL', 'sb', 'sbT', 'sbx', 'sby', 'sbsx', 'sbsy', 'sbtx', 'sbty', 'sbCd', 'sbN', 'sc', 'scT', 'scx', 'scy', 'sch', 'scCd', 'scN', 'sawN', 'sawX', 'sawY', 'sawA', 'sawZ', 'hu', 'alq', 'huT', 'hux', 'huy', 'huz', 'hsx', 'hsy', 'htx', 'hty', 'huCd', 'trN', 'trX', 'trY', 'trSX', 'trSY', 'trSZ', 'trCd', 'trQ', 'tn', 'bk', 'bkT', 'hd', 'bv', 'bvx', 'bvy', 'yr', 'bl', 'bkx', 'bky', 'bpx', 'bpy', 'bkCd', 'bkId', 'gA', 'lx', 'ly', 'lx0', 'ly0', 'al', 'alA', 'alC', 'alNx', 'alI', 'alG', 'tc', 'cr', 'crT', 'crN', 'crh', 'cv', 'cvx', 'cvy', 'cyr', 'cxp', 'cyp', 'cx0', 'cy0', 'ctx', 'cty', 'cph', 'cHit', 'ulOn', 'cdn', 'ctu', 'cfx', 'cfy', 'cfvx', 'cfvy', 'ckx', 'cky', 'csx', 'csy', 'clx', 'cly', 'uC', 'dg', 'dgN', 'cHitN', 'chd', 'cHT', 'spx', 'spy', 'spz', 'sdx', 'sdy', 'sdz', 'sd0x', 'sd0y', 'sd0z', 'spv', 'sTr', 'cEj', 'cBl', 'ex0', 'ey0', 'ez0', 'cBk', 'nl', 'nw', 'nwB', 'nQ', 'nCd', 'nlN', 'nlm', 'km', 'kmN', 'kmT', 'kmH', 'kmCd', 'kmX0', 'kmY0', 'kmX1', 'kmY1', 'kmTX', 'kmTY', 'kmTZ', 'kmEx', 'kmA', 'clN', 'clP', 'clCd', 'clUl', 'hsT', 'kmZ0', 'kmFr', 'nlBx', 'nlBy', 'nlBT', 'nx0', 'ny0', 'nx1', 'ny1', 'nPh', 'nT', 'nUN', 'nSd', 'njF', 'ou', 'ouN', 'ouS', 'ouA', 'sv', 'svA', 'svCd', 'clN', 'clX', 'clY', 'clT', 'clCd', 'spN', 'spX', 'spY', 'spA', 'spCd', 'ogDN', 'ogDX', 'ogDY', 'ogDA', 'ogDT', 'ogDSX', 'ogDSY', 'ogH', 'ogS', 'ogZ', 'ogSN', 'ouC', 'ouK', 'ogC', 'ogCN', 'svN', 'ogX', 'ogXN', 'lsT', 'lsN', 'lsA', 'lsS', 'brT', 'brN', 'brX', 'brY', 'brCd', 'mtT', 'mtN', 'mnX', 'mnY', 'mnA', 'mnCd', 'bmT', 'bmN', 'bmX', 'bmY', 'bmA', 'bmCd', 'cu', 'cuN', 'egN', 'ogR', 'ogRA', 'ogRV', 'ogRB', 'ogRN', 'ogHs', 'ogHk', 'ogHa', 'ogHd', 'ogHn', 'ogHq', 'ogFn', 'ogZc', 'ogIc', 'ogZn', 'ogIn', 'ogA', 'ogAN', 'grN', 'grX', 'grY', 'grCd', 'rdT', 'rdK', 'rHp', 'rHm', 'rDn', 'rRv', 'rIv', 'rPk', 'ups', 'pmT', 'pmX', 'pmY', 'pmZ', 'pmA', 'pmP', 'pmB', 'pmK', 'pmN', 'pmBX', 'pmBY', 'cpT', 'cpX', 'cpY', 'cpK', 'cpN', 'cpG', 'gqT', 'gqN', 'gqS', 'gsN', 'gsA', 'gu', 'guN', 'guO', 'gcx', 'gcy', 'gtN', 'gtX', 'gtY', 'ghN', 'guK'];
 const r3 = v => typeof v === 'number' ? Math.round(v * 1000) / 1000 : v;
-const packIn = n => ({ gy: n.gy || null, gf: n.gf ? 1 : 0, grN: n.grN || 0, pmV: n.pmV || null, pbN: n.pbN || 0, mnD: n.mnD || null, mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, hdN: n.hdN || 0, hdP: n.hdP || null, twV: n.twV || 0, la: n.la || null, nj: n.nj || null, njN: n.njN || 0, lvV: n.lvV || null, ulV: n.ulV || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
+const packIn = n => ({ gy: n.gy || null, gf: n.gf ? 1 : 0, grN: n.grN || 0, pmV: n.pmV || null, pbN: n.pbN || 0, mnD: n.mnD || null, mv: n.mv.map(v => Math.round(v * 100) / 100), aim: n.aim ? n.aim.map(v => Math.round(v * 100) / 100) : null, spin: !!n.spin, dashN: n.dashN || 0, dashD: n.dashD || null, leapN: n.leapN || 0, leapT: n.leapT || null, ultN: n.ultN || 0, ch: n.ch || 'knight', chN: n.chN || 0, col: n.col || null, pl: n.pl || null, coN: n.coN || 0, coV: n.coV || null, lvN: n.lvN || 0, vtN: n.vtN || 0, vtP: n.vtP || null, pn: n.pn || null, smN: n.smN || 0, biN: n.biN || 0, rcN: n.rcN || 0, twN: n.twN || 0, hdN: n.hdN || 0, hdP: n.hdP || null, twV: n.twV || 0, la: n.la || null, nj: n.nj || null, njN: n.njN || 0, lvV: n.lvV || null, ulV: n.ulV || null, upN: n.upN || 0, upC: n.upC || null, br: n.br ? n.br.map(v => Math.round(v * 100) / 100) : null });
 // a knight's state: the whole list once a second, otherwise only the fields that changed since the last snapshot ([index, value, ...])
 const kfSame = (a, b) => a === b || (a !== null && typeof a === 'object' && JSON.stringify(a) === JSON.stringify(b));
 const packK = (kn, i, full) => { const v = KF.map(k => r3(kn[k])), P = NET.kPrev || (NET.kPrev = []), prev = P[i]; P[i] = v; const o = { in: packIn(kn.in), T: [r3(kn.T.x), r3(kn.T.y)] };
@@ -8564,6 +8742,7 @@ function lobby(screen, extra) {
     <div class="gh"><b>Open games</b><span id="lDirNote">${DIR.ready ? '' : 'Looking…'}</span></div><div class="games" id="lGames"></div>
     <button class="big pri" id="lHost" ${getSB() ? '' : 'disabled'}>Host a game</button>
     <button class="big" id="lChars"><img src="${charPic(CHAR)}" alt=""><span><small>Character</small>${CNAME[CHAR] || 'Knight'}</span></button>
+    <div class="modeSeg"><button id="mRun" class="${BHMODE === 'run' ? 'on' : ''}">Survival</button><button id="mBox" class="${BHMODE !== 'run' ? 'on' : ''}">Sandbox</button></div>
     <button class="big" id="lSolo">Play solo</button><button class="fsBtn">&#x26F6; Full screen</button><p class="err">${extra || (getSB() ? '' : 'Online play is unavailable right now.')}</p>${back}`;
   else if (screen === 'chars') LC.innerHTML = `<h1>Characters</h1>${[['', ['knight', 'fire', 'priest', 'time']], ['In Development', ['ninja', 'ogre', 'rooster', 'gi']]].map(([h, ks]) => `${h ? `<h2 class="cdev">${h}</h2>` : ''}<div class="cgrid">${ks.map(k => `<button data-ch="${k}" class="${CHAR === k ? 'on' : ''}"><img src="${charPic(k)}" alt=""><span>${CNAME[k]}</span></button>`).join('')}</div>`).join('')}
     <button class="big" id="lLay">Control layout · ${CNAME[CHAR] || 'Knight'}</button><button class="big pri" id="lBack">Done</button>`;
@@ -8572,11 +8751,12 @@ function lobby(screen, extra) {
   else if (screen === 'joining') LC.innerHTML = `<h1>Knight Brawl</h1><p>Joining <b>${NET.code}</b>…</p><button id="lCancel">Cancel</button>`;
   const on = (id, f) => { const e = document.getElementById(id); if (e) e.onclick = f; };
   on('lHost', host); on('lLay', () => layOpen(true)); const pick = c => { CHAR = c; try { localStorage.setItem('kn_char', c); } catch (e) { } charUI(c); applyLayout(); lobby('chars'); }; on('lChars', () => lobby('chars')); on('lBack', () => lobby('home')); LC.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => { audioInit(); pick(b.dataset.ch); if (b.dataset.ch === 'time') setTimeout(() => snd('tick'), 30); }); on('cKnight', () => pick('knight')); on('cFire', () => pick('fire')); on('cPriest', () => pick('priest')); on('cTime', () => pick('time')); on('cSword', () => pick('sword')); on('lSolo', () => startGame(1, 0)); on('lSoloH', () => startGame(1, 0));
+  const setMode = m => { BHMODE = m; try { localStorage.setItem('kn_mode', m); } catch (e) { } lobby('home'); }; on('mRun', () => setMode('run')); on('mBox', () => setMode('box'));
   if (screen === 'home') renderGames(); if (typeof fsLabel === 'function') fsLabel();
   on('lCancel', () => { leave(); lobby('home'); });
 }
 function leave() { unadvertise(); if (NET && NET.ch) { try { NET.ch.untrack(); sbc.removeChannel(NET.ch); } catch (e) { } } NET = null; }
-function startGame(np, me) { NP = np; ME = me; setup(); LUI.style.display = 'none'; browse(false); syncIn(); if (NET) NET.started = 1; }
+function startGame(np, me) { NP = np; ME = me; setup(); if (AUTH()) bhStart(); else { BH.on = 0; for (const kn of KN) bhInit(kn); } LUI.style.display = 'none'; browse(false); syncIn(); if (NET) NET.started = 1; }
 function openRoom(code, mode) {
   const ch = getSB().channel('kn-' + code, { config: { presence: { key: myPid }, broadcast: { self: false, ack: false } } });
   NET = { mode, code, ch, acc: 0, inAcc: 0, inDirty: 1, lastSnap: performance.now(), started: 0, seats: {}, names: { 0: mode === 'host' ? myName : 'Host' } };
@@ -8602,7 +8782,7 @@ function openRoom(code, mode) {
 function sendStart() { if (NET && NET.mode === 'host') NET.ch.send({ type: 'broadcast', event: 'start', payload: { seats: NET.seats, names: NET.names } }); }
 // a seat's knight: a fresh one at a new stone behind the player furthest along (or the usual spot before anyone has moved)
 function seatKnight(st) { while (KN.length < st) KN.push(Object.assign(mkKnight(KN.length), { on: 0 })); const lead = LIVE().reduce((a, b) => !a || b.x > a.x ? b : a, null), moved = lead && Math.abs(lead.x - lead.T.x) > 60;
-  NP = Math.max(NP, st + 1); KN[st] = mkKnight(st, moved ? lead : null); }
+  NP = Math.max(NP, st + 1); KN[st] = mkKnight(st, moved ? lead : null); bhInit(KN[st]); }
 function host() { const A = 'ABCDEFGHJKMNPQRSTUVWXYZ'; let c = ''; for (let i = 0; i < 4; i++) c += A[Math.floor(Math.random() * A.length)]; openRoom(c, 'host'); lobby('hosting'); advertise(); }
 function join(c) {
   openRoom(c, 'guest'); lobby('joining');
@@ -8616,7 +8796,7 @@ function netTick(dt) {
   if (NET.mode === 'host') {
     // 15 snapshots/s, 10/s once there are big hordes about (keeps each guest's download near 200KB/s on MAX)
     // at most ~15 a second, and spaced out further when they're big so a guest's connection never falls behind (~80KB/s); walkers only go to guests that are near them
-    if (now - (NET.lastSend || 0) > Math.max(66, (NET.lastLen || 0) / 80)) { NET.lastSend = now; const wl = [], an = []; walkers.filter(w => LIVE().some(k2 => k2.i !== ME && Math.abs(w.x - k2.x) < 300)).slice(0, 900).forEach(w => packW(w, wl, an, now)); const full = !(now - (NET.lastFull || 0) < 1000); if (full) NET.lastFull = now; const pl = { k: KN.map((kn, i) => packK(kn, i, full)), w: wl, an, e: EV.splice(0), sw: SAWS.map(q => [q.i, q.n, r1(q.x), r1(q.y), Math.round(q.a * 100) / 100, q.out ? 1 : 0]), sp: speed, hz: [HZ.rate, HZ.kinds] }; NET.lastLen = JSON.stringify(pl).length; if (window.__snapStat) { window.__snapB = Math.max(window.__snapB || 0, NET.lastLen); window.__snapP = { k: JSON.stringify(pl.k).length, w: JSON.stringify(pl.w).length, an: JSON.stringify(pl.an).length, e: JSON.stringify(pl.e).length, n: pl.w.length / WN }; } NET.ch.send({ type: 'broadcast', event: 's', payload: pl }); }
+    if (now - (NET.lastSend || 0) > Math.max(66, (NET.lastLen || 0) / 80)) { NET.lastSend = now; const wl = [], an = []; walkers.filter(w => LIVE().some(k2 => k2.i !== ME && Math.abs(w.x - k2.x) < 300)).slice(0, 900).forEach(w => packW(w, wl, an, now)); const full = !(now - (NET.lastFull || 0) < 1000); if (full) NET.lastFull = now; const pl = { k: KN.map((kn, i) => packK(kn, i, full)), w: wl, an, rn: bhPack(), bl: bhTakeEv(), e: EV.splice(0), sw: SAWS.map(q => [q.i, q.n, r1(q.x), r1(q.y), Math.round(q.a * 100) / 100, q.out ? 1 : 0]), sp: speed, hz: [HZ.rate, HZ.kinds] }; NET.lastLen = JSON.stringify(pl).length; if (window.__snapStat) { window.__snapB = Math.max(window.__snapB || 0, NET.lastLen); window.__snapP = { k: JSON.stringify(pl.k).length, w: JSON.stringify(pl.w).length, an: JSON.stringify(pl.an).length, e: JSON.stringify(pl.e).length, n: pl.w.length / WN }; } NET.ch.send({ type: 'broadcast', event: 's', payload: pl }); }
   } else {
     if ((NET.inDirty && now - (NET.lastIn || 0) > 50) || now - (NET.lastIn || 0) > 250) { NET.lastIn = now; NET.inDirty = 0; NET.ch.send({ type: 'broadcast', event: 'in', payload: Object.assign(packIn(KN[ME].in), { s: ME, ts: Math.round(now) }) }); }
     // where my knight was, frame by frame, so the host's view of me can be checked against where I was when it got my input
@@ -8627,6 +8807,7 @@ function netTick(dt) {
 }
 function applySnap(S) {
   NET.lastSnap = performance.now(); NET.lostNoted = 0;
+  bhApplySnap(S);
   if (S.sp !== speed) { speed = S.sp; slowLabel(); }
   if (S.hz && (S.hz[0] !== HZ.rate || S.hz[1].join() !== HZ.kinds.join())) { HZ.rate = S.hz[0]; HZ.kinds = S.hz[1]; hordeUI(); }
   while (KN.length < S.k.length) KN.push(mkKnight(KN.length)); NP = KN.length;
@@ -8638,7 +8819,7 @@ function applySnap(S) {
       { const H2 = NET.hist || [], ack = p.a, tq = ack ? ack + (performance.now() - ack) / 2 : 0; let ref = null; if (ack && H2.length) { for (let j = H2.length - 1; j >= 0; j--) if (H2[j][0] <= tq) { ref = H2[j]; break; } if (!ref) ref = H2[0]; }
         const ex = v.x - (ref ? ref[1] : kn.x), ey = v.y - (ref ? ref[2] : kn.y), d = Math.hypot(ex, ey), k = d > 40 ? 1 : d > 3 ? 0.15 : 0, cx = ex * k, cy = ey * k;
         if (k) { kn.x += cx; kn.y += cy; for (const h of H2) { h[1] += cx; h[2] += cy; } } }
-      kn.hits = v.hits; kn.kills = v.kills; if (kn.kind === 'time') { kn.tc = v.tc; kn.alG = v.alG; if (v.ttSd) kn.ttSd = v.ttSd; if (v.wpM) kn.wpM = v.wpM; if (v.a2s) kn.a2s = v.a2s; if (v.dg) { kn.dg = v.dg; kn.dgN = v.dgN; } } if (kn.st === 'kneel' && v.st !== 'kneel') Object.assign(kn, { st: v.st, u: v.u, hold: v.hold });
+      kn.hits = v.hits; kn.kills = v.kills; bhOwn(kn, v); if (kn.kind === 'time') { kn.tc = v.tc; kn.alG = v.alG; if (v.ttSd) kn.ttSd = v.ttSd; if (v.wpM) kn.wpM = v.wpM; if (v.a2s) kn.a2s = v.a2s; if (v.dg) { kn.dg = v.dg; kn.dgN = v.dgN; } } if (kn.st === 'kneel' && v.st !== 'kneel') Object.assign(kn, { st: v.st, u: v.u, hold: v.hold });
     } else { Object.assign(kn, v); kn.in = p.in; }
   });
   const byId = new Map(walkers.map(w => [w.id, w])), seen = new Set();
@@ -8733,7 +8914,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = 'e3c383';
+const KBUILD = '5c7e7b';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
