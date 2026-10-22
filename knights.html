@@ -72,7 +72,7 @@ body.sword #dash,body.sword #aoe,body.sword #spin,body.sword #ult{display:none !
 #bhOver{position:fixed;inset:0;z-index:45;background:#000c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#fff;font:600 15px system-ui}#bhOver b{font:900 36px system-ui;color:#ff6a4d}#bhOver button{min-width:220px}
 body.bh #hordeBtn,body.bh #charBtn,body.bh #reset,body.bh #slow{display:none!important}
 body.bhL-dash #dash,body.bhL-leap #aoe,body.bhL-spin #spin,body.bhL-breath #bst,body.bhL-ult #ult{opacity:.8!important;filter:grayscale(1);pointer-events:none!important}body.bhL-dash #dash>*:not(.unl),body.bhL-leap #aoe>*:not(.unl),body.bhL-spin #spin>*:not(.unl),body.bhL-breath #bst>*:not(.unl),body.bhL-ult #ult>*:not(.unl){visibility:hidden}.unl{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:700 11px/1.15 system-ui,sans-serif;color:#fff;text-align:center;text-shadow:0 0 3px #000,0 0 2px #000;pointer-events:none;z-index:4;width:90%}#bhClock.vw{color:#ff7a5a}
-.modeSeg{display:flex;gap:6px;width:100%}.modeSeg button{flex:1}.modeSeg button.on{border-color:#f0c419;color:#f0c419}
+.modeSeg{display:none!important;gap:6px;width:100%}.modeSeg button{flex:1}.modeSeg button.on{border-color:#f0c419;color:#f0c419}
 </style></head><body>
 <canvas id="c"></canvas>
 <div id="lobbyUI"><div class="card" id="lcard"></div></div>
@@ -222,7 +222,8 @@ const AUTH = () => !NET || NET.mode === 'host';
 // each ability (Dash, Leap, Spin ...), the ult, the character's special upgrades (the things added to their kits over time)
 // and stat boosts that go past the final form.
 const BH = { on: 0, go: 0, t: 0, lvl: 1, xp: 0, need: 10, over: 0, pause: 0, spT: 0, elT: 60, boss: 0, best: 0 };
-let BHMODE = (() => { const q = new URLSearchParams(location.search).get('mode'); if (q === 'box' || q === 'run') return q; try { return localStorage.getItem('kn_mode') || 'run'; } catch (e) { return 'run'; } })();
+// Survival was shelved 2026-10-22 (Elijah: scrap the bullet hell, a co-op side-scroller is next); kept for its levelling/health/cards, reachable only with ?mode=run
+let BHMODE = new URLSearchParams(location.search).get('mode') === 'run' ? 'run' : 'box';
 const BHC = { HP: 100, IV: 0.35, CONTACT: 5, REV: 2.5, REVR: 20, AUTO: 25, BR: 2.1, KR: 3.2, BMAX: 90 };
 const BUL = []; let BEV = [];
 const bhUp = (kn, id) => !BH.on || !!(kn && kn.ups && kn.ups.indexOf(id) >= 0);
@@ -8971,7 +8972,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '0a33bb';
+const KBUILD = '6ebcb1';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }

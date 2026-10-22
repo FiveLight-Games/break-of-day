@@ -6,7 +6,8 @@
 // each ability (Dash, Leap, Spin ...), the ult, the character's special upgrades (the things added to their kits over time)
 // and stat boosts that go past the final form.
 const BH = { on: 0, go: 0, t: 0, lvl: 1, xp: 0, need: 10, over: 0, pause: 0, spT: 0, elT: 60, boss: 0, best: 0 };
-let BHMODE = (() => { const q = new URLSearchParams(location.search).get('mode'); if (q === 'box' || q === 'run') return q; try { return localStorage.getItem('kn_mode') || 'run'; } catch (e) { return 'run'; } })();
+// Survival was shelved 2026-10-22 (Elijah: scrap the bullet hell, a co-op side-scroller is next); kept for its levelling/health/cards, reachable only with ?mode=run
+let BHMODE = new URLSearchParams(location.search).get('mode') === 'run' ? 'run' : 'box';
 const BHC = { HP: 100, IV: 0.35, CONTACT: 5, REV: 2.5, REVR: 20, AUTO: 25, BR: 2.1, KR: 3.2, BMAX: 90 };
 const BUL = []; let BEV = [];
 const bhUp = (kn, id) => !BH.on || !!(kn && kn.ups && kn.ups.indexOf(id) >= 0);
