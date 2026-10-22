@@ -22,6 +22,7 @@ const BHSP = {
   knight: [['k_combo', 'Three-cut combo', 'Swings chain into a rising cut and a twirl, each with a longer light blade'], ['k_spinspd', 'Whirlwind', 'Spinning speeds you up to over twice your run', 'spin'], ['k_spinsz', 'Wide spin', 'The spin reaches 30% further', 'spin'], ['k_dash', 'Long blade dash', 'The dash goes 60% further and cuts a 40% wider path', 'dash']],
   priest: [['p_censer', 'Holy fire', 'The censer also burns away 3.5% of max health per second for 5s'], ['p_plow', 'Unstoppable', 'Walk straight through crowds, shoving and hurting them'], ['p_chain', 'Burning chain', 'While HOLY burns, the chain burns everyone it touches', 'spin']],
   fire: [['f_blue', 'Blue flame', 'Full-heat breath reaches 65% further and 35% wider'], ['f_coals', 'Bed of coals', 'Coals keep burning whoever walks on them', 'leap']],
+  ninja: [['n_kunai', 'Kunai fan', 'The third attack throws a fan of kunai'], ['n_hop', 'Hop throw', 'Every kunai throw is a hop the way you move', 'n_kunai'], ['n_clones', 'Three clones', 'Shadow clones come out three at a time (from one)', 'breath'], ['n_charges', 'Three charges', 'Leap holds three charges (from one)', 'leap'], ['n_shur', 'Shuriken storm', 'Shuriken rain into the middle of every leap', 'leap']],
   time: [['t_saber', 'Dashing slice', 'Saber swings carry you forward through enemies', 'spin'], ['t_bounce', 'Ricochet', 'Saws bounce on through up to 30 enemies (from 4)', 'spin'], ['t_skew', 'Skewer', 'Alien tentacles skewer up to 2 more enemies behind the first', 'spin']]
 };
 // stat boosts [name, what it does, most you can take]
@@ -33,7 +34,7 @@ function bhStart() { Object.assign(BH, { on: BHMODE === 'run' ? 1 : 0, go: 0, t:
 // ---- cards ----
 function bhPool(kn) { const ch = kn.kind || 'knight', P = [], slots = bhSlots(ch), have = s => bhAb(kn, s);
   for (const s of slots) if (!have(s) && (s !== 'ult' || (BH.lvl >= 6 && slots.some(q => q !== 'ult' && have(q))))) P.push(['a_' + s, 'Unlock: ' + bhSlotName(ch, s), s === 'ult' ? 'Your ultimate. It charges with kills as usual' : 'A new ability', 3, 'ab']);
-  for (const [id, n, d, req] of BHSP[ch] || []) if (!bhUp(kn, id) && (!req || have(req))) P.push([id, n, d, 2, 'sp']);
+  for (const [id, n, d, req] of BHSP[ch] || []) if (!bhUp(kn, id) && (!req || (BHSLOT[req] ? have(req) : bhUp(kn, req)))) P.push([id, n, d, 2, 'sp']);
   for (const [id, [n, d, mx]] of Object.entries(BHST)) if (bhN(kn, id) < mx) P.push([id, n, d, 1, 'st']);
   return P; }
 function bhRoll(kn, n = 3) { const P = bhPool(kn), out = []; while (out.length < n && P.length) { let s = P.reduce((a, c) => a + c[3], 0), r = Math.random() * s, i = 0; while ((r -= P[i][3]) > 0 && i < P.length - 1) i++; out.push(P.splice(i, 1)[0]); } return out; }
@@ -52,7 +53,7 @@ let BHPRE = null;
 function bhPre(kn) { if (!BH.on) return; if (kn.rDn && kn.in) { kn.in.mv = [0, 0]; kn.in.aim = null; kn.in.spin = false; kn.in.br = null; } const o = { x: kn.x, y: kn.y }; for (const f of BHCD) if (typeof kn[f] === 'number') o[f] = kn[f]; BHPRE = o; }
 function bhPost(kn) { if (!BH.on || !BHPRE) return; const o = BHPRE; BHPRE = null; const cd = Math.max(0.6, 1 - 0.08 * bhN(kn, 'cdr')), sp = 0.07 * bhN(kn, 'spd');
   if (cd < 1) for (const f of BHCD) if (typeof kn[f] === 'number' && o[f] !== undefined && kn[f] > o[f] + 0.05) kn[f] = o[f] + (kn[f] - o[f]) * cd;
-  if (sp && !kn.rDn) { const dx = kn.x - o.x, dy = kn.y - o.y; if (Math.hypot(dx, dy) < 20) { kn.x += dx * sp; kn.y = cl(kn.y + dy * sp, 16, H - 4); } } }
+  if (sp && !kn.rDn) { const dx = kn.x - o.x, dy = kn.y - o.y; if (Math.hypot(dx, dy) < 20) { kn.x += dx * sp; kn.y += dy * sp; } } }
 // ---- damage to players ----
 function bhHurt(kn, d) { if (!BH.on || !AUTH() || !kn || kn.rDn || kn.rIv > 0 || BH.over) return; d = Math.max(1, d - bhN(kn, 'arm')); kn.rHp -= d; kn.rIv = BHC.IV; kn.hits = (kn.hits || 0) + 1;
   if (kn.rHp <= 0) { kn.rHp = 0; kn.rDn = 1; kn.rRv = 0; for (let i = 0; i < 20; i++) { const a = rr(0, 6.28); sparks.push({ x: kn.x, y: kn.y - 6, vx: Math.cos(a) * rr(10, 40), vy: Math.sin(a) * rr(10, 30) - 10, t: 0, max: rr(0.4, 0.8) }); } } }
@@ -79,13 +80,13 @@ function bhShoot(w, T2, dt) { if (w.hp <= 0 || w.air || w.gr > 0 || w.ogFz > 0 |
       if (w.spN % (big ? 24 : 14) === 0) { w.sh = big ? 1.6 : 2.6; if (big) bhFire(w.x, y0, a, 7, 1.1, 80, 14, 0); } else w.sh = 0.12; break; }
     default: w.sh = 99; } }
 function bhBullets(dt) { const L = LIVE();
-  for (let i = BUL.length - 1; i >= 0; i--) { const b = BUL[i]; b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; let gone = b.t > 6 || b.y < -10 || b.y > H + 10;
+  for (let i = BUL.length - 1; i >= 0; i--) { const b = BUL[i]; b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; let gone = b.t > 6;
     if (!gone) for (const kn of L) { if (kn.rDn) continue; const dx = kn.x - b.x, dy = (kn.y - 5 * (kn.sz || 1)) - b.y; if (dx * dx + dy * dy < (BHC.BR + BHC.KR * (kn.sz || 1)) ** 2 && !((kn.z || 0) > 6)) { if (AUTH()) { if (kn.rIv > 0) continue; bhHurt(kn, b.d); } gone = true; break; } }
     if (gone) BUL.splice(i, 1); } if (BUL.length > 1500) BUL.splice(0, BUL.length - 1500); }
 // ---- spawning: from every side, harder as the clock runs ----
 const BHKIND = [[0, 'foot', 1], [0, 'zombie', 1], [25, 'skel', 1], [50, 'scout', 0.7], [60, 'gnoll', 1], [90, 'warg', 0.6], [110, 'naga', 0.7], [130, 'shield', 0.6], [150, 'necro', 0.5], [170, 'ogre', 0.4], [200, 'fknight', 0.6], [220, 'sapper', 0.4]];
 const BHELITE = [[75, 'troll'], [180, 'chief'], [300, 'golem'], [360, 'ent'], [420, 'ram'], [480, 'mammoth']];
-function bhSpawnAt(kind, x, y, mul) { const w = spawnWalker(x, undefined, cl(y, 14, H - 6), kind); w.hp = w.max = Math.round(UK[kind].hp * mul); return w; }
+function bhSpawnAt(kind, x, y, mul) { const w = spawnWalker(x, undefined, y, kind); w.hp = w.max = Math.round(UK[kind].hp * mul); return w; }
 function bhEdge(kn) { const sc = viewScale(), hw = cv.width / 2 / sc + 14, hh = cv.height / 2 / sc + 14, a = rr(0, Math.PI * 2), r = 1 / Math.max(Math.abs(Math.cos(a)) / hw, Math.abs(Math.sin(a)) / hh); return [kn.x + Math.cos(a) * r, kn.y - 6 + Math.sin(a) * r]; }
 function bhSpawn(dt) { if (!BH.go || BH.over || !AUTH()) return; const L = LIVE().filter(k => !k.rDn); if (!L.length) return; const t = BH.t, mul = 1 + t / 150;
   if ((BH.elT -= dt) <= 0) { const el = BHELITE.filter(e => e[0] <= t), e = el.length ? el[Math.floor(Math.random() * el.length)] : null; BH.elT = Math.max(25, 60 - t / 20); if (e) { const p = bhEdge(L[Math.floor(Math.random() * L.length)]); bhSpawnAt(e[1], p[0], p[1], 1 + t / 200); } }
@@ -153,3 +154,6 @@ function bhOver(show) { const el = document.getElementById('bhOver'); if (!el) r
 addEventListener('keydown', e => { if (!BHUI.open) return; const n = '123'.indexOf(e.key); if (n >= 0) { e.preventDefault(); e.stopImmediatePropagation(); bhChoose(n); } }, true);
 window.__bh = { BH, BUL, roll: () => bhRoll(KN[ME]) };
 window.__bhFire = bhFire;
+// the field's top and bottom edges only hold in the sandbox; a run goes on for ever in every direction
+function YB(n) { return BH.on ? -1e7 : n; }
+function YT(n) { return BH.on ? 1e7 : H - n; }
