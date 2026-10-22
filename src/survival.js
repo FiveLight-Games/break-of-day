@@ -13,6 +13,7 @@ const bhUp = (kn, id) => !BH.on || !!(kn && kn.ups && kn.ups.indexOf(id) >= 0);
 const bhN = (kn, id) => kn && kn.ups ? kn.ups.reduce((a, u) => a + (u === id ? 1 : 0), 0) : 0;
 const bhAb = (kn, slot) => bhUp(kn, 'a_' + slot);
 // the ability slots a character has (from the controls editor's action list); the Time Traveler's weapon ability comes with his portal
+const BHEL = { dash: 'dash', leap: 'aoe', spin: 'spin', breath: 'bst', ult: 'ult' };
 const BHSLOT = { dash: 'Dash', leap: 'Leap', spin: 'Spin', breath: 'Breath', ult: 'Ult' };
 const bhSlots = ch => { const A = (typeof CTL_ACTS !== 'undefined' && CTL_ACTS[ch]) || []; return A.map(a => a[0]).filter(s => BHSLOT[s] && !(ch === 'time' && s === 'leap')); };
 const bhSlotName = (ch, s) => { const a = ((typeof CTL_ACTS !== 'undefined' && CTL_ACTS[ch]) || []).find(q => q[0] === s); return a ? a[1] : BHSLOT[s]; };
@@ -33,9 +34,10 @@ const bhNeed = l => Math.round(14 + 9 * l + 1.1 * l * l);
 // per character: the level each ability unlocks at (set with the Survival tuner; a slot left out uses the default order at levels 3, 6, 10, 15)
 const BHLV = {}, BHSPMIN = { ninja: { n_kunai: 4, n_hop: 6, n_clone2: 12, n_clone3: 14, n_charge2: 8, n_charge3: 10, n_shur: 8 } }; // BHSPMIN: per character, the earliest level a special's card can come up
 const BHUNL = [3, 6, 10, 15], BHORD = ['dash', 'leap', 'spin', 'breath', 'ult'];
-const bhUnlocks = (ch, lvl) => { const S = bhSlots(ch), L = BHLV[ch]; if (L) return S.filter(s => L[s] === lvl); const O = BHORD.filter(s => S.includes(s)), j = BHUNL.indexOf(lvl); return j >= 0 && O[j] ? [O[j]] : []; };
+const bhLvOf = (ch, s) => { const L = BHLV[ch]; if (L && L[s] !== undefined) return L[s]; const O = BHORD.filter(q => bhSlots(ch).includes(q)), j = O.indexOf(s); return j >= 0 && j < BHUNL.length ? BHUNL[j] : 99; };
+const bhUnlocks = (ch, lvl) => bhSlots(ch).filter(s => bhLvOf(ch, s) === lvl);
 function bhInit(kn) { Object.assign(kn, { rHp: BHC.HP, rHm: BHC.HP, rDn: 0, rRv: 0, rIv: 0, rPk: 0, ups: [], upSeen: (kn.in && kn.in.upN) || 0, kSeen: kn.kills || 0, pkT: 0 }); if (BH.on) kn.ups = bhUnlocks(kn.kind || 'knight', 1).map(q => 'a_' + q); }
-function bhStart() { Object.assign(BH, { on: BHMODE === 'run' ? 1 : 0, go: 0, t: 0, lvl: 1, xp: 0, need: bhNeed(1), over: 0, pause: 0, spT: 0, elT: 150, boss: 0 }); BUL.length = 0; BEV = []; GEMS.clear(); GEV = []; GEMN = 0; for (const k in BHG) delete BHG[k]; BHUI.wait = -1; for (const kn of KN) bhInit(kn); bhUI(); }
+function bhStart() { Object.assign(BH, { on: BHMODE === 'run' ? 1 : 0, go: 0, t: 0, lvl: 1, xp: 0, need: bhNeed(1), over: 0, pause: 0, spT: 0, elT: 240, boss: 0, vw: 0 }); BUL.length = 0; BEV = []; GEMS.clear(); GEV = []; GEMN = 0; for (const k in BHG) delete BHG[k]; BHUI.wait = -1; for (const kn of KN) bhInit(kn); bhUI(); }
 // ---- cards ----
 function bhPool(kn) { const ch = kn.kind || 'knight', P = [], slots = bhSlots(ch), have = s => bhAb(kn, s);
   for (const [id, n, d, req] of BHSP[ch] || []) if (!bhUp(kn, id) && BH.lvl >= ((BHSPMIN[ch] || {})[id] || 1) && (!req || (BHSLOT[req] ? have(req) : bhUp(kn, req)))) P.push([id, n, d, 2, 'sp']);
@@ -61,7 +63,7 @@ function bhPost(kn) { if (!BH.on || !BHPRE) return; const o = BHPRE; BHPRE = nul
 // ---- damage to players ----
 // moves that can't be hit: the ninja's leap and kama (from the throw until the slide ends)
 const bhSafe = kn => kn.kind === 'ninja' && (kn.nl >= 0 || (kn.km >= 0 && kn.km < njKmTL(kn).tE));
-function bhHurt(kn, d) { if (!BH.on || !AUTH() || !kn || kn.rDn || kn.rIv > 0 || BH.over || bhSafe(kn)) return; d = Math.max(1, d - bhN(kn, 'arm')); kn.rHp -= d; kn.rIv = BHC.IV; kn.hits = (kn.hits || 0) + 1;
+function bhHurt(kn, d) { if (window.__bhGod || !BH.on || !AUTH() || !kn || kn.rDn || kn.rIv > 0 || BH.over || bhSafe(kn)) return; d = Math.max(1, d - bhN(kn, 'arm')); kn.rHp -= d; kn.rIv = BHC.IV; kn.hits = (kn.hits || 0) + 1;
   if (kn.rHp <= 0) { kn.rHp = 0; kn.rDn = 1; kn.rRv = 0; for (let i = 0; i < 20; i++) { const a = rr(0, 6.28); sparks.push({ x: kn.x, y: kn.y - 6, vx: Math.cos(a) * rr(10, 40), vy: Math.sin(a) * rr(10, 30) - 10, t: 0, max: rr(0.4, 0.8) }); } } }
 // ---- enemy fire: every volley is one event that every screen turns into the same bullets ----
 // [x, y, angle, count, spread (>= 6.2 = full ring), speed, damage, colour index]
@@ -69,36 +71,41 @@ const BHCOL = ['#ff5a4a', '#c46bff', '#58d0ff', '#ffcf40', '#7dff6a'];
 function bhFire(x, y, a, n, spr, spd, dmg, col) { const e = [Math.round(x * 10) / 10, Math.round(y * 10) / 10, Math.round(a * 1000) / 1000, n, spr, spd, dmg, col]; bhVolley(e); if (NET && NET.mode === 'host') BEV.push(e); }
 function bhVolley(e) { const [x, y, a, n, spr, spd, dmg, col] = e, ring = spr >= 6.2;
   for (let i = 0; i < n; i++) { const g = n === 1 ? a : ring ? a + i * Math.PI * 2 / n : a + (i / (n - 1) - 0.5) * spr; BUL.push({ x, y, vx: Math.cos(g) * spd, vy: Math.sin(g) * spd * 0.8, t: 0, d: dmg, c: col }); } }
+// volley waves (Elijah 2026-10-22: far too many projectiles; confine them to certain waves): enemies only shoot during a wave.
+// The first at 3:00, then every 2:30; each lasts 15s growing to 25s by 20:00; worked out from the synced clock, so every screen knows.
+const BHVW = { FIRST: 180, EVERY: 150, LEN0: 15, LEN1: 25, WARN: 4 };
+const bhWave = t => { if (t < BHVW.FIRST - BHVW.WARN) return [0, 0]; const k = Math.floor((t - BHVW.FIRST + BHVW.WARN) / BHVW.EVERY), s = BHVW.FIRST + k * BHVW.EVERY, len = BHVW.LEN0 + (BHVW.LEN1 - BHVW.LEN0) * Math.min(1, s / 1200); return t >= s && t < s + len ? [1, s + len - t] : t >= s - BHVW.WARN && t < s ? [2, s - t] : [0, 0]; };
+const bhBMax = t => Math.round(25 + Math.min(1, t / 1200) * 45);
 // who shoots what: [first delay, gap, range, pattern]
-function bhShoot(w, T2, dt) { if (w.hp <= 0 || w.air || w.gr > 0 || w.ogFz > 0 || w.bT > 0 || w.dead) return; const U = UK[w.k];
-  const d = Math.hypot(T2.x - w.x, T2.y - w.y); if (d > 210) return; if (BUL.length > BHC.BMAX && !UK[w.k].heavy) { w.sh = rr(1, 2); return; } if (w.sh === undefined) { w.sh = U.heavy || Math.random() < 0.35 ? rr(2, 4) : 1e9; } if ((w.sh -= dt) > 0) return;
+function bhShoot(w, T2, dt) { if (bhWave(BH.t)[0] !== 1) { w.sh = undefined; return; } if (w.hp <= 0 || w.air || w.gr > 0 || w.ogFz > 0 || w.bT > 0 || w.dead) return; const U = UK[w.k];
+  const d = Math.hypot(T2.x - w.x, T2.y - w.y); if (d > 210) return; if (BUL.length > bhBMax(BH.t) * (U.heavy ? 2 : 1)) { w.sh = rr(1.5, 3); return; } if (w.sh === undefined) { w.sh = U.heavy || Math.random() < 0.18 ? rr(1, 5) : 1e9; } if ((w.sh -= dt) > 0) return;
   const a = Math.atan2((T2.y - 5) - (w.y - 5 * U.sc), T2.x - w.x), y0 = w.y - 5 * U.sc;
   switch (w.k) {
-    case 'skel': bhFire(w.x, y0, a, 1, 0, 65, 8, 0); w.sh = rr(5, 7); break;
-    case 'scout': bhFire(w.x, y0, a, 2, 0.18, 75, 7, 0); w.sh = rr(5, 7); break;
-    case 'naga': bhFire(w.x, y0, a, 3, 0.55, 55, 9, 2); w.sh = rr(5, 7); break;
-    case 'necro': bhFire(w.x, y0, rr(0, 1), 8, 6.3, 40, 9, 1); w.sh = rr(6, 8); break;
-    case 'troll': bhFire(w.x, y0, a, 5, 0.9, 60, 11, 0); w.sh = 3.5; break;
-    case 'chief': bhFire(w.x, y0, rr(0, 1), 12, 6.3, 44, 12, 3); w.sh = 4; break;
-    case 'ent': bhFire(w.x, y0, rr(0, 1), 16, 6.3, 32, 10, 4); w.sh = 4.5; break;
+    case 'skel': bhFire(w.x, y0, a, 1, 0, 65, 8, 0); w.sh = rr(7, 10); break;
+    case 'scout': bhFire(w.x, y0, a, 2, 0.18, 75, 7, 0); w.sh = rr(7, 10); break;
+    case 'naga': bhFire(w.x, y0, a, 3, 0.55, 55, 9, 2); w.sh = rr(7, 10); break;
+    case 'necro': bhFire(w.x, y0, rr(0, 1), 6, 6.3, 40, 9, 1); w.sh = rr(8, 11); break;
+    case 'troll': bhFire(w.x, y0, a, 5, 0.9, 60, 11, 0); w.sh = 5; break;
+    case 'chief': bhFire(w.x, y0, rr(0, 1), 9, 6.3, 44, 12, 3); w.sh = 6; break;
+    case 'ent': bhFire(w.x, y0, rr(0, 1), 10, 6.3, 32, 10, 4); w.sh = 6.5; break;
     case 'golem': case 'tarrasque': case 'mammoth': { // spiral: a short burst every 0.12s, turning
-      w.spA = (w.spA || 0) + 0.38; w.spN = (w.spN || 0) + 1; const big = w.k === 'tarrasque'; bhFire(w.x, y0, w.spA, big ? 5 : 3, 6.3, big ? 52 : 46, big ? 14 : 11, big ? 1 : 3);
-      if (w.spN % (big ? 24 : 14) === 0) { w.sh = big ? 2.5 : 4; if (big) bhFire(w.x, y0, a, 7, 1.1, 80, 14, 0); } else w.sh = 0.12; break; }
+      w.spA = (w.spA || 0) + 0.38; w.spN = (w.spN || 0) + 1; const big = w.k === 'tarrasque'; bhFire(w.x, y0, w.spA, big ? 3 : 2, 6.3, big ? 52 : 46, big ? 14 : 11, big ? 1 : 3);
+      if (w.spN % (big ? 16 : 10) === 0) { w.sh = big ? 4.5 : 6; if (big) bhFire(w.x, y0, a, 7, 1.1, 80, 14, 0); } else w.sh = 0.16; break; }
     default: w.sh = 99; } }
 function bhBullets(dt) { const L = LIVE();
   for (let i = BUL.length - 1; i >= 0; i--) { const b = BUL[i]; b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; let gone = b.t > 6;
     if (!gone) for (const kn of L) { if (kn.rDn) continue; const dx = kn.x - b.x, dy = (kn.y - 5 * (kn.sz || 1)) - b.y; if (dx * dx + dy * dy < (BHC.BR + BHC.KR * (kn.sz || 1)) ** 2 && !((kn.z || 0) > 6)) { if (AUTH()) { if (kn.rIv > 0) continue; bhHurt(kn, b.d); } gone = true; break; } }
     if (gone) BUL.splice(i, 1); } if (BUL.length > 1500) BUL.splice(0, BUL.length - 1500); }
 // ---- spawning: from every side, harder as the clock runs ----
-const BHKIND = [[0, 'foot', 1], [0, 'zombie', 1], [60, 'skel', 0.7], [100, 'scout', 0.6], [120, 'gnoll', 1], [180, 'warg', 0.5], [240, 'naga', 0.5], [270, 'shield', 0.6], [330, 'necro', 0.3], [360, 'ogre', 0.35], [420, 'fknight', 0.6], [480, 'sapper', 0.35]];
-const BHELITE = [[150, 'troll'], [330, 'chief'], [540, 'golem'], [660, 'ent'], [780, 'ram'], [900, 'mammoth']];
+const BHKIND = [[0, 'foot', 1], [0, 'zombie', 1], [120, 'skel', 0.7], [200, 'scout', 0.6], [240, 'gnoll', 1], [360, 'warg', 0.5], [450, 'naga', 0.5], [540, 'shield', 0.6], [630, 'necro', 0.3], [720, 'ogre', 0.35], [810, 'fknight', 0.6], [900, 'sapper', 0.35]];
+const BHELITE = [[240, 'troll'], [480, 'chief'], [720, 'golem'], [840, 'ent'], [960, 'ram'], [1080, 'mammoth']];
 function bhSpawnAt(kind, x, y, mul) { const w = spawnWalker(x, undefined, y, kind); w.hp = w.max = Math.round(UK[kind].hp * mul); return w; }
 function bhEdge(kn) { const sc = viewScale(), hw = cv.width / 2 / sc + 14, hh = cv.height / 2 / sc + 14, a = rr(0, Math.PI * 2), r = 1 / Math.max(Math.abs(Math.cos(a)) / hw, Math.abs(Math.sin(a)) / hh); return [kn.x + Math.cos(a) * r, kn.y - 6 + Math.sin(a) * r]; }
-function bhSpawn(dt) { if (!BH.go || BH.over || !AUTH()) return; const L = LIVE().filter(k => !k.rDn); if (!L.length) return; const t = BH.t, mul = 1 + t / 300;
-  if ((BH.elT -= dt) <= 0) { const el = BHELITE.filter(e => e[0] <= t), e = el.length ? el[Math.floor(Math.random() * el.length)] : null; BH.elT = Math.max(45, 100 - t / 20); if (e) { const p = bhEdge(L[Math.floor(Math.random() * L.length)]); bhSpawnAt(e[1], p[0], p[1], 1 + t / 400); } }
+function bhSpawn(dt) { if (!BH.go || BH.over || !AUTH()) return; const L = LIVE().filter(k => !k.rDn); if (!L.length) return; const t = BH.t, mul = 1 + t / 400;
+  if ((BH.elT -= dt) <= 0) { const el = BHELITE.filter(e => e[0] <= t), e = el.length ? el[Math.floor(Math.random() * el.length)] : null; BH.elT = Math.max(55, 120 - t / 20); if (e) { const p = bhEdge(L[Math.floor(Math.random() * L.length)]); bhSpawnAt(e[1], p[0], p[1], 1 + t / 400); } }
   if (t >= 900 + BH.boss * 300) { BH.boss++; const p = bhEdge(L[0]); bhSpawnAt('tarrasque', p[0], p[1], 1 + BH.boss * 0.6); note('The Tarrasque is coming', 4); }
-  if ((BH.spT -= dt) > 0) return; BH.spT = 0.6; const cap = Math.min(500, 40 + t * 0.45 + 40 * (L.length - 1)); if (walkers.length >= cap) return;
-  let budget = (0.8 + t / 45) * 0.6 * (1 + 0.6 * (L.length - 1)); const K2 = BHKIND.filter(k => k[0] <= t), tw = K2.reduce((a, k) => a + k[2], 0);
+  if ((BH.spT -= dt) > 0) return; BH.spT = 0.6; const cap = Math.min(400, 30 + t * 0.25 + 40 * (L.length - 1)); if (walkers.length >= cap) return;
+  let budget = (0.6 + t / 120) * 0.6 * (1 + 0.6 * (L.length - 1)); const K2 = BHKIND.filter(k => k[0] <= t), tw = K2.reduce((a, k) => a + k[2], 0);
   while (budget > 0) { const kn = L[Math.floor(Math.random() * L.length)], p = bhEdge(kn), m = Math.min(Math.ceil(budget), 2 + Math.floor(Math.random() * 5)); budget -= m;
     for (let i = 0; i < m; i++) { let r = Math.random() * tw, k = K2[0]; for (const q of K2) { if ((r -= q[2]) <= 0) { k = q; break; } } bhSpawnAt(k[1], p[0] + rr(-8, 8), p[1] + rr(-6, 6), mul); } } }
 // ---- the run's clock, experience, level-ups, revives, game over (host); the pause while anyone picks a card ----
@@ -173,10 +180,11 @@ function bhDraw(c, t) { if (!BH.on) return; c.save();
 // ---- HUD: clock, level and experience, my health; the card picker; game over ----
 const BHUI = { wait: -1, waitT: 0, open: 0, cards: null };
 function bhUI() { const on = !!BH.on, me = KN[ME]; document.body.classList.toggle('bh', on); const hud = document.getElementById('bhHud'); if (!hud) return;
-  const ch = (me && me.kind) || CHAR || 'knight', S = bhSlots(ch); for (const s of Object.keys(BHSLOT)) document.body.classList.toggle('bhL-' + s, on && S.includes(s) && !(me && bhAb(me, s)));
+  const ch = (me && me.kind) || CHAR || 'knight', S = bhSlots(ch); for (const s of Object.keys(BHSLOT)) { const lk = on && S.includes(s) && !(me && bhAb(me, s)); document.body.classList.toggle('bhL-' + s, lk); const el = document.getElementById(BHEL[s]); if (el) { let u = el.querySelector(':scope > .unl'); if (lk) { if (!u) { u = document.createElement('div'); u.className = 'unl'; el.appendChild(u); } const tx = 'Unlocks at Lv ' + bhLvOf(ch, s); if (u.textContent !== tx) u.textContent = tx; } else if (u) u.remove(); } }
   if (!on || !me) { hud.style.display = 'none'; bhPick(null); bhOver(false); BHUI.ab = null; return; } hud.style.display = '';
   { const ab = (me.ups || []).filter(u => u.startsWith('a_')).join(); if (BHUI.ab !== null && BHUI.ab !== undefined && ab !== BHUI.ab) { const nw = ab.split(',').filter(u => u && !BHUI.ab.split(',').includes(u)); if (nw.length) note('New ability: ' + bhSlotName(ch, nw[nw.length - 1].slice(2)), 4); } BHUI.ab = ab; }
-  const m = Math.floor(BH.t / 60), sec = Math.floor(BH.t % 60); document.getElementById('bhClock').textContent = BH.go ? m + ':' + String(sec).padStart(2, '0') : 'Pull your weapon to begin';
+  const m = Math.floor(BH.t / 60), sec = Math.floor(BH.t % 60); const vw = BH.go ? bhWave(BH.t) : [0, 0]; document.getElementById('bhClock').textContent = BH.go ? m + ':' + String(sec).padStart(2, '0') + (vw[0] === 1 ? ' · VOLLEY ' + Math.ceil(vw[1]) + 's' : '') : 'Pull your weapon to begin'; document.getElementById('bhClock').classList.toggle('vw', vw[0] === 1);
+  if (vw[0] === 2 && !BHUI.vwN) { BHUI.vwN = 1; note('Volley incoming: they\u2019re about to start shooting', 3.5); } else if (vw[0] === 0) BHUI.vwN = 0;
   document.getElementById('bhLv').textContent = 'Lv ' + BH.lvl; document.getElementById('bhXp').style.width = (100 * cl(BH.xp / BH.need, 0, 1)) + '%';
   document.getElementById('bhHp').style.width = (100 * cl((me.rHp || 0) / (me.rHm || 1), 0, 1)) + '%'; document.getElementById('bhHpT').textContent = Math.ceil(me.rHp || 0) + ' / ' + (me.rHm || 0);
   // the card picker: open while I have a pick; after choosing, wait for the host to take it (or 1.5s) before showing the next
