@@ -223,7 +223,7 @@ const AUTH = () => !NET || NET.mode === 'host';
 // and stat boosts that go past the final form.
 const BH = { on: 0, go: 0, t: 0, lvl: 1, xp: 0, need: 10, over: 0, pause: 0, spT: 0, elT: 60, boss: 0, best: 0 };
 let BHMODE = (() => { const q = new URLSearchParams(location.search).get('mode'); if (q === 'box' || q === 'run') return q; try { return localStorage.getItem('kn_mode') || 'run'; } catch (e) { return 'run'; } })();
-const BHC = { HP: 100, IV: 0.35, CONTACT: 5, REV: 2.5, REVR: 20, AUTO: 25, BR: 2.1, KR: 3.2, BMAX: 380 };
+const BHC = { HP: 100, IV: 0.35, CONTACT: 5, REV: 2.5, REVR: 20, AUTO: 25, BR: 2.1, KR: 3.2, BMAX: 90 };
 const BUL = []; let BEV = [];
 const bhUp = (kn, id) => !BH.on || !!(kn && kn.ups && kn.ups.indexOf(id) >= 0);
 const bhN = (kn, id) => kn && kn.ups ? kn.ups.reduce((a, u) => a + (u === id ? 1 : 0), 0) : 0;
@@ -244,13 +244,17 @@ const BHSP = {
 // stat boosts [name, what it does, most you can take]
 const BHST = { dmg: ['Might', '+12% damage', 8], hp: ['Vigor', '+20 max health', 8], rgn: ['Second wind', '+0.6 health a second', 6], cdr: ['Focus', '8% shorter cooldowns', 5], spd: ['Fleet', '+7% move speed', 5], arm: ['Plating', 'Take 1 less damage from every hit', 5], xp: ['Insight', '+15% experience', 5] };
 const bhDmg = kn => BH.on && kn ? 1 + 0.12 * bhN(kn, 'dmg') : 1;
-const bhNeed = l => Math.round(6 + 4 * l + 0.35 * l * l);
-function bhInit(kn) { Object.assign(kn, { rHp: BHC.HP, rHm: BHC.HP, rDn: 0, rRv: 0, rIv: 0, rPk: 0, ups: [], upSeen: (kn.in && kn.in.upN) || 0, kSeen: kn.kills || 0, pkT: 0 }); }
-function bhStart() { Object.assign(BH, { on: BHMODE === 'run' ? 1 : 0, go: 0, t: 0, lvl: 1, xp: 0, need: bhNeed(1), over: 0, pause: 0, spT: 0, elT: 75, boss: 0 }); BUL.length = 0; BEV = []; for (const k in BHG) delete BHG[k]; BHUI.wait = -1; for (const kn of KN) bhInit(kn); bhUI(); }
+const bhNeed = l => Math.round(14 + 9 * l + 1.1 * l * l);
+// abilities come at set levels, in this order (the ult last); cards never offer them
+// per character: the level each ability unlocks at (set with the Survival tuner; a slot left out uses the default order at levels 3, 6, 10, 15)
+const BHLV = {}, BHSPMIN = {}; // BHSPMIN: per character, the earliest level a special's card can come up
+const BHUNL = [3, 6, 10, 15], BHORD = ['dash', 'leap', 'spin', 'breath', 'ult'];
+const bhUnlocks = (ch, lvl) => { const S = bhSlots(ch), L = BHLV[ch]; if (L) return S.filter(s => L[s] === lvl); const O = BHORD.filter(s => S.includes(s)), j = BHUNL.indexOf(lvl); return j >= 0 && O[j] ? [O[j]] : []; };
+function bhInit(kn) { Object.assign(kn, { rHp: BHC.HP, rHm: BHC.HP, rDn: 0, rRv: 0, rIv: 0, rPk: 0, ups: [], upSeen: (kn.in && kn.in.upN) || 0, kSeen: kn.kills || 0, pkT: 0 }); if (BH.on) kn.ups = bhUnlocks(kn.kind || 'knight', 1).map(q => 'a_' + q); }
+function bhStart() { Object.assign(BH, { on: BHMODE === 'run' ? 1 : 0, go: 0, t: 0, lvl: 1, xp: 0, need: bhNeed(1), over: 0, pause: 0, spT: 0, elT: 150, boss: 0 }); BUL.length = 0; BEV = []; for (const k in BHG) delete BHG[k]; BHUI.wait = -1; for (const kn of KN) bhInit(kn); bhUI(); }
 // ---- cards ----
 function bhPool(kn) { const ch = kn.kind || 'knight', P = [], slots = bhSlots(ch), have = s => bhAb(kn, s);
-  for (const s of slots) if (!have(s) && (s !== 'ult' || (BH.lvl >= 6 && slots.some(q => q !== 'ult' && have(q))))) P.push(['a_' + s, 'Unlock: ' + bhSlotName(ch, s), s === 'ult' ? 'Your ultimate. It charges with kills as usual' : 'A new ability', 3, 'ab']);
-  for (const [id, n, d, req] of BHSP[ch] || []) if (!bhUp(kn, id) && (!req || (BHSLOT[req] ? have(req) : bhUp(kn, req)))) P.push([id, n, d, 2, 'sp']);
+  for (const [id, n, d, req] of BHSP[ch] || []) if (!bhUp(kn, id) && BH.lvl >= ((BHSPMIN[ch] || {})[id] || 1) && (!req || (BHSLOT[req] ? have(req) : bhUp(kn, req)))) P.push([id, n, d, 2, 'sp']);
   for (const [id, [n, d, mx]] of Object.entries(BHST)) if (bhN(kn, id) < mx) P.push([id, n, d, 1, 'st']);
   return P; }
 function bhRoll(kn, n = 3) { const P = bhPool(kn), out = []; while (out.length < n && P.length) { let s = P.reduce((a, c) => a + c[3], 0), r = Math.random() * s, i = 0; while ((r -= P[i][3]) > 0 && i < P.length - 1) i++; out.push(P.splice(i, 1)[0]); } return out; }
@@ -271,7 +275,9 @@ function bhPost(kn) { if (!BH.on || !BHPRE) return; const o = BHPRE; BHPRE = nul
   if (cd < 1) for (const f of BHCD) if (typeof kn[f] === 'number' && o[f] !== undefined && kn[f] > o[f] + 0.05) kn[f] = o[f] + (kn[f] - o[f]) * cd;
   if (sp && !kn.rDn) { const dx = kn.x - o.x, dy = kn.y - o.y; if (Math.hypot(dx, dy) < 20) { kn.x += dx * sp; kn.y += dy * sp; } } }
 // ---- damage to players ----
-function bhHurt(kn, d) { if (!BH.on || !AUTH() || !kn || kn.rDn || kn.rIv > 0 || BH.over) return; d = Math.max(1, d - bhN(kn, 'arm')); kn.rHp -= d; kn.rIv = BHC.IV; kn.hits = (kn.hits || 0) + 1;
+// moves that can't be hit: the ninja's leap and kama (from the throw until the slide ends)
+const bhSafe = kn => kn.kind === 'ninja' && (kn.nl >= 0 || (kn.km >= 0 && kn.km < njKmTL(kn).tE));
+function bhHurt(kn, d) { if (!BH.on || !AUTH() || !kn || kn.rDn || kn.rIv > 0 || BH.over || bhSafe(kn)) return; d = Math.max(1, d - bhN(kn, 'arm')); kn.rHp -= d; kn.rIv = BHC.IV; kn.hits = (kn.hits || 0) + 1;
   if (kn.rHp <= 0) { kn.rHp = 0; kn.rDn = 1; kn.rRv = 0; for (let i = 0; i < 20; i++) { const a = rr(0, 6.28); sparks.push({ x: kn.x, y: kn.y - 6, vx: Math.cos(a) * rr(10, 40), vy: Math.sin(a) * rr(10, 30) - 10, t: 0, max: rr(0.4, 0.8) }); } } }
 // ---- enemy fire: every volley is one event that every screen turns into the same bullets ----
 // [x, y, angle, count, spread (>= 6.2 = full ring), speed, damage, colour index]
@@ -281,34 +287,34 @@ function bhVolley(e) { const [x, y, a, n, spr, spd, dmg, col] = e, ring = spr >=
   for (let i = 0; i < n; i++) { const g = n === 1 ? a : ring ? a + i * Math.PI * 2 / n : a + (i / (n - 1) - 0.5) * spr; BUL.push({ x, y, vx: Math.cos(g) * spd, vy: Math.sin(g) * spd * 0.8, t: 0, d: dmg, c: col }); } }
 // who shoots what: [first delay, gap, range, pattern]
 function bhShoot(w, T2, dt) { if (w.hp <= 0 || w.air || w.gr > 0 || w.ogFz > 0 || w.bT > 0 || w.dead) return; const U = UK[w.k];
-  const d = Math.hypot(T2.x - w.x, T2.y - w.y); if (d > 210) return; if (BUL.length > BHC.BMAX && !UK[w.k].heavy) { w.sh = rr(1, 2); return; } if (w.sh === undefined) w.sh = rr(1, 3); if ((w.sh -= dt) > 0) return;
+  const d = Math.hypot(T2.x - w.x, T2.y - w.y); if (d > 210) return; if (BUL.length > BHC.BMAX && !UK[w.k].heavy) { w.sh = rr(1, 2); return; } if (w.sh === undefined) { w.sh = U.heavy || Math.random() < 0.35 ? rr(2, 4) : 1e9; } if ((w.sh -= dt) > 0) return;
   const a = Math.atan2((T2.y - 5) - (w.y - 5 * U.sc), T2.x - w.x), y0 = w.y - 5 * U.sc;
   switch (w.k) {
-    case 'skel': bhFire(w.x, y0, a, 1, 0, 70, 8, 0); w.sh = rr(3.5, 5); break;
-    case 'scout': bhFire(w.x, y0, a, 2, 0.18, 85, 7, 0); w.sh = rr(3, 4); break;
-    case 'naga': bhFire(w.x, y0, a, 3, 0.55, 60, 9, 2); w.sh = rr(3.2, 4); break;
-    case 'necro': bhFire(w.x, y0, rr(0, 1), 8, 6.3, 42, 9, 1); w.sh = rr(4.5, 6); break;
-    case 'troll': bhFire(w.x, y0, a, 5, 0.9, 65, 11, 0); w.sh = 2.4; break;
-    case 'chief': bhFire(w.x, y0, rr(0, 1), 16, 6.3, 48, 12, 3); w.sh = 2.8; break;
-    case 'ent': bhFire(w.x, y0, rr(0, 1), 22, 6.3, 34, 10, 4); w.sh = 3.2; break;
+    case 'skel': bhFire(w.x, y0, a, 1, 0, 65, 8, 0); w.sh = rr(5, 7); break;
+    case 'scout': bhFire(w.x, y0, a, 2, 0.18, 75, 7, 0); w.sh = rr(5, 7); break;
+    case 'naga': bhFire(w.x, y0, a, 3, 0.55, 55, 9, 2); w.sh = rr(5, 7); break;
+    case 'necro': bhFire(w.x, y0, rr(0, 1), 8, 6.3, 40, 9, 1); w.sh = rr(6, 8); break;
+    case 'troll': bhFire(w.x, y0, a, 5, 0.9, 60, 11, 0); w.sh = 3.5; break;
+    case 'chief': bhFire(w.x, y0, rr(0, 1), 12, 6.3, 44, 12, 3); w.sh = 4; break;
+    case 'ent': bhFire(w.x, y0, rr(0, 1), 16, 6.3, 32, 10, 4); w.sh = 4.5; break;
     case 'golem': case 'tarrasque': case 'mammoth': { // spiral: a short burst every 0.12s, turning
       w.spA = (w.spA || 0) + 0.38; w.spN = (w.spN || 0) + 1; const big = w.k === 'tarrasque'; bhFire(w.x, y0, w.spA, big ? 5 : 3, 6.3, big ? 52 : 46, big ? 14 : 11, big ? 1 : 3);
-      if (w.spN % (big ? 24 : 14) === 0) { w.sh = big ? 1.6 : 2.6; if (big) bhFire(w.x, y0, a, 7, 1.1, 80, 14, 0); } else w.sh = 0.12; break; }
+      if (w.spN % (big ? 24 : 14) === 0) { w.sh = big ? 2.5 : 4; if (big) bhFire(w.x, y0, a, 7, 1.1, 80, 14, 0); } else w.sh = 0.12; break; }
     default: w.sh = 99; } }
 function bhBullets(dt) { const L = LIVE();
   for (let i = BUL.length - 1; i >= 0; i--) { const b = BUL[i]; b.t += dt; b.x += b.vx * dt; b.y += b.vy * dt; let gone = b.t > 6;
     if (!gone) for (const kn of L) { if (kn.rDn) continue; const dx = kn.x - b.x, dy = (kn.y - 5 * (kn.sz || 1)) - b.y; if (dx * dx + dy * dy < (BHC.BR + BHC.KR * (kn.sz || 1)) ** 2 && !((kn.z || 0) > 6)) { if (AUTH()) { if (kn.rIv > 0) continue; bhHurt(kn, b.d); } gone = true; break; } }
     if (gone) BUL.splice(i, 1); } if (BUL.length > 1500) BUL.splice(0, BUL.length - 1500); }
 // ---- spawning: from every side, harder as the clock runs ----
-const BHKIND = [[0, 'foot', 1], [0, 'zombie', 1], [25, 'skel', 1], [50, 'scout', 0.7], [60, 'gnoll', 1], [90, 'warg', 0.6], [110, 'naga', 0.7], [130, 'shield', 0.6], [150, 'necro', 0.5], [170, 'ogre', 0.4], [200, 'fknight', 0.6], [220, 'sapper', 0.4]];
-const BHELITE = [[75, 'troll'], [180, 'chief'], [300, 'golem'], [360, 'ent'], [420, 'ram'], [480, 'mammoth']];
+const BHKIND = [[0, 'foot', 1], [0, 'zombie', 1], [60, 'skel', 0.7], [100, 'scout', 0.6], [120, 'gnoll', 1], [180, 'warg', 0.5], [240, 'naga', 0.5], [270, 'shield', 0.6], [330, 'necro', 0.3], [360, 'ogre', 0.35], [420, 'fknight', 0.6], [480, 'sapper', 0.35]];
+const BHELITE = [[150, 'troll'], [330, 'chief'], [540, 'golem'], [660, 'ent'], [780, 'ram'], [900, 'mammoth']];
 function bhSpawnAt(kind, x, y, mul) { const w = spawnWalker(x, undefined, y, kind); w.hp = w.max = Math.round(UK[kind].hp * mul); return w; }
 function bhEdge(kn) { const sc = viewScale(), hw = cv.width / 2 / sc + 14, hh = cv.height / 2 / sc + 14, a = rr(0, Math.PI * 2), r = 1 / Math.max(Math.abs(Math.cos(a)) / hw, Math.abs(Math.sin(a)) / hh); return [kn.x + Math.cos(a) * r, kn.y - 6 + Math.sin(a) * r]; }
-function bhSpawn(dt) { if (!BH.go || BH.over || !AUTH()) return; const L = LIVE().filter(k => !k.rDn); if (!L.length) return; const t = BH.t, mul = 1 + t / 150;
-  if ((BH.elT -= dt) <= 0) { const el = BHELITE.filter(e => e[0] <= t), e = el.length ? el[Math.floor(Math.random() * el.length)] : null; BH.elT = Math.max(25, 60 - t / 20); if (e) { const p = bhEdge(L[Math.floor(Math.random() * L.length)]); bhSpawnAt(e[1], p[0], p[1], 1 + t / 200); } }
-  if (t >= 600 + BH.boss * 240) { BH.boss++; const p = bhEdge(L[0]); bhSpawnAt('tarrasque', p[0], p[1], 1 + BH.boss * 0.6); note('The Tarrasque is coming', 4); }
-  if ((BH.spT -= dt) > 0) return; BH.spT = 0.6; const cap = Math.min(700, 120 + t * 1.2 + 80 * (L.length - 1)); if (walkers.length >= cap) return;
-  let budget = (2 + t / 14) * 0.6 * (1 + 0.6 * (L.length - 1)); const K2 = BHKIND.filter(k => k[0] <= t), tw = K2.reduce((a, k) => a + k[2], 0);
+function bhSpawn(dt) { if (!BH.go || BH.over || !AUTH()) return; const L = LIVE().filter(k => !k.rDn); if (!L.length) return; const t = BH.t, mul = 1 + t / 300;
+  if ((BH.elT -= dt) <= 0) { const el = BHELITE.filter(e => e[0] <= t), e = el.length ? el[Math.floor(Math.random() * el.length)] : null; BH.elT = Math.max(45, 100 - t / 20); if (e) { const p = bhEdge(L[Math.floor(Math.random() * L.length)]); bhSpawnAt(e[1], p[0], p[1], 1 + t / 400); } }
+  if (t >= 900 + BH.boss * 300) { BH.boss++; const p = bhEdge(L[0]); bhSpawnAt('tarrasque', p[0], p[1], 1 + BH.boss * 0.6); note('The Tarrasque is coming', 4); }
+  if ((BH.spT -= dt) > 0) return; BH.spT = 0.6; const cap = Math.min(500, 40 + t * 0.45 + 40 * (L.length - 1)); if (walkers.length >= cap) return;
+  let budget = (0.8 + t / 45) * 0.6 * (1 + 0.6 * (L.length - 1)); const K2 = BHKIND.filter(k => k[0] <= t), tw = K2.reduce((a, k) => a + k[2], 0);
   while (budget > 0) { const kn = L[Math.floor(Math.random() * L.length)], p = bhEdge(kn), m = Math.min(Math.ceil(budget), 2 + Math.floor(Math.random() * 5)); budget -= m;
     for (let i = 0; i < m; i++) { let r = Math.random() * tw, k = K2[0]; for (const q of K2) { if ((r -= q[2]) <= 0) { k = q; break; } } bhSpawnAt(k[1], p[0] + rr(-8, 8), p[1] + rr(-6, 6), mul); } } }
 // ---- the run's clock, experience, level-ups, revives, game over (host); the pause while anyone picks a card ----
@@ -327,7 +333,7 @@ function bhStep(dt) { if (!BH.on) return; const L = LIVE();
   for (const kn of L) { const dk = (kn.kills || 0) - (kn.kSeen || 0); kn.kSeen = kn.kills || 0; if (dk > 0 && dk < 5000) BH.xp += dk * (1 + 0.15 * bhN(kn, 'xp'));
     if (!kn.rDn && kn.rHp < kn.rHm) kn.rHp = Math.min(kn.rHm, kn.rHp + 0.6 * bhN(kn, 'rgn') * dt);
     if (kn.rDn) { const near = L.some(o => o !== kn && !o.rDn && Math.hypot(o.x - kn.x, o.y - kn.y) < BHC.REVR); kn.rRv = near ? kn.rRv + dt : Math.max(0, kn.rRv - dt * 0.5); if (kn.rRv >= BHC.REV) Object.assign(kn, { rDn: 0, rRv: 0, rHp: Math.round(kn.rHm * 0.5), rIv: 1.5 }); } }
-  while (BH.xp >= BH.need) { BH.xp -= BH.need; BH.lvl++; BH.need = bhNeed(BH.lvl); for (const kn of L) kn.rPk = (kn.rPk || 0) + 1; snd('ult', L[0].x, L[0].y); }
+  while (BH.xp >= BH.need) { BH.xp -= BH.need; BH.lvl++; BH.need = bhNeed(BH.lvl); for (const kn of L) { kn.rPk = (kn.rPk || 0) + 1; const nu = bhUnlocks(kn.kind || 'knight', BH.lvl); if (nu.length) kn.ups = (kn.ups || []).concat(nu.map(q => 'a_' + q)); } snd('ult', L[0].x, L[0].y); }
   if (BH.go && L.length && L.every(k => k.rDn)) { BH.over = 1; BH.best = Math.max(BH.best, BH.t); } }
 // ---- sync ----
 const bhPack = () => BH.on ? [Math.round(BH.t * 10) / 10, BH.lvl, Math.round(BH.xp * 10) / 10, BH.need, BH.over, BH.pause, BH.go] : null;
@@ -349,7 +355,8 @@ function bhDraw(c, t) { if (!BH.on) return; c.save();
 const BHUI = { wait: -1, waitT: 0, open: 0, cards: null };
 function bhUI() { const on = !!BH.on, me = KN[ME]; document.body.classList.toggle('bh', on); const hud = document.getElementById('bhHud'); if (!hud) return;
   const ch = (me && me.kind) || CHAR || 'knight', S = bhSlots(ch); for (const s of Object.keys(BHSLOT)) document.body.classList.toggle('bhL-' + s, on && S.includes(s) && !(me && bhAb(me, s)));
-  if (!on || !me) { hud.style.display = 'none'; bhPick(null); bhOver(false); return; } hud.style.display = '';
+  if (!on || !me) { hud.style.display = 'none'; bhPick(null); bhOver(false); BHUI.ab = null; return; } hud.style.display = '';
+  { const ab = (me.ups || []).filter(u => u.startsWith('a_')).join(); if (BHUI.ab !== null && BHUI.ab !== undefined && ab !== BHUI.ab) { const nw = ab.split(',').filter(u => u && !BHUI.ab.split(',').includes(u)); if (nw.length) note('New ability: ' + bhSlotName(ch, nw[nw.length - 1].slice(2)), 4); } BHUI.ab = ab; }
   const m = Math.floor(BH.t / 60), sec = Math.floor(BH.t % 60); document.getElementById('bhClock').textContent = BH.go ? m + ':' + String(sec).padStart(2, '0') : 'Pull your weapon to begin';
   document.getElementById('bhLv').textContent = 'Lv ' + BH.lvl; document.getElementById('bhXp').style.width = (100 * cl(BH.xp / BH.need, 0, 1)) + '%';
   document.getElementById('bhHp').style.width = (100 * cl((me.rHp || 0) / (me.rHm || 1), 0, 1)) + '%'; document.getElementById('bhHpT').textContent = Math.ceil(me.rHp || 0) + ' / ' + (me.rHm || 0);
@@ -8920,7 +8927,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '8d8659';
+const KBUILD = 'c70dd0';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
