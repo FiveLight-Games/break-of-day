@@ -251,7 +251,7 @@ const BHLV = {}, BHSPMIN = { ninja: { n_kunai: 4, n_hop: 6, n_clone2: 12, n_clon
 const BHUNL = [3, 6, 10, 15], BHORD = ['dash', 'leap', 'spin', 'breath', 'ult'];
 const bhUnlocks = (ch, lvl) => { const S = bhSlots(ch), L = BHLV[ch]; if (L) return S.filter(s => L[s] === lvl); const O = BHORD.filter(s => S.includes(s)), j = BHUNL.indexOf(lvl); return j >= 0 && O[j] ? [O[j]] : []; };
 function bhInit(kn) { Object.assign(kn, { rHp: BHC.HP, rHm: BHC.HP, rDn: 0, rRv: 0, rIv: 0, rPk: 0, ups: [], upSeen: (kn.in && kn.in.upN) || 0, kSeen: kn.kills || 0, pkT: 0 }); if (BH.on) kn.ups = bhUnlocks(kn.kind || 'knight', 1).map(q => 'a_' + q); }
-function bhStart() { Object.assign(BH, { on: BHMODE === 'run' ? 1 : 0, go: 0, t: 0, lvl: 1, xp: 0, need: bhNeed(1), over: 0, pause: 0, spT: 0, elT: 150, boss: 0 }); BUL.length = 0; BEV = []; for (const k in BHG) delete BHG[k]; BHUI.wait = -1; for (const kn of KN) bhInit(kn); bhUI(); }
+function bhStart() { Object.assign(BH, { on: BHMODE === 'run' ? 1 : 0, go: 0, t: 0, lvl: 1, xp: 0, need: bhNeed(1), over: 0, pause: 0, spT: 0, elT: 150, boss: 0 }); BUL.length = 0; BEV = []; GEMS.clear(); GEV = []; GEMN = 0; for (const k in BHG) delete BHG[k]; BHUI.wait = -1; for (const kn of KN) bhInit(kn); bhUI(); }
 // ---- cards ----
 function bhPool(kn) { const ch = kn.kind || 'knight', P = [], slots = bhSlots(ch), have = s => bhAb(kn, s);
   for (const [id, n, d, req] of BHSP[ch] || []) if (!bhUp(kn, id) && BH.lvl >= ((BHSPMIN[ch] || {})[id] || 1) && (!req || (BHSLOT[req] ? have(req) : bhUp(kn, req)))) P.push([id, n, d, 2, 'sp']);
@@ -325,20 +325,55 @@ function bhStep0(dt, t) { if (!BH.on) return false;
     BH.pause = LIVE().some(k => k.rPk > 0) ? 1 : 0; }
   bhUI(); if (BH.pause || BH.over) { netTick(dt, t); return true; } return false; }
 function bhStep(dt) { if (!BH.on) return; const L = LIVE();
+  gemStep(dt);
   for (const kn of KN) { if (kn.rIv > 0) kn.rIv -= dt; }
   if (!BH.go && L.some(k => k.st && k.st !== 'kneel')) BH.go = 1;
   bhBullets(dt);
   if (!AUTH()) return;
   if (BH.go && !BH.over) BH.t += dt;
-  for (const kn of L) { const dk = (kn.kills || 0) - (kn.kSeen || 0); kn.kSeen = kn.kills || 0; if (dk > 0 && dk < 5000) BH.xp += dk * (1 + 0.15 * bhN(kn, 'xp'));
+  for (const kn of L) { const dk = (kn.kills || 0) - (kn.kSeen || 0); kn.kSeen = kn.kills || 0; 
     if (!kn.rDn && kn.rHp < kn.rHm) kn.rHp = Math.min(kn.rHm, kn.rHp + 0.6 * bhN(kn, 'rgn') * dt);
     if (kn.rDn) { const near = L.some(o => o !== kn && !o.rDn && Math.hypot(o.x - kn.x, o.y - kn.y) < BHC.REVR); kn.rRv = near ? kn.rRv + dt : Math.max(0, kn.rRv - dt * 0.5); if (kn.rRv >= BHC.REV) Object.assign(kn, { rDn: 0, rRv: 0, rHp: Math.round(kn.rHm * 0.5), rIv: 1.5 }); } }
   while (BH.xp >= BH.need) { BH.xp -= BH.need; BH.lvl++; BH.need = bhNeed(BH.lvl); for (const kn of L) { kn.rPk = (kn.rPk || 0) + 1; const nu = bhUnlocks(kn.kind || 'knight', BH.lvl); if (nu.length) kn.ups = (kn.ups || []).concat(nu.map(q => 'a_' + q)); } snd('ult', L[0].x, L[0].y); }
   if (BH.go && L.length && L.every(k => k.rDn)) { BH.over = 1; BH.best = Math.max(BH.best, BH.t); } }
+
+// ---- experience gems (Elijah 2026-10-22: crystal gems): every kill drops a gem where the enemy died (host), worth 1 / 4 / 15 by the enemy's size
+// (blue / green / red); a player who comes within GEM.PICK pulls it in (it flies to him, speeding up) and the team gets its xp when it arrives;
+// past GEM.CAP gems a new one is folded into the nearest gem instead (that one grows a tier). Host owns them: adds/pickups go out as events
+// in the snapshot (`gm`), plus the whole resting list every 3s for anyone who joined late.
+const GEM = { PICK: 26, V0: 40, ACC: 420, CAP: 350, FOLD: 60 }, GEMS = new Map(); let GEMN = 0, GEV = [], GEMT = 0;
+const gr1 = n => Math.round(n * 10) / 10, gemTier = v => v >= 15 ? 2 : v >= 4 ? 1 : 0;
+function gemValue(w) { const U = UK[w.k] || {}; return U.heavy ? 15 : (U.hp || 0) > 350 ? 4 : 1; }
+function gemAdd(x, y, v) { if (GEMS.size >= GEM.CAP) { let b = null, bd = 1e9; for (const g of GEMS.values()) { if (g.to >= 0) continue; const d = Math.hypot(g.x - x, g.y - y); if (d < bd) { bd = d; b = g; } } if (b && bd < GEM.FOLD * 4) { b.v += v; GEV.push([0, b.id, gr1(b.x), gr1(b.y), b.v]); return; } }
+  const g = { id: ++GEMN, x, y, v, to: -1, sp: 0, t: 0 }; GEMS.set(g.id, g); GEV.push([0, g.id, gr1(x), gr1(y), v]); }
+function gemStep(dt) { if (!BH.on) { if (GEMS.size) GEMS.clear(); return; } const L = LIVE().filter(k => !k.rDn), host = AUTH();
+  if (host) for (const w of walkers) if (w.hp <= 0 && !w.gm) { w.gm = 1; gemAdd(w.x, w.y, gemValue(w)); }
+  for (const g of GEMS.values()) { g.t += dt;
+    if (g.to < 0) { if (!host) continue; let b = null, bd = GEM.PICK; for (const k of L) { const d = Math.hypot(k.x - g.x, (k.y - g.y) * 1.4); if (d < bd) { bd = d; b = k; } } if (b) { g.to = b.i; g.sp = GEM.V0; GEV.push([1, g.id, b.i]); } continue; }
+    const k = KN[g.to]; if (!k) { GEMS.delete(g.id); continue; } g.sp += GEM.ACC * dt; const tx = k.x, ty = k.y - 5, dx = tx - g.x, dy = ty - g.y, d = Math.hypot(dx, dy), m = g.sp * dt;
+    if (d <= m + 1) { GEMS.delete(g.id); if (host) BH.xp += g.v * (1 + 0.15 * bhN(k, 'xp')); if (k.i === ME) snd('gem', g.x, g.y, gemTier(g.v)); continue; }
+    g.x += dx / d * m; g.y += dy / d * m; } }
+function gemPack() { if (!BH.on) return undefined; GEMT += 1; const o = GEV.length ? GEV : undefined; GEV = [];
+  if (GEMT % 45 === 0) { const all = []; for (const g of GEMS.values()) if (g.to < 0) all.push(g.id, gr1(g.x), gr1(g.y), g.v); return { e: o, a: all, n: GEMN }; } return o ? { e: o } : undefined; }
+function gemApply(P) { if (!P) return; if (P.a) { for (const [id, g] of GEMS) if (g.to < 0) GEMS.delete(id); for (let i = 0; i < P.a.length; i += 4) GEMS.set(P.a[i], { id: P.a[i], x: P.a[i + 1], y: P.a[i + 2], v: P.a[i + 3], to: -1, sp: 0, t: 1 }); }
+  for (const e of P.e || []) { if (e[0] === 0) { const g = GEMS.get(e[1]); if (g) g.v = e[4]; else GEMS.set(e[1], { id: e[1], x: e[2], y: e[3], v: e[4], to: -1, sp: 0, t: 0 }); } else { const g = GEMS.get(e[1]); if (g && g.to < 0) { g.to = e[2]; g.sp = GEM.V0; } } } }
+// drawn on the ground pass, under everyone: a faceted crystal (dark lower half, mid upper, light top-left facet) that turns, bobs and glows
+const GEMC = [['#4fb3ff', '#bfe6ff', '#1d5fa8'], ['#4fe08a', '#c8ffd9', '#1b7a45'], ['#ff5a6e', '#ffd0d6', '#a3203a']], GLOW = [];
+function gemGlow(i) { if (GLOW[i]) return GLOW[i]; const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, GEMC[i][0] + 'aa'); g.addColorStop(0.45, GEMC[i][0] + '40'); g.addColorStop(1, GEMC[i][0] + '00'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return GLOW[i] = c; }
+function gemDraw(c, t) { if (!BH.on || !GEMS.size) return; const S = 0.55, vw = cv.width / 2 / viewScale() + 30; c.save();
+  for (const g of GEMS.values()) { if (Math.abs(g.x - camX) > vw) continue; const tr = gemTier(g.v), [m, l, d] = GEMC[tr], z = 1 + tr * 0.35 + (g.v > 15 ? Math.min(0.6, (g.v - 15) / 60) : 0), r = 2.6 * S * z, ph = g.id * 1.7,
+      pop = Math.min(1, g.t / 0.18), fly = g.to >= 0, b = fly ? 0 : Math.sin(t * 3 + ph) * 0.8 * S, sc = pop * (fly ? 0.85 : 1);
+    if (!fly) { c.globalAlpha = 0.25 * pop; c.fillStyle = '#000'; c.beginPath(); c.ellipse(g.x, g.y + 1.2, 3 * S * z, 1.1 * S * z, 0, 0, 7); c.fill(); }
+    c.globalAlpha = pop; const gy = g.y + b - 2 * S - (fly ? 3 : 0), G = gemGlow(tr), gr = r * 2.8 * sc; c.drawImage(G, g.x - gr, gy - gr, gr * 2, gr * 2);
+    const w = Math.max(0.35, Math.abs(Math.cos(t * 2 + ph))) * r * sc, h = r * sc;
+    c.fillStyle = d; c.beginPath(); c.moveTo(g.x, gy - h * 1.3); c.lineTo(g.x + w, gy - h * 0.2); c.lineTo(g.x, gy + h * 1.3); c.lineTo(g.x - w, gy - h * 0.2); c.closePath(); c.fill();
+    c.fillStyle = m; c.beginPath(); c.moveTo(g.x, gy - h * 1.3); c.lineTo(g.x + w, gy - h * 0.2); c.lineTo(g.x, gy + h * 0.4); c.lineTo(g.x - w, gy - h * 0.2); c.closePath(); c.fill();
+    c.fillStyle = l; c.beginPath(); c.moveTo(g.x, gy - h * 1.3); c.lineTo(g.x - w * 0.45, gy - h * 0.3); c.lineTo(g.x, gy + h * 0.1); c.closePath(); c.fill(); }
+  c.restore(); }
 // ---- sync ----
 const bhPack = () => BH.on ? [Math.round(BH.t * 10) / 10, BH.lvl, Math.round(BH.xp * 10) / 10, BH.need, BH.over, BH.pause, BH.go] : null;
 const bhTakeEv = () => { const e = BEV; BEV = []; return e.length ? e : undefined; };
-function bhApplySnap(S) { if (S.rn) { BH.on = 1; [BH.t, BH.lvl, BH.xp, BH.need, BH.over, BH.pause, BH.go] = S.rn; } else BH.on = 0; if (S.bl) for (const e of S.bl) bhVolley(e); }
+function bhApplySnap(S) { if (S.rn) { BH.on = 1; [BH.t, BH.lvl, BH.xp, BH.need, BH.over, BH.pause, BH.go] = S.rn; } else BH.on = 0; if (S.bl) for (const e of S.bl) bhVolley(e); gemApply(S.gm); }
 function bhOwn(kn, v) { for (const f of ['rHp', 'rHm', 'rDn', 'rRv', 'rPk', 'ups']) if (v[f] !== undefined) kn[f] = v[f]; }
 // ---- drawing: bullets glow over everything on the ground; health bars over each player; a revive ring round the downed ----
 function bhDraw(c, t) { if (!BH.on) return; c.save();
@@ -375,8 +410,8 @@ function bhOver(show) { const el = document.getElementById('bhOver'); if (!el) r
   el.innerHTML = `<b>Overrun</b><p>Survived ${m}:${String(sec).padStart(2, '0')} · Level ${BH.lvl} · ${kills} kills</p>${AUTH() ? '<button class="big pri" id="bhAgain">Play again</button>' : '<p>Waiting for the host…</p>'}<button class="big" id="bhMenu">Back to start</button>`;
   const a = document.getElementById('bhAgain'); if (a) a.onclick = () => { setup(); bhStart(); }; document.getElementById('bhMenu').onclick = () => document.getElementById('restartBtn').click(); }
 addEventListener('keydown', e => { if (!BHUI.open) return; const n = '123'.indexOf(e.key); if (n >= 0) { e.preventDefault(); e.stopImmediatePropagation(); bhChoose(n); } }, true);
-window.__bh = { BH, BUL, roll: () => bhRoll(KN[ME]) };
-window.__bhFire = bhFire;
+window.__bh = { BH, BUL, GEMS, me: () => [KN[ME].x, KN[ME].y], roll: () => bhRoll(KN[ME]) };
+window.__bhFire = bhFire; window.__gem = (x, y, v) => gemAdd(x, y, v);
 // the field's top and bottom edges only hold in the sandbox; a run goes on for ever in every direction
 function YB(n) { return BH.on ? -1e7 : n; }
 function YT(n) { return BH.on ? 1e7 : H - n; }
@@ -1664,7 +1699,7 @@ function tone(type, f0, f1, t, a, dec, vol) { if (![f0, f1, t, a, dec, vol].ever
 function noise(t, dur, vol, ftype, f0, f1, q, a) { if (![t, dur, vol, f0].every(isFinite) || (f1 !== undefined && !isFinite(f1))) return; const c = AU.ctx, p = PF(), s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); dur /= p; a = (a || 0.005) / p; s.buffer = AU.noise; s.loop = true; f.type = ftype; f.frequency.setValueAtTime(f0 * p, t); if (f1 && f1 !== f0) f.frequency.exponentialRampToValueAtTime(f1 * p, t + a + dur); f.Q.value = q || 1; aenv(g, t, a, vol, dur); s.connect(f); f.connect(g); g.connect(AU.out); s.start(t, Math.random()); s.stop(t + a + dur + 0.05); }
 // metal: a few inharmonic partials ringing out
 function ring(t, f, dur, vol) { for (const [m, v] of [[1, 1], [2.76, 0.5], [5.4, 0.25], [8.93, 0.12]]) tone('sine', f * m, f * m * 0.995, t, 0.002, dur / Math.sqrt(m), vol * v); }
-const SGAP = { m60: 0.045, mlaunch: 0.2, rocket: 0.2, stomp: 0.09, heli: 0.085, mg: 0.045, engine: 0.07, cane: 0.05, shot: 0.08, saw: 0.06, chain: 0.13, censer: 0.08, roar: 0.1, fire: 0.11, gswing: 0.05, swing: 0.04, spin: 0.05, gore: 0.03, bones: 0.05, hit: 0.035, clank: 0.05, boom: 0.06, ouch: 0.08 };
+const SGAP = { gem: 0.035, m60: 0.045, mlaunch: 0.2, rocket: 0.2, stomp: 0.09, heli: 0.085, mg: 0.045, engine: 0.07, cane: 0.05, shot: 0.08, saw: 0.06, chain: 0.13, censer: 0.08, roar: 0.1, fire: 0.11, gswing: 0.05, swing: 0.04, spin: 0.05, gore: 0.03, bones: 0.05, hit: 0.035, clank: 0.05, boom: 0.06, ouch: 0.08 };
 // v: 0..1 loudness from where it happened (louder near my knight, silent well off screen)
 function snd(k, wx, wy, big) {
   if (!AU.ctx || !AU.on || AU.ctx.state !== 'running') return;
@@ -1672,6 +1707,7 @@ function snd(k, wx, wy, big) {
   const c = AU.ctx, t = c.currentTime, gap = SGAP[k] || 0; if (!isFinite(v)) return; if (gap && t - (AU.last[k] || 0) < gap) return; AU.last[k] = t;
   const j = 0.9 + Math.random() * 0.2;
   switch (k) {
+    case 'gem': { const f = [1320, 1760, 2350][big || 0] * j; tone('sine', f, f * 1.5, t, 0.002, 0.09, 0.06 * v); tone('triangle', f * 2, f * 2, t + 0.02, 0.002, 0.06, 0.02 * v); break; }
     case 'tick': for (let i = 0; i < 6; i++) { const tt = t + i * 0.28, hi = i % 2 === 0; noise(tt, 0.018, 0.5 * v, 'bandpass', hi ? 4200 : 3000, hi ? 4200 : 3000, 6, 0.001); tone('sine', hi ? 2350 : 1880, hi ? 2350 : 1880, tt, 0.001, 0.05, 0.05 * v); noise(tt, 0.05, 0.08 * v, 'lowpass', 900, 600, 1, 0.002); } break;
     case 'swing': noise(t, 0.16, 0.34 * v, 'bandpass', 500 * j, 2600 * j, 1.6, 0.05); noise(t + 0.04, 0.1, 0.12 * v, 'highpass', 4000, 6000, 0.7, 0.03); break;
     case 'glow': tone('sine', 330, 990, t, 0.25, 0.35, 0.07 * v); tone('triangle', 495, 1485, t, 0.25, 0.3, 0.04 * v); noise(t, 0.45, 0.05 * v, 'highpass', 5000, 8000, 0.7, 0.2); break;
@@ -8241,7 +8277,7 @@ function draw() {
   const VL = camX - cv.width / 2 / sc - 30, VR = camX + cv.width / 2 / sc + 30, inV = q => q.x > VL && q.x < VR;
   for (const sp of splats) { if (sp.x < VL || sp.x > VR) continue; x.globalAlpha = Math.max(0, 1 - sp.t / 5) * 0.85; x.fillStyle = sp.ash ? '#26201c' : '#6a1610'; x.beginPath(); x.ellipse(sp.x, sp.y, sp.r, sp.r * 0.5, 0, 0, 7); x.fill(); } x.globalAlpha = 1;
   for (const kn of LIVE()) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
-  drawFxGround(x); drawGouges(x, t); giGroundDraw(x, t); ttGround(x); crGround(x, t); njGround(x, t); ogGround(x, t); ogAimDraw(x, t); drawVolcFloor(x, t); drawBikePreview(x, t); drawLeapPreview(x, t); drawHeliDraw(x, t); drawDashPreview(x, t); drawSweepPreview(x, t); drawCoalPreview(x);
+  drawFxGround(x); drawGouges(x, t); gemDraw(x, t); giGroundDraw(x, t); ttGround(x); crGround(x, t); njGround(x, t); ogGround(x, t); ogAimDraw(x, t); drawVolcFloor(x, t); drawBikePreview(x, t); drawLeapPreview(x, t); drawHeliDraw(x, t); drawDashPreview(x, t); drawSweepPreview(x, t); drawCoalPreview(x);
   for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = pAlpha(p); drawPartFast(x, p); } x.globalAlpha = 1;
   const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(LIVE().filter(kn => kn.CLS && kn.kind === 'ninja').flatMap(kn => kn.CLS.map(P => [P.y + 0.01, 14, P]))).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(TRAPS.filter(q => q.t >= TT.TRAP.FLY).flatMap(q => { const G = trapGeo(q); return [[q.y, 6, q], [G.ey + 0.01, 7, q]]; })).concat(dinoList()).concat(crList()).concat(dgList()).concat(ogSpikes()).concat(KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.cr >= 0).map(kn => [kn.cyp, 10, kn])).concat(WRECKS.flatMap(q => [[q.y, 11, { q, ship: 0 }], [q.sy + 0.01, 11, { q, ship: 1 }]])).concat(HDEAD.filter(inV).map(q => [q.y - 0.3, 9, q])).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
   HPQ = [];
@@ -8809,7 +8845,7 @@ function netTick(dt) {
   if (NET.mode === 'host') {
     // 15 snapshots/s, 10/s once there are big hordes about (keeps each guest's download near 200KB/s on MAX)
     // at most ~15 a second, and spaced out further when they're big so a guest's connection never falls behind (~80KB/s); walkers only go to guests that are near them
-    if (now - (NET.lastSend || 0) > Math.max(66, (NET.lastLen || 0) / 80)) { NET.lastSend = now; const wl = [], an = []; walkers.filter(w => LIVE().some(k2 => k2.i !== ME && Math.abs(w.x - k2.x) < 300)).slice(0, 900).forEach(w => packW(w, wl, an, now)); const full = !(now - (NET.lastFull || 0) < 1000); if (full) NET.lastFull = now; const pl = { k: KN.map((kn, i) => packK(kn, i, full)), w: wl, an, rn: bhPack(), bl: bhTakeEv(), e: EV.splice(0), sw: SAWS.map(q => [q.i, q.n, r1(q.x), r1(q.y), Math.round(q.a * 100) / 100, q.out ? 1 : 0]), sp: speed, hz: [HZ.rate, HZ.kinds] }; NET.lastLen = JSON.stringify(pl).length; if (window.__snapStat) { window.__snapB = Math.max(window.__snapB || 0, NET.lastLen); window.__snapP = { k: JSON.stringify(pl.k).length, w: JSON.stringify(pl.w).length, an: JSON.stringify(pl.an).length, e: JSON.stringify(pl.e).length, n: pl.w.length / WN }; } NET.ch.send({ type: 'broadcast', event: 's', payload: pl }); }
+    if (now - (NET.lastSend || 0) > Math.max(66, (NET.lastLen || 0) / 80)) { NET.lastSend = now; const wl = [], an = []; walkers.filter(w => LIVE().some(k2 => k2.i !== ME && Math.abs(w.x - k2.x) < 300)).slice(0, 900).forEach(w => packW(w, wl, an, now)); const full = !(now - (NET.lastFull || 0) < 1000); if (full) NET.lastFull = now; const pl = { k: KN.map((kn, i) => packK(kn, i, full)), w: wl, an, rn: bhPack(), bl: bhTakeEv(), gm: gemPack(), e: EV.splice(0), sw: SAWS.map(q => [q.i, q.n, r1(q.x), r1(q.y), Math.round(q.a * 100) / 100, q.out ? 1 : 0]), sp: speed, hz: [HZ.rate, HZ.kinds] }; NET.lastLen = JSON.stringify(pl).length; if (window.__snapStat) { window.__snapB = Math.max(window.__snapB || 0, NET.lastLen); window.__snapP = { k: JSON.stringify(pl.k).length, w: JSON.stringify(pl.w).length, an: JSON.stringify(pl.an).length, e: JSON.stringify(pl.e).length, n: pl.w.length / WN }; } NET.ch.send({ type: 'broadcast', event: 's', payload: pl }); }
   } else {
     if ((NET.inDirty && now - (NET.lastIn || 0) > 50) || now - (NET.lastIn || 0) > 250) { NET.lastIn = now; NET.inDirty = 0; NET.ch.send({ type: 'broadcast', event: 'in', payload: Object.assign(packIn(KN[ME].in), { s: ME, ts: Math.round(now) }) }); }
     // where my knight was, frame by frame, so the host's view of me can be checked against where I was when it got my input
@@ -8927,7 +8963,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '61ff12';
+const KBUILD = '217a29';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }

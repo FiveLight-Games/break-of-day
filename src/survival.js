@@ -35,7 +35,7 @@ const BHLV = {}, BHSPMIN = { ninja: { n_kunai: 4, n_hop: 6, n_clone2: 12, n_clon
 const BHUNL = [3, 6, 10, 15], BHORD = ['dash', 'leap', 'spin', 'breath', 'ult'];
 const bhUnlocks = (ch, lvl) => { const S = bhSlots(ch), L = BHLV[ch]; if (L) return S.filter(s => L[s] === lvl); const O = BHORD.filter(s => S.includes(s)), j = BHUNL.indexOf(lvl); return j >= 0 && O[j] ? [O[j]] : []; };
 function bhInit(kn) { Object.assign(kn, { rHp: BHC.HP, rHm: BHC.HP, rDn: 0, rRv: 0, rIv: 0, rPk: 0, ups: [], upSeen: (kn.in && kn.in.upN) || 0, kSeen: kn.kills || 0, pkT: 0 }); if (BH.on) kn.ups = bhUnlocks(kn.kind || 'knight', 1).map(q => 'a_' + q); }
-function bhStart() { Object.assign(BH, { on: BHMODE === 'run' ? 1 : 0, go: 0, t: 0, lvl: 1, xp: 0, need: bhNeed(1), over: 0, pause: 0, spT: 0, elT: 150, boss: 0 }); BUL.length = 0; BEV = []; for (const k in BHG) delete BHG[k]; BHUI.wait = -1; for (const kn of KN) bhInit(kn); bhUI(); }
+function bhStart() { Object.assign(BH, { on: BHMODE === 'run' ? 1 : 0, go: 0, t: 0, lvl: 1, xp: 0, need: bhNeed(1), over: 0, pause: 0, spT: 0, elT: 150, boss: 0 }); BUL.length = 0; BEV = []; GEMS.clear(); GEV = []; GEMN = 0; for (const k in BHG) delete BHG[k]; BHUI.wait = -1; for (const kn of KN) bhInit(kn); bhUI(); }
 // ---- cards ----
 function bhPool(kn) { const ch = kn.kind || 'knight', P = [], slots = bhSlots(ch), have = s => bhAb(kn, s);
   for (const [id, n, d, req] of BHSP[ch] || []) if (!bhUp(kn, id) && BH.lvl >= ((BHSPMIN[ch] || {})[id] || 1) && (!req || (BHSLOT[req] ? have(req) : bhUp(kn, req)))) P.push([id, n, d, 2, 'sp']);
@@ -109,20 +109,55 @@ function bhStep0(dt, t) { if (!BH.on) return false;
     BH.pause = LIVE().some(k => k.rPk > 0) ? 1 : 0; }
   bhUI(); if (BH.pause || BH.over) { netTick(dt, t); return true; } return false; }
 function bhStep(dt) { if (!BH.on) return; const L = LIVE();
+  gemStep(dt);
   for (const kn of KN) { if (kn.rIv > 0) kn.rIv -= dt; }
   if (!BH.go && L.some(k => k.st && k.st !== 'kneel')) BH.go = 1;
   bhBullets(dt);
   if (!AUTH()) return;
   if (BH.go && !BH.over) BH.t += dt;
-  for (const kn of L) { const dk = (kn.kills || 0) - (kn.kSeen || 0); kn.kSeen = kn.kills || 0; if (dk > 0 && dk < 5000) BH.xp += dk * (1 + 0.15 * bhN(kn, 'xp'));
+  for (const kn of L) { const dk = (kn.kills || 0) - (kn.kSeen || 0); kn.kSeen = kn.kills || 0; 
     if (!kn.rDn && kn.rHp < kn.rHm) kn.rHp = Math.min(kn.rHm, kn.rHp + 0.6 * bhN(kn, 'rgn') * dt);
     if (kn.rDn) { const near = L.some(o => o !== kn && !o.rDn && Math.hypot(o.x - kn.x, o.y - kn.y) < BHC.REVR); kn.rRv = near ? kn.rRv + dt : Math.max(0, kn.rRv - dt * 0.5); if (kn.rRv >= BHC.REV) Object.assign(kn, { rDn: 0, rRv: 0, rHp: Math.round(kn.rHm * 0.5), rIv: 1.5 }); } }
   while (BH.xp >= BH.need) { BH.xp -= BH.need; BH.lvl++; BH.need = bhNeed(BH.lvl); for (const kn of L) { kn.rPk = (kn.rPk || 0) + 1; const nu = bhUnlocks(kn.kind || 'knight', BH.lvl); if (nu.length) kn.ups = (kn.ups || []).concat(nu.map(q => 'a_' + q)); } snd('ult', L[0].x, L[0].y); }
   if (BH.go && L.length && L.every(k => k.rDn)) { BH.over = 1; BH.best = Math.max(BH.best, BH.t); } }
+
+// ---- experience gems (Elijah 2026-10-22: crystal gems): every kill drops a gem where the enemy died (host), worth 1 / 4 / 15 by the enemy's size
+// (blue / green / red); a player who comes within GEM.PICK pulls it in (it flies to him, speeding up) and the team gets its xp when it arrives;
+// past GEM.CAP gems a new one is folded into the nearest gem instead (that one grows a tier). Host owns them: adds/pickups go out as events
+// in the snapshot (`gm`), plus the whole resting list every 3s for anyone who joined late.
+const GEM = { PICK: 26, V0: 40, ACC: 420, CAP: 350, FOLD: 60 }, GEMS = new Map(); let GEMN = 0, GEV = [], GEMT = 0;
+const gr1 = n => Math.round(n * 10) / 10, gemTier = v => v >= 15 ? 2 : v >= 4 ? 1 : 0;
+function gemValue(w) { const U = UK[w.k] || {}; return U.heavy ? 15 : (U.hp || 0) > 350 ? 4 : 1; }
+function gemAdd(x, y, v) { if (GEMS.size >= GEM.CAP) { let b = null, bd = 1e9; for (const g of GEMS.values()) { if (g.to >= 0) continue; const d = Math.hypot(g.x - x, g.y - y); if (d < bd) { bd = d; b = g; } } if (b && bd < GEM.FOLD * 4) { b.v += v; GEV.push([0, b.id, gr1(b.x), gr1(b.y), b.v]); return; } }
+  const g = { id: ++GEMN, x, y, v, to: -1, sp: 0, t: 0 }; GEMS.set(g.id, g); GEV.push([0, g.id, gr1(x), gr1(y), v]); }
+function gemStep(dt) { if (!BH.on) { if (GEMS.size) GEMS.clear(); return; } const L = LIVE().filter(k => !k.rDn), host = AUTH();
+  if (host) for (const w of walkers) if (w.hp <= 0 && !w.gm) { w.gm = 1; gemAdd(w.x, w.y, gemValue(w)); }
+  for (const g of GEMS.values()) { g.t += dt;
+    if (g.to < 0) { if (!host) continue; let b = null, bd = GEM.PICK; for (const k of L) { const d = Math.hypot(k.x - g.x, (k.y - g.y) * 1.4); if (d < bd) { bd = d; b = k; } } if (b) { g.to = b.i; g.sp = GEM.V0; GEV.push([1, g.id, b.i]); } continue; }
+    const k = KN[g.to]; if (!k) { GEMS.delete(g.id); continue; } g.sp += GEM.ACC * dt; const tx = k.x, ty = k.y - 5, dx = tx - g.x, dy = ty - g.y, d = Math.hypot(dx, dy), m = g.sp * dt;
+    if (d <= m + 1) { GEMS.delete(g.id); if (host) BH.xp += g.v * (1 + 0.15 * bhN(k, 'xp')); if (k.i === ME) snd('gem', g.x, g.y, gemTier(g.v)); continue; }
+    g.x += dx / d * m; g.y += dy / d * m; } }
+function gemPack() { if (!BH.on) return undefined; GEMT += 1; const o = GEV.length ? GEV : undefined; GEV = [];
+  if (GEMT % 45 === 0) { const all = []; for (const g of GEMS.values()) if (g.to < 0) all.push(g.id, gr1(g.x), gr1(g.y), g.v); return { e: o, a: all, n: GEMN }; } return o ? { e: o } : undefined; }
+function gemApply(P) { if (!P) return; if (P.a) { for (const [id, g] of GEMS) if (g.to < 0) GEMS.delete(id); for (let i = 0; i < P.a.length; i += 4) GEMS.set(P.a[i], { id: P.a[i], x: P.a[i + 1], y: P.a[i + 2], v: P.a[i + 3], to: -1, sp: 0, t: 1 }); }
+  for (const e of P.e || []) { if (e[0] === 0) { const g = GEMS.get(e[1]); if (g) g.v = e[4]; else GEMS.set(e[1], { id: e[1], x: e[2], y: e[3], v: e[4], to: -1, sp: 0, t: 0 }); } else { const g = GEMS.get(e[1]); if (g && g.to < 0) { g.to = e[2]; g.sp = GEM.V0; } } } }
+// drawn on the ground pass, under everyone: a faceted crystal (dark lower half, mid upper, light top-left facet) that turns, bobs and glows
+const GEMC = [['#4fb3ff', '#bfe6ff', '#1d5fa8'], ['#4fe08a', '#c8ffd9', '#1b7a45'], ['#ff5a6e', '#ffd0d6', '#a3203a']], GLOW = [];
+function gemGlow(i) { if (GLOW[i]) return GLOW[i]; const c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, GEMC[i][0] + 'aa'); g.addColorStop(0.45, GEMC[i][0] + '40'); g.addColorStop(1, GEMC[i][0] + '00'); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return GLOW[i] = c; }
+function gemDraw(c, t) { if (!BH.on || !GEMS.size) return; const S = 0.55, vw = cv.width / 2 / viewScale() + 30; c.save();
+  for (const g of GEMS.values()) { if (Math.abs(g.x - camX) > vw) continue; const tr = gemTier(g.v), [m, l, d] = GEMC[tr], z = 1 + tr * 0.35 + (g.v > 15 ? Math.min(0.6, (g.v - 15) / 60) : 0), r = 2.6 * S * z, ph = g.id * 1.7,
+      pop = Math.min(1, g.t / 0.18), fly = g.to >= 0, b = fly ? 0 : Math.sin(t * 3 + ph) * 0.8 * S, sc = pop * (fly ? 0.85 : 1);
+    if (!fly) { c.globalAlpha = 0.25 * pop; c.fillStyle = '#000'; c.beginPath(); c.ellipse(g.x, g.y + 1.2, 3 * S * z, 1.1 * S * z, 0, 0, 7); c.fill(); }
+    c.globalAlpha = pop; const gy = g.y + b - 2 * S - (fly ? 3 : 0), G = gemGlow(tr), gr = r * 2.8 * sc; c.drawImage(G, g.x - gr, gy - gr, gr * 2, gr * 2);
+    const w = Math.max(0.35, Math.abs(Math.cos(t * 2 + ph))) * r * sc, h = r * sc;
+    c.fillStyle = d; c.beginPath(); c.moveTo(g.x, gy - h * 1.3); c.lineTo(g.x + w, gy - h * 0.2); c.lineTo(g.x, gy + h * 1.3); c.lineTo(g.x - w, gy - h * 0.2); c.closePath(); c.fill();
+    c.fillStyle = m; c.beginPath(); c.moveTo(g.x, gy - h * 1.3); c.lineTo(g.x + w, gy - h * 0.2); c.lineTo(g.x, gy + h * 0.4); c.lineTo(g.x - w, gy - h * 0.2); c.closePath(); c.fill();
+    c.fillStyle = l; c.beginPath(); c.moveTo(g.x, gy - h * 1.3); c.lineTo(g.x - w * 0.45, gy - h * 0.3); c.lineTo(g.x, gy + h * 0.1); c.closePath(); c.fill(); }
+  c.restore(); }
 // ---- sync ----
 const bhPack = () => BH.on ? [Math.round(BH.t * 10) / 10, BH.lvl, Math.round(BH.xp * 10) / 10, BH.need, BH.over, BH.pause, BH.go] : null;
 const bhTakeEv = () => { const e = BEV; BEV = []; return e.length ? e : undefined; };
-function bhApplySnap(S) { if (S.rn) { BH.on = 1; [BH.t, BH.lvl, BH.xp, BH.need, BH.over, BH.pause, BH.go] = S.rn; } else BH.on = 0; if (S.bl) for (const e of S.bl) bhVolley(e); }
+function bhApplySnap(S) { if (S.rn) { BH.on = 1; [BH.t, BH.lvl, BH.xp, BH.need, BH.over, BH.pause, BH.go] = S.rn; } else BH.on = 0; if (S.bl) for (const e of S.bl) bhVolley(e); gemApply(S.gm); }
 function bhOwn(kn, v) { for (const f of ['rHp', 'rHm', 'rDn', 'rRv', 'rPk', 'ups']) if (v[f] !== undefined) kn[f] = v[f]; }
 // ---- drawing: bullets glow over everything on the ground; health bars over each player; a revive ring round the downed ----
 function bhDraw(c, t) { if (!BH.on) return; c.save();
@@ -159,8 +194,8 @@ function bhOver(show) { const el = document.getElementById('bhOver'); if (!el) r
   el.innerHTML = `<b>Overrun</b><p>Survived ${m}:${String(sec).padStart(2, '0')} · Level ${BH.lvl} · ${kills} kills</p>${AUTH() ? '<button class="big pri" id="bhAgain">Play again</button>' : '<p>Waiting for the host…</p>'}<button class="big" id="bhMenu">Back to start</button>`;
   const a = document.getElementById('bhAgain'); if (a) a.onclick = () => { setup(); bhStart(); }; document.getElementById('bhMenu').onclick = () => document.getElementById('restartBtn').click(); }
 addEventListener('keydown', e => { if (!BHUI.open) return; const n = '123'.indexOf(e.key); if (n >= 0) { e.preventDefault(); e.stopImmediatePropagation(); bhChoose(n); } }, true);
-window.__bh = { BH, BUL, roll: () => bhRoll(KN[ME]) };
-window.__bhFire = bhFire;
+window.__bh = { BH, BUL, GEMS, me: () => [KN[ME].x, KN[ME].y], roll: () => bhRoll(KN[ME]) };
+window.__bhFire = bhFire; window.__gem = (x, y, v) => gemAdd(x, y, v);
 // the field's top and bottom edges only hold in the sandbox; a run goes on for ever in every direction
 function YB(n) { return BH.on ? -1e7 : n; }
 function YT(n) { return BH.on ? 1e7 : H - n; }
