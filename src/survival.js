@@ -7,7 +7,8 @@
 // and stat boosts that go past the final form.
 const BH = { on: 0, go: 0, t: 0, lvl: 1, xp: 0, need: 10, over: 0, pause: 0, spT: 0, elT: 60, boss: 0, best: 0 };
 // Survival was shelved 2026-10-22 (Elijah: scrap the bullet hell, a co-op side-scroller is next); kept for its levelling/health/cards, reachable only with ?mode=run
-let BHMODE = new URLSearchParams(location.search).get('mode') === 'run' ? 'run' : 'box';
+// 2026-10-22: the campaign (campaign.js) is the main mode; Sandbox stays as the other choice; Survival only with ?mode=run
+let BHMODE = (() => { const q = new URLSearchParams(location.search).get('mode'); if (q === 'run' || q === 'box' || q === 'camp') return q; try { return localStorage.getItem('kn_mode') === 'box' ? 'box' : 'camp'; } catch (e) { return 'camp'; } })();
 const BHC = { HP: 100, IV: 0.35, CONTACT: 5, REV: 2.5, REVR: 20, AUTO: 25, BR: 2.1, KR: 3.2, BMAX: 90 };
 const BUL = []; let BEV = [];
 const bhUp = (kn, id) => !BH.on || !!(kn && kn.ups && kn.ups.indexOf(id) >= 0);
@@ -37,8 +38,10 @@ const BHLV = {}, BHSPMIN = { ninja: { n_kunai: 4, n_hop: 6, n_clone2: 12, n_clon
 const BHUNL = [3, 6, 10, 15], BHORD = ['dash', 'leap', 'spin', 'breath', 'ult'];
 const bhLvOf = (ch, s) => { const L = BHLV[ch]; if (L && L[s] !== undefined) return L[s]; const O = BHORD.filter(q => bhSlots(ch).includes(q)), j = O.indexOf(s); return j >= 0 && j < BHUNL.length ? BHUNL[j] : 99; };
 const bhUnlocks = (ch, lvl) => bhSlots(ch).filter(s => bhLvOf(ch, s) === lvl);
-function bhInit(kn) { Object.assign(kn, { rHp: BHC.HP, rHm: BHC.HP, rDn: 0, rRv: 0, rIv: 0, rPk: 0, ups: [], upSeen: (kn.in && kn.in.upN) || 0, kSeen: kn.kills || 0, pkT: 0 }); if (BH.on) kn.ups = bhUnlocks(kn.kind || 'knight', 1).map(q => 'a_' + q); }
-function bhStart() { Object.assign(BH, { on: BHMODE === 'run' ? 1 : 0, go: 0, t: 0, lvl: 1, xp: 0, need: bhNeed(1), over: 0, pause: 0, spT: 0, elT: 240, boss: 0, vw: 0 }); BUL.length = 0; BEV = []; GEMS.clear(); GEV = []; GEMN = 0; for (const k in BHG) delete BHG[k]; BHUI.wait = -1; for (const kn of KN) bhInit(kn); bhUI(); }
+function bhInit(kn) { kn.upK = undefined; Object.assign(kn, { rHp: BHC.HP, rHm: BHC.HP, rDn: 0, rRv: 0, rIv: 0, rPk: 0, ups: [], upSeen: (kn.in && kn.in.upN) || 0, kSeen: kn.kills || 0, pkT: 0 }); if (BH.on && !BH.cp) kn.ups = bhUnlocks(kn.kind || 'knight', 1).map(q => 'a_' + q); }
+function bhStart() { Object.assign(BH, { on: BHMODE === 'run' || BHMODE === 'camp' ? 1 : 0, cp: BHMODE === 'camp' ? 1 : 0, go: 0, t: 0, lvl: 1, xp: 0, need: bhNeed(1), over: 0, pause: 0, spT: 0, elT: 240, boss: 0, vw: 0 }); BUL.length = 0; BEV = []; GEMS.clear(); GEV = []; GEMN = 0; for (const k in BHG) delete BHG[k]; BHUI.wait = -1; for (const kn of KN) bhInit(kn);
+  if (BH.cp) { const sv = cpLoad(); BH.lvl = sv.lvl || 1; BH.xp = sv.xp || 0; BH.need = bhNeed(BH.lvl); Object.assign(CMP, { ph: 0, st: 0, done: sv.done || 0, E: [] }); let i = 0; while ((CMP.done >> i) & 1 && STAGES[i + 1]) i++; CMP.sel = i; CPUI.sent = ''; }
+  bhUI(); }
 // ---- cards ----
 function bhPool(kn) { const ch = kn.kind || 'knight', P = [], slots = bhSlots(ch), have = s => bhAb(kn, s);
   for (const [id, n, d, req] of BHSP[ch] || []) if (!bhUp(kn, id) && BH.lvl >= ((BHSPMIN[ch] || {})[id] || 1) && (!req || (BHSLOT[req] ? have(req) : bhUp(kn, req)))) P.push([id, n, d, 2, 'sp']);
@@ -112,22 +115,23 @@ function bhSpawn(dt) { if (!BH.go || BH.over || !AUTH()) return; const L = LIVE(
 // ---- the run's clock, experience, level-ups, revives, game over (host); the pause while anyone picks a card ----
 function bhStep0(dt, t) { if (!BH.on) return false;
   bhGate(KN[ME]);
+  if (BH.cp) { cpInputs(); bhUI(); cpUI(); return false; }
   if (AUTH()) { for (const kn of LIVE()) { if ((kn.in.upN || 0) !== (kn.upSeen || 0)) { kn.upSeen = kn.in.upN || 0; const id = kn.in.upC; if (kn.rPk > 0 && bhValid(kn, id)) bhApply(kn, id); }
       if (kn.rPk > 0) { kn.pkT = (kn.pkT || 0) + dt; if (kn.pkT > BHC.AUTO) { const c = bhRoll(kn, 1)[0]; if (c) bhApply(kn, c[0]); else kn.rPk = 0; } } }
     BH.pause = LIVE().some(k => k.rPk > 0) ? 1 : 0; }
   bhUI(); if (BH.pause || BH.over) { netTick(dt, t); return true; } return false; }
 function bhStep(dt) { if (!BH.on) return; const L = LIVE();
-  gemStep(dt);
+  if (!BH.cp) gemStep(dt); cpStep(dt);
   for (const kn of KN) { if (kn.rIv > 0) kn.rIv -= dt; }
-  if (!BH.go && L.some(k => k.st && k.st !== 'kneel')) BH.go = 1;
+  if (!BH.go && !BH.cp && L.some(k => k.st && k.st !== 'kneel')) BH.go = 1;
   bhBullets(dt);
-  if (!AUTH()) return;
+  if (!AUTH()) return; if (BH.cp) cpClampW();
   if (BH.go && !BH.over) BH.t += dt;
   for (const kn of L) { const dk = (kn.kills || 0) - (kn.kSeen || 0); kn.kSeen = kn.kills || 0; 
     if (!kn.rDn && kn.rHp < kn.rHm) kn.rHp = Math.min(kn.rHm, kn.rHp + 0.6 * bhN(kn, 'rgn') * dt);
     if (kn.rDn) { const near = L.some(o => o !== kn && !o.rDn && Math.hypot(o.x - kn.x, o.y - kn.y) < BHC.REVR); kn.rRv = near ? kn.rRv + dt : Math.max(0, kn.rRv - dt * 0.5); if (kn.rRv >= BHC.REV) Object.assign(kn, { rDn: 0, rRv: 0, rHp: Math.round(kn.rHm * 0.5), rIv: 1.5 }); } }
-  while (BH.xp >= BH.need) { BH.xp -= BH.need; BH.lvl++; BH.need = bhNeed(BH.lvl); for (const kn of L) { kn.rPk = (kn.rPk || 0) + 1; const nu = bhUnlocks(kn.kind || 'knight', BH.lvl); if (nu.length) kn.ups = (kn.ups || []).concat(nu.map(q => 'a_' + q)); } snd('ult', L[0].x, L[0].y); }
-  if (BH.go && L.length && L.every(k => k.rDn)) { BH.over = 1; BH.best = Math.max(BH.best, BH.t); } }
+  while (BH.xp >= BH.need) { BH.xp -= BH.need; BH.lvl++; BH.need = bhNeed(BH.lvl); if (BH.cp) { snd('ult', L[0].x, L[0].y); continue; } for (const kn of L) { kn.rPk = (kn.rPk || 0) + 1; const nu = bhUnlocks(kn.kind || 'knight', BH.lvl); if (nu.length) kn.ups = (kn.ups || []).concat(nu.map(q => 'a_' + q)); } snd('ult', L[0].x, L[0].y); }
+  if (BH.go && L.length && L.every(k => k.rDn) && (!BH.cp || CMP.ph === 1)) { BH.over = 1; BH.best = Math.max(BH.best, BH.t); } }
 
 // ---- experience gems (Elijah 2026-10-22: crystal gems): every kill drops a gem where the enemy died (host), worth 1 / 4 / 15 by the enemy's size
 // (blue / green / red); a player who comes within GEM.PICK pulls it in (it flies to him, speeding up) and the team gets its xp when it arrives;
@@ -163,9 +167,9 @@ function gemDraw(c, t) { if (!BH.on || !GEMS.size) return; const S = 0.55, vw = 
     c.fillStyle = l; c.beginPath(); c.moveTo(g.x, gy - h * 1.3); c.lineTo(g.x - w * 0.45, gy - h * 0.3); c.lineTo(g.x, gy + h * 0.1); c.closePath(); c.fill(); }
   c.restore(); }
 // ---- sync ----
-const bhPack = () => BH.on ? [Math.round(BH.t * 10) / 10, BH.lvl, Math.round(BH.xp * 10) / 10, BH.need, BH.over, BH.pause, BH.go] : null;
+const bhPack = () => BH.on ? [Math.round(BH.t * 10) / 10, BH.lvl, Math.round(BH.xp * 10) / 10, BH.need, BH.over, BH.pause, BH.go, BH.cp ? 1 : 0] : null;
 const bhTakeEv = () => { const e = BEV; BEV = []; return e.length ? e : undefined; };
-function bhApplySnap(S) { if (S.rn) { BH.on = 1; [BH.t, BH.lvl, BH.xp, BH.need, BH.over, BH.pause, BH.go] = S.rn; } else BH.on = 0; if (S.bl) for (const e of S.bl) bhVolley(e); gemApply(S.gm); }
+function bhApplySnap(S) { if (S.rn) { BH.on = 1; [BH.t, BH.lvl, BH.xp, BH.need, BH.over, BH.pause, BH.go, BH.cp] = S.rn; } else BH.on = 0; cpApplySnap(S); if (S.bl) for (const e of S.bl) bhVolley(e); gemApply(S.gm); }
 function bhOwn(kn, v) { for (const f of ['rHp', 'rHm', 'rDn', 'rRv', 'rPk', 'ups']) if (v[f] !== undefined) kn[f] = v[f]; }
 // ---- drawing: bullets glow over everything on the ground; health bars over each player; a revive ring round the downed ----
 function bhDraw(c, t) { if (!BH.on) return; c.save();
@@ -181,18 +185,18 @@ function bhDraw(c, t) { if (!BH.on) return; c.save();
 // ---- HUD: clock, level and experience, my health; the card picker; game over ----
 const BHUI = { wait: -1, waitT: 0, open: 0, cards: null };
 function bhUI() { const on = !!BH.on, me = KN[ME]; document.body.classList.toggle('bh', on); const hud = document.getElementById('bhHud'); if (!hud) return;
-  const ch = (me && me.kind) || CHAR || 'knight', S = bhSlots(ch); for (const s of Object.keys(BHSLOT)) { const lk = on && S.includes(s) && !(me && bhAb(me, s)); document.body.classList.toggle('bhL-' + s, lk); const el = document.getElementById(BHEL[s]); if (el) { let u = el.querySelector(':scope > .unl'); if (lk) { if (!u) { u = document.createElement('div'); u.className = 'unl'; el.appendChild(u); } const tx = 'Unlocks at Lv ' + bhLvOf(ch, s); if (u.textContent !== tx) u.textContent = tx; } else if (u) u.remove(); } }
+  const ch = (me && me.kind) || CHAR || 'knight', S = bhSlots(ch); for (const s of Object.keys(BHSLOT)) { const lk = on && S.includes(s) && !(me && bhAb(me, s)); document.body.classList.toggle('bhL-' + s, lk); const el = document.getElementById(BHEL[s]); if (el) { let u = el.querySelector(':scope > .unl'); if (lk) { if (!u) { u = document.createElement('div'); u.className = 'unl'; el.appendChild(u); } const tx = !BH.cp ? 'Unlocks at Lv ' + bhLvOf(ch, s) : BH.lvl < bhLvOf(ch, s) ? 'Lv ' + bhLvOf(ch, s) : 'Learn in Skills'; if (u.textContent !== tx) u.textContent = tx; } else if (u) u.remove(); } }
   if (!on || !me) { hud.style.display = 'none'; bhPick(null); bhOver(false); BHUI.ab = null; return; } hud.style.display = '';
   { const ab = (me.ups || []).filter(u => u.startsWith('a_')).join(); if (BHUI.ab !== null && BHUI.ab !== undefined && ab !== BHUI.ab) { const nw = ab.split(',').filter(u => u && !BHUI.ab.split(',').includes(u)); if (nw.length) note('New ability: ' + bhSlotName(ch, nw[nw.length - 1].slice(2)), 4); } BHUI.ab = ab; }
-  const m = Math.floor(BH.t / 60), sec = Math.floor(BH.t % 60); const vw = BH.go ? bhWave(BH.t) : [0, 0]; document.getElementById('bhClock').textContent = BH.go ? m + ':' + String(sec).padStart(2, '0') + (vw[0] === 1 ? ' · VOLLEY ' + Math.ceil(vw[1]) + 's' : '') : 'Pull your weapon to begin'; document.getElementById('bhClock').classList.toggle('vw', vw[0] === 1);
+  const m = Math.floor(BH.t / 60), sec = Math.floor(BH.t % 60); const vw = BH.go ? bhWave(BH.t) : [0, 0]; document.getElementById('bhClock').textContent = BH.cp ? (CMP.ph === 1 ? cpS().name + ' · ' + CMP.E.filter((e, j) => e.s === 2 && !cpS().E[j].g).length + '/' + cpS().E.filter(e => !e.g).length + ' cleared' : 'Campaign') : BH.go ? m + ':' + String(sec).padStart(2, '0') + (vw[0] === 1 ? ' · VOLLEY ' + Math.ceil(vw[1]) + 's' : '') : 'Pull your weapon to begin'; document.getElementById('bhClock').classList.toggle('vw', vw[0] === 1);
   if (vw[0] === 2 && !BHUI.vwN) { BHUI.vwN = 1; note('Volley incoming: they\u2019re about to start shooting', 3.5); } else if (vw[0] === 0) BHUI.vwN = 0;
   document.getElementById('bhLv').textContent = 'Lv ' + BH.lvl; document.getElementById('bhXp').style.width = (100 * cl(BH.xp / BH.need, 0, 1)) + '%';
   document.getElementById('bhHp').style.width = (100 * cl((me.rHp || 0) / (me.rHm || 1), 0, 1)) + '%'; document.getElementById('bhHpT').textContent = Math.ceil(me.rHp || 0) + ' / ' + (me.rHm || 0);
   // the card picker: open while I have a pick; after choosing, wait for the host to take it (or 1.5s) before showing the next
   if (BHUI.wait >= 0 && ((me.ups || []).length > BHUI.wait || performance.now() - BHUI.waitT > 1500)) BHUI.wait = -1;
-  if (me.rPk > 0 && BHUI.wait < 0 && !BH.over) { if (!BHUI.open) bhPick(bhRoll(me)); } else if (BHUI.open) bhPick(null);
+  if (me.rPk > 0 && BHUI.wait < 0 && !BH.over && !BH.cp) { if (!BHUI.open) bhPick(bhRoll(me)); } else if (BHUI.open) bhPick(null);
   const pw = document.getElementById('bhWait'); if (pw) pw.style.display = BH.pause && !(me.rPk > 0) && !BH.over ? '' : 'none';
-  bhOver(!!BH.over); }
+  bhOver(!!BH.over && !BH.cp); }
 function bhPick(cards) { const el = document.getElementById('bhCards'); if (!el) return; BHUI.cards = cards; BHUI.open = cards ? 1 : 0; if (!cards) { el.style.display = 'none'; return; }
   el.style.display = 'flex'; el.innerHTML = `<b>Level ${BH.lvl}! Pick one</b><div class="bhRow">${cards.map((c, i) => `<button class="bhCard bh-${c[4]}" data-i="${i}"><small>${c[4] === 'ab' ? 'Ability' : c[4] === 'sp' ? 'Special' : 'Boost'}${c[4] === 'st' && bhN(KN[ME], c[0]) ? ' · ' + (bhN(KN[ME], c[0]) + 1) : ''}</small><span>${c[1]}</span><em>${c[2]}</em><i>${i + 1}</i></button>`).join('')}</div>`;
   el.querySelectorAll('.bhCard').forEach(b => b.onclick = e => { e.stopPropagation(); bhChoose(+b.dataset.i); }); }
