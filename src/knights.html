@@ -4790,14 +4790,14 @@ const njClJ = (kn, P) => { const J = (kn.nPh === 1 ? kn.njJ : kn.njF || kn.njJ) 
 const njClDef = kn => { const f = kn.f || 1, S = NJ.CL.S, h = S / Math.SQRT2; return [f * h, -h * 0.8, f * 2 * h, 0, f * h, h * 0.8]; };
 function njCloneStep(kn, dt, t) { const C = NJ.CL;
   if ((kn.clN || 0) !== (kn.clS || 0)) { kn.clS = kn.clN || 0; if (kn.clN && (kn.clCd > C.CD - 1 || (kn.clUl === kn.nUN && kn.nPh >= 1)) && kn.clP) { /* a stale count from a snapshot, long after the cast, makes no clones */
-    const ul = kn.clUl === kn.nUN && kn.nPh >= 1; for (const P of kn.CLS || []) njClonePop(kn, P, ul); kn.CLS = (kn.CLS || []).concat((bhUp(kn, 'n_clones') ? [0, 1, 2] : [1]).map(j => njCloneOne(kn, kn.clP[j * 2], kn.clP[j * 2 + 1]))); snd('jump', kn.x, kn.y); } }
+    const ul = kn.clUl === kn.nUN && kn.nPh >= 1; for (const P of kn.CLS || []) njClonePop(kn, P, ul); kn.CLS = (kn.CLS || []).concat((bhUp(kn, 'n_clone3') ? [0, 1, 2] : bhUp(kn, 'n_clone2') ? [1, 0] : [1]).map(j => njCloneOne(kn, kn.clP[j * 2], kn.clP[j * 2 + 1]))); snd('jump', kn.x, kn.y); } }
   const L = kn.CLS; if (!L || !L.length) return;
   const leapC = (kn.nlN || 0), kmC = (kn.kmN || 0), taken = [kn.kmT];
   for (const P of L) { P.col = kn.col; P.age += dt;
     if (P.dying >= 0) { P.dying += dt; const u = cl(P.dying / C.OUT, 0, 1); P.clA = C.A * (1 - sm(u)); P.clB = C.B + u; continue; }
     const ui = sm(cl(P.age / C.IN, 0, 1)); P.clA = C.A * ui; P.clB = C.B + (1 - ui) * 0.9;
     // his leap: each clone leaps at the same spot he aimed his at (as far as its own leap reaches)
-    if (leapC !== P.sL) { P.sL = leapC; if (P.left > 0 && kn.nx1 !== undefined) { const D = NJ.LEAP.D; P.in.leapT = [(kn.nx1 - P.x) / D, (kn.ny1 - P.y) / (0.8 * D)]; P.in.leapN++; P.left--; } } // every clone leaps at the spot he leapt at
+    if (leapC !== P.sL) { P.sL = leapC; if (P.left > 0 && kn.nx1 !== undefined) { const D = NJ.LEAP.D; P.in.leapT = [(kn.nx1 - kn.nx0) / D, (kn.ny1 - kn.ny0) / (0.8 * D)]; P.in.leapN++; P.left--; } } // keep the formation: every clone makes the same jump he did, from where it stands
     // his kama: each clone hooks its own enemy (nearest to it, leaning toward where his went, never one already taken)
     if (kmC !== P.sK) { P.sK = kmC; if (P.left > 0) { const aa = Math.atan2(((kn.kmTY ?? P.y) - P.y) * 1.25, (kn.kmTX ?? P.x) - P.x); let b = null, bs = 1e9;
         for (const w of walkers) { if (w.hp <= 0 || w.gr || taken.includes(w.id)) continue; const dx = w.x - P.x, dy = (w.y - P.y) * 1.25, d = Math.hypot(dx, dy); if (d > C.KR + UK[w.k].r) continue; const sc = d / C.KR + Math.abs(wrapA(Math.atan2(dy, dx) - aa)) * 0.5; if (sc < bs) { bs = sc; b = w; } }
