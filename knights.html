@@ -7416,7 +7416,7 @@ const GI = { S: KS * 12 / 62, RUN: 0.9, FIREMV: 0.6, RATE: 0.055, BURST: 0.29, P
   PM: { KILLS: 50, Z0: 210, BACK: 95, T: 9, V0: 45, V1: 125, VT: 3, TURN: 1.5, PT: 0.9, PMIN: -1.5, PMAX: -0.45, BOOST: 2.5, R: 87.5, DMG: 900, KB: 150 }, // predator missile: kills, start height + distance back from its first target, max time, speed (V0 -> V1 over VT s), yaw / pitch rates, pitch limits, blast
   CP: { KILLS: 150, RANGE: 120, DROP: 0.9, Z0: 200, R: 26, DMG: 420, KB: 110, PICK: 9, LIFE: 25 }, // care package: kills to recharge, aim range, fall time, blast, pick-up reach, how long it waits
   RD: { KILLS: 300 }, // gunner (dash): kills to recharge (the call's timings are ULT's)
-  SG: { T: 12, GAP: 0.27, R: 170, HA: 0.16, N: 8, DMG: 80, FALL: 0.9, KB: 24 }, // dual pump shotguns from the package: time, alternate shots, cone range + half-angle, pellets per shot, damage per pellet (x FALL for each enemy it has already gone through), knockback (shared by the pellets)
+  SG: { T: 12, GAP: 0.27, R: 170, HA: 0.16, N: 8, DMG: 80, FALL: 0.75, KB: 24 }, // dual pump shotguns from the package: time, alternate shots, cone range + half-angle, pellets per shot, damage per pellet (x FALL for each enemy it has already gone through), knockback (shared by the pellets)
   ULT: { RADIO: 1.2, FADE: 0.4, T: 14, R: 265, ALT: 185, OM: 0.2, RATE: 13.5, SPREAD: 0.012, HR: 3.5, DMG: 140, TRACE: 3, YAW: 1.15, P0: -0.62, PMIN: -1.35, PMAX: -0.18, TURN: [1.1, 0.8], AIMK: 14, LOOK: 1.15, V: 640, G: 45, AR: 13, KB: 14,
     SR: 165, SGAP: 0.14, SDMG: 45, VR: 95, VZ: 40, KICK: 0.0035, KMAX: 0.022,
     PK: { JUMP: 0.5, CATCH: 0.75, SPD: 240, Z0: 34, LAD: 12, HANG: 13.1, DC: 0.6, DEND: 1.45, G: 140 }, // pick-up: jump, catch (s), fly-by speed, height over him, ladder length, hands->feet, drop-off: release (s after the view returns), end, gravity
@@ -7507,7 +7507,7 @@ function giStep(dt, t) {
   K.gsC = (K.gsC || 0) - dt; K.gbC = (K.gbC || 0) - dt; K.gqC = (K.gqC || 0) - dt;
   if (K.gqT > 0) { // ---- dual pump shotguns: left, right, left... a tight long cone each ----
     const SG = GI.SG; K.gbN = 0; if (IN.aim && K.gqC <= 0) { K.gqC = SG.GAP; K.gqN = (K.gqN || 0) + 1; K.gqS = K.gqN % 2; const a = Math.atan2(IN.aim[1] * 1.25, IN.aim[0]); K.gsA = Math.round(a * 1000) / 1000; if (Math.abs(Math.cos(a)) > 0.15) K.f = Math.cos(a) > 0 ? 1 : -1;
-      // pellets fanned evenly across the cone, each going through everyone on its line; every enemy it has already passed through takes 10% off what it does to the next
+      // pellets fanned evenly across the cone, each going through everyone on its line; every enemy it has already passed through takes 25% off what it does to the next
       if (AUTH()) { const tn = Math.tan(SG.HA); for (let i = 0; i < SG.N; i++) { const b = a + (i / (SG.N - 1) - 0.5) * 2 * SG.HA, cb = Math.cos(b), sb = Math.sin(b), L = [];
           for (const w of walkers) { if (w.hp <= 0) continue; const dx = w.x - K.x, dy = (w.y - K.y) * 1.25, al = dx * cb + dy * sb; if (al < 0 || al > SG.R) continue; if (Math.abs(-dx * sb + dy * cb) > 1 + al * tn * 0.3 + UK[w.k].r) continue; L.push([al, w]); }
           L.sort((p, q) => p[0] - q[0]); L.forEach(([, w], n) => { if (w.hp <= 0) return; const kb = SG.KB / 3 / Math.max(0.4, UK[w.k].kb); w.atk = -1; w.kx += cb * kb; w.ky += sb * kb * 0.6; hurt(w, SG.DMG * Math.pow(SG.FALL, n), ww => ttKillFx(ww, b, 1)); }); } } } }
@@ -7581,13 +7581,16 @@ function giFx(dt, t) {
 function giBlastFx(kn, x, y, R, big) { GIFX.push({ k: 'ex2', x, y, R, t: 0 }); splats.push({ x, y, r: R * 0.45, t: 0, ash: 1 }); for (let i = 0; i < 26 * big; i++) { const a = rr(0, 6.283), v = rr(25, 80) * big; dust.push({ x: x + Math.cos(a) * 4, y: y + Math.sin(a) * 2, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(2, 4) * big, t: 0, max: rr(0.7, 1.4) }); }
   for (let i = 0; i < 30 * big; i++) sparks.push({ x: x + rr(-2, 2), y: y - rr(0, 4), vx: rr(-80, 80), vy: -rr(20, 100), t: 0, max: rr(0.3, 0.9) }); snd('boom', x, y); snd('gslam', x, y); if (Math.abs(x - KN[ME].x) < 200) shake = Math.max(shake, 0.3 * big); }
 // the Huey's loop while anyone's G.I. has one overhead (louder for its gunner): its own synthesized rotor (the Time Traveler's strafe recordings are his alone)
-// one loop of 15 rotor beats at 6.6 a second (2.27s, seamless): each beat a thump of low-passed noise + a 48 Hz body + a short blade slap, over a constant turbine whine and engine hiss
+// one seamless loop (13 main-rotor beats at 5.2 a second, 2.5s): each beat a soft, deep 'wop' (a smooth swell of very low-passed noise + a 36 Hz body, no sharp attack, so it never reads as gunfire),
+// under a steady low rumble, the tail rotor's buzz (mid noise pulsing at ~45 Hz) and a faint turbine whine
 let GIHB = null;
-function giHeliBuf(c) { if (GIHB) return GIHB; const sr = c.sampleRate, B = 15, R = 6.6, L = B / R, n = Math.floor(sr * L), buf = c.createBuffer(1, n, sr), d = buf.getChannelData(0), fw = Math.round(1180 * L) / L;
-  let lp = 0, lp2 = 0, hp = 0, prev = 0; for (let i = 0; i < n; i++) { const tt = i / sr, ph = (tt * R) % 1, dt = ph / R, w = Math.random() * 2 - 1; lp += (w - lp) * 0.06; lp2 += (w - lp2) * 0.012; hp = 0.85 * (hp + w - prev); prev = w;
-    const env = dt < 0.004 ? dt / 0.004 : Math.exp(-(dt - 0.004) * 26), slap = Math.exp(-dt * 70);
-    d[i] = env * (lp * 1.6 + Math.sin(2 * Math.PI * 48 * dt) * 0.55) + slap * hp * 0.16 + lp2 * 0.9 + Math.sin(2 * Math.PI * fw * tt) * 0.03 + Math.sin(2 * Math.PI * fw * 2 * tt) * 0.012; }
-  let m = 0; for (let i = 0; i < n; i++) m = Math.max(m, Math.abs(d[i])); for (let i = 0; i < n; i++) d[i] /= m || 1; return (GIHB = buf); }
+function giHeliBuf(c) { if (GIHB) return GIHB; const sr = c.sampleRate, B = 13, R = 5.2, L = B / R, n = Math.floor(sr * L), buf = c.createBuffer(1, n, sr), d = buf.getChannelData(0), ft = Math.round(45 * L) / L, fw = Math.round(1100 * L) / L;
+  let lo = 0, lo2 = 0, lo3 = 0, mid = 0, mid2 = 0; for (let i = 0; i < n; i++) { const tt = i / sr, ph = (tt * R) % 1, w = Math.random() * 2 - 1; lo += (w - lo) * 0.012; lo2 += (lo - lo2) * 0.012; lo3 += (w - lo3) * 0.004; mid += (w - mid) * 0.06; mid2 += (mid - mid2) * 0.3;
+    const e = Math.exp(-Math.pow((ph - 0.3) / 0.13, 2)), tail = 0.5 + 0.5 * Math.sin(2 * Math.PI * ft * tt);
+    d[i] = e * (lo2 * 9 + Math.sin(2 * Math.PI * 36 * tt) * 0.45) + lo3 * 3.5 + (mid - mid2) * tail * 0.5 + Math.sin(2 * Math.PI * fw * tt) * 0.02; }
+  let m = 0; for (let i = 0; i < n; i++) m = Math.max(m, Math.abs(d[i])); for (let i = 0; i < n; i++) d[i] /= m || 1;
+  // smooth the loop's seam over 20ms
+  const z = Math.floor(sr * 0.02); for (let i = 0; i < z; i++) { const k = i / z; d[i] = d[i] * k + d[n - z + i] * (1 - k); } return (GIHB = buf); }
 function giHeliAudio() { for (const kn of KN) { if (kn.kind !== 'gi') continue; const on = kn.on !== 0 && kn.gu >= 0 && kn.gu < giTE() + GI.ULT.FADE * 0.5 + GI.ULT.PK.DC + 0.4;
     if (on && !kn.giAu && AU.ctx && AU.ctx.state === 'running' && AU.on) { const c = AU.ctx, src = c.createBufferSource(), g = c.createGain(), vol = kn.i === ME ? 0.55 : 0.3; src.buffer = giHeliBuf(c); src.loop = true; g.gain.setValueAtTime(0.0001, c.currentTime); g.gain.linearRampToValueAtTime(vol, c.currentTime + 0.8); src.connect(g); g.connect(AU.out); src.start(); kn.giAu = { src, g }; }
     if (on && kn.giAu) { const c = AU.ctx; try { kn.giAu.src.playbackRate.setTargetAtTime(1 + 0.025 * Math.sin((kn.gu || 0) * GI.ULT.OM * 6.283), c.currentTime, 0.2); } catch (e) { } } // a slight doppler as it circles
@@ -7813,7 +7816,7 @@ function giView(t) { const kn = KN[ME]; const pm = !!(kn && kn.kind === 'gi' && 
   if (a > 0) { x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = `rgba(10,12,8,${a})`; x.fillRect(0, 0, cv.width, cv.height); } }
 // his screen, in the door view: a finger (or mouse) dragged anywhere except FIRE and the top bar moves the gun by as much as it moves; holding still holds the aim
 { let LK = null; const tgt = e => e.target && e.target.closest && e.target.closest('#gfire,#grk,#giTP,#gboost,#top,.pnl,#vol,#exitQ');
-  addEventListener('pointerdown', e => { if (!(document.body.classList.contains('gifp') || document.body.classList.contains('gipm')) || tgt(e)) return; e.stopPropagation(); e.preventDefault(); if (!LK) LK = { id: e.pointerId, x: e.clientX, y: e.clientY }; }, true);
+  addEventListener('pointerdown', e => { if (!(document.body.classList.contains('gifp') || document.body.classList.contains('gipm')) || tgt(e)) return; if (e.pointerType === 'mouse' && document.body.classList.contains('gifp') && matchMedia('(hover: hover) and (pointer: fine)').matches) return; /* PC door gun: the mouse aims without a button (below) */ e.stopPropagation(); e.preventDefault(); if (!LK) LK = { id: e.pointerId, x: e.clientX, y: e.clientY }; }, true);
   addEventListener('pointermove', e => { if (!LK || e.pointerId !== LK.id) return; e.stopPropagation(); e.preventDefault(); const kn = KN[ME], U = GI.ULT, pm = document.body.classList.contains('gipm'); if (!kn || kn.kind !== 'gi' || !(pm || document.body.classList.contains('gifp'))) { LK = null; return; }
     const r = cv.getBoundingClientRect(), k = U.LOOK * (GIFP.foc ? (GIFP.vh / (r.height || innerHeight)) / GIFP.foc : 0.0016), dx = e.clientX - LK.x, dy = e.clientY - LK.y; LK.x = e.clientX; LK.y = e.clientY;
     if (pm) { const M = GI.PM; if (kn.pmAT !== undefined) { kn.pmAT += dx * k; kn.pmPT = cl(kn.pmPT - dy * k, M.PMIN, M.PMAX); } return; }
@@ -8337,10 +8340,13 @@ function doUlt() { const IN = KN[ME].in; if (KN[ME].st === 'kneel') return; IN.u
   let lockT = -1e9; const lockNow = () => { if (!PCM() || locked()) return; lockT = performance.now(); try { const q = cv.requestPointerLock(); if (q && q.catch) q.catch(() => { }); } catch (er) { } };
   addEventListener('keydown', e => { const kn = KN[ME]; if ((e.code === 'ShiftLeft' || e.code === 'ShiftRight') && !e.repeat && kn && kn.kind === 'gi' && !(kn.gu >= 0) && giRdReady(kn)) lockNow(); }, true);
   addEventListener('pointerdown', e => { const kn = KN[ME]; if (!kn || kn.kind !== 'gi') return; if (e.target.closest && e.target.closest('#dash') && !(kn.gu >= 0) && giRdReady(kn)) { lockNow(); return; }
-    if (!gunUp() || (e.target.closest && e.target.closest('#top,.pnl,#vol,#exitQ'))) return; if (!locked()) { if (e.pointerType === 'mouse') lockNow(); return; }
+    if (!gunUp() || e.pointerType !== 'mouse' || !PCM() || (e.target.closest && e.target.closest('#top,.pnl,#vol,#exitQ,#gfire,#grk,#giTP'))) return; lockNow();
     e.preventDefault(); if (e.button === 0) set(1); else if (e.button === 2) fireRk(); }, true);
-  addEventListener('pointerup', e => { if (locked() && e.button === 0) set(0); }, true); addEventListener('contextmenu', e => { if (gunUp()) e.preventDefault(); }, true);
-  addEventListener('pointermove', e => { if (!locked() || !gunUp()) return; const kn = KN[ME], U = GI.ULT, r = cv.getBoundingClientRect(), k = U.LOOK * (GIFP.foc ? (GIFP.vh / (r.height || innerHeight)) / GIFP.foc : 0.0016), dx = e.movementX || 0, dy = e.movementY || 0;
+  addEventListener('pointerup', e => { if (e.pointerType === 'mouse' && e.button === 0 && gunUp() && PCM()) set(0); }, true); addEventListener('contextmenu', e => { if (gunUp()) e.preventDefault(); }, true);
+  // a modifier (Shift) gives the page no 'user activation', so the lock can be refused when the Huey is called; any other key or click while it's up asks again
+  addEventListener('keydown', e => { if (gunUp() && !locked() && !['ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'AltLeft', 'AltRight', 'MetaLeft', 'MetaRight', 'Escape'].includes(e.code)) lockNow(); }, true);
+  // the mouse aims by its movement alone, no button: locked (hidden, can't leave the window) or, until the lock is granted, with the cursor hidden over the game
+  addEventListener('pointermove', e => { if (e.pointerType !== 'mouse' || !PCM() || !gunUp()) return; const kn = KN[ME], U = GI.ULT, r = cv.getBoundingClientRect(), k = U.LOOK * (GIFP.foc ? (GIFP.vh / (r.height || innerHeight)) / GIFP.foc : 0.0016), dx = e.movementX || 0, dy = e.movementY || 0;
     kn.gaY = cl((kn.gaY ?? kn.gyY ?? 0) + dx * k, -U.YAW, U.YAW); kn.gaP = cl((kn.gaP ?? kn.gyP ?? 0) - dy * k, U.PMIN - U.P0, U.PMAX - U.P0); }, true);
   setInterval(() => { if (locked() && !gunUp() && performance.now() - lockT > 2500) { set(0); try { document.exitPointerLock(); } catch (er) { } } }, 150); }
 ub.addEventListener('pointerdown', e => { e.preventDefault(); if (isOgre() && ultReady(KN[ME]) && !(KN[ME].ogDT >= 0)) { ogAimStart(e, 'ul', ub); return; } doUlt(); });
@@ -8648,7 +8654,7 @@ charUI(CHAR); applyLayout();
 lobby('home');
 // a new build reloads the page (GitHub Pages / the phone cache can otherwise keep serving the old one); never mid-game with a partner
 window.__shipDb = kn => shipDebris(kn); window.__au = () => [!!AU.ctx, AU.ctx && AU.ctx.state, !!HELI_BUF, HELI_DEC]; window.__heliAt = (a, s) => { const K = KN[ME]; Object.assign(K, { hl: s, hla: a, hlL: 150, hlx: K.x - 30, hly: K.y + 20, hlN: (K.hlN || 0) + 1 }); }; window.__TT = TT;
-const KBUILD = '626ec1';
+const KBUILD = 'f27f4a';
 if (/github\.io$/.test(location.hostname)) document.body.classList.add('live');
 function tryReload(v) { let tried = null; try { tried = sessionStorage.getItem('kn_reload_for'); } catch (e) { } if (tried === v) return; try { sessionStorage.setItem('kn_reload_for', v); } catch (e) { } location.replace(location.pathname + '?v=' + v); }
 async function checkVersion() { if (KBUILD.startsWith('__') || !/github\.io$/.test(location.hostname) || (NET && NET.started)) return; try { const v = (await (await fetch('version.json?t=' + Date.now(), { cache: 'no-store' })).json()).version; if (v && v !== KBUILD) tryReload(v); } catch (e) { } }
