@@ -105,6 +105,7 @@ function sedSheet(k) { SED.sheet = k; const el = document.getElementById('sedShe
       ${W.map((Lw, wi) => `<div class="wv"><b><span>Wave ${wi + 1}</span>${W.length > 1 ? `<button data-dw="${wi}">Remove</button>` : ''}</b>${Lw.map(([q, n], ei) => `<div class="en"><img src="${sedEnemyImg(q)}"><span>${(UK[q] || { n: q }).n}</span><button data-w="${wi}" data-e="${ei}" data-d="-1">−</button><b style="min-width:22px;text-align:center">${n}</b><button data-w="${wi}" data-e="${ei}" data-d="1">+</button><button data-w="${wi}" data-e="${ei}" data-d="x">✕</button></div>`).join('')}
         <div class="add">${SEDK().map(q => `<button data-aw="${wi}" data-q="${q}" title="${UK[q].n}"><img src="${sedEnemyImg(q)}"></button>`).join('')}</div></div>`).join('')}<button id="sAddW">+ Wave</button>`; }
   else if (k === 'stage') h = `<h3>Stage ${SED.i + 1}<button data-x="1">Done</button></h3>
+    <div style="margin:2px 0 10px"><button id="sSend" class="pri" style="font-size:16px;padding:10px 16px">Send to Claude</button> <span id="sSendM" style="opacity:.8"></span><div style="opacity:.7;font-weight:500;margin-top:4px">Sends every stage to Claude so he can make them the game's own. Then just tell him in the chat.</div></div>
     <label>Name <input id="sNm" value="${(S.name || '').replace(/"/g, '&quot;')}"></label><label>Description <input id="sBl" value="${(S.blurb || '').replace(/"/g, '&quot;')}"></label>
     <label>Look <select id="sTh">${[['grass', 'Grassland'], ['wood', 'Dark forest'], ['fort', 'Fortress']].map(([v, n]) => `<option value="${v}" ${S.th === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
     <label>Enemy health × <input id="sMul" type="number" step="0.05" min="0.2" max="10" value="${S.mul || 1}"></label>
@@ -120,9 +121,27 @@ function sedSheet(k) { SED.sheet = k; const el = document.getElementById('sedShe
   if (k === 'stage') { $('sNm').onchange = e => chg(() => { S.name = e.target.value || 'Stage'; sedUI(); }); $('sBl').onchange = e => chg(() => S.blurb = e.target.value); $('sMul').onchange = e => chg(() => S.mul = cl(+e.target.value || 1, 0.2, 10));
     $('sTh').onchange = e => chg(() => { S.th = e.target.value; SKX.delete(S); SEDTH.clear(); sedUI(); });
     $('sNew').onclick = () => { const n = STAGES.length; STAGES.push(skGen({ id: 'st' + Date.now().toString(36), name: 'Stage ' + (n + 1), blurb: '', th: 'grass', mul: 1, mp: [10 + (n * 22) % 80, n % 2 ? 36 : 66], seed: Date.now() % 9999, start: [260, 400], props: 160, pts: [[200, 400, 140], [1700, 400, 150]], locks: [{ x: 1200, y: 400, w: 540, h: 300, wv: ['foot*4'] }] })); SED.i = n; SED.sel = null; SED.hist = []; sedSave(); sedSheet(''); sedUI(); sedFit(); };
+    $('sSend').onclick = () => sedSend();
     $('sCopy').onclick = () => { const j = JSON.stringify(STAGES); $('sedTa').value = j; $('sedTxt').style.display = 'flex'; $('sedTa').select(); try { navigator.clipboard.writeText(j); } catch (e) { } };
     $('sDelSt').onclick = () => { if (STAGES.length < 2) return; STAGES.splice(SED.i, 1); SED.i = Math.max(0, SED.i - 1); SED.hist = []; sedSave(); sedSheet(''); sedUI(); sedFit(); };
     $('sReset').onclick = () => { STAGES.length = 0; SEDDEF.forEach(j => STAGES.push(JSON.parse(j))); try { localStorage.removeItem('kn_stages2'); } catch (e) { } SED.i = 0; SED.hist = []; SED.sel = null; CPUI.last = ''; sedSheet(''); sedUI(); sedFit(); }; } }
+async function sedSend() { const m = document.getElementById('sSendM'), say = t => { if (m) m.textContent = t; }, sb = typeof getSB === 'function' && getSB();
+  if (!sb) return say('No connection: use Copy stage data instead.'); say('Sending…');
+  try { const { error } = await sb.from('kn_stage_drafts').insert({ author: String(myName || '').slice(0, 60), note: 'stages ' + STAGES.length, stages: STAGES }); say(error ? 'Failed: ' + (error.message || error) : 'Sent ' + STAGES.length + ' stages at ' + new Date().toLocaleTimeString() + '. Tell Claude!'); }
+  catch (e) { say('Failed: ' + e); } }
+// ---- keyboard: WASD / arrows pan, Q/E or -/= zoom ----
+const SEDKEY = new Set();
+addEventListener('keydown', e => { if (!SED.on) return; const tg = e.target, tn = tg && tg.tagName; if (tn === 'INPUT' || tn === 'TEXTAREA' || tn === 'SELECT') return; const k = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); document.getElementById(e.shiftKey ? 'sedRedo' : 'sedUndo').click(); return; }
+  if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); document.getElementById('sedRedo').click(); return; }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'q', 'e', '-', '=', '+', 'shift'].includes(k)) { SEDKEY.add(k); e.preventDefault(); e.stopImmediatePropagation(); SED.kt = SED.kt || performance.now(); } }, true);
+addEventListener('keyup', e => { SEDKEY.delete(e.key.toLowerCase()); if (SED.on) e.stopImmediatePropagation(); }, true);
+addEventListener('blur', () => SEDKEY.clear());
+function sedKeys() { const now = performance.now(), dt = Math.min(0.05, ((now - (SED.kt || now)) / 1000)); SED.kt = now; if (!SEDKEY.size) { SED.kt = 0; return; } const K = k => SEDKEY.has(k) ? 1 : 0;
+  const dx = K('d') + K('arrowright') - K('a') - K('arrowleft'), dy = K('s') + K('arrowdown') - K('w') - K('arrowup'), z = K('e') + K('=') + K('+') - K('q') - K('-');
+  const sp = 700 * (K('shift') ? 2.5 : 1) / SED.cam.s * dt; if (dx || dy) { const l = Math.hypot(dx, dy); SED.cam.x += dx / l * sp; SED.cam.y += dy / l * sp; SED.dirty = 1; }
+  if (z) { const cv2 = document.getElementById('sedCv'); if (cv2) sedZoomAt(cv2.clientWidth / 2, cv2.clientHeight / 2, Math.exp(z * 1.6 * dt)); } }
 // ---- camera ----
 function sedFit() { const S = sedS(), cv2 = document.getElementById('sedCv'); if (!S || !cv2) return; const W = cv2.clientWidth || 400, H = cv2.clientHeight || 400;
   // start zoomed on the start point, at roughly the game's own zoom
@@ -178,7 +197,7 @@ function sedUp(e) { SED.ptr.delete(e.pointerId); if (SED.ptr.size < 2) SED.pinch
 // ---- drawing: exactly what the game draws, plus the editing marks ----
 let sedGP = null;
 function sedDraw() { if (!SED.on) return; requestAnimationFrame(sedDraw); const cv2 = document.getElementById('sedCv'); if (!cv2) return; const dpr = Math.min(2, devicePixelRatio || 1), W = cv2.clientWidth, H = cv2.clientHeight;
-  if (cv2.width !== Math.round(W * dpr) || cv2.height !== Math.round(H * dpr)) { cv2.width = Math.round(W * dpr); cv2.height = Math.round(H * dpr); SED.dirty = 1; }
+  sedKeys(); if (cv2.width !== Math.round(W * dpr) || cv2.height !== Math.round(H * dpr)) { cv2.width = Math.round(W * dpr); cv2.height = Math.round(H * dpr); SED.dirty = 1; }
   if (!SED.dirty && !SED.pend) return; SED.dirty = 0; const c = cv2.getContext('2d'), S = sedS(), s = SED.cam.s, sel = SED.sel, px = 1 / s, t = performance.now() / 1000;
   c.setTransform(dpr, 0, 0, dpr, 0, 0); c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
   c.setTransform(dpr * s, 0, 0, dpr * s, dpr * (W / 2 - SED.cam.x * s), dpr * (H / 2 - SED.cam.y * s)); const [vx0, vy0] = sedW(0, 0), [vx1, vy1] = sedW(W, H);
