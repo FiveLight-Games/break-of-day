@@ -165,12 +165,13 @@ function cpFlood(S, li, str) { const L = S.L[li], sps = cpSPof(S).filter(q => q[
     CPQ.push([li, k, x, y, tp, t]); } } }
 function cpBegin(i) { const S = STAGES[i]; if (!S) return; Object.assign(CMP, { ph: 1, st: i, clrT: 0, lk: -1 }); CMP.E = (S.L || []).map(() => ({ s: 0, w: 0, t: 0 })); CPQ = [];
   walkers = []; HDEAD = []; parts = []; blood = []; splats = []; BUL.length = 0; CPHZ = []; CPFX = []; BH.over = 0; BH.go = 1;
-  LIVE().forEach((kn, j) => { const S0 = S.S || [200, 230], sx = S0[0] + (j % 2) * 26, sy = S0[1] + j * 14; kn.x = sx; kn.y = sy; kn._px = sx; kn._py = sy; kn.cpLk = -1; kn.T = { x: sx - HOME.x, y: sy - HOME.y }; Object.assign(kn, { rDn: 0, rRv: 0, rHp: kn.rHm || BHC.HP, rIv: 1 }); });
+  CMP.cs = -1; CMP.csD = []; CMP.csW = 0; CMP.won = 0; const PS = skPS(S); LIVE().forEach(kn => { const j = Math.max(0, KN.indexOf(kn)) % 4, sx = PS[j][0], sy = PS[j][1]; kn.x = sx; kn.y = sy; kn._px = sx; kn._py = sy; kn.cpLk = -1; kn.T = { x: sx - HOME.x, y: sy - HOME.y }; Object.assign(kn, { rDn: 0, rRv: 0, rHp: kn.rHm || BHC.HP, rIv: 1 }); });
   // placed enemies: those on a lock's screen belong to it; the rest stand about in groups (anyone within 70 of another is in its group)
   const U = (S.U || []).filter(u => UK[u[0]]), gid = U.map(() => -1); let g = 0;
   U.forEach((u, a) => { if (gid[a] >= 0) return; gid[a] = ++g; const st = [a]; while (st.length) { const b = st.pop(); U.forEach((v, c) => { if (gid[c] < 0 && Math.hypot(v[1] - U[b][1], v[2] - U[b][2]) < 70) { gid[c] = g; st.push(c); } }); } });
   U.forEach((u, a) => { const w = cpSpawn(u[0], u[1], u[2]); w.idle = 1; w.grp = gid[a]; const li = (S.L || []).findIndex(L => lkIn(L, u[1], u[2])); if (li >= 0) { w.lk = li; w.grp = 'L' + li; } });
-  camX = KN[ME].x; camY = KN[ME].y; const s0 = S.S || [260, 400]; for (let cy = Math.floor((s0[1] - 500) / SKCH); cy <= Math.floor((s0[1] + 500) / SKCH); cy++) for (let cx = Math.floor((s0[0] - 700) / SKCH); cx <= Math.floor((s0[0] + 900) / SKCH); cx++) skChunk(S, cx, cy); }
+  camX = KN[ME].x; camY = KN[ME].y; const s0 = S.S || [260, 400]; for (let cy = Math.floor((s0[1] - 500) / SKCH); cy <= Math.floor((s0[1] + 500) / SKCH); cy++) for (let cx = Math.floor((s0[0] - 700) / SKCH); cx <= Math.floor((s0[0] + 900) / SKCH); cx++) skChunk(S, cx, cy);
+  if (AUTH()) csTrig('start'); }
 function cpStep(dt) { if (!BH.cp) return; for (const f of CPFX) f.t += dt; CPFX = CPFX.filter(f => f.t < f.max);
   if (!AUTH() || CMP.ph !== 1) return; const S = cpS(), L = LIVE().filter(k => !k.rDn);
   // experience: every enemy killed by anyone, straight to the team
@@ -179,11 +180,11 @@ function cpStep(dt) { if (!BH.cp) return; for (const f of CPFX) f.t += dt; CPFX 
   // the flood: queued enemies step out of their spawn point (or in from the screen's edge) one after another
   for (const q of CPQ) q[5] -= dt; for (const q of CPQ) if (q[5] <= 0) { const w = cpSpawn(q[1], q[2], q[3]); w.lk = q[0]; w.idle = 0; cpEv(['s', w.x, w.y, CPSPK[q[4]] || 0]); } CPQ = CPQ.filter(q => q[5] > 0);
   (S.L || []).forEach((Lk, j) => { const st = CMP.E[j]; if (!st || st.s === 2) return;
-    if (st.s === 0) { if (CMP.lk < 0 && L.some(k => lkIn(Lk, k.x, k.y, Math.min(Lk.w, Lk.h) * 0.18))) { st.s = 1; st.w = 0; st.t = 0; CMP.lk = j; for (const w of walkers) if (w.lk === j) w.idle = 0; cpFlood(S, j, Lk.wv[0] || ''); note(Lk.boss && UK[Lk.boss] ? 'Boss: ' + UK[Lk.boss].n : 'Locked in!', 2.5); snd('roar', Lk.x, Lk.y); } return; }
+    if (st.s === 0) { if (CMP.lk < 0 && L.some(k => lkIn(Lk, k.x, k.y, Math.min(Lk.w, Lk.h) * 0.18))) { st.s = 1; st.w = 0; st.t = 0; CMP.lk = j; for (const w of walkers) if (w.lk === j) w.idle = 0; cpFlood(S, j, Lk.wv[0] || ''); note(Lk.boss && UK[Lk.boss] ? 'Boss: ' + UK[Lk.boss].n : 'Locked in!', 2.5); snd('roar', Lk.x, Lk.y); csTrig('lock', j); } return; }
     const alive = walkers.filter(w => w.lk === j && w.hp > 0).length, more = st.w + 1 < Lk.wv.length, queued = CPQ.some(q => q[0] === j);
     if (!queued && alive <= (more ? 2 : 0)) { st.t += dt; if (st.t > (alive ? 0.6 : 1.2)) { st.t = 0; if (more) { st.w++; cpFlood(S, j, Lk.wv[st.w]); } else { st.s = 2; CMP.lk = -1; snd('ult', Lk.x, Lk.y);
-      if (CMP.E.every(e => e.s === 2)) { CMP.ph = 2; cpSave({ done: CMP.done |= 1 << CMP.st, lvl: BH.lvl, xp: BH.xp }); } else note('GO!', 2); } } } else st.t = 0; });
-  if (!(S.L || []).length && !walkers.some(w => w.hp > 0)) { CMP.clrT += dt; if (CMP.clrT > 2) { CMP.ph = 2; cpSave({ done: CMP.done |= 1 << CMP.st, lvl: BH.lvl, xp: BH.xp }); } }
+      csTrig('clear', j); if (CMP.E.every(e => e.s === 2)) cpWin(); else note('GO!', 2); } } } else st.t = 0; });
+  if (!(S.L || []).length && !walkers.some(w => w.hp > 0)) { CMP.clrT += dt; if (CMP.clrT > 2 && !CMP.won) { CMP.won = 1; cpWin(); } }
   if (BH.over && CMP.ph === 1) CMP.ph = 3; }
 // keep everyone on the ground (sliding along its edge), out of solid props, and anyone on a locked screen on it
 function cpSlide(S, o, rad) { if (skWalk(S, o.x, o.y)) return; const px = o._px ?? o.x, py = o._py ?? o.y;
@@ -197,14 +198,14 @@ function cpClampW() { if (!BH.cp || CMP.ph !== 1) return; const S = cpS(); for (
 function cpCam(x, y, sc) { const K0 = KN[ME]; if (!BH.cp || CMP.ph !== 1 || !K0 || !(CMP.lk >= 0) || K0.cpLk !== CMP.lk) return [x, y]; const Lk = cpS().L[CMP.lk]; if (!Lk) return [x, y]; const hw = cv.width / 2 / sc, hh = cv.height / 2 / sc;
   return [Lk.w > hw * 2 ? cl(x, Lk.x - Lk.w / 2 + hw, Lk.x + Lk.w / 2 - hw) : Lk.x, Lk.h > hh * 2 ? cl(y, Lk.y - Lk.h / 2 + hh, Lk.y + Lk.h / 2 - hh) : Lk.y]; }
 // ---- sync ----
-const cpPack = () => BH.cp ? [CMP.ph, CMP.st, CMP.sel, CMP.done, CMP.E.map(e => e.s * 16 + e.w), CMP.lk] : undefined;
+const cpPack = () => BH.cp ? [CMP.ph, CMP.st, CMP.sel, CMP.done, CMP.E.map(e => e.s * 16 + e.w), CMP.lk, CMP.cs, CMP.cl] : undefined;
 const CPDEFJ = STAGES.map(s => JSON.stringify(s));
 let CPSYN = { h: '', n: 0 };
 // the stage being played (or picked) goes to guests when it changes and now and then for anyone who joined late; a built-in stage goes as a flag
 const cpStageSync = () => { if (!BH.cp) return; const i = CMP.ph === 0 ? CMP.sel : CMP.st, S = STAGES[i]; if (!S) return; const j = JSON.stringify(S), def = j === CPDEFJ[i];
   if (j !== CPSYN.h || ++CPSYN.n > (def ? 40 : 200)) { CPSYN.h = j; CPSYN.n = 0; return [i, def ? 0 : j, STAGES.length]; } };
 const cpTakeEv = () => { const e = CPE; CPE = []; return e.length ? e : undefined; };
-function cpApplySnap(S) { if (S.cp) { const [ph, st, sel, done, E, lk] = S.cp; if (ph === 2 && CMP.ph !== 2) cpSave({ done, lvl: BH.lvl, xp: BH.xp }); Object.assign(CMP, { ph, st, sel, done, lk: lk ?? -1 }); CMP.E = E.map(v => ({ s: v >> 4, w: v & 15, t: 0 })); } if (S.ce) for (const e of S.ce) cpFxAdd(e);
+function cpApplySnap(S) { if (S.cp) { const [ph, st, sel, done, E, lk, cs, clx] = S.cp; CMP.cs = cs ?? -1; CMP.cl = clx || 0; if (ph === 2 && CMP.ph !== 2) cpSave({ done, lvl: BH.lvl, xp: BH.xp }); Object.assign(CMP, { ph, st, sel, done, lk: lk ?? -1 }); CMP.E = E.map(v => ({ s: v >> 4, w: v & 15, t: 0 })); } if (S.ce) for (const e of S.ce) cpFxAdd(e);
   if (S.cs) { const [i, j, n] = S.cs; while (STAGES.length < n) STAGES.push(JSON.parse(CPDEFJ[0])); const want = j === 0 ? CPDEFJ[i] : j; if (want && JSON.stringify(STAGES[i]) !== want) { try { STAGES[i] = JSON.parse(want); CPUI.last = ''; } catch (e) { } } } }
 // ---- drawing ----
 function cpFloor(c, t) { if (!BH.cp || CMP.ph === 0) return; const S = cpS(), sc = CAM.s, vw = cv.width / sc, vh = cv.height / sc, vx = camX - vw / 2 - 20, vy = camY - vh / 2 - 20;
@@ -218,11 +219,7 @@ const cpPropDraw = (c, p) => skDrawProp(c, cpS(), p);
 // a locked screen: everything off it darkened, its edge marked; when no screen is locked an arrow points the way to the next one
 function cpLockDraw(c, t) { if (!BH.cp || CMP.ph !== 1) return; const S = cpS(), Lk = S.L && S.L[CMP.lk], me = KN[ME];
   if (Lk) { const x0 = Lk.x - Lk.w / 2, y0 = Lk.y - Lk.h / 2, p = 0.55 + 0.45 * Math.sin(t * 6); c.save(); c.fillStyle = 'rgba(6,5,4,.45)'; c.beginPath(); c.rect(x0 - 4000, y0 - 4000, Lk.w + 8000, Lk.h + 8000); c.rect(x0, y0, Lk.w, Lk.h); c.fill('evenodd');
-    c.strokeStyle = `rgba(255,${Lk.boss ? 70 : 150},60,${0.3 + 0.35 * p})`; c.lineWidth = 1.4; c.setLineDash([10, 6]); c.lineDashOffset = -t * 30; c.strokeRect(x0, y0, Lk.w, Lk.h); c.restore(); return; }
-  if (!me) return; const j = CMP.E.findIndex(e => e.s !== 2), N = S.L && S.L[j]; if (!N) return; const dx = N.x - me.x, dy = N.y - me.y, d = Math.hypot(dx, dy); if (d < 280) return;
-  const a = Math.atan2(dy, dx), r = 26 + Math.sin(t * 5) * 3; c.save(); c.translate(me.x + Math.cos(a) * r, me.y - 7 + Math.sin(a) * r * 0.7); c.globalAlpha = 0.85; c.fillStyle = '#ffd36a'; c.strokeStyle = '#3a2a10'; c.lineWidth = 0.6;
-  c.save(); c.rotate(a); c.beginPath(); c.moveTo(4, 0); c.lineTo(-2, -3.2); c.lineTo(-0.6, 0); c.lineTo(-2, 3.2); c.closePath(); c.fill(); c.stroke(); c.restore();
-  c.font = '800 4px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 0.8; c.strokeText('GO', -Math.cos(a) * 7, -Math.sin(a) * 6); c.fillText('GO', -Math.cos(a) * 7, -Math.sin(a) * 6); c.restore(); }
+    c.strokeStyle = `rgba(255,${Lk.boss ? 70 : 150},60,${0.3 + 0.35 * p})`; c.lineWidth = 1.4; c.setLineDash([10, 6]); c.lineDashOffset = -t * 30; c.strokeRect(x0, y0, Lk.w, Lk.h); c.restore(); return; } }
 const CPCOL = ['255,70,50', '255,230,140', '190,110,255', '255,170,40', '120,220,90'];
 function cpGround(c, t) { if (!BH.cp) return; c.save();
   for (const f of CPFX) { const e = f.e, k = e[0];
@@ -300,3 +297,92 @@ function cpInputs() { if (!AUTH()) return; for (const kn of LIVE()) { const ch =
     if ((kn.in.upN || 0) !== (kn.upSeen || 0)) { kn.upSeen = kn.in.upN || 0; if (cpCan(kn, kn.in.upC)) cpBuy(kn, kn.in.upC); } } }
 addEventListener('keydown', e => { if (!BH.on || !BH.cp || e.repeat) return; if (e.code === 'KeyT' || e.code === 'KeyK') { cpTreeUI(CPUI.open ? 0 : 1); } else if (e.code === 'Escape' && CPUI.open) cpTreeUI(0); });
 window.__cp = { CMP, STAGES, tp: (x, y) => { const k = KN[ME]; k.x = x; k.y = y; k.T = { x: x - HOME.x, y: y - HOME.y }; }, W: () => walkers.map(w => [w.k, Math.round(w.x), Math.round(w.y), w.ea ? w.ea.k : '', w.idle ? 1 : 0]), FX: () => CPFX.length, sp: (k, dx, dy) => { const m = KN[ME], w = cpSpawn(k, m.x + dx, m.y + dy); return w.id; }, begin: i => cpBegin(i), skip: all => { for (const w of walkers) if (all || w.lk !== undefined) { w.hp = 0; if (all) w.dead = 1; } } };
+// ---- cutscenes: black bars top and bottom, close-up portraits of whoever is talking, text in the bottom bar ----
+// stage field CS = [{tr: 'start'|'lock'|'clear'|'spot'|'end', i: lock index, x, y, r (spot), ln: [{w: speaker, s: 0 left / 1 right, n: name, t: text}]}]
+// speakers: 'p1'..'p4' (that player's character, line skipped if nobody's there), a character kind, an enemy kind, or 'narr' (no picture)
+const CSTR = [['start', 'Stage starts'], ['lock', 'Locked screen starts'], ['clear', 'Locked screen cleared'], ['spot', 'Someone reaches a spot'], ['end', 'Stage cleared']];
+const CSCH = ['knight', 'fire', 'priest', 'time', 'ninja', 'ogre', 'rooster', 'gi'];
+Object.assign(CMP, { cs: -1, cl: 0, csD: [], csW: 0 });
+const csSeat = w => /^p[1-4]$/.test(w) ? +w[1] - 1 : -1;
+const csHere = j => { const k = KN[j]; return !!k && LIVE().includes(k); };
+const csOk = l => { const j = csSeat(l.w); return j < 0 || csHere(j); };
+function csName(l) { if (l.n) return l.n; const j = csSeat(l.w); if (j >= 0) { const k = KN[j]; return (NET && NET.names && NET.names[j]) || (k && CNAME[k.kind || 'knight']) || 'Player ' + (j + 1); } if (l.w === 'narr') return ''; return CNAME[l.w] || (UK[l.w] && UK[l.w].n) || l.w; }
+// host: start the first not-yet-played cutscene for this trigger
+function csTrig(tr, i) { const S = cpS(), C = S && S.CS; if (!C || CMP.cs >= 0) return false; const k = C.findIndex((c, q) => !CMP.csD.includes(q) && c.tr === tr && (tr === 'start' || tr === 'end' || tr === 'spot' || (c.i | 0) === i) && (c.ln || []).some(csOk)); if (k < 0) return false;
+  CMP.csD.push(k); CMP.cs = k; CMP.cl = (C[k].ln || []).findIndex(csOk); CMP.csT = 0; for (const kn of LIVE()) kn.csSeen = kn.in.csN || 0; return true; }
+function csNext(skip) { const C = cpS().CS[CMP.cs], L = C ? C.ln || [] : []; let i = CMP.cl + 1; while (i < L.length && !csOk(L[i])) i++; CMP.csT = 0;
+  if (skip || i >= L.length) { CMP.cs = -1; const w = CMP.csW; CMP.csW = 0; if (w === 1) cpWinNow(); else if (w === 2) cpWin(); } else CMP.cl = i; }
+// stage won: an 'end' cutscene plays first
+function cpWin() { if (CMP.cs >= 0) { CMP.csW = 2; return; } if (csTrig('end')) CMP.csW = 1; else cpWinNow(); }
+function cpWinNow() { CMP.ph = 2; cpSave({ done: CMP.done |= 1 << CMP.st, lvl: BH.lvl, xp: BH.xp }); }
+// runs every frame in a campaign: host reads advance/skip presses; while one plays the game is paused for everyone
+function cpCutStep(dt) { if (AUTH() && CMP.ph === 1) { const S = cpS();
+    if (CMP.cs < 0 && S.CS) S.CS.forEach((c, q) => { if (c.tr === 'spot' && !CMP.csD.includes(q) && LIVE().some(k => !k.rDn && Math.hypot(k.x - c.x, k.y - c.y) < (c.r || 60))) csTrig('spot'); });
+    if (CMP.cs >= 0) { CMP.csT = (CMP.csT || 0) + dt; for (const kn of LIVE()) { if ((kn.in.csK || 0) !== (kn.csKS || 0)) { kn.csKS = kn.in.csK || 0; if (CMP.cs >= 0) csNext(1); }
+      if ((kn.in.csN || 0) !== (kn.csSeen || 0)) { kn.csSeen = kn.in.csN || 0; if (CMP.cs >= 0 && CMP.csT > 0.25) csNext(); } } } }
+  else if (CMP.ph !== 1 && AUTH()) CMP.cs = -1;
+  csUI(); return CMP.cs >= 0 && CMP.ph === 1; }
+// ---- portraits: the character or enemy drawn big, cropped to head and shoulders ----
+const CSPIC = new Map();
+// close-up crop per character: [centre x, top, height] in his own units from his feet, facing right
+const CSHEAD = { knight: [1, 17.5, 11], fire: [0, 23.5, 17], priest: [2.5, 24.5, 17], time: [0.5, 22, 13.5], ninja: [0.5, 14.5, 10], ogre: [0, 32, 20], rooster: [3, 20.5, 12], gi: [0.5, 15, 9] };
+function csPic(w, col, kind) { const j = csSeat(w); if (j >= 0) { const k = KN[j]; kind = kind || (k && k.kind) || 'knight'; col = col || (k && k.col) || KCOLS[j]; w = kind; } if (w === 'narr') return '';
+  const isCh = CSCH.includes(w), key = w + '|' + (isCh ? col || KCOLS[0] : ''); if (CSPIC.has(key)) return CSPIC.get(key);
+  const N = 520, cv0 = document.createElement('canvas'); cv0.width = cv0.height = N; const g = cv0.getContext('2d');
+  try { if (isCh) { const k0 = K, kn = mkKnight(0); Object.assign(kn, { col: col || KCOLS[0], kind: w, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, f: 1, x: 0, y: 0 });
+      if (w === 'fire') makeFire(kn); else if (w === 'priest') makePriest(kn); else if (w === 'time') makeTime(kn); else if (w === 'ninja') makeNinja(kn); else if (w === 'ogre') makeOgre(kn); else if (w === 'rooster') makeRooster(kn); else if (w === 'gi') makeGI(kn);
+      Object.assign(kn, { st: 'fight', u: 1, kn: 0, hold: 1, x: 0, y: 0, f: 1 }); if (w === 'priest') Object.assign(kn, { hx: 14, hy: 6, hz: 0 }); K = kn;
+      const H = CSHEAD[w] || CSHEAD.knight, S = 440 / H[2]; g.translate(N / 2 - H[0] * S, 30 + H[1] * S); g.scale(S, S);
+      if (w === 'fire') drawFire(g, 1.2); else if (w === 'priest') drawPriest(g, 1.2); else if (w === 'time') drawTime(g, 1.2); else if (w === 'ninja') drawNinja(g, 1.2); else if (w === 'rooster') drawRooster(g, 1.2); else if (w === 'gi') drawGIK(g, 1.2); else if (w === 'ogre') drawStormOgre(g, 1.2); else drawKnight(g, 1.2); K = k0; const o = document.createElement('canvas'), cw = H[2] * 1.05 * S; o.width = 300; o.height = Math.round(300 / 1.05); o.getContext('2d').drawImage(cv0, N / 2 - cw / 2, 30, cw, H[2] * S, 0, 0, o.width, o.height); const u = o.toDataURL(); CSPIC.set(key, u); return u; }
+    else if (UK[w]) { const U = UK[w], SB = U.sb || (['ogre', 'warg', 'naga', 'necro'].includes(w) ? SBB : SBS), s = N * 0.95 / Math.max(SB.w, SB.h); g.setTransform(s, 0, 0, s, N / 2 - (SB.x + SB.w / 2) * s, N / 2 - (SB.y + SB.h / 2) * s); NOHP = true; walkerLive(g, { x: 0, y: 0, k: w, ph: 0, hp: 1, max: 1, id: 1, atk: -1 }, 0, 1, -1, false); NOHP = false; } } catch (e) { NOHP = false; }
+  // crop: the top of the figure, centred on where its top rows are
+  const d = g.getImageData(0, 0, N, N).data; let x0 = N, y0 = N, x1 = -1, y1 = -1; for (let y = 0; y < N; y += 2) for (let x = 0; x < N; x += 2) if (d[(y * N + x) * 4 + 3] > 20) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  if (x1 < 0) { CSPIC.set(key, ''); return ''; }
+  // the head: the first row wide enough not to be a sword or a spear, and the middle of the band under it
+  const rowN = y => { let n = 0; for (let x = x0; x <= x1; x += 2) if (d[(y * N + x) * 4 + 3] > 20) n++; return n; }, need = Math.max(4, (x1 - x0) / 2 * 0.14); let hy = y0; while (hy < y1 && rowN(hy) < need) hy += 2;
+  const bh = y1 - hy, hh = Math.max(40, bh * (UK[w] && UK[w].heavy ? 0.6 : 0.48)); let sx = 0, sn = 0; for (let y = hy; y < hy + bh * 0.2; y += 2) { let rx = 0, rn = 0; for (let x = x0; x <= x1; x += 2) if (d[(y * N + x) * 4 + 3] > 20) { rx += x; rn++; } if (rn >= need) { sx += rx; sn += rn; } }
+  const cx = sn ? sx / sn : (x0 + x1) / 2, cw = hh * 1.05, o = document.createElement('canvas'); o.width = 300; o.height = Math.round(300 * (hh + bh * 0.08) / cw); y0 = hy - bh * 0.08;
+  o.getContext('2d').drawImage(cv0, cx - cw / 2, y0, cw, hh + bh * 0.08, 0, 0, o.width, o.height); const u = o.toDataURL(); CSPIC.set(key, u); return u; }
+// ---- the overlay (also used by the designer's preview) ----
+let CSV = { k: '', at: 0, local: null };
+function csCss() { if (document.getElementById('csCss')) return; const s = document.createElement('style'); s.id = 'csCss'; s.textContent = `
+#cpCut{position:fixed;inset:0;z-index:90;display:none;pointer-events:auto;font:600 16px system-ui,sans-serif;color:#f3ead2;user-select:none;-webkit-user-select:none;touch-action:none}
+body.csOn>*:not(canvas):not(#cpCut):not(script):not(style){visibility:hidden !important}
+#cpCut .bt,#cpCut .bb{position:absolute;left:0;right:0;background:#000;transition:height .45s ease}
+#cpCut .bt{top:0;height:0}#cpCut .bb{bottom:0;height:0}
+#cpCut.on .bt{height:min(13vh,90px)}#cpCut.on .bb{height:min(27vh,190px)}
+#cpCut .pt{position:absolute;bottom:min(27vh,190px);height:min(40vh,300px);max-width:42vw;object-fit:contain;object-position:bottom;transition:opacity .3s,transform .35s,filter .3s;opacity:0;filter:drop-shadow(0 0 10px rgba(0,0,0,.6))}
+#cpCut .pl{left:4vw;transform:translateX(-30px)}#cpCut .pr{right:4vw;transform:translateX(30px) scaleX(-1)}
+#cpCut .pt.in{opacity:1;transform:none}#cpCut .pr.in{transform:scaleX(-1)}#cpCut .pt.dim{filter:brightness(.38) drop-shadow(0 0 10px rgba(0,0,0,.6))}
+#cpCut .tb{position:absolute;bottom:0;left:0;right:0;height:min(27vh,190px);box-sizing:border-box;padding:12px max(18px,6vw) 10px;display:flex;flex-direction:column;gap:6px;opacity:0;transition:opacity .3s .2s}
+#cpCut.on .tb{opacity:1}#cpCut .nm{font:800 15px system-ui;letter-spacing:.06em;text-transform:uppercase;color:#ffd36a}#cpCut .nm.r{text-align:right}
+#cpCut .tx{font:600 clamp(15px,2.3vw,21px)/1.35 system-ui;white-space:pre-wrap;overflow:auto}
+#cpCut .ht{position:absolute;right:14px;bottom:8px;font:700 12px system-ui;opacity:.55}
+#cpCut .sk{position:absolute;top:10px;right:12px;font:800 13px system-ui;padding:7px 12px;border-radius:8px;border:1px solid #6a5a36;background:#1c1a10;color:#f3ead2;opacity:0;transition:opacity .3s .3s}#cpCut.on .sk{opacity:.85}`;
+  document.head.appendChild(s); }
+function csEl() { let el = document.getElementById('cpCut'); if (el) return el; csCss(); el = document.createElement('div'); el.id = 'cpCut';
+  el.innerHTML = `<div class="bt"></div><div class="bb"></div><img class="pt pl" alt=""><img class="pt pr" alt=""><div class="tb"><div class="nm"></div><div class="tx"></div></div><div class="ht">Tap to continue</div><button class="sk">Skip ▸▸</button>`;
+  document.body.appendChild(el); el.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); if (e.target.classList.contains('sk')) csSkip(); else csTap(); }); return el; }
+// what's showing: [lines, index] from the game or a local preview
+const csCur = () => { if (CSV.local) return [CSV.local.ln, CSV.local.i]; if (!BH.on || !BH.cp || CMP.ph !== 1 || !(CMP.cs >= 0)) return null; const C = cpS() && cpS().CS && cpS().CS[CMP.cs]; return C ? [C.ln || [], CMP.cl] : null; };
+function csUI() { const cur = csCur(), el = document.getElementById('cpCut') || (cur && csEl()); if (!el) return;
+  if (!cur || !cur[0][cur[1]]) { document.body.classList.remove('csOn'); if (el.classList.contains('on')) { el.classList.remove('on'); el.querySelectorAll('.pt').forEach(p => p.classList.remove('in')); setTimeout(() => { if (!el.classList.contains('on')) el.style.display = 'none'; }, 460); } CSV.k = ''; return; }
+  document.body.classList.toggle('csOn', !CSV.local);
+  const [L, i] = cur, l = L[i], key = (CSV.local ? 'L' : CMP.cs) + ':' + i; if (el.style.display !== 'block') { el.style.display = 'block'; void el.offsetWidth; } el.classList.add('on');
+  if (CSV.k !== key) { CSV.k = key; CSV.at = performance.now();
+    // each side shows the last speaker on it; the one talking now is lit, the other dimmed
+    for (const sd of [0, 1]) { let q = -1; for (let z = i; z >= 0; z--) if ((L[z].s | 0) === sd && L[z].w !== 'narr' && (CSV.local || csOk(L[z]))) { q = z; break; } const im = el.querySelector(sd ? '.pr' : '.pl');
+      if (q < 0) { im.classList.remove('in'); continue; } const src = csPic(L[q].w, CSV.local && CSV.local.col, CSV.local && csSeat(L[q].w) >= 0 ? CSV.local.kinds[csSeat(L[q].w)] : undefined); if (src && im.getAttribute('src') !== src) im.src = src; im.classList.toggle('in', !!src); im.classList.toggle('dim', q !== i); }
+    const nm = el.querySelector('.nm'); nm.textContent = CSV.local && csSeat(l.w) >= 0 && !l.n ? CNAME[CSV.local.kinds[csSeat(l.w)]] : csName(l); nm.classList.toggle('r', (l.s | 0) === 1); }
+  const n = Math.floor((performance.now() - CSV.at) / 1000 * 45), tx = el.querySelector('.tx'), s = l.t || ''; CSV.done = n >= s.length; const v = s.slice(0, n); if (tx.textContent !== v) tx.textContent = v; }
+function csTap() { if (!CSV.done) { CSV.at = -1e9; return; } if (CSV.local) { const L = CSV.local; L.i++; if (L.i >= L.ln.length) csSkip(); return; }
+  if (performance.now() - (CSV.tap || 0) < 200) return; CSV.tap = performance.now(); const me = KN[ME]; me.in.csN = (me.in.csN || 0) + 1; if (NET) NET.inDirty = 1; }
+function csSkip() { if (CSV.local) { CSV.local = null; csUI(); if (CSV.lt) cancelAnimationFrame(CSV.lt); return; } const me = KN[ME]; me.in.csK = (me.in.csK || 0) + 1; if (NET) NET.inDirty = 1; }
+addEventListener('keydown', e => { if (!csCur()) return; if (e.target && e.target.closest && e.target.closest('input,textarea,select')) return; if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); if (!e.repeat) csTap(); } else if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); csSkip(); } }, true);
+// the designer's preview: plays a cutscene locally; players 1-4 shown as you and three other characters
+function csPreview(C) { const ln = (C.ln || []).filter(l => l.t || l.w); if (!ln.length) return; CSV.local = { ln, i: 0, col: MYCOL || KCOLS[0], kinds: [CHAR || 'knight', 'fire', 'priest', 'time'] }; CSV.k = ''; const loop = () => { if (!CSV.local) return; csUI(); CSV.lt = requestAnimationFrame(loop); }; loop(); }
+window.__cs = { pic: csPic, preview: csPreview, grid: () => { const c = document.createElement('canvas'); c.width = 1600; c.height = 400; const g = c.getContext('2d'); g.fillStyle = '#444'; g.fillRect(0, 0, 1600, 400); const k0 = K;
+  CSCH.forEach((w, i) => { g.save(); g.translate(100 + i * 200, 360); g.strokeStyle = '#888'; g.lineWidth = 1; g.font = '10px sans-serif'; g.fillStyle = '#fff'; for (let y = 0; y <= 60; y += 5) { g.beginPath(); g.moveTo(-90, -y * 5); g.lineTo(90, -y * 5); g.stroke(); if (y % 10 === 0) g.fillText(y, -90, -y * 5 - 1); } for (let x = -15; x <= 15; x += 5) { g.beginPath(); g.moveTo(x * 5, 0); g.lineTo(x * 5, -300); g.stroke(); }
+    const kn = mkKnight(0); Object.assign(kn, { col: '#3a7bd5', kind: w, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, f: 1, x: 0, y: 0 }); if (w === 'fire') makeFire(kn); else if (w === 'priest') makePriest(kn); else if (w === 'time') makeTime(kn); else if (w === 'ninja') makeNinja(kn); else if (w === 'ogre') makeOgre(kn); else if (w === 'rooster') makeRooster(kn); else if (w === 'gi') makeGI(kn);
+    Object.assign(kn, { st: 'fight', u: 1, kn: 0, hold: 1, x: 0, y: 0, f: 1 }); if (w === 'priest') Object.assign(kn, { hx: 14, hy: 6, hz: 0 }); K = kn; g.scale(5, 5);
+    try { if (w === 'fire') drawFire(g, 1.2); else if (w === 'priest') drawPriest(g, 1.2); else if (w === 'time') drawTime(g, 1.2); else if (w === 'ninja') drawNinja(g, 1.2); else if (w === 'rooster') drawRooster(g, 1.2); else if (w === 'gi') drawGIK(g, 1.2); else if (w === 'ogre') drawStormOgre(g, 1.2); else drawKnight(g, 1.2); } catch (e) { } g.restore(); g.fillStyle = '#ff0'; g.fillText(w, 60 + i * 200, 390); }); K = k0; return c.toDataURL(); } };

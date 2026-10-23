@@ -115,7 +115,7 @@ function bhSpawn(dt) { if (!BH.go || BH.over || !AUTH()) return; const L = LIVE(
 // ---- the run's clock, experience, level-ups, revives, game over (host); the pause while anyone picks a card ----
 function bhStep0(dt, t) { if (!BH.on) return false;
   bhGate(KN[ME]);
-  if (BH.cp) { cpInputs(); bhUI(); cpUI(); return false; }
+  if (BH.cp) { cpInputs(); bhUI(); cpUI(); if (cpCutStep(dt)) { netTick(dt, t); return true; } return false; }
   if (AUTH()) { for (const kn of LIVE()) { if ((kn.in.upN || 0) !== (kn.upSeen || 0)) { kn.upSeen = kn.in.upN || 0; const id = kn.in.upC; if (kn.rPk > 0 && bhValid(kn, id)) bhApply(kn, id); }
       if (kn.rPk > 0) { kn.pkT = (kn.pkT || 0) + dt; if (kn.pkT > BHC.AUTO) { const c = bhRoll(kn, 1)[0]; if (c) bhApply(kn, c[0]); else kn.rPk = 0; } } }
     BH.pause = LIVE().some(k => k.rPk > 0) ? 1 : 0; }

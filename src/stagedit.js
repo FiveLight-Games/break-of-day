@@ -50,7 +50,7 @@ function sedOpen(i) { sedCss(); SED.on = 1; SED.i = cl(i | 0, 0, STAGES.length -
     el.innerHTML = `<div class="bar"><select id="sedSt"></select><button id="sedUndo">↶</button><button id="sedRedo">↷</button><button class="pri" id="sedPlay">▶ Play</button><button id="sedMenu">⋯</button><button id="sedClose">✕</button></div>
       <div class="cvw"><canvas id="sedCv"></canvas><div class="hint" id="sedHint"></div><div id="sedSel"></div><div id="sedSheet" class="scrollOk"></div><div id="sedTxt"><b>Stage data: copy all of this and paste it to Claude</b><textarea id="sedTa" readonly></textarea><button id="sedTxC">Close</button></div></div>
       <div class="pal scrollOk" id="sedPal"></div>
-      <div class="tools scrollOk">${[['move', 'Move'], ['ground', 'Ground'], ['prop', 'Props'], ['enemy', 'Enemies'], ['lock', 'Locks'], ['spawn', 'Spawns'], ['start', 'Start']].map(([k, n]) => `<button data-t="${k}">${n}</button>`).join('')}</div>`;
+      <div class="tools scrollOk">${[['move', 'Move'], ['ground', 'Ground'], ['prop', 'Props'], ['enemy', 'Enemies'], ['lock', 'Locks'], ['spawn', 'Spawns'], ['start', 'Players'], ['cut', 'Cutscenes']].map(([k, n]) => `<button data-t="${k}">${n}</button>`).join('')}</div>`;
     const $ = id => document.getElementById(id);
     $('sedSt').onchange = e => { SED.i = +e.target.value; SED.sel = null; SED.hist = []; SED.fut = []; sedSheet(''); sedFit(); sedUI(); };
     $('sedUndo').onclick = () => { if (!SED.hist.length) return; SED.fut.push(JSON.stringify(sedS())); STAGES[SED.i] = JSON.parse(SED.hist.pop()); SED.sel = null; sedDone(); sedSheet(SED.sheet); };
@@ -65,7 +65,7 @@ function sedClose() { SED.on = 0; const el = document.getElementById('sed'); if 
 function sedPlay() { const i = SED.i; sedClose();
   if (BH.on && BH.cp) { if (AUTH()) { CMP.sel = i; cpBegin(i); } return; }
   BHMODE = 'camp'; try { localStorage.setItem('kn_mode', 'camp'); } catch (e) { } startGame(1, 0); setTimeout(() => { if (BH.cp) { CMP.sel = i; cpBegin(i); } }, 80); }
-const SEDTIP = { move: 'Tap anything to select it, drag it to move it · drag empty ground or use two fingers to pan · pinch to zoom', ground: 'Paint the ground with one finger · Void = where nobody can walk', prop: 'Tap to place · tap a prop to select it · Brush: drag to scatter', enemy: 'Tap to place enemies · they stand about until someone comes near', lock: 'Tap to add a locked screen · drag its corners to size it · Waves… to choose who floods in', spawn: 'Tap to place a spawn point: the flood comes out of these (and the screen edges)', start: 'Tap where the players start' };
+const SEDTIP = { move: 'Tap anything to select it, drag it to move it · drag empty ground or use two fingers to pan · pinch to zoom', ground: 'Paint the ground with one finger · Void = where nobody can walk', prop: 'Tap to place · tap a prop to select it · Brush: drag to scatter', enemy: 'Tap to place enemies · they stand about until someone comes near', lock: 'Tap to add a locked screen · drag its corners to size it · Waves… to choose who floods in', spawn: 'Tap to place a spawn point: the flood comes out of these (and the screen edges)', start: 'Drag a stone to move that player\'s spawn · tap empty ground to move all four there', cut: 'Cutscenes play when something happens in the stage · a "spot" one plays when someone walks into its circle (drag it)' };
 function sedUI() { const $ = id => document.getElementById(id); document.querySelectorAll('#sed [data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === SED.tool)); $('sedHint').textContent = SED.sel ? '' : SEDTIP[SED.tool];
   $('sedSt').innerHTML = STAGES.map((s, i) => `<option value="${i}" ${i === SED.i ? 'selected' : ''}>${i + 1}. ${s.name}</option>`).join('');
   const P = $('sedPal'), T = SED.tool, it = (key, img, n, on) => `<button class="it ${on ? 'on' : ''}" data-k="${key}"><img src="${img}" alt="">${n}</button>`; let h = '';
@@ -74,13 +74,16 @@ function sedUI() { const $ = id => document.getElementById(id); document.querySe
   else if (T === 'enemy') h = [1, 3, 5].map(n => `<button class="it ${SED.cnt === n ? 'on' : ''}" data-c="${n}" style="width:40px">×${n}</button>`).join('') + SEDK().map(k => it('e' + k, sedEnemyImg(k), UK[k].n, SED.enemy === k)).join('');
   else if (T === 'spawn') h = Object.entries(SEDSP).map(([k, [n, col]]) => `<button class="it ${SED.spawn === k ? 'on' : ''}" data-s="${k}"><span style="width:22px;height:22px;border-radius:50%;background:${col};display:block"></span>${n}</button>`).join('') + '<span class="lbl">Each feeds the nearest locked screen</span>';
   else if (T === 'lock') h = `<span class="lbl">${(sedS().L || []).length} locked screens · the stage is won when every one is cleared</span>`;
-  else if (T === 'start') h = '<span class="lbl">The players\' stones stand here when the stage begins</span>';
+  else if (T === 'start') h = '<span class="lbl">Players 1-4 start at these stones · with fewer players the higher numbers stay empty</span>';
+  else if (T === 'cut') h = `<button class="it" data-cn="1" style="width:86px">+ Cutscene</button>` + (sedS().CS || []).map((c, i) => `<button class="it" data-ci="${i}" style="width:auto;min-width:110px;padding:6px 10px;text-align:left"><b>🎬 ${i + 1}</b> ${sedCsWhen(c)}<br><small style="opacity:.7">${(c.ln || []).length} lines</small></button>`).join('');
   else h = `<span class="lbl">${sedS().name} · ${(sedS().U || []).length} enemies placed · ${(sedS().O || []).length} props</span>`;
   P.innerHTML = h;
   P.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { const k = b.dataset.k, v = k.slice(1); if (k[0] === 'g') SED.paint = +v; else if (k[0] === 'p') SED.prop = v; else if (k[0] === 'e') { SED.enemy = v; const s2 = SED.sel; if (s2 && s2.t === 'enemy') { sedPush(); sedS().U[s2.i][0] = v; sedDone(); } } sedUI(); });
   P.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { SED.brush = +b.dataset.b; sedUI(); });
   P.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { SED.cnt = +b.dataset.c; sedUI(); });
   P.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { SED.spawn = b.dataset.s; const s2 = SED.sel; if (s2 && s2.t === 'spawn') { sedPush(); sedS().SP[s2.i][0] = SED.spawn; sedDone(); } sedUI(); });
+  P.querySelectorAll('[data-cn]').forEach(b => b.onclick = () => { sedPush(); const S = sedS(); S.CS = S.CS || []; S.CS.push({ tr: 'start', i: 0, ln: [{ w: 'p1', s: 0, t: '' }] }); sedDone(); SED.ci = S.CS.length - 1; sedSheet('cut'); });
+  P.querySelectorAll('[data-ci]').forEach(b => b.onclick = () => { SED.ci = +b.dataset.ci; sedSheet('cut'); });
   P.querySelectorAll('[data-pb]').forEach(b => b.onclick = () => { SED.pbrush = SED.pbrush ? 0 : 1; sedUI(); });
   sedSelBar(); SED.dirty = 1; }
 // the bar for whatever is selected
@@ -90,9 +93,10 @@ function sedSelBar() { const el = document.getElementById('sedSel'); if (!el) re
   else if (sel.t === 'enemy') { const u = S.U[sel.i]; if (!u) { SED.sel = null; return sedSelBar(); } t = UK[u[0]].n + ' <small style="opacity:.7">(tap one below to swap)</small>'; b = '<button data-a="del">Delete</button>'; }
   else if (sel.t === 'lock') { const L = S.L[sel.i]; if (!L) { SED.sel = null; return sedSelBar(); } t = 'Locked screen ' + (sel.i + 1); b = '<button data-a="waves" class="pri">Waves…</button><button data-a="del">Delete</button>'; }
   else if (sel.t === 'spawn') { const q = S.SP[sel.i]; if (!q) { SED.sel = null; return sedSelBar(); } t = 'Spawn: ' + SEDSP[q[0]][0]; b = '<button data-a="del">Delete</button>'; }
-  else if (sel.t === 'start') { t = 'Start'; }
+  else if (sel.t === 'pst') { t = 'Player ' + (sel.i + 1) + ' spawn'; }
+  else if (sel.t === 'cut') { t = '🎬 Cutscene ' + (sel.i + 1) + ' spot'; b = '<button data-a="cut" class="pri">Edit…</button>'; }
   el.innerHTML = `<b>${t}</b>${b}<button data-a="x">✕</button>`; el.style.display = 'flex';
-  el.querySelectorAll('[data-a]').forEach(q => q.onclick = () => { const a = q.dataset.a; if (a === 'x') { SED.sel = null; sedSelBar(); SED.dirty = 1; return; } if (a === 'waves') { sedSheet('waves'); return; }
+  el.querySelectorAll('[data-a]').forEach(q => q.onclick = () => { const a = q.dataset.a; if (a === 'x') { SED.sel = null; sedSelBar(); SED.dirty = 1; return; } if (a === 'waves') { sedSheet('waves'); return; } if (a === 'cut') { SED.ci = sel.i; sedSheet('cut'); return; }
     sedPush(); if (sel.t === 'prop') { const p = S.O[sel.i]; if (a === 'flip') p[4] = p[4] ? 0 : 1; if (a === 'small') p[3] = Math.max(0.4, Math.round(((p[3] || 1) - 0.1) * 10) / 10); if (a === 'big') p[3] = Math.min(3, Math.round(((p[3] || 1) + 0.1) * 10) / 10); if (a === 'var') p[5] = ((p[5] || 0) + 1) % 3; }
     if (a === 'del') { ({ prop: S.O, enemy: S.U, lock: S.L, spawn: S.SP })[sel.t].splice(sel.i, 1); SED.sel = null; sedSheet(''); }
     sedDone(); }); }
@@ -104,6 +108,21 @@ function sedSheet(k) { SED.sheet = k; const el = document.getElementById('sedShe
       <label>Boss <select id="sBoss"><option value="">None</option>${SEDK().map(q => `<option value="${q}" ${L.boss === q ? 'selected' : ''}>${UK[q].n}</option>`).join('')}</select></label>
       ${W.map((Lw, wi) => `<div class="wv"><b><span>Wave ${wi + 1}</span>${W.length > 1 ? `<button data-dw="${wi}">Remove</button>` : ''}</b>${Lw.map(([q, n], ei) => `<div class="en"><img src="${sedEnemyImg(q)}"><span>${(UK[q] || { n: q }).n}</span><button data-w="${wi}" data-e="${ei}" data-d="-1">−</button><b style="min-width:22px;text-align:center">${n}</b><button data-w="${wi}" data-e="${ei}" data-d="1">+</button><button data-w="${wi}" data-e="${ei}" data-d="x">✕</button></div>`).join('')}
         <div class="add">${SEDK().map(q => `<button data-aw="${wi}" data-q="${q}" title="${UK[q].n}"><img src="${sedEnemyImg(q)}"></button>`).join('')}</div></div>`).join('')}<button id="sAddW">+ Wave</button>`; }
+  else if (k === 'cut') { const C = (S.CS || [])[SED.ci]; if (!C) { el.style.display = 'none'; SED.sheet = ''; return; }
+    const lk = (S.L || []).map((L, i) => `<option value="${i}" ${(C.i | 0) === i ? 'selected' : ''}>Locked screen ${i + 1}${L.boss && UK[L.boss] ? ' (boss ' + UK[L.boss].n + ')' : ''}</option>`).join('');
+    const who = w => `<optgroup label="Players (whoever plays them)">${[1, 2, 3, 4].map(n => `<option value="p${n}" ${w === 'p' + n ? 'selected' : ''}>Player ${n}</option>`).join('')}</optgroup><optgroup label="Characters">${CSCH.map(q => `<option value="${q}" ${w === q ? 'selected' : ''}>${CNAME[q] || q}</option>`).join('')}</optgroup><optgroup label="Enemies">${SEDK().map(q => `<option value="${q}" ${w === q ? 'selected' : ''}>${UK[q].n}</option>`).join('')}</optgroup><option value="narr" ${w === 'narr' ? 'selected' : ''}>Narrator (no picture)</option>`;
+    const esc = v => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    h = `<h3>🎬 Cutscene ${SED.ci + 1}<span style="display:flex;gap:6px"><button id="cPrev" class="pri">▶ Preview</button><button data-x="1">Done</button></span></h3>
+      <label>Plays when <select id="cTr">${CSTR.map(([v, n]) => `<option value="${v}" ${C.tr === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+      ${C.tr === 'lock' || C.tr === 'clear' ? `<label>Which <select id="cLk">${lk || '<option>No locked screens yet</option>'}</select></label>` : ''}
+      ${C.tr === 'spot' ? `<label>Circle size <input id="cR" type="number" min="15" max="400" step="5" value="${C.r || 60}"></label><div style="opacity:.7;font-weight:500">Drag its 🎬 circle on the map (Cutscenes tool) to place it.</div>` : ''}
+      <div style="opacity:.7;font-weight:500;margin:4px 0">The game pauses while it plays. Anyone can tap to go on or skip it.</div>
+      ${(C.ln || []).map((l, i) => `<div class="wv cl"><b><span style="display:flex;align-items:center;gap:6px">${l.w !== 'narr' ? `<img src="${csPic(l.w, csSeat(l.w) > 0 ? KCOLS[csSeat(l.w)] : (MYCOL || KCOLS[0]), csSeat(l.w) >= 0 ? [CHAR || 'knight', 'fire', 'priest', 'time'][csSeat(l.w)] : undefined)}" style="width:40px;height:40px;object-fit:contain;${l.s ? 'transform:scaleX(-1)' : ''}">` : ''}Line ${i + 1}</span><span style="display:flex;gap:4px"><button data-lu="${i}">▲</button><button data-ld="${i}">▼</button><button data-lx="${i}">✕</button></span></b>
+        <label>Who <select data-lw="${i}">${who(l.w)}</select></label>
+        <label>Side <span style="display:flex;gap:4px"><button data-ls="${i}" data-v="0" class="${l.s ? '' : 'on'}">Left</button><button data-ls="${i}" data-v="1" class="${l.s ? 'on' : ''}">Right</button></span></label>
+        <label>Name <input data-ln="${i}" placeholder="${esc(csSeat(l.w) >= 0 ? 'their own name' : l.w === 'narr' ? '(none)' : (CNAME[l.w] || (UK[l.w] && UK[l.w].n) || ''))}" value="${esc(l.n)}"></label>
+        <textarea data-lt="${i}" rows="2" style="width:100%;box-sizing:border-box;font:600 14px system-ui;border-radius:9px;background:#0d110b;color:#f3ead2;border:1px solid #6a5a36;padding:7px" placeholder="What they say">${esc(l.t)}</textarea></div>`).join('')}
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><button id="cAdd">+ Line</button><button id="cDel">Delete cutscene</button></div>`; }
   else if (k === 'stage') h = `<h3>Stage ${SED.i + 1}<button data-x="1">Done</button></h3>
     <div style="margin:2px 0 10px"><button id="sSend" class="pri" style="font-size:16px;padding:10px 16px">Send to Claude</button> <span id="sSendM" style="opacity:.8"></span><div style="opacity:.7;font-weight:500;margin-top:4px">Sends every stage to Claude so he can make them the game's own. Then just tell him in the chat.</div></div>
     <label>Name <input id="sNm" value="${(S.name || '').replace(/"/g, '&quot;')}"></label><label>Description <input id="sBl" value="${(S.blurb || '').replace(/"/g, '&quot;')}"></label>
@@ -118,6 +137,20 @@ function sedSheet(k) { SED.sheet = k; const el = document.getElementById('sedShe
     el.querySelectorAll('[data-dw]').forEach(b => b.onclick = () => chg(() => { W.splice(+b.dataset.dw, 1); put(); }));
     el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => chg(() => { const Lw = W[+b.dataset.w], i = +b.dataset.e; if (b.dataset.d === 'x') Lw.splice(i, 1); else Lw[i][1] = cl(Lw[i][1] + +b.dataset.d, 1, 60); put(); }));
     el.querySelectorAll('[data-aw]').forEach(b => b.onclick = () => chg(() => { const Lw = W[+b.dataset.aw], q = b.dataset.q, f = Lw.find(z => z[0] === q); if (f) f[1]++; else Lw.push([q, UK[q].heavy ? 1 : 3]); put(); })); }
+  if (k === 'cut') { const C = S.CS[SED.ci], L = C.ln = C.ln || [];
+    $('cPrev').onclick = () => { const a = document.activeElement; if (a && a.blur) a.blur(); setTimeout(() => csPreview(S.CS[SED.ci]), 0); };
+    $('cTr').onchange = e => chg(() => { C.tr = e.target.value; if (C.tr === 'spot' && C.x === undefined) { C.x = Math.round(SED.cam.x); C.y = Math.round(SED.cam.y); C.r = 60; } });
+    if ($('cLk')) $('cLk').onchange = e => chg(() => C.i = +e.target.value || 0); if ($('cR')) $('cR').onchange = e => chg(() => C.r = cl(+e.target.value || 60, 15, 400));
+    $('cAdd').onclick = () => chg(() => { const p = L[L.length - 1]; L.push({ w: p ? (p.w === 'p1' ? 'p2' : 'p1') : 'p1', s: p ? 1 - (p.s | 0) : 0, t: '' }); });
+    $('cDel').onclick = () => { sedPush(); S.CS.splice(SED.ci, 1); if (!S.CS.length) delete S.CS; sedDone(); sedSheet(''); sedUI(); };
+    el.querySelectorAll('[data-lu]').forEach(b => b.onclick = () => chg(() => { const i = +b.dataset.lu; if (i > 0) [L[i - 1], L[i]] = [L[i], L[i - 1]]; }));
+    el.querySelectorAll('[data-ld]').forEach(b => b.onclick = () => chg(() => { const i = +b.dataset.ld; if (i < L.length - 1) [L[i + 1], L[i]] = [L[i], L[i + 1]]; }));
+    el.querySelectorAll('[data-lx]').forEach(b => b.onclick = () => chg(() => L.splice(+b.dataset.lx, 1)));
+    el.querySelectorAll('[data-lw]').forEach(b => b.onchange = e => chg(() => L[+b.dataset.lw].w = e.target.value));
+    el.querySelectorAll('[data-ls]').forEach(b => b.onclick = () => chg(() => L[+b.dataset.ls].s = +b.dataset.v));
+    // typing edits the line in place (no redraw of the sheet, so the next tap isn't lost)
+    el.querySelectorAll('[data-ln],[data-lt]').forEach(b => { b.onfocus = () => sedPush(); b.onchange = () => { sedDone(); sedUI(); };
+      b.oninput = e => { const l = L[+(b.dataset.ln ?? b.dataset.lt)]; if (b.dataset.lt !== undefined) l.t = e.target.value.slice(0, 400); else { const v = e.target.value.slice(0, 40); if (v) l.n = v; else delete l.n; } }; }); }
   if (k === 'stage') { $('sNm').onchange = e => chg(() => { S.name = e.target.value || 'Stage'; sedUI(); }); $('sBl').onchange = e => chg(() => S.blurb = e.target.value); $('sMul').onchange = e => chg(() => S.mul = cl(+e.target.value || 1, 0.2, 10));
     $('sTh').onchange = e => chg(() => { S.th = e.target.value; SKX.delete(S); SEDTH.clear(); sedUI(); });
     $('sNew').onclick = () => { const n = STAGES.length; STAGES.push(skGen({ id: 'st' + Date.now().toString(36), name: 'Stage ' + (n + 1), blurb: '', th: 'grass', mul: 1, mp: [10 + (n * 22) % 80, n % 2 ? 36 : 66], seed: Date.now() % 9999, start: [260, 400], props: 160, pts: [[200, 400, 140], [1700, 400, 150]], locks: [{ x: 1200, y: 400, w: 540, h: 300, wv: ['foot*4'] }] })); SED.i = n; SED.sel = null; SED.hist = []; sedSave(); sedSheet(''); sedUI(); sedFit(); };
@@ -142,6 +175,7 @@ function sedKeys() { const now = performance.now(), dt = Math.min(0.05, ((now - 
   const dx = K('d') + K('arrowright') - K('a') - K('arrowleft'), dy = K('s') + K('arrowdown') - K('w') - K('arrowup'), z = K('e') + K('=') + K('+') - K('q') - K('-');
   const sp = 700 * (K('shift') ? 2.5 : 1) / SED.cam.s * dt; if (dx || dy) { const l = Math.hypot(dx, dy); SED.cam.x += dx / l * sp; SED.cam.y += dy / l * sp; SED.dirty = 1; }
   if (z) { const cv2 = document.getElementById('sedCv'); if (cv2) sedZoomAt(cv2.clientWidth / 2, cv2.clientHeight / 2, Math.exp(z * 1.6 * dt)); } }
+const sedCsWhen = c => c.tr === 'lock' ? 'Lock ' + ((c.i | 0) + 1) + ' starts' : c.tr === 'clear' ? 'Lock ' + ((c.i | 0) + 1) + ' cleared' : (CSTR.find(q => q[0] === c.tr) || ['', c.tr])[1];
 // ---- camera ----
 function sedFit() { const S = sedS(), cv2 = document.getElementById('sedCv'); if (!S || !cv2) return; const W = cv2.clientWidth || 400, H = cv2.clientHeight || 400;
   // start zoomed on the start point, at roughly the game's own zoom
@@ -155,7 +189,8 @@ function sedPick(sx, sy, only) { const S = sedS(), [wx, wy] = sedW(sx, sy), px =
   if (ok('spawn')) for (let i = (S.SP || []).length - 1; i >= 0; i--) if (Math.hypot(S.SP[i][1] - wx, S.SP[i][2] - wy) < Math.max(9, 16 * px)) return { t: 'spawn', i };
   if (ok('enemy')) { let b = null, bd = 1e9; (S.U || []).forEach((u, i) => { const U = UK[u[0]]; if (!U) return; const sc = U.sc || 1, d = Math.hypot(u[1] - wx, (u[2] - 5 * sc - wy) * 0.7); if (d < Math.max(7 * sc, 14 * px) && d < bd) { bd = d; b = { t: 'enemy', i }; } }); if (b) return b; }
   if (ok('prop')) { let b = null, by = -1e9; (S.O || []).forEach((p, i) => { const P = SKP[p[0]]; if (!P) return; const s = p[3] || 1; if (Math.abs(wx - p[1]) < Math.max(P.w * s * 0.42, 8 * px) && wy < p[2] + 4 && wy > p[2] - Math.max(P.h * s * 0.9, 10 * px) && p[2] > by) { by = p[2]; b = { t: 'prop', i }; } }); if (b) return b; }
-  if (ok('start') && S.S && Math.hypot(S.S[0] - wx, S.S[1] - 6 - wy) < Math.max(10, 18 * px)) return { t: 'start' };
+  if (ok('start')) { const PS = skPS(S); for (let j = 3; j >= 0; j--) if (Math.hypot(PS[j][0] - wx, PS[j][1] - 6 - wy) < Math.max(9, 16 * px)) return { t: 'pst', i: j }; }
+  if (ok('cut')) for (let i = (S.CS || []).length - 1; i >= 0; i--) { const c = S.CS[i]; if (c.tr === 'spot' && Math.hypot(c.x - wx, c.y - wy) < Math.max(12, 20 * px)) return { t: 'cut', i }; }
   if (ok('lock')) for (let i = (S.L || []).length - 1; i >= 0; i--) if (lkIn(S.L[i], wx, wy)) return { t: 'lock', i };
   return null; }
 // ---- pointer handling: one finger = the tool, two fingers = pan + zoom (also right/middle mouse drag to pan) ----
@@ -163,18 +198,18 @@ function sedDown(e) { const cv2 = e.target; try { cv2.setPointerCapture(e.pointe
   if (SED.ptr.size === 2) { if (SED.drag && SED.drag.pushed === 0 && SED.drag.k !== 'pan') SED.hist.pop(); if (SED.drag && SED.drag.k === 'paint') { skCommit(sedS()); sedSave(); } SED.drag = null; const [a, b] = [...SED.ptr.values()]; SED.pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), s: SED.cam.s, m: sedW((a[0] + b[0]) / 2, (a[1] + b[1]) / 2) }; return; }
   if (SED.ptr.size > 2) return; const sx = e.offsetX, sy = e.offsetY, [wx, wy] = sedW(sx, sy), S = sedS(), T = SED.tool;
   if (e.button === 1 || e.button === 2) { SED.drag = { k: 'pan', sx, sy, cx: SED.cam.x, cy: SED.cam.y, moved: 1 }; return; }
-  const only = { prop: 'prop', enemy: 'enemy', lock: 'lock', spawn: 'spawn', start: 'start' }[T];
+  const only = { prop: 'prop', enemy: 'enemy', lock: 'lock', spawn: 'spawn', start: 'start', cut: 'cut' }[T];
   if (T === 'ground') { sedPush(); skPaint(S, wx, wy, SED.brush - 1, SED.paint); SED.drag = { k: 'paint', lx: wx, ly: wy }; SED.dirty = 1; return; }
   const h = sedPick(sx, sy, T === 'move' ? null : only === 'lock' ? null : only);
-  if (h && (T === 'move' || h.t === only || h.t === 'corner')) { if (h.t !== 'corner') SED.sel = h; SED.drag = { k: 'move', h, wx, wy, pushed: 0 }; sedSelBar(); SED.dirty = 1; return; }
-  if (T === 'move') { SED.drag = { k: 'pan', sx, sy, cx: SED.cam.x, cy: SED.cam.y, moved: 0 }; return; }
+  if (h && (T === 'move' || h.t === only || h.t === 'corner' || (only === 'start' && h.t === 'pst'))) { if (h.t !== 'corner') SED.sel = h; SED.drag = { k: 'move', h, wx, wy, pushed: 0 }; sedSelBar(); SED.dirty = 1; return; }
+  if (T === 'move' || T === 'cut') { SED.drag = { k: 'pan', sx, sy, cx: SED.cam.x, cy: SED.cam.y, moved: 0 }; return; }
   // place something new
   sedPush(); const R = v => Math.round(v);
   if (T === 'prop') { S.O = S.O || []; S.O.push([SED.prop, R(wx), R(wy), Math.round((0.9 + Math.random() * 0.2) * 10) / 10, Math.random() < 0.5 ? 1 : 0, Math.floor(Math.random() * 3)]); SED.sel = { t: 'prop', i: S.O.length - 1 }; SED.drag = SED.pbrush ? { k: 'pbrush', lx: wx, ly: wy } : { k: 'move', h: SED.sel, wx, wy, pushed: 1 }; }
   else if (T === 'enemy') { S.U = S.U || []; for (let q = 0; q < SED.cnt; q++) { const a = q * 2.4, r = q ? 9 + q * 2 : 0; S.U.push([SED.enemy, R(wx + Math.cos(a) * r), R(wy + Math.sin(a) * r * 0.7)]); } SED.sel = { t: 'enemy', i: S.U.length - 1 }; SED.drag = SED.cnt === 1 ? { k: 'move', h: SED.sel, wx, wy, pushed: 1 } : null; }
   else if (T === 'lock') { S.L = S.L || []; S.L.push({ x: R(wx), y: R(wy), w: 540, h: 300, wv: ['foot*4', 'foot*3,scout*2'] }); SED.sel = { t: 'lock', i: S.L.length - 1 }; SED.drag = { k: 'move', h: SED.sel, wx, wy, pushed: 1 }; }
   else if (T === 'spawn') { S.SP = S.SP || []; S.SP.push([SED.spawn, R(wx), R(wy)]); SED.sel = { t: 'spawn', i: S.SP.length - 1 }; SED.drag = { k: 'move', h: SED.sel, wx, wy, pushed: 1 }; }
-  else if (T === 'start') { S.S = [R(wx), R(wy)]; SED.sel = { t: 'start' }; SED.drag = { k: 'move', h: SED.sel, wx, wy, pushed: 1 }; }
+  else if (T === 'start') { const PS = skPS(S), dx = wx - PS[0][0], dy = wy - PS[0][1]; S.P = PS.map(q => [R(q[0] + dx), R(q[1] + dy)]); S.S = S.P[0].slice(); SED.sel = { t: 'pst', i: 0 }; }
   sedDone(); }
 function sedMove(e) { if (SED.tool === 'ground') { SED.hov = sedW(e.offsetX, e.offsetY); SED.dirty = 1; } if (!SED.ptr.has(e.pointerId)) return; SED.ptr.set(e.pointerId, [e.offsetX, e.offsetY]);
   if (SED.pinch && SED.ptr.size >= 2) { const [a, b] = [...SED.ptr.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); SED.cam.s = cl(SED.pinch.s * d / Math.max(1, SED.pinch.d), 0.06, 4); const [wx, wy] = sedW((a[0] + b[0]) / 2, (a[1] + b[1]) / 2); SED.cam.x += SED.pinch.m[0] - wx; SED.cam.y += SED.pinch.m[1] - wy; SED.dirty = 1; return; }
@@ -186,7 +221,8 @@ function sedMove(e) { if (SED.tool === 'ground') { SED.hov = sedW(e.offsetX, e.o
     if (h.t === 'prop') { const p = S.O[h.i]; p[1] = R(p[1] + dx); p[2] = R(p[2] + dy); }
     else if (h.t === 'enemy') { const u = S.U[h.i]; u[1] = R(u[1] + dx); u[2] = R(u[2] + dy); }
     else if (h.t === 'spawn') { const q = S.SP[h.i]; q[1] = R(q[1] + dx); q[2] = R(q[2] + dy); }
-    else if (h.t === 'start') S.S = [R(S.S[0] + dx), R(S.S[1] + dy)];
+    else if (h.t === 'pst') { S.P = skPS(S).map(q => q.slice()); const q = S.P[h.i]; q[0] = R(q[0] + dx); q[1] = R(q[1] + dy); if (h.i === 0) S.S = q.slice(); }
+    else if (h.t === 'cut') { const c = S.CS[h.i]; c.x = R(c.x + dx); c.y = R(c.y + dy); }
     else if (h.t === 'lock') { const L = S.L[h.i]; L.x = R(L.x + dx); L.y = R(L.y + dy); }
     else if (h.t === 'corner') { const L = S.L[h.i], ox = L.x - (h.c % 2 ? 1 : -1) * L.w / 2, oy = L.y - (h.c > 1 ? 1 : -1) * L.h / 2, nx = h.c % 2 ? Math.max(ox + 160, wx) : Math.min(ox - 160, wx), ny = h.c > 1 ? Math.max(oy + 120, wy) : Math.min(oy - 120, wy); L.w = R(Math.abs(nx - ox)); L.h = R(Math.abs(ny - oy)); L.x = R((nx + ox) / 2); L.y = R((ny + oy) / 2); }
     SED.dirty = 1; } }
@@ -220,7 +256,9 @@ function sedDraw() { if (!SED.on) return; requestAnimationFrame(sedDraw); const 
   (S.SP || []).forEach(([tp, x, y], i) => { const col = (SEDSP[tp] || SEDSP.woods)[1], on = sel && sel.t === 'spawn' && sel.i === i, r = Math.max(5, 10 * px); c.fillStyle = col + '55'; c.strokeStyle = on ? '#fff' : col; c.lineWidth = (on ? 3 : 2) * px; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.stroke();
     c.fillStyle = '#fff'; c.font = `800 ${Math.max(5, 10 * px)}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText((SEDSP[tp] || SEDSP.woods)[0][0], x, y + 0.5 * px); });
   // start: a stone with the sword in it
-  if (S.S) { const [x, y] = S.S, on = sel && sel.t === 'start'; c.save(); c.translate(x, y); boulder(c, 0, true, 0); c.restore(); c.fillStyle = on ? '#fff' : '#9ef09e'; c.font = `800 ${12 * px}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'top'; c.fillText('START', x, y + 6 + 3 * px); }
+  skPS(S).forEach(([x, y], j) => { const on = sel && sel.t === 'pst' && sel.i === j; c.save(); c.translate(x, y); boulder(c, 0, true, 0); c.restore(); const r = Math.max(4, 8 * px); c.fillStyle = KCOLS[j] || '#9ef09e'; c.strokeStyle = on ? '#fff' : '#000'; c.lineWidth = (on ? 2.5 : 1.2) * px; c.beginPath(); c.arc(x, y + 6 + r + 2 * px, r, 0, 7); c.fill(); c.stroke(); c.fillStyle = '#fff'; c.font = `900 ${r * 1.3}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(j + 1, x, y + 6 + r + 2.5 * px); });
+  (S.CS || []).forEach((cs, i) => { if (cs.tr !== 'spot') return; const on = sel && sel.t === 'cut' && sel.i === i, r = cs.r || 60; c.fillStyle = 'rgba(160,120,255,.10)'; c.strokeStyle = on ? '#fff' : '#b89aff'; c.lineWidth = (on ? 2.5 : 1.5) * px; c.setLineDash([6 * px, 4 * px]); c.beginPath(); c.ellipse(cs.x, cs.y, r, r * 0.7, 0, 0, 7); c.fill(); c.stroke(); c.setLineDash([]);
+    c.font = `800 ${Math.max(7, 13 * px)}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#000a'; const tx = '🎬 ' + (i + 1); c.fillRect(cs.x - 18 * px, cs.y - 10 * px, 36 * px, 20 * px); c.fillStyle = '#fff'; c.fillText(tx, cs.x, cs.y); });
   // selection ring
   if (sel && (sel.t === 'prop' || sel.t === 'enemy')) { const o = sel.t === 'prop' ? S.O[sel.i] : S.U[sel.i]; if (o) { const r = sel.t === 'prop' ? Math.max(8, (SKP[o[0]] ? SKP[o[0]].w : 10) * (o[3] || 1) * 0.45) : 6 * (UK[o[0]] ? UK[o[0]].sc || 1 : 1); c.strokeStyle = '#ffd36a'; c.lineWidth = 2 * px; c.setLineDash([5 * px, 3 * px]); c.beginPath(); c.ellipse(o[1], o[2], r, r * 0.45, 0, 0, 7); c.stroke(); c.setLineDash([]); } }
   // the brush
