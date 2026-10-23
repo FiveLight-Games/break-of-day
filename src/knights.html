@@ -215,6 +215,7 @@ let camX = 0, camY = 0, hurtT = 0, lastHits = 0;
 let NET = null;
 const AUTH = () => !NET || NET.mode === 'host';
 /*@SURVIVAL@*/
+/*@STAGEKIT@*/
 /*@CAMPAIGN@*/
 /*@STAGEDIT@*/
 const stoneW = () => [K.T.x + STONE.x, K.T.y + STONE.y];
@@ -8073,7 +8074,7 @@ function draw() {
   // a ninja laying out (and then watching) his strike: his camera sits between him and the middle of the strip
   if (K.kind === 'gi' && K.pmT >= 0) { ctX = K.pmX; ctY = K.pmY - K.pmZ * GIPMZ; } // his predator missile: the camera rides it down
   if (K.kind === 'ninja' && K.nPh >= 1) { const J = K.nPh === 1 ? (K.njJ || njDefJ(K)) : (K.njF || njDefJ(K)), mx = (K.x + J[0] + J[2] + J[4]) / 4, my = (K.y + J[1] + J[3] + J[5]) / 4; K.njCam = lerp(K.njCam || 0, 1, 0.08); ctX = lerp(ctX, mx, 0.6 * K.njCam); ctY = lerp(ctY, my - 6, 0.6 * K.njCam); } else if (K.njCam) K.njCam = lerp(K.njCam, 0, 0.08);
-  camX = lerp(camX, ctX, 0.12); camY = lerp(camY, ctY, 0.12); const shx = shake ? rr(-1, 1) * shake * 5 : 0, shy = shake ? rr(-1, 1) * shake * 5 : 0;
+  [ctX, ctY] = cpCam(ctX, ctY, sc); camX = lerp(camX, ctX, 0.12); camY = lerp(camY, ctY, 0.12); const shx = shake ? rr(-1, 1) * shake * 5 : 0, shy = shake ? rr(-1, 1) * shake * 5 : 0;
   x.setTransform(1, 0, 0, 1, 0, 0); x.fillStyle = '#000'; x.fillRect(0, 0, cv.width, cv.height);
   x.setTransform(sc, 0, 0, sc, cv.width / 2 - (camX + shx) * sc, cv.height / 2 - (camY + shy) * sc); CAM.s = sc; CAM.e = cv.width / 2 - (camX + shx) * sc; CAM.f = cv.height / 2 - (camY + shy) * sc; sprFrame(sc); { const hw = cv.width / 2 / sc + 10, x0 = Math.floor((camX - hw) / W), x1 = Math.floor((camX + hw) / W); const hh = cv.height / 2 / sc + 10, y0 = Math.floor((camY - hh) / H), y1 = Math.floor((camY + hh) / H); for (let gi = x0; gi <= x1; gi++) for (let gj = y0; gj <= y1; gj++) x.drawImage(gj === 0 && !BH.cp ? ground : grassT, gi * W, gj * H, W + 0.5, H + 0.5); }
   const VL = camX - cv.width / 2 / sc - 30, VR = camX + cv.width / 2 / sc + 30, inV = q => q.x > VL && q.x < VR;
@@ -8082,7 +8083,7 @@ function draw() {
   for (const kn of LIVE()) x.drawImage(patch, kn.T.x - 29, kn.T.y - 14, 58, 28);
   drawFxGround(x); drawGouges(x, t); gemDraw(x, t); cpGround(x, t); giGroundDraw(x, t); ttGround(x); crGround(x, t); njGround(x, t); ogGround(x, t); ogAimDraw(x, t); drawVolcFloor(x, t); drawBikePreview(x, t); drawLeapPreview(x, t); drawHeliDraw(x, t); drawDashPreview(x, t); drawSweepPreview(x, t); drawCoalPreview(x);
   for (const p of parts) if (p.rest && inV(p)) { x.globalAlpha = pAlpha(p); drawPartFast(x, p); } x.globalAlpha = 1;
-  const list = LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]]).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(LIVE().filter(kn => kn.CLS && kn.kind === 'ninja').flatMap(kn => kn.CLS.map(P => [P.y + 0.01, 14, P]))).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(TRAPS.filter(q => q.t >= TT.TRAP.FLY).flatMap(q => { const G = trapGeo(q); return [[q.y, 6, q], [G.ey + 0.01, 7, q]]; })).concat(dinoList()).concat(crList()).concat(dgList()).concat(ogSpikes()).concat(KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.cr >= 0).map(kn => [kn.cyp, 10, kn])).concat(WRECKS.flatMap(q => [[q.y, 11, { q, ship: 0 }], [q.sy + 0.01, 11, { q, ship: 1 }]])).concat(HDEAD.filter(inV).map(q => [q.y - 0.3, 9, q])).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
+  const list = cpProps(VL, VR).concat(LIVE().flatMap(kn => [[kn.T.y + STONE.y, 0, kn], [kn.y + 0.01, 1, kn]])).concat(LIVE().filter(kn => kn.kind === 'priest').map(kn => [kn.hy + 0.02, 4, kn])).concat(LIVE().filter(kn => kn.CLS && kn.kind === 'ninja').flatMap(kn => kn.CLS.map(P => [P.y + 0.01, 14, P]))).concat(walkers.filter(inV).map(w => [w.y, 2, w])).concat(parts.filter(p => !p.rest).map(p => [p.y, 3, p])).concat(TRAPS.filter(q => q.t >= TT.TRAP.FLY).flatMap(q => { const G = trapGeo(q); return [[q.y, 6, q], [G.ey + 0.01, 7, q]]; })).concat(dinoList()).concat(crList()).concat(dgList()).concat(ogSpikes()).concat(KN.filter(kn => kn.kind === 'time' && kn.on !== 0 && kn.cr >= 0).map(kn => [kn.cyp, 10, kn])).concat(WRECKS.flatMap(q => [[q.y, 11, { q, ship: 0 }], [q.sy + 0.01, 11, { q, ship: 1 }]])).concat(HDEAD.filter(inV).map(q => [q.y - 0.3, 9, q])).concat(SAWS.map(q => { const y = q.y + (q.oy || 0), own = KN[q.i], oy = own ? own.y : q.oy0; return [q.t < 0.25 ? (q.back ? Math.min(y, oy - 0.02) : Math.max(y, oy + 0.02)) : y, 5, q]; })).sort((a, b) => a[0] - b[0]);
   HPQ = [];
   for (const [, k, o] of list) {
     x.globalAlpha = k === 1 && BH.on && o.rDn ? 0.4 : 1;
@@ -8092,6 +8093,7 @@ function draw() {
     if (k === 0 && K.kind === 'fire') { const pt = pitOf(K); x.save(); x.translate(pt[0], pt[1]); FBX.firePit(x, 5, t, FBX.pal(5)); x.restore(); continue; }
     if (k === 0) { x.save(); x.translate(K.T.x, K.T.y); boulder(x, t, !(K.st === 'kneel' || (K.st === 'pull' && !K.hold) || (K.st === 'sheathe' && !K.hold)), K.slotGlow); if (!K.hold) { x.translate(STONE.x, STONE.y); x.scale(KS, KS); x.beginPath(); x.rect(-20, -30, 40, 30 - 4.3 / KS); x.clip(); sword(x, [0, -4.3 / KS - 1.3 - 1.1], Math.PI / 2, 10.5); } x.restore(); }
     else if (k === 1) { if (K.kind === 'fire') drawFire(x, t); else if (K.kind === 'priest') drawPriest(x, t); else if (K.kind === 'sword') drawSword(x, t); else if (K.kind === 'ninja') drawNinja(x, t); else if (K.kind === 'ogre') drawStormOgre(x, t); else if (K.kind === 'rooster') drawRooster(x, t); else if (K.kind === 'gi') drawGIK(x, t); else if (K.kind === 'time') { if (!carGone(K)) { if (K.ctu) { const cy0 = K.y - (K.z || 0) - 9; x.save(); x.translate(K.x, cy0); x.rotate(K.ctu); x.translate(-K.x, -cy0); drawTime(x, t); x.restore(); } else drawTime(x, t); } } else drawKnight(x, t); if (NP > 1) { x.fillStyle = K.col; x.font = '700 3.2px system-ui'; x.textAlign = 'center'; if (K.i !== ME) x.fillText((NET && NET.names && NET.names[K.i]) || pName(K.i), K.x, K.y - (K.kind === 'ogre' ? 34 : K.kind === 'rooster' ? 21 + (K.z || 0) : K.kind === 'gi' ? 17 : K.kind === 'priest' ? 23 + (K.z || 0) : K.kind === 'time' ? 22 + (K.z || 0) : 17 * (K.sz || 1))); } }
+    else if (k === 15) { cpPropDraw(x, o); continue; }
     else if (k === 5) { drawSawP(x, o, t); continue; }
     else if (k === 12) { ogDrawSpike(x, o, t); continue; }
     else if (k === 13) { crDrawP(x, o, t); continue; }
@@ -8118,7 +8120,7 @@ function draw() {
   for (const f of FX) if (f.k === 'lick') drawLick(x, f, t);
   for (const kn of KN) if (kn.kind === 'fire' && kn.fp && kn.fp.length) FBX.drawBreath(x, kn, t);
   for (const kn of KN) if (kn.kind === 'fire') drawLava(x, kn, t);
-  drawFxAir(x); drawVolcAir(x, t); ttAir(x, t); crAir(x, t); giAir(x, t); njAir(x, t); ogAir(x, t); cpAir(x, t); bhDraw(x, t); if (ZONES) ttZones(x);
+  drawFxAir(x); drawVolcAir(x, t); ttAir(x, t); crAir(x, t); giAir(x, t); njAir(x, t); ogAir(x, t); cpAir(x, t); cpLockDraw(x, t); bhDraw(x, t); if (ZONES) ttZones(x);
   // blade trail: a short ribbon the length of the light blade, fading behind it
   for (const kn of KN) { K = kn; if (K.trail && K.trail.length > 1) { x.save(); const now = K.trail[K.trail.length - 1].t, TL = 0.11;
     for (let i = K.trail.length - 1; i > 0; i--) { const A2 = K.trail[i], B2 = K.trail[i - 1], age = now - B2.t; if (age > TL) break; const al = 0.42 * (1 - age / TL) ** 1.6;

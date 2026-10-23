@@ -5,29 +5,39 @@
 // (abilities, specials and boosts) instead of cards, and every enemy kind has its own behaviour and abilities (eAI).
 // Host-authoritative: the host runs the stage, encounters, enemy AI and damage; guests get CMP in the snapshot (`cp`) and every
 // telegraph / effect as an event (`ce`), so every screen draws the same warnings.
-const CMP = { ph: 0, st: 0, sel: 0, done: 0, E: [], clrT: 0, tk: 0 }; // ph: 0 world map, 1 playing, 2 stage cleared, 3 defeated
+const CMP = { ph: 0, st: 0, sel: 0, done: 0, E: [], clrT: 0, tk: 0, lk: -1 }; // ph: 0 world map, 1 playing, 2 stage cleared, 3 defeated
 const XPV = k => UK[k] && UK[k].heavy ? 10 : (UK[k] && UK[k].hp > 350 ? 3 : 1);
-// ---- stages: the playable ground is a union of rectangles (`R`), the start is where the knights' stones are ([320, 245]),
-// encounters (`E`) lock the players in a ring (`r`) until every wave is dead; a `g` encounter is just a group standing about (no ring);
-// the last encounter is the boss fight; `P` = the road drawn across the ground
-const STAGES = [
-  { id: 'road', name: 'The Old Road', blurb: 'Deserters and sellswords hold the road east, led by an ogre warchief.', th: 'grass', mul: 1, mx: 120, my: 330,
-    R: [[110, 110, 930, 390], [800, 20, 1520, 330], [1380, 120, 1960, 470]], P: [[160, 250], [620, 250], [900, 190], [1150, 170], [1450, 230], [1690, 300], [1900, 310]],
-    E: [{ g: 1, x: 430, y: 180, w: ['foot*3'] }, { x: 640, y: 255, r: 105, w: ['foot*5', 'foot*4,scout*2'] }, { g: 1, x: 960, y: 300, w: ['scout*3'] },
-      { x: 1160, y: 175, r: 115, w: ['foot*5,scout*2', 'shield*2,foot*4', 'fknight*1,foot*4'] }, { x: 1690, y: 300, r: 135, boss: 'chief', w: ['foot*6,shield*2', 'chief*1,foot*4'] }] },
-  { id: 'wood', name: 'Darkwood', blurb: 'Gnoll packs and wolf riders hunt under the trees.', th: 'wood', mul: 1.35, mx: 300, my: 210,
-    R: [[110, 130, 720, 400], [600, -320, 900, 400], [780, -420, 1520, -110], [1400, -420, 1820, 120]], P: [[160, 260], [520, 270], [750, 200], [760, -120], [900, -270], [1300, -260], [1600, -180], [1620, 0]],
-    E: [{ x: 470, y: 260, r: 105, w: ['gnoll*6', 'gnoll*4,warg*1'] }, { g: 1, x: 750, y: 40, w: ['warg*2'] }, { x: 760, y: -200, r: 110, w: ['gnoll*5,naga*2', 'warg*3,gnoll*3'] },
-      { g: 1, x: 1100, y: -330, w: ['naga*3'] }, { x: 1250, y: -260, r: 115, w: ['naga*3,gnoll*3', 'gnoll*6,warg*2', 'troll*1,gnoll*3'] }, { x: 1610, y: -60, r: 140, boss: 'ent', w: ['gnoll*5,naga*2', 'ent*1,gnoll*4'] }] },
-  { id: 'fort', name: 'Ironhold', blurb: 'The fort’s garrison, its necromancers and what they keep chained inside.', th: 'fort', mul: 1.8, mx: 480, my: 120,
-    R: [[110, 120, 640, 390], [520, -40, 1660, 600]], P: [[160, 255], [560, 255], [900, 280], [1300, 280]],
-    E: [{ x: 480, y: 255, r: 100, w: ['shield*3,foot*4', 'sapper*4,foot*3'] }, { g: 1, x: 780, y: 60, w: ['fknight*2'] }, { x: 820, y: 300, r: 120, w: ['fknight*2,shield*3', 'sapper*5,ogre*1'] },
-      { g: 1, x: 1080, y: 520, w: ['necro*1,skel*3'] }, { x: 1150, y: 120, r: 125, w: ['zombie*8', 'skel*5,necro*2', 'golem*1,zombie*4'] }, { x: 1350, y: 340, r: 165, boss: 'tarrasque', w: ['necro*2,skel*4,zombie*4', 'tarrasque*1,skel*4'] }] }
-];
+// ---- stages (format 2, see stagekit.js): painted ground (S.g grid), props (S.O), placed enemies standing about (S.U: [kind, x, y]),
+// screen locks (S.L: {x, y, w, h, wv: waves, boss}) and spawn points (S.SP: [type, x, y]); the built-in ones are generated from these specs
+const GRASS_SC = [['tree', 3], ['bush', 2], ['rock', 2], ['tuft', 5], ['flowers', 3], ['stump', 1], ['log', 1]];
+const STAGESPEC = [
+  { id: 'road', name: 'The Old Road', blurb: 'Deserters and sellswords hold the road east, led by an ogre warchief.', th: 'grass', mul: 1, mp: [16, 66], seed: 11, props: 1500, scatter: GRASS_SC,
+    pts: [[200, 420, 170], [800, 520, 160], [1400, 330, 170], [2000, 240, 180], [2600, 420, 170], [3300, 620, 210], [3900, 560, 170], [4500, 330, 180], [5100, 260, 170], [5700, 460, 180], [6300, 420, 210], [6800, 420, 210]],
+    locks: [{ x: 1150, w: 540, h: 300, pre: 'foot*3', wv: ['foot*5', 'foot*4,scout*2'] }, { x: 2100, w: 540, h: 300, pre: 'scout*2', wv: ['foot*6,scout*2', 'shield*2,foot*4'] },
+      { x: 3300, w: 560, h: 320, pre: 'foot*4', wv: ['foot*5,scout*3', 'shield*2,foot*5', 'fknight*1,foot*4'] }, { x: 4500, w: 540, h: 300, pre: 'shield*2', wv: ['fknight*2,foot*4', 'scout*5,foot*4'] },
+      { x: 5450, w: 540, h: 300, wv: ['foot*6,shield*2', 'fknight*2,scout*3'] }, { x: 6400, w: 660, h: 360, pre: 'foot*3', wv: ['foot*6,shield*2', 'chief*1,foot*4'], boss: 'chief' }],
+    groups: [[620, 0, 'foot*2'], [1650, -30, 'scout*2'], [2650, 20, 'foot*3'], [3880, -40, 'foot*2,scout*1'], [4950, 40, 'foot*3'], [5950, 0, 'shield*1,foot*2']],
+    extra: [['house', 2860, -150, 1, 0, 0, 1], ['house', 2900, 165, 1, 1, 1, 1], ['house', 3720, -150, 1, 1, 0, 1], ['fence', 2790, -110, 1, 0, 0, 1], ['fence', 2816, -110, 1, 0, 0, 1], ['cart', 3760, 140, 1, 0, 0, 1], ['crate', 3680, -110, 1, 0, 0, 1], ['barrel', 3692, -106, 1, 0, 0, 1], ['crate', 2960, 185, 1, 0, 0, 1],
+      ['banner', 6120, -150, 1, 0, 0, 1], ['banner', 6120, 150, 1, 0, 0, 1], ['tent', 6700, -150, 1, 0, 0, 1], ['tent', 6720, 160, 1, 1, 1, 1]] },
+  { id: 'wood', name: 'Darkwood', blurb: 'Gnoll packs and wolf riders hunt under the trees.', th: 'wood', mul: 1.35, mp: [50, 36], seed: 23, base: 5, patch: 1, roadW: 12, props: 1700,
+    scatter: [['pine', 3], ['tree', 2], ['dead', 1], ['bush', 2], ['rock', 2], ['stump', 2], ['log', 2], ['tuft', 3], ['bones', 1]], pools: [[2650, -110, 60], [4380, 110, 55]],
+    pts: [[200, 420, 150], [800, 250, 140], [1300, 520, 150], [1900, 700, 160], [2400, 420, 140], [3000, 230, 170], [3500, 480, 150], [4100, 700, 170], [4700, 460, 150], [5300, 260, 170], [5900, 480, 160], [6550, 420, 220], [6850, 420, 220]],
+    locks: [{ x: 1300, w: 520, h: 300, pre: 'gnoll*3', wv: ['gnoll*6', 'gnoll*4,warg*1'] }, { x: 2400, w: 520, h: 300, pre: 'warg*1', wv: ['gnoll*5,naga*2', 'warg*3,gnoll*3'] },
+      { x: 3500, w: 540, h: 300, pre: 'naga*2', wv: ['naga*3,gnoll*3', 'gnoll*6,warg*2'] }, { x: 4700, w: 540, h: 300, wv: ['gnoll*6,naga*2', 'troll*1,gnoll*3'] },
+      { x: 5650, w: 540, h: 300, pre: 'gnoll*3', wv: ['warg*3,naga*3', 'troll*1,warg*2,gnoll*3'] }, { x: 6600, w: 660, h: 360, wv: ['gnoll*5,naga*2', 'ent*1,gnoll*4'], boss: 'ent' }],
+    groups: [[720, 0, 'gnoll*2'], [1850, 20, 'warg*1'], [2950, -20, 'gnoll*3'], [4100, 0, 'naga*2'], [5200, 20, 'gnoll*2,warg*1'], [6150, 0, 'naga*2']] },
+  { id: 'fort', name: 'Ironhold', blurb: 'The fort’s garrison, its necromancers and what they keep chained inside.', th: 'fort', mul: 1.8, mp: [84, 62], seed: 37, base: 4, roadW: 0, props: 1300,
+    scatter: [['pillar', 2], ['brazier', 2], ['crate', 1], ['barrel', 1], ['banner', 1], ['bones', 2]],
+    zones: [[-1e9, 1800, { base: 1, road: 3, roadW: 22, edge: 'grass', scatter: GRASS_SC }], [3700, 4950, { scatter: [['grave', 5], ['pillar', 1], ['bones', 3], ['dead', 1], ['brazier', 1]] }]],
+    pts: [[200, 420, 160], [1000, 420, 160], [1700, 400, 180], [2400, 300, 210], [3200, 330, 210], [3900, 560, 210], [4600, 600, 190], [5300, 380, 200], [6000, 300, 210], [6650, 420, 230], [6950, 420, 230]],
+    locks: [{ x: 1100, w: 540, h: 300, pre: 'shield*2,foot*2', wv: ['shield*3,foot*4', 'sapper*4,foot*3'] }, { x: 2300, w: 560, h: 320, pre: 'fknight*1', wv: ['fknight*2,shield*3', 'sapper*5,ogre*1'], sp: ['gate', 'gate'] },
+      { x: 3300, w: 560, h: 320, pre: 'foot*3', wv: ['ogre*2,shield*2', 'fknight*2,foot*5'], sp: ['gate', 'gate'] }, { x: 4300, w: 560, h: 320, pre: 'zombie*4', wv: ['zombie*8', 'skel*5,necro*2'], sp: ['grave', 'grave', 'grave', 'grave'] },
+      { x: 5350, w: 560, h: 320, pre: 'skel*3', wv: ['golem*1,zombie*4', 'necro*2,skel*4,zombie*4'], sp: ['grave', 'gate', 'grave'] }, { x: 6650, w: 680, h: 380, pre: 'skel*4', wv: ['necro*2,skel*4,zombie*4', 'tarrasque*1,skel*4'], boss: 'tarrasque', sp: ['gate', 'gate', 'grave'] }],
+    groups: [[700, 0, 'foot*2'], [1700, 0, 'shield*1,foot*2'], [2850, -20, 'foot*3'], [3850, 0, 'zombie*3'], [4850, 20, 'skel*3'], [6000, 0, 'necro*1,skel*2']],
+    extra: [['wall', 1790, -165, 1, 0, 0, 1], ['wall', 1790, 160, 1, 0, 0, 1], ['banner', 1815, -140, 1, 0, 0, 1], ['banner', 1815, 135, 1, 0, 0, 1]] }];
+const STAGES = STAGESPEC.map(skGen);
 const cpS = () => STAGES[CMP.st] || STAGES[0];
-const cpIn = (S, x, y, m = 0) => S.R.some(r => x >= r[0] + m && x <= r[2] - m && y >= r[1] + m && y <= r[3] - m);
-function cpClampPt(S, x, y, m) { if (cpIn(S, x, y, m)) return [x, y]; let b = null, bd = 1e18; for (const r of S.R) { const px = cl(x, r[0] + m, r[2] - m), py = cl(y, r[1] + m, r[3] - m), d = (px - x) ** 2 + (py - y) ** 2; if (d < bd) { bd = d; b = [px, py]; } } return b; }
-const ARY = 0.62; // arena rings are ellipses r x r*ARY on the ground
+const ARY = 0.62; // ground ellipses (telegraph rings) are r x r*ARY
 // ---- save (this device): map progress, team level and experience, and my skill tree per character ----
 const cpLoad = () => { try { return JSON.parse(localStorage.getItem('kn_camp') || '{}') || {}; } catch (e) { return {}; } };
 const cpSave = o => { try { localStorage.setItem('kn_camp', JSON.stringify(Object.assign(cpLoad(), o))); } catch (e) { } };
@@ -51,7 +61,9 @@ function cpEv(e) { e = e.map((v, i) => i && typeof v === 'number' ? q1(v) : v); 
 function cpFxAdd(e) { const k = e[0]; CPFX.push({ e, t: 0, max: k === 'r' ? e[4] + 0.15 : k === 'l' ? e[6] + 0.1 : k === 'b' ? 0.5 : k === 'o' ? e[5] + 0.05 : k === 'p' ? e[4] : k === 'h' ? e[2] : 0.6 });
   if (k === 'b') { const [, x, y, R] = e; FX.push({ k: 'ring', x, y, t: 0, max: 0.45, s: R / SLAM_R }); for (let i = 0; i < 10 + R; i++) { const a = rr(0, 6.28), v = rr(14, 40) * R / 25; dust.push({ x: x + Math.cos(a) * R * 0.3, y: y + Math.sin(a) * R * 0.15, vx: Math.cos(a) * v, vy: Math.sin(a) * v * 0.5, r: rr(1, 2), t: 0, max: rr(0.35, 0.7) }); }
     const me = KN[ME]; if (me && Math.hypot(me.x - x, me.y - y) < 160) shake = Math.max(shake, Math.min(0.5, R / 80)); snd('slam', x, y); }
-  if (k === 's') { const [, x, y, kind] = e; for (let i = 0; i < 12; i++) { const a = rr(0, 6.28); (kind ? sparks : dust).push(kind ? { x, y: y - 3, vx: Math.cos(a) * rr(8, 25), vy: -rr(10, 40), t: 0, max: rr(0.4, 0.8) } : { x, y, vx: Math.cos(a) * rr(8, 25), vy: Math.sin(a) * 6, r: rr(1, 2), t: 0, max: rr(0.4, 0.8) }); } }
+  if (k === 's' && e[3] >= 2) { const [, x, y, kind] = e, f = CPFX[CPFX.length - 1]; f.max = 1.4; f.pp = []; for (let i = 0; i < (kind === 2 ? 14 : 10); i++) { const a = rr(0, 6.28); f.pp.push([x + rr(-5, 5), y - rr(0, kind === 2 ? 14 : 3), Math.cos(a) * rr(6, 22), kind === 2 ? rr(-6, 4) : -rr(18, 40), rr(0, 6.28), rr(0.6, 1.3)]); }
+    for (let i = 0; i < 8; i++) { const a = rr(0, 6.28); dust.push({ x, y, vx: Math.cos(a) * rr(8, 22), vy: Math.sin(a) * 5, r: rr(1, 2.2), t: 0, max: rr(0.4, 0.9) }); } snd(kind === 3 ? 'slam' : 'swing', x, y); }
+  else if (k === 's') { const [, x, y, kind] = e; for (let i = 0; i < 12; i++) { const a = rr(0, 6.28); (kind ? sparks : dust).push(kind ? { x, y: y - 3, vx: Math.cos(a) * rr(8, 25), vy: -rr(10, 40), t: 0, max: rr(0.4, 0.8) } : { x, y, vx: Math.cos(a) * rr(8, 25), vy: Math.sin(a) * 6, r: rr(1, 2), t: 0, max: rr(0.4, 0.8) }); } }
   if (k === 'o') snd('swing', e[1], e[2]); }
 // host hazards: a hit that lands at a set moment, or a pool that hurts while it lasts
 function cpHitP(x, y, R, dmg) { for (const kn of LIVE()) { if (kn.rDn) continue; if (Math.hypot(kn.x - x, (kn.y - y) / ARY) < R + 3 && !((kn.z || 0) > 6)) bhHurt(kn, dmg); } }
@@ -136,65 +148,85 @@ function eTick(w, T, dx, dy, d, U, dt) { const E = w.ea; E.t += dt; w.atk = -1; 
     case 'cast': if (E.t > E.dur) w.ea = null; return true;
   }
   w.ea = null; return false; }
-// ---- stage running (host): encounters wake when a player comes close, lock the ring, send their waves; the last one ends the stage ----
-function cpSpawn(k, x, y) { const S = cpS(); [x, y] = cpClampPt(S, x, y, 6); const w = spawnWalker(x, undefined, y, k); w.hp = w.max = Math.round(UK[k].hp * S.mul); return w; }
-function cpEdgePt(cx, cy, R) { const a = rr(0, 6.28); return cpClampPt(cpS(), cx + Math.cos(a) * R, cy + Math.sin(a) * R * ARY, 8); }
-const cpParse = s => s.split(',').map(p => { const [k, n] = p.split('*'); return [k.trim(), +n || 1]; });
-let CPGRP = 0;
-function cpWave(e, i, pre) { const list = cpParse(e.w[i]); for (const [k, n] of list) { const a0 = rr(0, 6.28); for (let j = 0; j < n; j++) {
-    let x, y; if (pre || e.g) { const a = rr(0, 6.28), q = Math.sqrt(Math.random()) * (e.g ? 18 : e.r * 0.55); x = e.x + Math.cos(a) * q; y = e.y + Math.sin(a) * q * ARY; } else { const a = a0 + rr(-0.35, 0.35), R = (e.r || 100) + rr(8, 26); x = e.x + Math.cos(a) * R; y = e.y + Math.sin(a) * R * ARY; }
-    const w = cpSpawn(k, x, y); w.enc = e.i; if (pre || e.g) { w.idle = 1; w.grp = e.i; } else cpEv(['s', w.x, w.y, 0]); } } }
-function cpBegin(i) { const S = STAGES[i]; if (!S) return; Object.assign(CMP, { ph: 1, st: i, clrT: 0 }); CMP.E = S.E.map((e, j) => ({ s: 0, w: 0, t: 0 }));
+// ---- stage running (host): placed enemies stand about until someone comes near; walking onto a lock's screen locks it (the camera stays
+// on it and players can't leave) and its waves flood in from its spawn points and the screen's edges; it opens when they're all dead
+const cpParse = skParse;
+function cpSpawn(k, x, y) { const S = cpS(); [x, y] = skNear(S, x, y); const w = spawnWalker(x, undefined, y, k); w.hp = w.max = Math.round(UK[k].hp * S.mul); w._px = w.x; w._py = w.y; return w; }
+function cpEdgePt(cx, cy, R) { const a = rr(0, 6.28); return skNear(cpS(), cx + Math.cos(a) * R, cy + Math.sin(a) * R * ARY); }
+const lkIn = (L, x, y, m = 0) => Math.abs(x - L.x) < L.w / 2 - m && Math.abs(y - L.y) < L.h / 2 - m;
+// which lock each spawn point feeds: the nearest lock whose screen (grown by 220) holds it
+function cpSPof(S) { return (S.SP || []).map(([tp, x, y]) => { let b = -1, bd = 1e9; (S.L || []).forEach((L, i) => { const d = Math.hypot(Math.max(0, Math.abs(x - L.x) - L.w / 2), Math.max(0, Math.abs(y - L.y) - L.h / 2)); if (d < 220 && d < bd) { bd = d; b = i; } }); return [tp, x, y, b]; }); }
+const CPSPK = { woods: 2, grave: 3, gate: 4, cave: 4 };
+let CPQ = []; // flood queue (host): [lock, kind, x, y, spawn type, delay]
+function cpFlood(S, li, str) { const L = S.L[li], sps = cpSPof(S).filter(q => q[3] === li); let t = 0;
+  for (const [k, n] of skParse(str)) { if (!UK[k]) continue; for (let q = 0; q < n; q++) { t += rr(0.12, 0.32); let x, y, tp = 'edge';
+    if (sps.length && Math.random() < 0.65) { const s = sps[Math.floor(Math.random() * sps.length)]; x = s[1] + rr(-10, 10); y = s[2] + rr(-6, 6); tp = s[0]; }
+    else { const sd = Math.floor(Math.random() * 4); if (sd < 2) { x = L.x + (sd ? 1 : -1) * (L.w / 2 + rr(10, 30)); y = L.y + rr(-0.4, 0.4) * L.h; } else { x = L.x + rr(-0.45, 0.45) * L.w; y = L.y + (sd === 2 ? 1 : -1) * (L.h / 2 + rr(8, 20)); } }
+    CPQ.push([li, k, x, y, tp, t]); } } }
+function cpBegin(i) { const S = STAGES[i]; if (!S) return; Object.assign(CMP, { ph: 1, st: i, clrT: 0, lk: -1 }); CMP.E = (S.L || []).map(() => ({ s: 0, w: 0, t: 0 })); CPQ = [];
   walkers = []; HDEAD = []; parts = []; blood = []; splats = []; BUL.length = 0; CPHZ = []; CPFX = []; BH.over = 0; BH.go = 1;
-  LIVE().forEach((kn, j) => { const S0 = S.S || [200, 230], sx = S0[0] + (j % 2) * 26, sy = S0[1] + j * 14; kn.x = sx; kn.y = sy; kn.T = { x: sx - HOME.x, y: sy - HOME.y }; Object.assign(kn, { rDn: 0, rRv: 0, rHp: kn.rHm || BHC.HP, rIv: 1 }); });
-  S.E.forEach((e, j) => { e.i = j; if (e.g) cpWave(e, 0, 1); else cpWave(e, 0, 1); }); camX = KN[ME].x; camY = KN[ME].y; CPDEC = null; }
+  LIVE().forEach((kn, j) => { const S0 = S.S || [200, 230], sx = S0[0] + (j % 2) * 26, sy = S0[1] + j * 14; kn.x = sx; kn.y = sy; kn._px = sx; kn._py = sy; kn.cpLk = -1; kn.T = { x: sx - HOME.x, y: sy - HOME.y }; Object.assign(kn, { rDn: 0, rRv: 0, rHp: kn.rHm || BHC.HP, rIv: 1 }); });
+  // placed enemies: those on a lock's screen belong to it; the rest stand about in groups (anyone within 70 of another is in its group)
+  const U = (S.U || []).filter(u => UK[u[0]]), gid = U.map(() => -1); let g = 0;
+  U.forEach((u, a) => { if (gid[a] >= 0) return; gid[a] = ++g; const st = [a]; while (st.length) { const b = st.pop(); U.forEach((v, c) => { if (gid[c] < 0 && Math.hypot(v[1] - U[b][1], v[2] - U[b][2]) < 70) { gid[c] = g; st.push(c); } }); } });
+  U.forEach((u, a) => { const w = cpSpawn(u[0], u[1], u[2]); w.idle = 1; w.grp = gid[a]; const li = (S.L || []).findIndex(L => lkIn(L, u[1], u[2])); if (li >= 0) { w.lk = li; w.grp = 'L' + li; } });
+  camX = KN[ME].x; camY = KN[ME].y; const s0 = S.S || [260, 400]; for (let cy = Math.floor((s0[1] - 500) / SKCH); cy <= Math.floor((s0[1] + 500) / SKCH); cy++) for (let cx = Math.floor((s0[0] - 700) / SKCH); cx <= Math.floor((s0[0] + 900) / SKCH); cx++) skChunk(S, cx, cy); }
 function cpStep(dt) { if (!BH.cp) return; for (const f of CPFX) f.t += dt; CPFX = CPFX.filter(f => f.t < f.max);
   if (!AUTH() || CMP.ph !== 1) return; const S = cpS(), L = LIVE().filter(k => !k.rDn);
   // experience: every enemy killed by anyone, straight to the team
   for (const w of walkers) if (w.hp <= 0 && !w.gm) { w.gm = 1; BH.xp += XPV(w.k) * (1 + 0.15 * Math.max(0, ...LIVE().map(k => bhN(k, 'xp')))); }
   cpHz(dt);
-  S.E.forEach((e, j) => { const st = CMP.E[j]; if (e.g || st.s === 2) return;
-    const alive = walkers.some(w => w.enc === j && w.hp > 0);
-    if (st.s === 0) { if (L.some(k => Math.hypot(k.x - e.x, (k.y - e.y) / ARY) < e.r * 0.9)) { st.s = 1; st.w = 0; for (const w of walkers) if (w.enc === j) w.idle = 0; if (e.boss) note('Boss: ' + UK[e.boss].n, 3.5); snd('roar', e.x, e.y); } return; }
-    if (!alive) { st.t += dt; if (st.t > 1.4) { st.t = 0; if (st.w + 1 < e.w.length) { st.w++; cpWave(e, st.w, 0); } else { st.s = 2; snd('ult', e.x, e.y); if (S.E.every((e2, j2) => e2.g || CMP.E[j2].s === 2)) { CMP.ph = 2; cpSave({ done: CMP.done |= 1 << CMP.st, lvl: BH.lvl, xp: BH.xp }); } } } } else st.t = 0; });
+  // the flood: queued enemies step out of their spawn point (or in from the screen's edge) one after another
+  for (const q of CPQ) q[5] -= dt; for (const q of CPQ) if (q[5] <= 0) { const w = cpSpawn(q[1], q[2], q[3]); w.lk = q[0]; w.idle = 0; cpEv(['s', w.x, w.y, CPSPK[q[4]] || 0]); } CPQ = CPQ.filter(q => q[5] > 0);
+  (S.L || []).forEach((Lk, j) => { const st = CMP.E[j]; if (!st || st.s === 2) return;
+    if (st.s === 0) { if (CMP.lk < 0 && L.some(k => lkIn(Lk, k.x, k.y, Math.min(Lk.w, Lk.h) * 0.18))) { st.s = 1; st.w = 0; st.t = 0; CMP.lk = j; for (const w of walkers) if (w.lk === j) w.idle = 0; cpFlood(S, j, Lk.wv[0] || ''); note(Lk.boss && UK[Lk.boss] ? 'Boss: ' + UK[Lk.boss].n : 'Locked in!', 2.5); snd('roar', Lk.x, Lk.y); } return; }
+    const alive = walkers.filter(w => w.lk === j && w.hp > 0).length, more = st.w + 1 < Lk.wv.length, queued = CPQ.some(q => q[0] === j);
+    if (!queued && alive <= (more ? 2 : 0)) { st.t += dt; if (st.t > (alive ? 0.6 : 1.2)) { st.t = 0; if (more) { st.w++; cpFlood(S, j, Lk.wv[st.w]); } else { st.s = 2; CMP.lk = -1; snd('ult', Lk.x, Lk.y);
+      if (CMP.E.every(e => e.s === 2)) { CMP.ph = 2; cpSave({ done: CMP.done |= 1 << CMP.st, lvl: BH.lvl, xp: BH.xp }); } else note('GO!', 2); } } } else st.t = 0; });
+  if (!(S.L || []).length && !walkers.some(w => w.hp > 0)) { CMP.clrT += dt; if (CMP.clrT > 2) { CMP.ph = 2; cpSave({ done: CMP.done |= 1 << CMP.st, lvl: BH.lvl, xp: BH.xp }); } }
   if (BH.over && CMP.ph === 1) CMP.ph = 3; }
-// keep everyone on the stage, and inside a ring that's fighting (anyone already in can't leave; anyone outside can walk in)
-function cpClampK(kn) { if (!BH.cp || CMP.ph !== 1 || !kn) return; const S = cpS(); [kn.x, kn.y] = cpClampPt(S, kn.x, kn.y, 4);
-  S.E.forEach((e, j) => { const st = CMP.E[j]; if (e.g || !st || st.s !== 1) return; const dx = kn.x - e.x, dy = (kn.y - e.y) / ARY, d = Math.hypot(dx, dy), was = kn.cpIn && kn.cpIn[j];
-    if (was && d > e.r) { kn.x = e.x + dx / d * e.r; kn.y = e.y + dy / d * e.r * ARY; } (kn.cpIn = kn.cpIn || {})[j] = d <= e.r; }); }
-function cpClampW() { if (!BH.cp || CMP.ph !== 1) return; const S = cpS(); for (const w of walkers) if (!(w.z > 1)) [w.x, w.y] = cpClampPt(S, w.x, w.y, 3); }
+// keep everyone on the ground (sliding along its edge), out of solid props, and anyone on a locked screen on it
+function cpSlide(S, o, rad) { if (skWalk(S, o.x, o.y)) return; const px = o._px ?? o.x, py = o._py ?? o.y;
+  if (skWalk(S, o.x, py)) o.y = py; else if (skWalk(S, px, o.y)) o.x = px; else if (skWalk(S, px, py) && Math.hypot(px - o.x, py - o.y) < 40) { o.x = px; o.y = py; } else [o.x, o.y] = skNear(S, o.x, o.y); }
+function cpClampK(kn) { if (!BH.cp || CMP.ph !== 1 || !kn) return; const S = cpS();
+  if (!(kn.z > 8)) { cpSlide(S, kn); skPush(S, kn, 2.5); }
+  const Lk = S.L && S.L[CMP.lk]; if (Lk) { if (kn.cpLk === CMP.lk || lkIn(Lk, kn.x, kn.y)) { kn.cpLk = CMP.lk; kn.x = cl(kn.x, Lk.x - Lk.w / 2 + 6, Lk.x + Lk.w / 2 - 6); kn.y = cl(kn.y, Lk.y - Lk.h / 2 + 6, Lk.y + Lk.h / 2 - 6); } } else kn.cpLk = -1;
+  kn._px = kn.x; kn._py = kn.y; }
+function cpClampW() { if (!BH.cp || CMP.ph !== 1) return; const S = cpS(); for (const w of walkers) { if (w.z > 1 || w.gr > 0) continue; cpSlide(S, w); skPush(S, w, UK[w.k].r * 0.6 || 1.5); w._px = w.x; w._py = w.y; } }
+// the camera stays on a locked screen while you're on it
+function cpCam(x, y, sc) { const K0 = KN[ME]; if (!BH.cp || CMP.ph !== 1 || !K0 || !(CMP.lk >= 0) || K0.cpLk !== CMP.lk) return [x, y]; const Lk = cpS().L[CMP.lk]; if (!Lk) return [x, y]; const hw = cv.width / 2 / sc, hh = cv.height / 2 / sc;
+  return [Lk.w > hw * 2 ? cl(x, Lk.x - Lk.w / 2 + hw, Lk.x + Lk.w / 2 - hw) : Lk.x, Lk.h > hh * 2 ? cl(y, Lk.y - Lk.h / 2 + hh, Lk.y + Lk.h / 2 - hh) : Lk.y]; }
 // ---- sync ----
-const cpPack = () => BH.cp ? [CMP.ph, CMP.st, CMP.sel, CMP.done, CMP.E.map(e => e.s * 16 + e.w)] : undefined;
+const cpPack = () => BH.cp ? [CMP.ph, CMP.st, CMP.sel, CMP.done, CMP.E.map(e => e.s * 16 + e.w), CMP.lk] : undefined;
+const CPDEFJ = STAGES.map(s => JSON.stringify(s));
 let CPSYN = { h: '', n: 0 };
-const cpStageSync = () => { if (!BH.cp) return; const i = CMP.ph === 0 ? CMP.sel : CMP.st, S = STAGES[i]; if (!S) return; const j = JSON.stringify(S); if (j !== CPSYN.h || ++CPSYN.n > 40) { CPSYN.h = j; CPSYN.n = 0; return [i, j, STAGES.length]; } };
+// the stage being played (or picked) goes to guests when it changes and now and then for anyone who joined late; a built-in stage goes as a flag
+const cpStageSync = () => { if (!BH.cp) return; const i = CMP.ph === 0 ? CMP.sel : CMP.st, S = STAGES[i]; if (!S) return; const j = JSON.stringify(S), def = j === CPDEFJ[i];
+  if (j !== CPSYN.h || ++CPSYN.n > (def ? 40 : 200)) { CPSYN.h = j; CPSYN.n = 0; return [i, def ? 0 : j, STAGES.length]; } };
 const cpTakeEv = () => { const e = CPE; CPE = []; return e.length ? e : undefined; };
-function cpApplySnap(S) { if (S.cp) { const [ph, st, sel, done, E] = S.cp; if (ph === 2 && CMP.ph !== 2) cpSave({ done, lvl: BH.lvl, xp: BH.xp }); Object.assign(CMP, { ph, st, sel, done }); CMP.E = E.map(v => ({ s: v >> 4, w: v & 15, t: 0 })); } if (S.ce) for (const e of S.ce) cpFxAdd(e);
-  if (S.cs) { const [i, j, n] = S.cs; while (STAGES.length < n) STAGES.push({ name: 'Stage ' + (STAGES.length + 1), blurb: '', th: 'grass', mul: 1, R: [[0, 0, 400, 300]], P: [], E: [] }); if (JSON.stringify(STAGES[i]) !== j) { try { STAGES[i] = JSON.parse(j); CPDEC = null; CPUI.last = ''; } catch (e) { } } } }
+function cpApplySnap(S) { if (S.cp) { const [ph, st, sel, done, E, lk] = S.cp; if (ph === 2 && CMP.ph !== 2) cpSave({ done, lvl: BH.lvl, xp: BH.xp }); Object.assign(CMP, { ph, st, sel, done, lk: lk ?? -1 }); CMP.E = E.map(v => ({ s: v >> 4, w: v & 15, t: 0 })); } if (S.ce) for (const e of S.ce) cpFxAdd(e);
+  if (S.cs) { const [i, j, n] = S.cs; while (STAGES.length < n) STAGES.push(JSON.parse(CPDEFJ[0])); const want = j === 0 ? CPDEFJ[i] : j; if (want && JSON.stringify(STAGES[i]) !== want) { try { STAGES[i] = JSON.parse(want); CPUI.last = ''; } catch (e) { } } } }
 // ---- drawing ----
-const CPTH = { grass: { out: '#24451c', tint: null, edge: '#1a3314', tree: ['#2f5e25', '#3f7a30'] }, wood: { out: '#11240f', tint: 'rgba(8,30,14,.32)', edge: '#0c1a0b', tree: ['#1d3d1a', '#2a5524'] }, fort: { out: '#2a2a2e', tint: 'rgba(60,55,50,.25)', edge: '#18181a', tree: null } };
-let cpOff = null, CPDEC = null, CPDECS = -1;
-function cpDecor(S) { const D = [], inAny = (x, y) => cpIn(S, x, y, -2); for (const r of S.R) { for (const [x0, y0, x1, y1] of [[r[0], r[1], r[2], r[1]], [r[0], r[3], r[2], r[3]], [r[0], r[1], r[0], r[3]], [r[2], r[1], r[2], r[3]]]) {
-    const L = Math.hypot(x1 - x0, y1 - y0), n = Math.ceil(L / 13); for (let i = 0; i <= n; i++) { const u = i / n, ox = (y0 === y1 ? 0 : (x0 === r[0] ? -1 : 1)) * rr(6, 14), oy = (x0 === x1 ? 0 : (y0 === r[1] ? -1 : 1)) * rr(6, 12), x = lerp(x0, x1, u) + ox + rr(-3, 3), y = lerp(y0, y1, u) + oy; if (!inAny(x, y)) D.push({ x, y, r: rr(7, 12), s: Math.random() }); } } }
-  D.sort((a, b) => a.y - b.y); return D; }
-function cpFloor(c, t) { if (!BH.cp || CMP.ph === 0) return; const S = cpS(), TH = CPTH[S.th], sc = CAM.s, vw = cv.width / sc, vh = cv.height / sc, vx = camX - vw / 2 - 20, vy = camY - vh / 2 - 20;
-  if (TH.tint) { c.fillStyle = TH.tint; c.fillRect(vx, vy, vw + 40, vh + 40); }
-  if (S.th === 'fort') { c.fillStyle = '#7d766b'; for (const r of S.R) c.fillRect(r[0], r[1], r[2] - r[0], r[3] - r[1]); c.strokeStyle = 'rgba(40,36,30,.35)'; c.lineWidth = 0.6; c.beginPath(); for (let gx = Math.floor(vx / 16) * 16; gx < vx + vw + 40; gx += 16) { c.moveTo(gx, vy); c.lineTo(gx, vy + vh + 40); } for (let gy = Math.floor(vy / 11) * 11; gy < vy + vh + 40; gy += 11) { c.moveTo(vx, gy); c.lineTo(vx + vw + 40, gy); } c.stroke(); }
-  // the road
-  c.lineCap = c.lineJoin = 'round'; c.strokeStyle = S.th === 'fort' ? '#8f877a' : '#9a7a4c'; c.lineWidth = 34; c.beginPath(); S.P.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.stroke(); c.strokeStyle = S.th === 'fort' ? '#9d958a' : '#b08a5a'; c.lineWidth = 28; c.stroke();
-  // outside the stage: dark ground (one offscreen layer with the stage cut out of it), then trees / walls along the edge
-  if (!cpOff) cpOff = document.createElement('canvas'); if (cpOff.width !== cv.width || cpOff.height !== cv.height) { cpOff.width = cv.width; cpOff.height = cv.height; }
-  const o = cpOff.getContext('2d'); o.setTransform(1, 0, 0, 1, 0, 0); o.clearRect(0, 0, cpOff.width, cpOff.height); o.fillStyle = TH.out; o.fillRect(0, 0, cpOff.width, cpOff.height); o.setTransform(c.getTransform());
-  for (const r of S.R) o.clearRect(r[0], r[1], r[2] - r[0], r[3] - r[1]); c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.globalAlpha = 0.92; c.drawImage(cpOff, 0, 0); c.restore();
-  if (CPDECS !== CMP.st || !CPDEC) { CPDEC = cpDecor(S); CPDECS = CMP.st; }
-  for (const d of CPDEC) { if (d.x < vx - 20 || d.x > vx + vw + 60 || d.y < vy - 20 || d.y > vy + vh + 60) continue;
-    if (TH.tree) { c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(d.x, d.y + d.r * 0.4, d.r, d.r * 0.45, 0, 0, 7); c.fill(); c.fillStyle = '#3b2a1a'; c.fillRect(d.x - 0.8, d.y - d.r * 0.6, 1.6, d.r * 0.9); c.fillStyle = TH.tree[0]; c.beginPath(); c.arc(d.x, d.y - d.r * 0.9, d.r * 0.8, 0, 7); c.fill(); c.fillStyle = TH.tree[1]; c.beginPath(); c.arc(d.x - d.r * 0.2, d.y - d.r * 1.05, d.r * 0.5, 0, 7); c.fill(); }
-    else { c.fillStyle = '#4a4744'; c.fillRect(d.x - 7, d.y - 12, 14, 13); c.fillStyle = '#5d5955'; c.fillRect(d.x - 7, d.y - 12, 14, 3); c.strokeStyle = '#2c2a28'; c.lineWidth = 0.5; c.strokeRect(d.x - 7, d.y - 12, 14, 13); } }
-  // encounter rings: a faint warning before, a glowing wall while it fights
-  S.E.forEach((e, j) => { const st = CMP.E[j]; if (e.g || !st || st.s === 2) return; c.save(); if (st.s === 1) { const p = 0.6 + 0.4 * Math.sin(t * 5); c.strokeStyle = `rgba(255,${e.boss ? 60 : 120},40,${0.55 * p + 0.3})`; c.lineWidth = 2.2; c.shadowColor = '#ff6a2a'; c.shadowBlur = 8; }
-    else { c.strokeStyle = e.boss ? 'rgba(255,80,60,.45)' : 'rgba(255,220,160,.28)'; c.lineWidth = 1; c.setLineDash([4, 4]); } c.beginPath(); c.ellipse(e.x, e.y, e.r, e.r * ARY, 0, 0, 7); c.stroke(); c.restore(); }); }
+function cpFloor(c, t) { if (!BH.cp || CMP.ph === 0) return; const S = cpS(), sc = CAM.s, vw = cv.width / sc, vh = cv.height / sc, vx = camX - vw / 2 - 20, vy = camY - vh / 2 - 20;
+  skGround(c, S, vx, vy, vx + vw + 40, vy + vh + 40, 2);
+  for (const p of S.O || []) if (SKP[p[0]] && SKP[p[0]].flat && p[1] > vx - 20 && p[1] < vx + vw + 60 && p[2] > vy - 10 && p[2] < vy + vh + 50) skDrawProp(c, S, p); }
+// props and the edge's trees go in the depth list (kind 15), only those in view
+function cpProps(VL, VR) { if (!BH.cp || CMP.ph === 0) return []; const S = cpS(), vh = cv.height / CAM.s, T = camY - vh / 2 - 60, B = camY + vh / 2 + 50, o = [];
+  for (const p of S.O || []) if (p[1] > VL - 40 && p[1] < VR + 40 && p[2] > T && p[2] < B && SKP[p[0]] && !SKP[p[0]].flat) o.push([p[2], 15, p]);
+  for (const p of skEdge(S)) if (p[1] > VL - 40 && p[1] < VR + 40 && p[2] > T && p[2] < B) o.push([p[2], 15, p]); return o; }
+const cpPropDraw = (c, p) => skDrawProp(c, cpS(), p);
+// a locked screen: everything off it darkened, its edge marked; when no screen is locked an arrow points the way to the next one
+function cpLockDraw(c, t) { if (!BH.cp || CMP.ph !== 1) return; const S = cpS(), Lk = S.L && S.L[CMP.lk], me = KN[ME];
+  if (Lk) { const x0 = Lk.x - Lk.w / 2, y0 = Lk.y - Lk.h / 2, p = 0.55 + 0.45 * Math.sin(t * 6); c.save(); c.fillStyle = 'rgba(6,5,4,.45)'; c.beginPath(); c.rect(x0 - 4000, y0 - 4000, Lk.w + 8000, Lk.h + 8000); c.rect(x0, y0, Lk.w, Lk.h); c.fill('evenodd');
+    c.strokeStyle = `rgba(255,${Lk.boss ? 70 : 150},60,${0.3 + 0.35 * p})`; c.lineWidth = 1.4; c.setLineDash([10, 6]); c.lineDashOffset = -t * 30; c.strokeRect(x0, y0, Lk.w, Lk.h); c.restore(); return; }
+  if (!me) return; const j = CMP.E.findIndex(e => e.s !== 2), N = S.L && S.L[j]; if (!N) return; const dx = N.x - me.x, dy = N.y - me.y, d = Math.hypot(dx, dy); if (d < 280) return;
+  const a = Math.atan2(dy, dx), r = 26 + Math.sin(t * 5) * 3; c.save(); c.translate(me.x + Math.cos(a) * r, me.y - 7 + Math.sin(a) * r * 0.7); c.globalAlpha = 0.85; c.fillStyle = '#ffd36a'; c.strokeStyle = '#3a2a10'; c.lineWidth = 0.6;
+  c.save(); c.rotate(a); c.beginPath(); c.moveTo(4, 0); c.lineTo(-2, -3.2); c.lineTo(-0.6, 0); c.lineTo(-2, 3.2); c.closePath(); c.fill(); c.stroke(); c.restore();
+  c.font = '800 4px system-ui'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineWidth = 0.8; c.strokeText('GO', -Math.cos(a) * 7, -Math.sin(a) * 6); c.fillText('GO', -Math.cos(a) * 7, -Math.sin(a) * 6); c.restore(); }
 const CPCOL = ['255,70,50', '255,230,140', '190,110,255', '255,170,40', '120,220,90'];
 function cpGround(c, t) { if (!BH.cp) return; c.save();
   for (const f of CPFX) { const e = f.e, k = e[0];
+    if (k === 's' && e[3] === 3) { c.globalAlpha = 0.7 * (1 - f.t / f.max); c.fillStyle = '#3a2a1a'; c.beginPath(); c.ellipse(e[1], e[2] + 0.5, 5, 2.2, 0, 0, 7); c.fill(); c.globalAlpha = 1; continue; }
     if (k === 'r') { const [, x, y, R, dur, ci] = e, u = cl(f.t / dur, 0, 1), col = CPCOL[ci] || CPCOL[0], fade = f.t > dur ? 1 - (f.t - dur) / 0.15 : 1; c.globalAlpha = fade; c.fillStyle = `rgba(${col},.16)`; c.beginPath(); c.ellipse(x, y, R, R * ARY, 0, 0, 7); c.fill(); c.fillStyle = `rgba(${col},.35)`; c.beginPath(); c.ellipse(x, y, R * u, R * ARY * u, 0, 0, 7); c.fill(); c.strokeStyle = `rgba(${col},.85)`; c.lineWidth = 0.8; c.beginPath(); c.ellipse(x, y, R, R * ARY, 0, 0, 7); c.stroke(); }
     else if (k === 'l') { const [, x, y, a, L, hw, dur, ci] = e, u = cl(f.t / dur, 0, 1), col = CPCOL[ci] || CPCOL[0], fade = f.t > dur ? 1 - (f.t - dur) / 0.1 : 1; c.globalAlpha = fade; c.save(); c.translate(x, y); c.scale(1, ARY); c.rotate(Math.atan2(Math.sin(a) / ARY, Math.cos(a))); const LL = L * Math.hypot(Math.cos(a), Math.sin(a) * ARY) / Math.hypot(Math.cos(a), Math.sin(a)); c.fillStyle = `rgba(${col},.14)`; c.fillRect(0, -hw - 1, LL, (hw + 1) * 2); c.fillStyle = `rgba(${col},.4)`; c.fillRect(0, -hw - 1, LL * u, (hw + 1) * 2); c.strokeStyle = `rgba(${col},.8)`; c.lineWidth = 0.6; c.strokeRect(0, -hw - 1, LL, (hw + 1) * 2); c.restore(); }
     else if (k === 'p') { const [, x, y, R, dur] = e, fade = Math.min(1, (dur - f.t) / 0.6, f.t / 0.2); c.globalAlpha = fade * 0.75; c.fillStyle = '#5fbf3a'; c.beginPath(); c.ellipse(x, y, R, R * ARY, 0, 0, 7); c.fill(); c.fillStyle = '#a6f06a'; for (let i = 0; i < 4; i++) { const a = i * 1.7 + t * 0.8, rr2 = R * 0.5; c.beginPath(); c.arc(x + Math.cos(a) * rr2, y + Math.sin(a) * rr2 * ARY, 1 + 0.6 * Math.sin(t * 4 + i), 0, 7); c.fill(); } }
@@ -202,6 +234,7 @@ function cpGround(c, t) { if (!BH.cp) return; c.save();
   c.restore(); }
 function cpAir(c, t) { if (!BH.cp) return; const WM = new Map(walkers.map(w => [w.id, w])); c.save();
   for (const f of CPFX) { const e = f.e, k = e[0];
+    if (k === 's' && f.pp) { const kind = e[3], u = f.t; for (const [x0, y0, vx, vy, r0, life] of f.pp) { if (u > life) continue; c.globalAlpha = 1 - u / life; const x = x0 + vx * u + (kind === 2 ? Math.sin(u * 6 + r0) * 3 : 0), y = y0 + (kind === 2 ? vy * u + 9 * u * u : vy * u + 60 * u * u); if (kind !== 2 && y > y0 + 4) continue; c.fillStyle = kind === 2 ? (r0 > 3 ? '#4f7a34' : '#7a8a3a') : kind === 3 ? '#4a3824' : '#6a6460'; c.save(); c.translate(x, y); c.rotate(r0 + u * 4); c.fillRect(-1, -0.5, 2, 1); c.restore(); } c.globalAlpha = 1; continue; }
     if (k === 'o') { const [, x0, y0, x1, y1, fly, R, kind] = e, u = cl(f.t / fly, 0, 1), x = lerp(x0, x1, u), y = lerp(y0, y1, u) - Math.sin(Math.PI * u) * (30 + Math.hypot(x1 - x0, y1 - y0) * 0.25);
       c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(lerp(x0, x1, u), lerp(y0, y1, u), 3, 1.4, 0, 0, 7); c.fill(); c.fillStyle = kind ? '#7ee05a' : '#6a6460'; c.beginPath(); c.arc(x, y, kind ? 2.2 : 3.4, 0, 7); c.fill(); c.strokeStyle = kind ? '#2f6a20' : '#2a2724'; c.lineWidth = 0.5; c.stroke(); }
     else if (k === 'h') { const w = WM.get(e[1]); if (!w) continue; const cols = ['255,90,50', '255,200,80', '170,100,255', '255,240,120'], col = cols[e[3]] || cols[0], fade = Math.min(1, (e[2] - f.t) / 0.3), s = UK[w.k].sc || 1;
@@ -266,4 +299,4 @@ function cpInputs() { if (!AUTH()) return; for (const kn of LIVE()) { const ch =
     if ((kn.in.skN || 0) !== (kn.skSeen || 0)) { kn.skSeen = kn.in.skN || 0; cpRestore(kn, kn.in.skS); }
     if ((kn.in.upN || 0) !== (kn.upSeen || 0)) { kn.upSeen = kn.in.upN || 0; if (cpCan(kn, kn.in.upC)) cpBuy(kn, kn.in.upC); } } }
 addEventListener('keydown', e => { if (!BH.on || !BH.cp || e.repeat) return; if (e.code === 'KeyT' || e.code === 'KeyK') { cpTreeUI(CPUI.open ? 0 : 1); } else if (e.code === 'Escape' && CPUI.open) cpTreeUI(0); });
-window.__cp = { CMP, STAGES, tp: (x, y) => { const k = KN[ME]; k.x = x; k.y = y; k.T = { x: x - HOME.x, y: y - HOME.y }; }, W: () => walkers.map(w => [w.k, Math.round(w.x), Math.round(w.y), w.ea ? w.ea.k : '', w.idle ? 1 : 0]), FX: () => CPFX.length, sp: (k, dx, dy) => { const m = KN[ME], w = cpSpawn(k, m.x + dx, m.y + dy); return w.id; }, begin: i => cpBegin(i), skip: all => { for (const w of walkers) if (all || w.enc !== undefined) { w.hp = 0; if (all) w.dead = 1; } } };
+window.__cp = { CMP, STAGES, tp: (x, y) => { const k = KN[ME]; k.x = x; k.y = y; k.T = { x: x - HOME.x, y: y - HOME.y }; }, W: () => walkers.map(w => [w.k, Math.round(w.x), Math.round(w.y), w.ea ? w.ea.k : '', w.idle ? 1 : 0]), FX: () => CPFX.length, sp: (k, dx, dy) => { const m = KN[ME], w = cpSpawn(k, m.x + dx, m.y + dy); return w.id; }, begin: i => cpBegin(i), skip: all => { for (const w of walkers) if (all || w.lk !== undefined) { w.hp = 0; if (all) w.dead = 1; } } };

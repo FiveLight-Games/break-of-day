@@ -1,162 +1,209 @@
-// ===================== Map designer (DRAFT 2026-10-22) =====================
-// Inlined into knights.html by build.py (at /*@STAGEDIT@*/, after campaign.js). Edits the campaign's STAGES in place:
-// walkable areas (rects), the road, the start point, fights (rings with waves) and groups (enemies standing about, no ring).
-// Saved on this device in localStorage 'kn_stages' (the whole stage list); 'Copy' puts the JSON on the clipboard to paste to Claude.
-// The host sends the stage it's playing to guests in the snapshot (`cs`), so designed stages work online too.
-const SEDDEF = JSON.parse(JSON.stringify(STAGES));
-try { const s = JSON.parse(localStorage.getItem('kn_stages') || 'null'); if (Array.isArray(s) && s.length) { STAGES.length = 0; s.forEach(x => STAGES.push(x)); } } catch (e) { }
-const SED = { on: 0, i: 0, tool: 'sel', sel: null, cam: { x: 900, y: 250, s: 0.5 }, ptr: new Map(), hist: [], fut: [], drag: null, pinch: null };
+// ===================== Map designer (DRAFT 2026-10-22, rebuilt) =====================
+// Inlined into knights.html by build.py (at /*@STAGEDIT@*/, after campaign.js). Edits the campaign's STAGES (format 2, stagekit.js) in place and
+// draws them exactly as the game does: painted ground, props, edge trees, the enemies themselves. Tools: Move, Ground (paint), Props, Enemies,
+// Locks (screens that lock with waves flooding in), Spawns (where the flood comes from), Start. Two fingers pan and zoom.
+// Saved on this device in localStorage 'kn_stages2' (the whole list); Copy gives the JSON to paste to Claude.
+const SEDDEF = STAGES.map(s => JSON.stringify(s));
+try { const s = JSON.parse(localStorage.getItem('kn_stages2') || 'null'); if (Array.isArray(s) && s.length && s.every(q => q && q.v === 2)) { STAGES.length = 0; s.forEach(x => STAGES.push(x)); } } catch (e) { }
+const SED = { on: 0, i: 0, tool: 'move', paint: 2, brush: 2, prop: 'tree', pbrush: 0, enemy: 'foot', cnt: 1, spawn: 'woods', sel: null, cam: { x: 600, y: 400, s: 0.6 }, ptr: new Map(), hist: [], fut: [], drag: null, pinch: null, dirty: 1, sheet: '' };
 const sedS = () => STAGES[SED.i];
-const sedKinds = () => Object.keys(UK).filter(k => UK[k] && UK[k].n).sort((a, b) => (UK[a].hp || 0) - (UK[b].hp || 0));
-const sedSave = () => { try { localStorage.setItem('kn_stages', JSON.stringify(STAGES.map(s => sedClean(s)))); } catch (e) { } CPDEC = null; CPUI.last = ''; };
-const sedClean = s => JSON.parse(JSON.stringify(s, (k, v) => k === 'i' ? undefined : v));
-function sedPush() { SED.hist.push(JSON.stringify(sedS())); if (SED.hist.length > 60) SED.hist.shift(); SED.fut = []; }
-function sedDone() { sedSave(); sedPanel(); }
-const sedWaves = e => e.w.map(s => cpParse(s));
-const sedWStr = L => L.filter(([k, n]) => n > 0).map(([k, n]) => k + '*' + n).join(',');
+const SEDSP = { woods: ['Woods', '#7ad06a'], cave: ['Cave', '#c9a65a'], gate: ['Gate', '#a8b0c0'], grave: ['Grave', '#b07ad0'] };
+const SEDK = () => Object.keys(UK).filter(k => UK[k] && UK[k].n).sort((a, b) => (UK[a].hp || 0) - (UK[b].hp || 0));
+let sedSvT = 0; const sedSave = () => { clearTimeout(sedSvT); sedSvT = setTimeout(() => { try { localStorage.setItem('kn_stages2', JSON.stringify(STAGES)); } catch (e) { } CPUI.last = ''; }, 400); };
+function sedPush() { SED.hist.push(JSON.stringify(sedS())); if (SED.hist.length > 40) SED.hist.shift(); SED.fut = []; }
+function sedDone() { sedSave(); SED.dirty = 1; sedSelBar(); }
+// ---- thumbnails (enemy, prop, ground) ----
+const SEDTH = new Map();
+// drawn big, trimmed to what was drawn, then fitted to 64 px so every picture fills its button
+function sedThumb(key, f, trim) { if (SEDTH.has(key)) return SEDTH.get(key); const c = document.createElement('canvas'); c.width = c.height = 64; f(c.getContext('2d'));
+  if (trim) { const d = c.getContext('2d').getImageData(0, 0, 64, 64).data; let x0 = 64, y0 = 64, x1 = -1, y1 = -1; for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) if (d[(y * 64 + x) * 4 + 3] > 8) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    if (x1 > x0) { const o = document.createElement('canvas'); o.width = o.height = 64; const w = x1 - x0 + 1, h = y1 - y0 + 1, k = Math.min(60 / w, 60 / h); o.getContext('2d').drawImage(c, x0, y0, w, h, 32 - w * k / 2, 32 - h * k / 2, w * k, h * k); const u = o.toDataURL(); SEDTH.set(key, u); return u; } }
+  const u = c.toDataURL(); SEDTH.set(key, u); return u; }
+const sedEnemyImg = k => sedThumb('e' + k, g => { const U = UK[k], SB = U.sb || (['ogre', 'warg', 'naga', 'necro'].includes(k) ? SBB : SBS), s = 58 / Math.max(SB.w, SB.h); g.setTransform(s, 0, 0, s, 32 - (SB.x + SB.w / 2) * s, 32 - (SB.y + SB.h / 2) * s); NOHP = true; try { walkerLive(g, { x: 0, y: 0, k, ph: 0, hp: 1, max: 1, id: 1, atk: -1 }, 0, 1, -1, false); } catch (e) { } NOHP = false; }, 1);
+const sedPropImg = k => sedThumb('p' + k + sedS().th, g => { const o = skSprite(k, sedS().th, 1, 0, 0); if (!o) return; const s = Math.min(60 / o.width, 60 / o.height); g.drawImage(o, 32 - o.width * s / 2, 62 - o.height * s, o.width * s, o.height * s); }, 1);
+const sedGroundImg = c => sedThumb('g' + c + sedS().th, g => { if (c === 1) { g.fillStyle = g.createPattern(grassT, 'repeat'); g.fillRect(0, 0, 64, 64); } else { g.fillStyle = g.createPattern(skTex(c, sedS().th), 'repeat'); g.fillRect(0, 0, 64, 64); } });
+// ---- the page ----
 function sedCss() { if (document.getElementById('sedCss')) return; const s = document.createElement('style'); s.id = 'sedCss'; s.textContent = `
 body.live .sedBtn{display:none !important}
-#sed{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;background:#0d110b;color:#f3ead2;font:600 13px system-ui,sans-serif}
-#sed .bar{display:flex;gap:6px;align-items:center;padding:6px;flex-wrap:wrap;background:#1a2015;border-bottom:1px solid #3a3a2a}
-#sed button,#sed select,#sed input{font:700 13px system-ui;border-radius:8px;border:1px solid #6a5a36;background:#2a2615;color:#f3ead2;padding:7px 10px}
+#sed{position:fixed;inset:0;z-index:80;display:none;flex-direction:column;background:#0d110b;color:#f3ead2;font:600 13px system-ui,sans-serif;user-select:none;-webkit-user-select:none}
+#sed button,#sed select,#sed input{font:700 13px system-ui;border-radius:9px;border:1px solid #6a5a36;background:#2a2615;color:#f3ead2;padding:8px 11px}
 #sed button.on{background:#6a4a1a;border-color:#ffd36a;color:#fff}#sed button.pri{background:#3d6a2a;border-color:#8ad06a}
-#sed .cvw{position:relative;flex:1;min-height:0}#sed canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
-#sed .tools{display:flex;gap:6px;padding:6px;overflow-x:auto;background:#1a2015;border-top:1px solid #3a3a2a}
-#sed .tools button{flex:0 0 auto}
-#sed .sedp{position:absolute;left:6px;right:6px;bottom:6px;max-height:46%;overflow:auto;background:#141a12f2;border:1px solid #c9a65a;border-radius:12px;padding:10px;touch-action:pan-y}
-#sed .sedp *{touch-action:pan-y}
-#sed .sedp h3{margin:0 0 6px;font:800 15px system-ui;display:flex;justify-content:space-between;align-items:center;gap:6px}
-#sed .sedp .wv{border:1px solid #3a3a2a;border-radius:10px;padding:6px;margin:6px 0;background:#1d2418}
-#sed .sedp .wv b{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
-#sed .sedp .en{display:flex;align-items:center;gap:6px;margin:3px 0}#sed .sedp .en span{flex:1}
-#sed .sedp .en button{padding:4px 10px;min-width:34px}
-#sed .sedp label{display:flex;align-items:center;gap:8px;margin:5px 0}#sed .sedp input[type=range]{flex:1}
-#sed .hint{position:absolute;left:0;right:0;top:6px;text-align:center;pointer-events:none;font:700 12px system-ui;color:#ffe9b0;text-shadow:0 1px 3px #000}
-#sedTxt{position:absolute;inset:10%;z-index:2;display:none;flex-direction:column;gap:6px;background:#141a12;border:1px solid #c9a65a;border-radius:12px;padding:10px}#sedTxt textarea{flex:1;font:11px monospace;background:#0a0d08;color:#cfe;border-radius:8px}`;
+#sed .bar{display:flex;gap:6px;align-items:center;padding:6px;background:#1a2015;border-bottom:1px solid #3a3a2a}#sed .bar select{flex:1;min-width:0}
+#sed .cvw{position:relative;flex:1;min-height:0;overflow:hidden}#sed canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+#sed .hint{position:absolute;left:8px;right:8px;top:6px;text-align:center;pointer-events:none;font:700 12px system-ui;color:#ffe9b0;text-shadow:0 1px 3px #000,0 0 6px #000}
+#sedSel{position:absolute;left:6px;right:6px;top:30px;display:none;gap:6px;align-items:center;flex-wrap:wrap;background:#141a12e8;border:1px solid #c9a65a;border-radius:10px;padding:6px}#sedSel b{flex:1;min-width:80px}
+#sed .pal{display:flex;gap:6px;padding:6px;overflow-x:auto;background:#141a12;border-top:1px solid #3a3a2a;align-items:center;min-height:62px;touch-action:pan-x}#sed .pal *{touch-action:pan-x}
+#sed .pal .it{flex:0 0 auto;width:58px;height:58px;padding:2px;border-radius:10px;border:2px solid #3a3a2a;background:#1d2418;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 9px system-ui;color:#cfc6ae;gap:1px}
+#sed .pal .it img{width:40px;height:40px;object-fit:contain;image-rendering:auto}#sed .pal .it.on{border-color:#ffd36a;background:#3a3218}
+#sed .pal .lbl{flex:0 0 auto;font:700 11px system-ui;color:#cfc6ae;padding:0 4px;max-width:150px}
+#sed .tools{display:flex;gap:5px;padding:6px;overflow-x:auto;background:#1a2015;border-top:1px solid #3a3a2a;touch-action:pan-x}#sed .tools button{flex:1 0 auto;padding:9px 8px}
+#sedSheet{position:absolute;left:6px;right:6px;bottom:6px;max-height:70%;overflow:auto;display:none;background:#141a12f4;border:1px solid #c9a65a;border-radius:12px;padding:10px;touch-action:pan-y}#sedSheet *{touch-action:pan-y}
+#sedSheet h3{margin:0 0 8px;font:800 15px system-ui;display:flex;justify-content:space-between;align-items:center;gap:6px}
+#sedSheet .wv{border:1px solid #3a3a2a;border-radius:10px;padding:6px;margin:6px 0;background:#1d2418}#sedSheet .wv>b{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+#sedSheet .en{display:flex;align-items:center;gap:6px;margin:3px 0}#sedSheet .en img{width:34px;height:34px}#sedSheet .en span{flex:1}#sedSheet .en button{padding:4px 11px;min-width:36px}
+#sedSheet .add{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}#sedSheet .add button{padding:2px;width:46px;height:46px}#sedSheet .add img{width:40px;height:40px}
+#sedSheet label{display:flex;align-items:center;gap:8px;margin:6px 0}#sedSheet label input,#sedSheet label select{flex:1;min-width:0}
+#sedTxt{position:absolute;inset:8%;z-index:2;display:none;flex-direction:column;gap:6px;background:#141a12;border:1px solid #c9a65a;border-radius:12px;padding:10px}#sedTxt textarea{flex:1;font:11px monospace;background:#0a0d08;color:#cfe;border-radius:8px}`;
   document.head.appendChild(s); }
-function sedOpen(i) { sedCss(); SED.on = 1; SED.i = cl(i | 0, 0, STAGES.length - 1); SED.sel = null; SED.hist = []; SED.fut = []; let el = document.getElementById('sed');
+function sedOpen(i) { sedCss(); SED.on = 1; SED.i = cl(i | 0, 0, STAGES.length - 1); SED.sel = null; SED.hist = []; SED.fut = []; SED.sheet = ''; let el = document.getElementById('sed');
   if (!el) { el = document.createElement('div'); el.id = 'sed'; document.body.appendChild(el);
-    el.innerHTML = `<div class="bar"><select id="sedSt"></select><button id="sedNew">+ Stage</button><button id="sedUndo">↶</button><button id="sedRedo">↷</button><button class="pri" id="sedPlay">▶ Play</button><button id="sedCopy">Copy</button><button id="sedClose">Close</button></div>
-      <div class="cvw"><canvas id="sedCv"></canvas><div class="hint" id="sedHint"></div><div class="sedp scrollOk" id="sedPnl"></div><div id="sedTxt"><b>Stage data (copy this and paste it to Claude)</b><textarea id="sedTa" readonly></textarea><button id="sedTxC">Close</button></div></div>
-      <div class="tools">${[['sel', 'Select / move'], ['area', '+ Area'], ['road', '+ Road'], ['fight', '+ Fight'], ['group', '+ Group'], ['start', 'Start']].map(([k, n]) => `<button data-t="${k}">${n}</button>`).join('')}<button id="sedFit">Fit</button></div>`;
+    el.innerHTML = `<div class="bar"><select id="sedSt"></select><button id="sedUndo">↶</button><button id="sedRedo">↷</button><button class="pri" id="sedPlay">▶ Play</button><button id="sedMenu">⋯</button><button id="sedClose">✕</button></div>
+      <div class="cvw"><canvas id="sedCv"></canvas><div class="hint" id="sedHint"></div><div id="sedSel"></div><div id="sedSheet" class="scrollOk"></div><div id="sedTxt"><b>Stage data: copy all of this and paste it to Claude</b><textarea id="sedTa" readonly></textarea><button id="sedTxC">Close</button></div></div>
+      <div class="pal scrollOk" id="sedPal"></div>
+      <div class="tools scrollOk">${[['move', 'Move'], ['ground', 'Ground'], ['prop', 'Props'], ['enemy', 'Enemies'], ['lock', 'Locks'], ['spawn', 'Spawns'], ['start', 'Start']].map(([k, n]) => `<button data-t="${k}">${n}</button>`).join('')}</div>`;
     const $ = id => document.getElementById(id);
-    $('sedSt').onchange = e => { SED.i = +e.target.value; SED.sel = null; SED.hist = []; SED.fut = []; sedFit(); sedPanel(); };
-    $('sedNew').onclick = () => { const n = STAGES.length; STAGES.push({ id: 'st' + Date.now().toString(36), name: 'Stage ' + (n + 1), blurb: '', th: 'grass', mul: 1, S: [200, 230], R: [[110, 110, 900, 400]], P: [[160, 250], [860, 250]], E: [{ x: 700, y: 250, r: 110, w: ['foot*4'] }] }); SED.i = n; SED.sel = null; sedSave(); sedFit(); sedPanel(); };
-    $('sedUndo').onclick = () => { if (!SED.hist.length) return; SED.fut.push(JSON.stringify(sedS())); STAGES[SED.i] = JSON.parse(SED.hist.pop()); SED.sel = null; sedDone(); };
-    $('sedRedo').onclick = () => { if (!SED.fut.length) return; SED.hist.push(JSON.stringify(sedS())); STAGES[SED.i] = JSON.parse(SED.fut.pop()); SED.sel = null; sedDone(); };
-    $('sedClose').onclick = sedClose; $('sedFit').onclick = sedFit;
-    $('sedCopy').onclick = () => { const j = JSON.stringify(STAGES.map(sedClean)); $('sedTa').value = j; $('sedTxt').style.display = 'flex'; try { navigator.clipboard.writeText(j).then(() => sedHint('Copied: paste it to Claude to make these the game\'s stages'), () => { }); } catch (e) { } };
+    $('sedSt').onchange = e => { SED.i = +e.target.value; SED.sel = null; SED.hist = []; SED.fut = []; sedSheet(''); sedFit(); sedUI(); };
+    $('sedUndo').onclick = () => { if (!SED.hist.length) return; SED.fut.push(JSON.stringify(sedS())); STAGES[SED.i] = JSON.parse(SED.hist.pop()); SED.sel = null; sedDone(); sedSheet(SED.sheet); };
+    $('sedRedo').onclick = () => { if (!SED.fut.length) return; SED.hist.push(JSON.stringify(sedS())); STAGES[SED.i] = JSON.parse(SED.fut.pop()); SED.sel = null; sedDone(); sedSheet(SED.sheet); };
+    $('sedClose').onclick = sedClose; $('sedPlay').onclick = sedPlay; $('sedMenu').onclick = () => sedSheet(SED.sheet === 'stage' ? '' : 'stage');
     $('sedTxC').onclick = () => { $('sedTxt').style.display = 'none'; };
-    $('sedPlay').onclick = sedPlay;
-    el.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { SED.tool = b.dataset.t; SED.sel = null; sedTools(); sedPanel(); });
-    const cv2 = $('sedCv'); cv2.addEventListener('pointerdown', sedDown); cv2.addEventListener('pointermove', sedMove); cv2.addEventListener('pointerup', sedUp); cv2.addEventListener('pointercancel', sedUp);
-    cv2.addEventListener('wheel', e => { e.preventDefault(); const [wx, wy] = sedW(e.offsetX, e.offsetY); SED.cam.s = cl(SED.cam.s * Math.exp(-e.deltaY * 0.0015), 0.08, 3); const [wx2, wy2] = sedW(e.offsetX, e.offsetY); SED.cam.x += wx - wx2; SED.cam.y += wy - wy2; }, { passive: false }); }
-  el.style.display = 'flex'; sedTools(); sedFit(); sedPanel(); requestAnimationFrame(sedDraw); }
+    el.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { SED.tool = b.dataset.t; SED.sel = null; sedSheet(''); sedUI(); });
+    const cv2 = $('sedCv'); cv2.addEventListener('pointerdown', sedDown); cv2.addEventListener('pointermove', sedMove); cv2.addEventListener('pointerup', sedUp); cv2.addEventListener('pointercancel', sedUp); cv2.addEventListener('contextmenu', e => e.preventDefault());
+    cv2.addEventListener('wheel', e => { e.preventDefault(); sedZoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false }); }
+  el.style.display = 'flex'; sedUI(); sedFit(); requestAnimationFrame(sedDraw); }
 function sedClose() { SED.on = 0; const el = document.getElementById('sed'); if (el) el.style.display = 'none'; CPUI.last = ''; }
 function sedPlay() { const i = SED.i; sedClose();
   if (BH.on && BH.cp) { if (AUTH()) { CMP.sel = i; cpBegin(i); } return; }
   BHMODE = 'camp'; try { localStorage.setItem('kn_mode', 'camp'); } catch (e) { } startGame(1, 0); setTimeout(() => { if (BH.cp) { CMP.sel = i; cpBegin(i); } }, 80); }
-let sedHT = 0; function sedHint(t) { const h = document.getElementById('sedHint'); if (h) { h.textContent = t; clearTimeout(sedHT); sedHT = setTimeout(() => { h.textContent = sedTip(); }, 2500); } }
-const sedTip = () => ({ sel: 'Tap something to select it · drag it to move · drag empty ground to pan · pinch to zoom', area: 'Drag to draw a walkable area', road: 'Tap to add road points (in order)', fight: 'Tap to place a fight (a ring that locks everyone in)', group: 'Tap to place a group (enemies standing about)', start: 'Tap where the players start' })[SED.tool];
-function sedTools() { document.querySelectorAll('#sed [data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === SED.tool)); const h = document.getElementById('sedHint'); if (h) h.textContent = sedTip();
-  const st = document.getElementById('sedSt'); st.innerHTML = STAGES.map((s, i) => `<option value="${i}" ${i === SED.i ? 'selected' : ''}>${i + 1}. ${s.name}</option>`).join(''); }
-function sedFit() { const S = sedS(), cv2 = document.getElementById('sedCv'); if (!S || !cv2) return; let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const r of S.R) { x0 = Math.min(x0, r[0]); y0 = Math.min(y0, r[1]); x1 = Math.max(x1, r[2]); y1 = Math.max(y1, r[3]); }
-  if (!S.S) S.S = [200, 230]; const W = cv2.clientWidth || 400, H = cv2.clientHeight || 400; SED.cam.s = cl(Math.min(W / (x1 - x0 + 80), H * 0.55 / (y1 - y0 + 80)), 0.08, 3); SED.cam.x = (x0 + x1) / 2; SED.cam.y = (y0 + y1) / 2 + H * 0.2 / SED.cam.s; }
+const SEDTIP = { move: 'Tap anything to select it, drag it to move it · drag empty ground or use two fingers to pan · pinch to zoom', ground: 'Paint the ground with one finger · Void = where nobody can walk', prop: 'Tap to place · tap a prop to select it · Brush: drag to scatter', enemy: 'Tap to place enemies · they stand about until someone comes near', lock: 'Tap to add a locked screen · drag its corners to size it · Waves… to choose who floods in', spawn: 'Tap to place a spawn point: the flood comes out of these (and the screen edges)', start: 'Tap where the players start' };
+function sedUI() { const $ = id => document.getElementById(id); document.querySelectorAll('#sed [data-t]').forEach(b => b.classList.toggle('on', b.dataset.t === SED.tool)); $('sedHint').textContent = SED.sel ? '' : SEDTIP[SED.tool];
+  $('sedSt').innerHTML = STAGES.map((s, i) => `<option value="${i}" ${i === SED.i ? 'selected' : ''}>${i + 1}. ${s.name}</option>`).join('');
+  const P = $('sedPal'), T = SED.tool, it = (key, img, n, on) => `<button class="it ${on ? 'on' : ''}" data-k="${key}"><img src="${img}" alt="">${n}</button>`; let h = '';
+  if (T === 'ground') h = [2, 3, 4, 5, 1, 6, 0].map(c => it('g' + c, sedGroundImg(c), SKG[c], SED.paint === c)).join('') + '<span class="lbl">Brush</span>' + [[1, 'S'], [2, 'M'], [4, 'L'], [7, 'XL']].map(([r, n]) => `<button class="it ${SED.brush === r ? 'on' : ''}" data-b="${r}" style="width:44px">${n}</button>`).join('');
+  else if (T === 'prop') h = `<button class="it ${SED.pbrush ? 'on' : ''}" data-pb="1" style="width:64px">${SED.pbrush ? 'Brush on' : 'Brush off'}</button>` + SKPLIST.map(k => it('p' + k, sedPropImg(k), SKP[k].n, SED.prop === k)).join('');
+  else if (T === 'enemy') h = [1, 3, 5].map(n => `<button class="it ${SED.cnt === n ? 'on' : ''}" data-c="${n}" style="width:40px">×${n}</button>`).join('') + SEDK().map(k => it('e' + k, sedEnemyImg(k), UK[k].n, SED.enemy === k)).join('');
+  else if (T === 'spawn') h = Object.entries(SEDSP).map(([k, [n, col]]) => `<button class="it ${SED.spawn === k ? 'on' : ''}" data-s="${k}"><span style="width:22px;height:22px;border-radius:50%;background:${col};display:block"></span>${n}</button>`).join('') + '<span class="lbl">Each feeds the nearest locked screen</span>';
+  else if (T === 'lock') h = `<span class="lbl">${(sedS().L || []).length} locked screens · the stage is won when every one is cleared</span>`;
+  else if (T === 'start') h = '<span class="lbl">The players\' stones stand here when the stage begins</span>';
+  else h = `<span class="lbl">${sedS().name} · ${(sedS().U || []).length} enemies placed · ${(sedS().O || []).length} props</span>`;
+  P.innerHTML = h;
+  P.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { const k = b.dataset.k, v = k.slice(1); if (k[0] === 'g') SED.paint = +v; else if (k[0] === 'p') SED.prop = v; else if (k[0] === 'e') { SED.enemy = v; const s2 = SED.sel; if (s2 && s2.t === 'enemy') { sedPush(); sedS().U[s2.i][0] = v; sedDone(); } } sedUI(); });
+  P.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { SED.brush = +b.dataset.b; sedUI(); });
+  P.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { SED.cnt = +b.dataset.c; sedUI(); });
+  P.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { SED.spawn = b.dataset.s; const s2 = SED.sel; if (s2 && s2.t === 'spawn') { sedPush(); sedS().SP[s2.i][0] = SED.spawn; sedDone(); } sedUI(); });
+  P.querySelectorAll('[data-pb]').forEach(b => b.onclick = () => { SED.pbrush = SED.pbrush ? 0 : 1; sedUI(); });
+  sedSelBar(); SED.dirty = 1; }
+// the bar for whatever is selected
+function sedSelBar() { const el = document.getElementById('sedSel'); if (!el) return; const sel = SED.sel, S = sedS(); const h = document.getElementById('sedHint'); if (h) h.textContent = sel ? '' : SEDTIP[SED.tool];
+  if (!sel) { el.style.display = 'none'; return; } let t = '', b = '';
+  if (sel.t === 'prop') { const p = S.O[sel.i]; if (!p) { SED.sel = null; return sedSelBar(); } t = SKP[p[0]].n; b = '<button data-a="flip">Flip</button><button data-a="small">−</button><button data-a="big">+</button><button data-a="var">Look</button><button data-a="del">Delete</button>'; }
+  else if (sel.t === 'enemy') { const u = S.U[sel.i]; if (!u) { SED.sel = null; return sedSelBar(); } t = UK[u[0]].n + ' <small style="opacity:.7">(tap one below to swap)</small>'; b = '<button data-a="del">Delete</button>'; }
+  else if (sel.t === 'lock') { const L = S.L[sel.i]; if (!L) { SED.sel = null; return sedSelBar(); } t = 'Locked screen ' + (sel.i + 1); b = '<button data-a="waves" class="pri">Waves…</button><button data-a="del">Delete</button>'; }
+  else if (sel.t === 'spawn') { const q = S.SP[sel.i]; if (!q) { SED.sel = null; return sedSelBar(); } t = 'Spawn: ' + SEDSP[q[0]][0]; b = '<button data-a="del">Delete</button>'; }
+  else if (sel.t === 'start') { t = 'Start'; }
+  el.innerHTML = `<b>${t}</b>${b}<button data-a="x">✕</button>`; el.style.display = 'flex';
+  el.querySelectorAll('[data-a]').forEach(q => q.onclick = () => { const a = q.dataset.a; if (a === 'x') { SED.sel = null; sedSelBar(); SED.dirty = 1; return; } if (a === 'waves') { sedSheet('waves'); return; }
+    sedPush(); if (sel.t === 'prop') { const p = S.O[sel.i]; if (a === 'flip') p[4] = p[4] ? 0 : 1; if (a === 'small') p[3] = Math.max(0.4, Math.round(((p[3] || 1) - 0.1) * 10) / 10); if (a === 'big') p[3] = Math.min(3, Math.round(((p[3] || 1) + 0.1) * 10) / 10); if (a === 'var') p[5] = ((p[5] || 0) + 1) % 3; }
+    if (a === 'del') { ({ prop: S.O, enemy: S.U, lock: S.L, spawn: S.SP })[sel.t].splice(sel.i, 1); SED.sel = null; sedSheet(''); }
+    sedDone(); }); }
+// bottom sheets: a lock's waves, or the stage's settings
+function sedSheet(k) { SED.sheet = k; const el = document.getElementById('sedSheet'); if (!el) return; const S = sedS(); if (!k) { el.style.display = 'none'; return; } let h = '';
+  const sc0 = el.scrollTop;
+  if (k === 'waves') { const sel = SED.sel, L = sel && sel.t === 'lock' && S.L[sel.i]; if (!L) { el.style.display = 'none'; SED.sheet = ''; return; } const W = L.wv.map(skParse), pre = (S.U || []).filter(u => lkIn(L, u[1], u[2])).length;
+    h = `<h3>Locked screen ${sel.i + 1}<button data-x="1">Done</button></h3><div style="opacity:.75;font-weight:500">When a player walks onto it the screen locks. ${pre} enemies are already standing on it; each wave below floods in from its spawn points and the screen's edges once the last is nearly dead.</div>
+      <label>Boss <select id="sBoss"><option value="">None</option>${SEDK().map(q => `<option value="${q}" ${L.boss === q ? 'selected' : ''}>${UK[q].n}</option>`).join('')}</select></label>
+      ${W.map((Lw, wi) => `<div class="wv"><b><span>Wave ${wi + 1}</span>${W.length > 1 ? `<button data-dw="${wi}">Remove</button>` : ''}</b>${Lw.map(([q, n], ei) => `<div class="en"><img src="${sedEnemyImg(q)}"><span>${(UK[q] || { n: q }).n}</span><button data-w="${wi}" data-e="${ei}" data-d="-1">−</button><b style="min-width:22px;text-align:center">${n}</b><button data-w="${wi}" data-e="${ei}" data-d="1">+</button><button data-w="${wi}" data-e="${ei}" data-d="x">✕</button></div>`).join('')}
+        <div class="add">${SEDK().map(q => `<button data-aw="${wi}" data-q="${q}" title="${UK[q].n}"><img src="${sedEnemyImg(q)}"></button>`).join('')}</div></div>`).join('')}<button id="sAddW">+ Wave</button>`; }
+  else if (k === 'stage') h = `<h3>Stage ${SED.i + 1}<button data-x="1">Done</button></h3>
+    <label>Name <input id="sNm" value="${(S.name || '').replace(/"/g, '&quot;')}"></label><label>Description <input id="sBl" value="${(S.blurb || '').replace(/"/g, '&quot;')}"></label>
+    <label>Look <select id="sTh">${[['grass', 'Grassland'], ['wood', 'Dark forest'], ['fort', 'Fortress']].map(([v, n]) => `<option value="${v}" ${S.th === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+    <label>Enemy health × <input id="sMul" type="number" step="0.05" min="0.2" max="10" value="${S.mul || 1}"></label>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"><button id="sNew">+ New stage</button><button id="sCopy">Copy stage data</button><button id="sDelSt">Delete this stage</button><button id="sReset">Reset all to the game's stages</button></div>`;
+  el.innerHTML = h; el.style.display = 'block'; el.scrollTop = sc0; const $ = id => document.getElementById(id), chg = f => { sedPush(); f(); sedDone(); sedSheet(SED.sheet); };
+  el.querySelectorAll('[data-x]').forEach(b => b.onclick = () => sedSheet(''));
+  if (k === 'waves') { const L = S.L[SED.sel.i], W = L.wv.map(skParse), put = () => { L.wv = W.map(Lw => Lw.filter(q => q[1] > 0).map(([q, n]) => q + '*' + n).join(',')).filter(Boolean); if (!L.wv.length) L.wv = ['foot*3']; };
+    $('sBoss').onchange = e => chg(() => { if (e.target.value) L.boss = e.target.value; else delete L.boss; });
+    $('sAddW').onclick = () => chg(() => { W.push([['foot', 3]]); put(); });
+    el.querySelectorAll('[data-dw]').forEach(b => b.onclick = () => chg(() => { W.splice(+b.dataset.dw, 1); put(); }));
+    el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => chg(() => { const Lw = W[+b.dataset.w], i = +b.dataset.e; if (b.dataset.d === 'x') Lw.splice(i, 1); else Lw[i][1] = cl(Lw[i][1] + +b.dataset.d, 1, 60); put(); }));
+    el.querySelectorAll('[data-aw]').forEach(b => b.onclick = () => chg(() => { const Lw = W[+b.dataset.aw], q = b.dataset.q, f = Lw.find(z => z[0] === q); if (f) f[1]++; else Lw.push([q, UK[q].heavy ? 1 : 3]); put(); })); }
+  if (k === 'stage') { $('sNm').onchange = e => chg(() => { S.name = e.target.value || 'Stage'; sedUI(); }); $('sBl').onchange = e => chg(() => S.blurb = e.target.value); $('sMul').onchange = e => chg(() => S.mul = cl(+e.target.value || 1, 0.2, 10));
+    $('sTh').onchange = e => chg(() => { S.th = e.target.value; SKX.delete(S); SEDTH.clear(); sedUI(); });
+    $('sNew').onclick = () => { const n = STAGES.length; STAGES.push(skGen({ id: 'st' + Date.now().toString(36), name: 'Stage ' + (n + 1), blurb: '', th: 'grass', mul: 1, mp: [10 + (n * 22) % 80, n % 2 ? 36 : 66], seed: Date.now() % 9999, start: [260, 400], props: 160, pts: [[200, 400, 140], [1700, 400, 150]], locks: [{ x: 1200, y: 400, w: 540, h: 300, wv: ['foot*4'] }] })); SED.i = n; SED.sel = null; SED.hist = []; sedSave(); sedSheet(''); sedUI(); sedFit(); };
+    $('sCopy').onclick = () => { const j = JSON.stringify(STAGES); $('sedTa').value = j; $('sedTxt').style.display = 'flex'; $('sedTa').select(); try { navigator.clipboard.writeText(j); } catch (e) { } };
+    $('sDelSt').onclick = () => { if (STAGES.length < 2) return; STAGES.splice(SED.i, 1); SED.i = Math.max(0, SED.i - 1); SED.hist = []; sedSave(); sedSheet(''); sedUI(); sedFit(); };
+    $('sReset').onclick = () => { STAGES.length = 0; SEDDEF.forEach(j => STAGES.push(JSON.parse(j))); try { localStorage.removeItem('kn_stages2'); } catch (e) { } SED.i = 0; SED.hist = []; SED.sel = null; CPUI.last = ''; sedSheet(''); sedUI(); sedFit(); }; } }
+// ---- camera ----
+function sedFit() { const S = sedS(), cv2 = document.getElementById('sedCv'); if (!S || !cv2) return; const W = cv2.clientWidth || 400, H = cv2.clientHeight || 400;
+  // start zoomed on the start point, at roughly the game's own zoom
+  SED.cam.s = cl(Math.max(1, Math.min(W / 560, H / 320)), 0.15, 3); const s0 = S.S || [260, 400]; SED.cam.x = s0[0] + W / 2 / SED.cam.s - 120; SED.cam.y = s0[1]; SED.dirty = 1; }
 const sedW = (sx, sy) => { const cv2 = document.getElementById('sedCv'); return [SED.cam.x + (sx - cv2.clientWidth / 2) / SED.cam.s, SED.cam.y + (sy - cv2.clientHeight / 2) / SED.cam.s]; };
 const sedSc = (wx, wy) => { const cv2 = document.getElementById('sedCv'); return [(wx - SED.cam.x) * SED.cam.s + cv2.clientWidth / 2, (wy - SED.cam.y) * SED.cam.s + cv2.clientHeight / 2]; };
-// ---- picking ----
-function sedPick(sx, sy) { const S = sedS(), P = (x, y) => Math.hypot(...((p => [p[0] - sx, p[1] - sy])(sedSc(x, y)))), R = 16;
-  if (SED.sel && SED.sel.t === 'rect') { const r = S.R[SED.sel.i]; if (r) for (const [c, x, y] of [[0, r[0], r[1]], [1, r[2], r[1]], [2, r[0], r[3]], [3, r[2], r[3]]]) if (P(x, y) < R) return { t: 'corner', i: SED.sel.i, c }; }
-  if (SED.sel && (SED.sel.t === 'fight')) { const e = S.E[SED.sel.i]; if (e && P(e.x + e.r, e.y) < R) return { t: 'rad', i: SED.sel.i }; }
-  for (let i = S.E.length - 1; i >= 0; i--) { const e = S.E[i]; if (P(e.x, e.y) < R + 4) return { t: e.g ? 'group' : 'fight', i }; }
-  if (S.S && P(S.S[0], S.S[1]) < R) return { t: 'start' };
-  for (let i = 0; i < S.P.length; i++) if (P(S.P[i][0], S.P[i][1]) < R - 4) return { t: 'road', i };
-  for (let i = S.E.length - 1; i >= 0; i--) { const e = S.E[i]; if (!e.g) { const [wx, wy] = sedW(sx, sy); if (Math.hypot(wx - e.x, (wy - e.y) / ARY) < e.r) return { t: 'fight', i }; } }
-  const [wx, wy] = sedW(sx, sy); for (let i = S.R.length - 1; i >= 0; i--) { const r = S.R[i]; if (wx >= r[0] && wx <= r[2] && wy >= r[1] && wy <= r[3]) return { t: 'rect', i }; }
+function sedZoomAt(sx, sy, f) { const [wx, wy] = sedW(sx, sy); SED.cam.s = cl(SED.cam.s * f, 0.06, 4); const [wx2, wy2] = sedW(sx, sy); SED.cam.x += wx - wx2; SED.cam.y += wy - wy2; SED.dirty = 1; }
+// ---- picking: what's under a screen point (handles of the selected lock first) ----
+function sedPick(sx, sy, only) { const S = sedS(), [wx, wy] = sedW(sx, sy), px = 1 / SED.cam.s, ok = t => !only || only === t;
+  if (SED.sel && SED.sel.t === 'lock') { const L = S.L[SED.sel.i]; if (L) for (let c = 0; c < 4; c++) { const x = L.x + (c % 2 ? 1 : -1) * L.w / 2, y = L.y + (c > 1 ? 1 : -1) * L.h / 2; if (Math.hypot(x - wx, y - wy) < 18 * px) return { t: 'corner', i: SED.sel.i, c }; } }
+  if (ok('spawn')) for (let i = (S.SP || []).length - 1; i >= 0; i--) if (Math.hypot(S.SP[i][1] - wx, S.SP[i][2] - wy) < Math.max(9, 16 * px)) return { t: 'spawn', i };
+  if (ok('enemy')) { let b = null, bd = 1e9; (S.U || []).forEach((u, i) => { const U = UK[u[0]]; if (!U) return; const sc = U.sc || 1, d = Math.hypot(u[1] - wx, (u[2] - 5 * sc - wy) * 0.7); if (d < Math.max(7 * sc, 14 * px) && d < bd) { bd = d; b = { t: 'enemy', i }; } }); if (b) return b; }
+  if (ok('prop')) { let b = null, by = -1e9; (S.O || []).forEach((p, i) => { const P = SKP[p[0]]; if (!P) return; const s = p[3] || 1; if (Math.abs(wx - p[1]) < Math.max(P.w * s * 0.42, 8 * px) && wy < p[2] + 4 && wy > p[2] - Math.max(P.h * s * 0.9, 10 * px) && p[2] > by) { by = p[2]; b = { t: 'prop', i }; } }); if (b) return b; }
+  if (ok('start') && S.S && Math.hypot(S.S[0] - wx, S.S[1] - 6 - wy) < Math.max(10, 18 * px)) return { t: 'start' };
+  if (ok('lock')) for (let i = (S.L || []).length - 1; i >= 0; i--) if (lkIn(S.L[i], wx, wy)) return { t: 'lock', i };
   return null; }
-function sedDown(e) { const cv2 = e.target; cv2.setPointerCapture(e.pointerId); SED.ptr.set(e.pointerId, [e.offsetX, e.offsetY]);
-  if (SED.ptr.size === 2) { const [a, b] = [...SED.ptr.values()]; SED.drag = null; SED.pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), s: SED.cam.s, m: sedW((a[0] + b[0]) / 2, (a[1] + b[1]) / 2) }; return; }
-  const sx = e.offsetX, sy = e.offsetY, [wx, wy] = sedW(sx, sy), S = sedS(), T = SED.tool;
-  if (T === 'area') { sedPush(); S.R.push([wx, wy, wx, wy]); SED.drag = { k: 'newrect', i: S.R.length - 1, x0: wx, y0: wy }; return; }
-  if (T === 'road') { sedPush(); S.P.push([Math.round(wx), Math.round(wy)]); SED.sel = { t: 'road', i: S.P.length - 1 }; sedDone(); return; }
-  if (T === 'fight' || T === 'group') { sedPush(); S.E.push(T === 'fight' ? { x: Math.round(wx), y: Math.round(wy), r: 110, w: ['foot*4'] } : { g: 1, x: Math.round(wx), y: Math.round(wy), w: ['foot*3'] }); SED.sel = { t: T, i: S.E.length - 1 }; SED.tool = 'sel'; sedTools(); sedDone(); return; }
-  if (T === 'start') { sedPush(); S.S = [Math.round(wx), Math.round(wy)]; SED.sel = { t: 'start' }; SED.tool = 'sel'; sedTools(); sedDone(); return; }
-  const h = sedPick(sx, sy);
-  if (h) { if (h.t !== 'corner' && h.t !== 'rad') SED.sel = h; SED.drag = { k: 'move', h, wx, wy, pushed: 0 }; sedPanel(); }
-  else { SED.drag = { k: 'pan', sx, sy, cx: SED.cam.x, cy: SED.cam.y, moved: 0 }; } }
-function sedMove(e) { if (!SED.ptr.has(e.pointerId)) return; SED.ptr.set(e.pointerId, [e.offsetX, e.offsetY]);
-  if (SED.pinch && SED.ptr.size >= 2) { const [a, b] = [...SED.ptr.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); SED.cam.s = cl(SED.pinch.s * d / Math.max(1, SED.pinch.d), 0.08, 3); const [wx, wy] = sedW((a[0] + b[0]) / 2, (a[1] + b[1]) / 2); SED.cam.x += SED.pinch.m[0] - wx; SED.cam.y += SED.pinch.m[1] - wy; return; }
-  const D = SED.drag; if (!D) return; const [wx, wy] = sedW(e.offsetX, e.offsetY), S = sedS();
-  if (D.k === 'pan') { SED.cam.x = D.cx - (e.offsetX - D.sx) / SED.cam.s; SED.cam.y = D.cy - (e.offsetY - D.sy) / SED.cam.s; if (Math.hypot(e.offsetX - D.sx, e.offsetY - D.sy) > 6) D.moved = 1; return; }
-  if (D.k === 'newrect') { S.R[D.i] = [Math.round(Math.min(D.x0, wx)), Math.round(Math.min(D.y0, wy)), Math.round(Math.max(D.x0, wx)), Math.round(Math.max(D.y0, wy))]; return; }
-  if (D.k === 'move') { const dx = wx - D.wx, dy = wy - D.wy; if (!D.pushed) { if (Math.hypot(dx, dy) * SED.cam.s < 4) return; sedPush(); D.pushed = 1; } D.wx = wx; D.wy = wy; const h = D.h, R = v => Math.round(v);
-    if (h.t === 'fight' || h.t === 'group') { const q = S.E[h.i]; q.x = R(q.x + dx); q.y = R(q.y + dy); q.x0 = undefined; }
-    else if (h.t === 'start') { S.S = [R(S.S[0] + dx), R(S.S[1] + dy)]; }
-    else if (h.t === 'road') { S.P[h.i] = [R(S.P[h.i][0] + dx), R(S.P[h.i][1] + dy)]; }
-    else if (h.t === 'rect') { const r = S.R[h.i]; S.R[h.i] = [R(r[0] + dx), R(r[1] + dy), R(r[2] + dx), R(r[3] + dy)]; }
-    else if (h.t === 'corner') { const r = S.R[h.i]; if (h.c === 0 || h.c === 2) r[0] = R(wx); else r[2] = R(wx); if (h.c < 2) r[1] = R(wy); else r[3] = R(wy); }
-    else if (h.t === 'rad') { const q = S.E[h.i]; q.r = R(cl(Math.hypot(wx - q.x, (wy - q.y) / ARY), 40, 400)); sedPanel(); } } }
-function sedUp(e) { SED.ptr.delete(e.pointerId); if (SED.ptr.size < 2) SED.pinch = null; const D = SED.drag; SED.drag = null; if (!D) return; const S = sedS();
-  if (D.k === 'newrect') { const r = S.R[D.i]; if (r[2] - r[0] < 30 || r[3] - r[1] < 30) { S.R.splice(D.i, 1); SED.hist.pop(); sedHint('Drag further to draw an area'); } else { r.forEach((v, j) => r[j] = Math.round(v)); SED.sel = { t: 'rect', i: D.i }; } sedDone(); return; }
-  if (D.k === 'pan' && !D.moved) { SED.sel = null; sedPanel(); return; }
-  if (D.k === 'move') { if (D.h.t === 'corner') { const r = S.R[D.h.i]; S.R[D.h.i] = [Math.min(r[0], r[2]), Math.min(r[1], r[3]), Math.max(r[0], r[2]), Math.max(r[1], r[3])]; } sedDone(); } }
-// ---- the panel for the selection (or the stage itself) ----
-function sedPanel() { const el = document.getElementById('sedPnl'); if (!el) return; const S = sedS(), sel = SED.sel, K = sedKinds(), opt = (cur) => K.map(k => `<option value="${k}" ${k === cur ? 'selected' : ''}>${UK[k].n}</option>`).join(''); let h = '';
-  const sc0 = el.scrollTop;
-  if (!sel) { h = `<h3>Stage ${SED.i + 1}<span><button id="sDelSt">Delete stage</button></span></h3>
-    <label>Name <input id="sNm" value="${(S.name || '').replace(/"/g, '&quot;')}" style="flex:1"></label>
-    <label>Description <input id="sBl" value="${(S.blurb || '').replace(/"/g, '&quot;')}" style="flex:1"></label>
-    <label>Look <select id="sTh">${['grass', 'wood', 'fort'].map(t => `<option ${S.th === t ? 'selected' : ''} value="${t}">${{ grass: 'Grassland', wood: 'Forest', fort: 'Fortress' }[t]}</option>`).join('')}</select></label>
-    <label>Enemy health ×<input id="sMul" type="number" step="0.05" min="0.2" max="10" value="${S.mul || 1}" style="width:80px"></label>
-    <div style="opacity:.75;font-weight:500">${S.R.length} areas · ${S.E.filter(e => !e.g).length} fights · ${S.E.filter(e => e.g).length} groups. The stage is cleared when every fight is won. <button id="sReset">Reset all stages to the game's</button></div>`; }
-  else if (sel.t === 'fight' || sel.t === 'group') { const e = S.E[sel.i]; if (!e) { SED.sel = null; return sedPanel(); } const W = sedWaves(e), fights = S.E.filter(q => !q.g), n = fights.indexOf(e) + 1;
-    h = `<h3>${e.g ? 'Group' : 'Fight ' + n + ' of ' + fights.length}<span>${e.g ? '' : `<button id="sUp">◀ Earlier</button><button id="sDn">Later ▶</button>`}<button id="sDel">Delete</button></span></h3>
-    ${e.g ? '<div style="opacity:.75;font-weight:500">Stands about until someone comes near or hits one, then attacks.</div>' : `<label>Ring size <input id="sR" type="range" min="40" max="400" value="${e.r}"><span>${e.r}</span></label>
-    <label>Boss <select id="sBoss"><option value="">None</option>${opt(e.boss)}</select></label>`}
-    ${W.map((L, wi) => `<div class="wv"><b><span>${e.g ? 'Enemies' : 'Wave ' + (wi + 1)}</span>${!e.g && W.length > 1 ? `<button data-dw="${wi}">Remove wave</button>` : ''}</b>
-      ${L.map(([k, c], ei) => `<div class="en"><span>${(UK[k] || { n: k }).n}</span><button data-w="${wi}" data-e="${ei}" data-d="-1">−</button><b style="min-width:22px;text-align:center">${c}</b><button data-w="${wi}" data-e="${ei}" data-d="1">+</button><button data-w="${wi}" data-e="${ei}" data-d="x">✕</button></div>`).join('')}
-      <div class="en"><select data-add="${wi}"><option value="">+ Add enemy…</option>${opt('')}</select></div></div>`).join('')}
-    ${e.g ? '' : '<button id="sAddW">+ Wave</button>'}`; }
-  else if (sel.t === 'rect') h = `<h3>Area<span><button id="sDel">Delete</button></span></h3><div style="opacity:.75;font-weight:500">Drag it to move it, drag its corners to resize. Players and enemies can walk anywhere inside any area.</div>`;
-  else if (sel.t === 'road') h = `<h3>Road point ${sel.i + 1}<span><button id="sDel">Delete point</button><button id="sClr">Clear road</button></span></h3><div style="opacity:.75;font-weight:500">The road is only decoration. Use + Road to add points to its end.</div>`;
-  else if (sel.t === 'start') h = `<h3>Start<span></span></h3><div style="opacity:.75;font-weight:500">Where the players' stones stand when the stage begins.</div>`;
-  el.innerHTML = h; el.scrollTop = sc0;
-  const $ = id => document.getElementById(id), chg = (f) => { sedPush(); f(); sedDone(); };
-  if (!sel) { $('sNm').onchange = ev => chg(() => { S.name = ev.target.value || 'Stage'; sedTools(); }); $('sBl').onchange = ev => chg(() => S.blurb = ev.target.value); $('sTh').onchange = ev => chg(() => S.th = ev.target.value); $('sMul').onchange = ev => chg(() => S.mul = cl(+ev.target.value || 1, 0.2, 10));
-    $('sDelSt').onclick = () => { if (STAGES.length < 2) return sedHint('Keep at least one stage'); STAGES.splice(SED.i, 1); SED.i = Math.max(0, SED.i - 1); SED.hist = []; sedSave(); sedTools(); sedFit(); sedPanel(); };
-    $('sReset').onclick = () => { STAGES.length = 0; JSON.parse(JSON.stringify(SEDDEF)).forEach(s => STAGES.push(s)); try { localStorage.removeItem('kn_stages'); } catch (er) { } SED.i = 0; SED.hist = []; CPDEC = null; CPUI.last = ''; sedTools(); sedFit(); sedPanel(); }; return; }
-  if ($('sDel')) $('sDel').onclick = () => chg(() => { if (sel.t === 'rect') S.R.splice(sel.i, 1); else if (sel.t === 'road') S.P.splice(sel.i, 1); else S.E.splice(sel.i, 1); SED.sel = null; });
-  if ($('sClr')) $('sClr').onclick = () => chg(() => { S.P = []; SED.sel = null; });
-  if (sel.t !== 'fight' && sel.t !== 'group') return; const e = S.E[sel.i], W = sedWaves(e), put = () => { e.w = W.map(sedWStr); if (!e.w.length) e.w = ['foot*1']; e.w = e.w.map(s => s || 'foot*1'); };
-  const mv = d => chg(() => { const F = S.E.map((q, j) => [q, j]).filter(([q]) => !q.g), k = F.findIndex(([q]) => q === e), o = F[k + d]; if (!o) return; const a = F[k][1], b = o[1]; [S.E[a], S.E[b]] = [S.E[b], S.E[a]]; SED.sel = { t: 'fight', i: b }; });
-  if ($('sUp')) { $('sUp').onclick = () => mv(-1); $('sDn').onclick = () => mv(1); }
-  if ($('sR')) $('sR').oninput = ev => { if (!SED.rP) { sedPush(); SED.rP = 1; } e.r = +ev.target.value; ev.target.nextElementSibling.textContent = e.r; }, $('sR').onchange = () => { SED.rP = 0; sedSave(); };
-  if ($('sBoss')) $('sBoss').onchange = ev => chg(() => { if (ev.target.value) e.boss = ev.target.value; else delete e.boss; });
-  if ($('sAddW')) $('sAddW').onclick = () => chg(() => { W.push([['foot', 3]]); put(); });
-  el.querySelectorAll('[data-dw]').forEach(b => b.onclick = () => chg(() => { W.splice(+b.dataset.dw, 1); put(); }));
-  el.querySelectorAll('[data-d]').forEach(b => b.onclick = () => chg(() => { const L = W[+b.dataset.w], i = +b.dataset.e; if (b.dataset.d === 'x') { L.splice(i, 1); if (!L.length) L.push(['foot', 1]); } else L[i][1] = cl(L[i][1] + +b.dataset.d, 1, 60); put(); }));
-  el.querySelectorAll('[data-add]').forEach(s => s.onchange = () => { const k = s.value; if (!k) return; chg(() => { const L = W[+s.dataset.add], f = L.find(q => q[0] === k); if (f) f[1]++; else L.push([k, UK[k].heavy ? 1 : 3]); put(); }); }); }
-// ---- drawing ----
+// ---- pointer handling: one finger = the tool, two fingers = pan + zoom (also right/middle mouse drag to pan) ----
+function sedDown(e) { const cv2 = e.target; try { cv2.setPointerCapture(e.pointerId); } catch (er) { } SED.ptr.set(e.pointerId, [e.offsetX, e.offsetY]);
+  if (SED.ptr.size === 2) { if (SED.drag && SED.drag.pushed === 0 && SED.drag.k !== 'pan') SED.hist.pop(); if (SED.drag && SED.drag.k === 'paint') { skCommit(sedS()); sedSave(); } SED.drag = null; const [a, b] = [...SED.ptr.values()]; SED.pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), s: SED.cam.s, m: sedW((a[0] + b[0]) / 2, (a[1] + b[1]) / 2) }; return; }
+  if (SED.ptr.size > 2) return; const sx = e.offsetX, sy = e.offsetY, [wx, wy] = sedW(sx, sy), S = sedS(), T = SED.tool;
+  if (e.button === 1 || e.button === 2) { SED.drag = { k: 'pan', sx, sy, cx: SED.cam.x, cy: SED.cam.y, moved: 1 }; return; }
+  const only = { prop: 'prop', enemy: 'enemy', lock: 'lock', spawn: 'spawn', start: 'start' }[T];
+  if (T === 'ground') { sedPush(); skPaint(S, wx, wy, SED.brush - 1, SED.paint); SED.drag = { k: 'paint', lx: wx, ly: wy }; SED.dirty = 1; return; }
+  const h = sedPick(sx, sy, T === 'move' ? null : only === 'lock' ? null : only);
+  if (h && (T === 'move' || h.t === only || h.t === 'corner')) { if (h.t !== 'corner') SED.sel = h; SED.drag = { k: 'move', h, wx, wy, pushed: 0 }; sedSelBar(); SED.dirty = 1; return; }
+  if (T === 'move') { SED.drag = { k: 'pan', sx, sy, cx: SED.cam.x, cy: SED.cam.y, moved: 0 }; return; }
+  // place something new
+  sedPush(); const R = v => Math.round(v);
+  if (T === 'prop') { S.O = S.O || []; S.O.push([SED.prop, R(wx), R(wy), Math.round((0.9 + Math.random() * 0.2) * 10) / 10, Math.random() < 0.5 ? 1 : 0, Math.floor(Math.random() * 3)]); SED.sel = { t: 'prop', i: S.O.length - 1 }; SED.drag = SED.pbrush ? { k: 'pbrush', lx: wx, ly: wy } : { k: 'move', h: SED.sel, wx, wy, pushed: 1 }; }
+  else if (T === 'enemy') { S.U = S.U || []; for (let q = 0; q < SED.cnt; q++) { const a = q * 2.4, r = q ? 9 + q * 2 : 0; S.U.push([SED.enemy, R(wx + Math.cos(a) * r), R(wy + Math.sin(a) * r * 0.7)]); } SED.sel = { t: 'enemy', i: S.U.length - 1 }; SED.drag = SED.cnt === 1 ? { k: 'move', h: SED.sel, wx, wy, pushed: 1 } : null; }
+  else if (T === 'lock') { S.L = S.L || []; S.L.push({ x: R(wx), y: R(wy), w: 540, h: 300, wv: ['foot*4', 'foot*3,scout*2'] }); SED.sel = { t: 'lock', i: S.L.length - 1 }; SED.drag = { k: 'move', h: SED.sel, wx, wy, pushed: 1 }; }
+  else if (T === 'spawn') { S.SP = S.SP || []; S.SP.push([SED.spawn, R(wx), R(wy)]); SED.sel = { t: 'spawn', i: S.SP.length - 1 }; SED.drag = { k: 'move', h: SED.sel, wx, wy, pushed: 1 }; }
+  else if (T === 'start') { S.S = [R(wx), R(wy)]; SED.sel = { t: 'start' }; SED.drag = { k: 'move', h: SED.sel, wx, wy, pushed: 1 }; }
+  sedDone(); }
+function sedMove(e) { if (SED.tool === 'ground') { SED.hov = sedW(e.offsetX, e.offsetY); SED.dirty = 1; } if (!SED.ptr.has(e.pointerId)) return; SED.ptr.set(e.pointerId, [e.offsetX, e.offsetY]);
+  if (SED.pinch && SED.ptr.size >= 2) { const [a, b] = [...SED.ptr.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]); SED.cam.s = cl(SED.pinch.s * d / Math.max(1, SED.pinch.d), 0.06, 4); const [wx, wy] = sedW((a[0] + b[0]) / 2, (a[1] + b[1]) / 2); SED.cam.x += SED.pinch.m[0] - wx; SED.cam.y += SED.pinch.m[1] - wy; SED.dirty = 1; return; }
+  const D = SED.drag; if (!D) return; const [wx, wy] = sedW(e.offsetX, e.offsetY), S = sedS(), R = v => Math.round(v);
+  if (D.k === 'pan') { SED.cam.x = D.cx - (e.offsetX - D.sx) / SED.cam.s; SED.cam.y = D.cy - (e.offsetY - D.sy) / SED.cam.s; if (Math.hypot(e.offsetX - D.sx, e.offsetY - D.sy) > 6) D.moved = 1; SED.dirty = 1; return; }
+  if (D.k === 'paint') { const L = Math.hypot(wx - D.lx, wy - D.ly), st = Math.max(1, (SED.brush - 0.5) * SKC * 0.5), n = Math.ceil(L / st); for (let q = 1; q <= n; q++) skPaint(S, D.lx + (wx - D.lx) * q / n, D.ly + (wy - D.ly) * q / n, SED.brush - 1, SED.paint); D.lx = wx; D.ly = wy; SED.dirty = 1; return; }
+  if (D.k === 'pbrush') { const P = SKP[SED.prop], gap = Math.max(10, P.w * 0.75); if (Math.hypot(wx - D.lx, wy - D.ly) < gap) return; D.lx = wx; D.ly = wy; S.O.push([SED.prop, R(wx + (Math.random() - 0.5) * gap * 0.6), R(wy + (Math.random() - 0.5) * gap * 0.4), Math.round((0.85 + Math.random() * 0.3) * 10) / 10, Math.random() < 0.5 ? 1 : 0, Math.floor(Math.random() * 3)]); SED.dirty = 1; return; }
+  if (D.k === 'move') { const dx = wx - D.wx, dy = wy - D.wy; if (!D.pushed) { if (Math.hypot(dx, dy) * SED.cam.s < 5) return; sedPush(); D.pushed = 1; } D.wx = wx; D.wy = wy; const h = D.h;
+    if (h.t === 'prop') { const p = S.O[h.i]; p[1] = R(p[1] + dx); p[2] = R(p[2] + dy); }
+    else if (h.t === 'enemy') { const u = S.U[h.i]; u[1] = R(u[1] + dx); u[2] = R(u[2] + dy); }
+    else if (h.t === 'spawn') { const q = S.SP[h.i]; q[1] = R(q[1] + dx); q[2] = R(q[2] + dy); }
+    else if (h.t === 'start') S.S = [R(S.S[0] + dx), R(S.S[1] + dy)];
+    else if (h.t === 'lock') { const L = S.L[h.i]; L.x = R(L.x + dx); L.y = R(L.y + dy); }
+    else if (h.t === 'corner') { const L = S.L[h.i], ox = L.x - (h.c % 2 ? 1 : -1) * L.w / 2, oy = L.y - (h.c > 1 ? 1 : -1) * L.h / 2, nx = h.c % 2 ? Math.max(ox + 160, wx) : Math.min(ox - 160, wx), ny = h.c > 1 ? Math.max(oy + 120, wy) : Math.min(oy - 120, wy); L.w = R(Math.abs(nx - ox)); L.h = R(Math.abs(ny - oy)); L.x = R((nx + ox) / 2); L.y = R((ny + oy) / 2); }
+    SED.dirty = 1; } }
+function sedUp(e) { SED.ptr.delete(e.pointerId); if (SED.ptr.size < 2) SED.pinch = null; const D = SED.drag; SED.drag = null; if (!D) return;
+  if (D.k === 'paint') { skCommit(sedS()); sedDone(); return; }
+  if (D.k === 'pan') { if (!D.moved) { SED.sel = null; sedSheet(''); sedSelBar(); SED.dirty = 1; } return; }
+  if (D.k === 'pbrush' || (D.k === 'move' && D.pushed)) sedDone(); }
+// ---- drawing: exactly what the game draws, plus the editing marks ----
+let sedGP = null;
 function sedDraw() { if (!SED.on) return; requestAnimationFrame(sedDraw); const cv2 = document.getElementById('sedCv'); if (!cv2) return; const dpr = Math.min(2, devicePixelRatio || 1), W = cv2.clientWidth, H = cv2.clientHeight;
-  if (cv2.width !== Math.round(W * dpr) || cv2.height !== Math.round(H * dpr)) { cv2.width = Math.round(W * dpr); cv2.height = Math.round(H * dpr); }
-  const c = cv2.getContext('2d'), S = sedS(), TH = CPTH[S.th] || CPTH.grass, s = SED.cam.s, sel = SED.sel; c.setTransform(dpr, 0, 0, dpr, 0, 0); c.fillStyle = TH.out; c.fillRect(0, 0, W, H);
-  c.save(); c.translate(W / 2, H / 2); c.scale(s, s); c.translate(-SED.cam.x, -SED.cam.y); const px = 1 / s;
-  const gcol = { grass: '#4f7a3a', wood: '#33502a', fort: '#7d766b' }[S.th] || '#4f7a3a';
-  c.fillStyle = gcol; for (const r of S.R) c.fillRect(r[0], r[1], r[2] - r[0], r[3] - r[1]);
-  // grid every 100
-  c.strokeStyle = 'rgba(255,255,255,.06)'; c.lineWidth = px; c.beginPath(); const [ax, ay] = sedW(0, 0), [bx, by] = sedW(W, H); for (let x = Math.floor(ax / 100) * 100; x < bx; x += 100) { c.moveTo(x, ay); c.lineTo(x, by); } for (let y = Math.floor(ay / 100) * 100; y < by; y += 100) { c.moveTo(ax, y); c.lineTo(bx, y); } c.stroke();
-  if (S.P.length) { c.lineCap = c.lineJoin = 'round'; c.strokeStyle = S.th === 'fort' ? '#9d958a' : '#b08a5a'; c.lineWidth = 28; c.beginPath(); S.P.forEach((p, i) => i ? c.lineTo(p[0], p[1]) : c.moveTo(p[0], p[1])); c.stroke(); }
-  if (sel && sel.t === 'rect' && S.R[sel.i]) { const r = S.R[sel.i]; c.strokeStyle = '#ffd36a'; c.lineWidth = 2 * px; c.setLineDash([6 * px, 4 * px]); c.strokeRect(r[0], r[1], r[2] - r[0], r[3] - r[1]); c.setLineDash([]); c.fillStyle = '#ffd36a'; for (const [x, y] of [[r[0], r[1]], [r[2], r[1]], [r[0], r[3]], [r[2], r[3]]]) { c.beginPath(); c.arc(x, y, 8 * px, 0, 7); c.fill(); } }
-  if (SED.tool === 'road' || (sel && sel.t === 'road')) S.P.forEach((p, i) => { c.fillStyle = sel && sel.t === 'road' && sel.i === i ? '#ffd36a' : '#e8d2a0'; c.beginPath(); c.arc(p[0], p[1], 6 * px, 0, 7); c.fill(); });
-  let fn = 0; const font = (n, b) => { c.font = `${b ? 800 : 600} ${n * px}px system-ui`; };
-  S.E.forEach((e, i) => { const on = sel && (sel.t === 'fight' || sel.t === 'group') && sel.i === i, W2 = sedWaves(e);
-    if (!e.g) { fn++; c.strokeStyle = e.boss ? 'rgba(255,80,60,.95)' : 'rgba(255,190,90,.9)'; c.lineWidth = (on ? 3 : 2) * px; c.setLineDash(on ? [] : [8 * px, 5 * px]); c.beginPath(); c.ellipse(e.x, e.y, e.r, e.r * ARY, 0, 0, 7); c.stroke(); c.setLineDash([]); c.fillStyle = e.boss ? 'rgba(255,80,60,.1)' : 'rgba(255,190,90,.07)'; c.fill(); if (on) { c.fillStyle = '#ffd36a'; c.beginPath(); c.arc(e.x + e.r, e.y, 8 * px, 0, 7); c.fill(); } }
-    c.fillStyle = e.g ? '#7aa8ff' : e.boss ? '#ff5040' : '#ffb84a'; c.strokeStyle = on ? '#fff' : '#000'; c.lineWidth = 2 * px; c.beginPath(); c.arc(e.x, e.y, 12 * px, 0, 7); c.fill(); c.stroke();
-    c.fillStyle = '#111'; font(12, 1); c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(e.g ? 'G' : e.boss ? 'B' : fn, e.x, e.y + px);
-    // what's in it
-    const tot = W2.reduce((a2, L) => a2 + L.reduce((b2, q) => b2 + q[1], 0), 0), lines = !on ? [tot + ' enem' + (tot === 1 ? 'y' : 'ies') + (W2.length > 1 ? ' · ' + W2.length + ' waves' : '')] : W2.map((L, wi) => (e.g ? '' : (W2.length > 1 ? (wi + 1) + ': ' : '')) + L.map(([k, n]) => n + ' ' + ((UK[k] || { n: k }).n)).join(', '));
-    font(11, 0); c.textAlign = 'left'; c.textBaseline = 'top'; lines.forEach((t, j) => { const y = e.y + 16 * px + j * 13 * px, w = c.measureText(t).width; c.fillStyle = 'rgba(0,0,0,.55)'; c.fillRect(e.x - w / 2 - 3 * px, y - px, w + 6 * px, 13 * px); c.fillStyle = e.g ? '#cfe0ff' : '#ffe9c0'; c.fillText(t, e.x - w / 2, y); }); });
-  if (S.S) { const [x, y] = S.S, on = sel && sel.t === 'start'; c.fillStyle = '#6ad06a'; c.strokeStyle = on ? '#fff' : '#000'; c.lineWidth = 2 * px; c.beginPath(); c.moveTo(x, y - 14 * px); c.lineTo(x + 11 * px, y + 8 * px); c.lineTo(x - 11 * px, y + 8 * px); c.closePath(); c.fill(); c.stroke(); font(11, 1); c.fillStyle = '#fff'; c.textAlign = 'center'; c.fillText('START', x, y + 20 * px); }
-  else { const [x, y] = [200, 230]; c.strokeStyle = '#6ad06a'; c.lineWidth = px; c.strokeRect(x - 6 * px, y - 6 * px, 12 * px, 12 * px); }
-  c.restore(); }
+  if (cv2.width !== Math.round(W * dpr) || cv2.height !== Math.round(H * dpr)) { cv2.width = Math.round(W * dpr); cv2.height = Math.round(H * dpr); SED.dirty = 1; }
+  if (!SED.dirty && !SED.pend) return; SED.dirty = 0; const c = cv2.getContext('2d'), S = sedS(), s = SED.cam.s, sel = SED.sel, px = 1 / s, t = performance.now() / 1000;
+  c.setTransform(dpr, 0, 0, dpr, 0, 0); c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
+  c.setTransform(dpr * s, 0, 0, dpr * s, dpr * (W / 2 - SED.cam.x * s), dpr * (H / 2 - SED.cam.y * s)); const [vx0, vy0] = sedW(0, 0), [vx1, vy1] = sedW(W, H);
+  if (!sedGP) { sedGP = c.createPattern(grassT, 'repeat'); sedGP.setTransform(new DOMMatrix().scale(1 / 3)); } c.fillStyle = sedGP; c.fillRect(vx0 - 2, vy0 - 2, vx1 - vx0 + 4, vy1 - vy0 + 4);
+  SED.pend = s > 0.1 ? skGround(c, S, vx0, vy0, vx1, vy1, 6) : 0;
+  if (s <= 0.1) { const X = skX(S); for (let j = 0; j < S.gh; j++) for (let i = 0; i < S.gw; i++) { const v = X.a[j * S.gw + i]; if (v === 1) continue; c.fillStyle = ['#15301a', '', '#9a7a4c', '#8f877a', '#7d766b', '#2f4a24', '#2e6a86'][v]; c.fillRect(S.gx + i * SKC, S.gy + j * SKC, SKC + 0.5, SKC + 0.5); } }
+  const inV = (x, y, m = 40) => x > vx0 - m && x < vx1 + m && y > vy0 - m && y < vy1 + m * 1.5;
+  for (const p of S.O || []) if (SKP[p[0]] && SKP[p[0]].flat && inV(p[1], p[2])) skDrawProp(c, S, p);
+  const list = []; for (const p of S.O || []) if (SKP[p[0]] && !SKP[p[0]].flat && inV(p[1], p[2])) list.push([p[2], 0, p]); for (const p of skEdge(S)) if (inV(p[1], p[2])) list.push([p[2], 0, p]);
+  (S.U || []).forEach((u, i) => { if (UK[u[0]] && inV(u[1], u[2])) list.push([u[2], 1, u, i]); }); list.sort((a, b) => a[0] - b[0]);
+  NOHP = true; for (const [, k, o, i] of list) { if (k === 0) skDrawProp(c, S, o); else { try { walkerLive(c, { x: o[1], y: o[2], k: o[0], ph: i * 1.3, hp: 1, max: 1, id: i + 1, atk: -1 }, 0, (S.S && S.S[0] > o[1]) ? 1 : -1, -1, false); } catch (e) { } } } NOHP = false;
+  // locks: their screens, labels and corner handles; lines from spawn points to the lock they feed
+  const SPL = cpSPof(S); c.lineWidth = 1.2 * px;
+  for (const [tp, x, y, li] of SPL) { const L = S.L[li]; if (!L) continue; c.strokeStyle = 'rgba(255,255,255,.35)'; c.setLineDash([4 * px, 4 * px]); c.beginPath(); c.moveTo(x, y); c.lineTo(cl(x, L.x - L.w / 2, L.x + L.w / 2), cl(y, L.y - L.h / 2, L.y + L.h / 2)); c.stroke(); } c.setLineDash([]);
+  (S.L || []).forEach((L, i) => { const on = sel && sel.t === 'lock' && sel.i === i, x0 = L.x - L.w / 2, y0 = L.y - L.h / 2; c.fillStyle = L.boss ? 'rgba(255,60,40,.08)' : 'rgba(255,190,90,.06)'; c.fillRect(x0, y0, L.w, L.h); c.strokeStyle = L.boss ? '#ff5a40' : '#ffbf5a'; c.lineWidth = (on ? 3 : 2) * px; c.setLineDash(on ? [] : [12 * px, 7 * px]); c.strokeRect(x0, y0, L.w, L.h); c.setLineDash([]);
+    const n = L.wv.reduce((a, w) => a + skParse(w).reduce((b, q) => b + q[1], 0), 0), pre = (S.U || []).filter(u => lkIn(L, u[1], u[2])).length, txt = `LOCK ${i + 1}${L.boss && UK[L.boss] ? ' · BOSS ' + UK[L.boss].n : ''} · ${L.wv.length} wave${L.wv.length > 1 ? 's' : ''}, ${n} flood in · ${pre} here`;
+    c.font = `800 ${13 * px}px system-ui`; c.textBaseline = 'top'; c.textAlign = 'left'; const tw = c.measureText(txt).width; c.fillStyle = 'rgba(0,0,0,.6)'; c.fillRect(x0, y0 - 18 * px, tw + 12 * px, 17 * px); c.fillStyle = L.boss ? '#ffb0a0' : '#ffe2a8'; c.fillText(txt, x0 + 6 * px, y0 - 16 * px);
+    if (on) { c.fillStyle = '#ffd36a'; c.strokeStyle = '#000'; for (let q = 0; q < 4; q++) { c.beginPath(); c.arc(L.x + (q % 2 ? 1 : -1) * L.w / 2, L.y + (q > 1 ? 1 : -1) * L.h / 2, 9 * px, 0, 7); c.fill(); c.stroke(); } } });
+  // spawn points
+  (S.SP || []).forEach(([tp, x, y], i) => { const col = (SEDSP[tp] || SEDSP.woods)[1], on = sel && sel.t === 'spawn' && sel.i === i, r = Math.max(5, 10 * px); c.fillStyle = col + '55'; c.strokeStyle = on ? '#fff' : col; c.lineWidth = (on ? 3 : 2) * px; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.stroke();
+    c.fillStyle = '#fff'; c.font = `800 ${Math.max(5, 10 * px)}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText((SEDSP[tp] || SEDSP.woods)[0][0], x, y + 0.5 * px); });
+  // start: a stone with the sword in it
+  if (S.S) { const [x, y] = S.S, on = sel && sel.t === 'start'; c.save(); c.translate(x, y); boulder(c, 0, true, 0); c.restore(); c.fillStyle = on ? '#fff' : '#9ef09e'; c.font = `800 ${12 * px}px system-ui`; c.textAlign = 'center'; c.textBaseline = 'top'; c.fillText('START', x, y + 6 + 3 * px); }
+  // selection ring
+  if (sel && (sel.t === 'prop' || sel.t === 'enemy')) { const o = sel.t === 'prop' ? S.O[sel.i] : S.U[sel.i]; if (o) { const r = sel.t === 'prop' ? Math.max(8, (SKP[o[0]] ? SKP[o[0]].w : 10) * (o[3] || 1) * 0.45) : 6 * (UK[o[0]] ? UK[o[0]].sc || 1 : 1); c.strokeStyle = '#ffd36a'; c.lineWidth = 2 * px; c.setLineDash([5 * px, 3 * px]); c.beginPath(); c.ellipse(o[1], o[2], r, r * 0.45, 0, 0, 7); c.stroke(); c.setLineDash([]); } }
+  // the brush
+  if (SED.tool === 'ground' && SED.hov) { const [hx, hy] = SED.hov; c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = 1.5 * px; c.beginPath(); c.arc(hx, hy, (SED.brush - 0.5) * SKC, 0, 7); c.stroke(); } }
 window.__sed = { SED, open: sedOpen, close: sedClose };
