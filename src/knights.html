@@ -151,6 +151,7 @@ function boulder(c, t, empty, glow) {
   c.restore();
 }
 // ---------- the sword: grip point g, direction a; blade ends at g + d*(1.3+len) ----------
+let NOWPN = false; // true = characters are drawn without their weapons (portrait exports)
 function sword(c, g, a, len, sc = 1) {
   const d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]];
   const P = (u, w) => [g[0] + d[0] * u + n[0] * w, g[1] + d[1] * u + n[1] * w];
@@ -675,7 +676,7 @@ function drawKnight(c, t) {
   c.save(); c.translate(K.x, K.y); c.scale(KZ, KZ);
   const clipSlot = K.hold && (K.st === 'pull' || K.st === 'sheathe'), slotY = (stoneW()[1] - 4.3 - K.y) / KS;
   const L = 10.5 * (P.th != null ? P.blade : 1);
-  const drawBlade = () => { if (!K.hold || !P.g) return; { const dtz = Math.min(0.1, Math.max(0, t - (K.lszT ?? t))); K.lszT = t; K.lszV = lerp(K.lszV || 1, swSz(K), 1 - Math.exp(-dtz * 14)); } c.save(); if (clipSlot) { c.beginPath(); c.rect(-40, -60, 80, 60 + slotY); c.clip(); } if (P.bury) { c.beginPath(); c.rect(-60, -80, 120, 80 + P.bury); c.clip(); } lightSword(c, P.g, P.a, L, K.glow, t); sword(c, P.g, P.a, L); c.restore(); };
+  const drawBlade = () => { if (!K.hold || !P.g || NOWPN) return; { const dtz = Math.min(0.1, Math.max(0, t - (K.lszT ?? t))); K.lszT = t; K.lszV = lerp(K.lszV || 1, swSz(K), 1 - Math.exp(-dtz * 14)); } c.save(); if (clipSlot) { c.beginPath(); c.rect(-40, -60, 80, 60 + slotY); c.clip(); } if (P.bury) { c.beginPath(); c.rect(-60, -80, 120, 80 + P.bury); c.clip(); } lightSword(c, P.g, P.a, L, K.glow, t); sword(c, P.g, P.a, L); c.restore(); };
   const zs = Math.max(0.35, 1 - (K.z || 0) / 50); c.fillStyle = `rgba(0,0,0,${0.3 * zs})`; c.beginPath(); c.ellipse(P.pel[0] * 0.5, 0.4, (4.4 + K.kn * 1.0) * zs, 1.5 * zs, 0, 0, 7); c.fill();
   if (K.z) c.translate(0, -K.z / KZ);
   if (K.flipA) { c.translate(P.pel[0], -6); c.rotate(K.flipA * f); c.translate(-P.pel[0], 6); }
@@ -1626,7 +1627,7 @@ function flame(c, fx0, fy0, h, w, t, P, seed, hot, noHalo) {
   if (P.blue) { tongue(h * 0.12, w * 0.5, 'rgba(110,180,255,.85)', 6); tongue(h * 0.08, w * 0.26, 'rgba(225,242,255,.95)', 7); }
 }
 function shade(h, k) { const p = [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)); return '#' + p.map(v => Math.max(0, Math.min(255, Math.round(k < 0 ? v * (1 + k) : v + (255 - v) * k))).toString(16).padStart(2, '0')).join(''); }
-function torchTo(c, hx, hy, ex, ey, t, P, seed, L, big, out) {
+function torchTo(c, hx, hy, ex, ey, t, P, seed, L, big, out) { if (NOWPN) return;
   const a = Math.atan2(ey - hy, ex - hx);
   if (out) { // burnt out: charred wrap and a thin curl of smoke
     c.strokeStyle = '#5b3a1f'; c.lineWidth = 1.1; c.beginPath(); c.moveTo(hx - Math.cos(a) * 1.5, hy - Math.sin(a) * 1.5); c.lineTo(ex, ey); c.stroke();
@@ -2788,8 +2789,8 @@ function drawPriest(c, t) {
   const hd = [P.hB[0] - P.shB[0], P.hB[1] - P.shB[1]], hl = Math.hypot(...hd) || 1, hu = [hd[0] / hl, hd[1] / hl], he = add(P.hB, [hu[0] * 2.6, hu[1] * 2.6]);
   // the haft points back past him (flail trailing behind): it goes behind the body, with only the glove over it
   const haftBack = hu[0] * f < -0.3 && (P.hB[0] - P.C[0]) * f < 0.5 && hu[1] < 0.6;
-  const haft = () => { c.lineCap = 'round'; c.strokeStyle = '#3a2614'; c.lineWidth = 0.95; c.beginPath(); c.moveTo(P.hB[0] - hu[0] * 0.8, P.hB[1] - hu[1] * 0.8); c.lineTo(...he); c.stroke(); c.strokeStyle = '#6b4a2a'; c.lineWidth = 0.55; c.beginPath(); c.moveTo(P.hB[0] - hu[0] * 0.7, P.hB[1] - hu[1] * 0.7); c.lineTo(...he); c.stroke(); c.fillStyle = STEELD; c.beginPath(); c.arc(he[0], he[1], 0.55, 0, 7); c.fill(); };
-  const censer = () => drawCenser(c, P.hA, cp, t);
+  const haft = () => { if (NOWPN) return; c.lineCap = 'round'; c.strokeStyle = '#3a2614'; c.lineWidth = 0.95; c.beginPath(); c.moveTo(P.hB[0] - hu[0] * 0.8, P.hB[1] - hu[1] * 0.8); c.lineTo(...he); c.stroke(); c.strokeStyle = '#6b4a2a'; c.lineWidth = 0.55; c.beginPath(); c.moveTo(P.hB[0] - hu[0] * 0.7, P.hB[1] - hu[1] * 0.7); c.lineTo(...he); c.stroke(); c.fillStyle = STEELD; c.beginPath(); c.arc(he[0], he[1], 0.55, 0, 7); c.fill(); };
+  const censer = () => { if (!NOWPN) drawCenser(c, P.hA, cp, t); };
   K.elA = K.elA || {}; K.elB = K.elB || {};
   const armA = () => { tpArm(c, P.shA, P.hA, f, false, false, K.elA, dt); tpBigPauldron(c, P.shA, f, t); }, armB = () => { tpArm(c, P.shB, P.hB, f, true, true, K.elB, dt); tpSmallPauldron(c, P.shB, f); };
   // cape behind everything
@@ -4938,7 +4939,7 @@ function njArm(c, s, h, f, far, st, dt, inv) { const C = NJC, el = njElbow(s, h,
   c.strokeStyle = shade(C.WRAP, dk - 0.05); c.lineWidth = NJFLAT ? 1.2 : 1.0; c.beginPath(); c.moveTo(...L2(el, h, 0.2)); c.lineTo(...wr); c.stroke();
   c.strokeStyle = shade(C.WRAPD, dk); c.lineWidth = 0.12; for (const q of [0.38, 0.56, 0.74]) { const p = L2(el, h, q), dd = [h[0] - el[0], h[1] - el[1]], dl = Math.hypot(...dd) || 1, n2 = [-dd[1] / dl * 0.5, dd[0] / dl * 0.5]; c.beginPath(); c.moveTo(p[0] - n2[0], p[1] - n2[1]); c.lineTo(p[0] + n2[0] + dd[0] / dl * 0.15, p[1] + n2[1] + dd[1] / dl * 0.15); c.stroke(); }
   c.fillStyle = shade(C.TABI, dk + 0.04); c.beginPath(); c.ellipse(h[0], h[1], 0.62, 0.55, 0, 0, 7); c.fill(); c.fillStyle = shade(C.GIL, dk - 0.1); c.beginPath(); c.arc(h[0] - 0.18, h[1] - 0.2, 0.18, 0, 7); c.fill(); }
-function njBlade(c, h, a, near, bl = 1) { const C = NJC, d = [Math.cos(a), Math.sin(a)].map(v => v * bl), n = [-d[1] / bl, d[0] / bl], len = NJ.LEN, P = (u, v) => [h[0] + d[0] * u + n[0] * v, h[1] + d[1] * u + n[1] * v];
+function njBlade(c, h, a, near, bl = 1) { if (NOWPN) return; const C = NJC, d = [Math.cos(a), Math.sin(a)].map(v => v * bl), n = [-d[1] / bl, d[0] / bl], len = NJ.LEN, P = (u, v) => [h[0] + d[0] * u + n[0] * v, h[1] + d[1] * u + n[1] * v];
   if (NJOLM) { c.lineCap = 'butt'; c.lineWidth = 0.62; c.beginPath(); c.moveTo(...P(-1.9, 0)); c.lineTo(...P(0.3, 0)); c.stroke(); c.beginPath(); c.moveTo(...P(0.4, -0.75)); c.lineTo(...P(0.75, -0.75)); c.lineTo(...P(0.75, 0.75)); c.lineTo(...P(0.4, 0.75)); c.closePath(); c.fill(); c.beginPath(); c.moveTo(...P(0.75, 0.28)); c.lineTo(...P(len - 0.9, 0.24)); c.lineTo(...P(len, -0.1)); c.lineTo(...P(len - 0.6, -0.26)); c.lineTo(...P(0.75, -0.24)); c.closePath(); c.fill(); return; }
   c.lineCap = 'butt'; c.strokeStyle = C.GRIP; c.lineWidth = 0.62; c.beginPath(); c.moveTo(...P(-1.9, 0)); c.lineTo(...P(0.3, 0)); c.stroke();
   c.fillStyle = shade(COL, -0.1); for (let u = -1.6; u < 0.2; u += 0.45) { c.beginPath(); c.moveTo(...P(u, 0)); c.lineTo(...P(u + 0.18, 0.2)); c.lineTo(...P(u + 0.36, 0)); c.lineTo(...P(u + 0.18, -0.2)); c.closePath(); c.fill(); }
@@ -4986,7 +4987,7 @@ function njKunaiAt(c, ax, ay, a, Z) { const C = NJC, d = [Math.cos(a), Math.sin(
   c.strokeStyle = shade(C.WRAPD, -0.1); c.lineWidth = 0.32 * Z / 1.35; c.beginPath(); c.moveTo(...P2(0.27, 0)); c.lineTo(...P2(0.95, 0)); c.stroke();
   c.fillStyle = C.STEELD; c.beginPath(); c.moveTo(...P2(0.95, 0)); c.lineTo(...P2(1.3, 0.24)); c.lineTo(...P2(2.05, 0)); c.lineTo(...P2(1.3, -0.24)); c.closePath(); c.fill();
   if (!NJOLM) { c.strokeStyle = C.STEEL; c.lineWidth = 0.06 * Z / 1.35; c.beginPath(); c.moveTo(...P2(1.0, 0)); c.lineTo(...P2(1.95, 0)); c.stroke(); } }
-function njKunai(c, P, f, t, taken) { if (!NJOLM) { const dt = Math.max(0, Math.min(0.1, t - (K.njKAt ?? t))); K.njKAt = t; K.njKA = taken ? 0 : Math.min(1, (K.njKA ?? 1) + dt * 2.5); } const ka = K.njKA ?? 1; if (ka <= 0.01) return; c.save(); c.globalAlpha *= ka; const C = NJC, [Ls, Rs] = P.sh, mx = (Ls[0] + Rs[0]) / 2, my = (Ls[1] + Rs[1]) / 2, wy = lerp(my, P.pel[1], 0.82) + 0.45, wx = lerp(mx, P.pel[0], 0.82), fl = cl((K.spd || 0) / RUN, 0, 1);
+function njKunai(c, P, f, t, taken) { if (NOWPN) return; if (!NJOLM) { const dt = Math.max(0, Math.min(0.1, t - (K.njKAt ?? t))); K.njKAt = t; K.njKA = taken ? 0 : Math.min(1, (K.njKA ?? 1) + dt * 2.5); } const ka = K.njKA ?? 1; if (ka <= 0.01) return; c.save(); c.globalAlpha *= ka; const C = NJC, [Ls, Rs] = P.sh, mx = (Ls[0] + Rs[0]) / 2, my = (Ls[1] + Rs[1]) / 2, wy = lerp(my, P.pel[1], 0.82) + 0.45, wx = lerp(mx, P.pel[0], 0.82), fl = cl((K.spd || 0) / RUN, 0, 1);
   for (let i = 0; i < 3; i++) { const ax = wx - f * (0.5 + i * 0.5), ay = wy + i * 0.04, a = Math.PI / 2 + f * (0.15 + i * 0.07 + fl * 0.75) + Math.sin(t * 4.5 + i * 1.7) * (0.06 + fl * 0.1), d = [Math.cos(a), Math.sin(a)], n = [-d[1], d[0]], Z = 1.35, P2 = (u, v) => [ax + (d[0] * u + n[0] * v) * Z, ay + (d[1] * u + n[1] * v) * Z];
     c.lineCap = 'round'; c.strokeStyle = C.GRIP; c.lineWidth = 0.13; c.beginPath(); c.arc(...P2(0.1, 0), 0.23, 0, 7); c.stroke();
     c.strokeStyle = shade(C.WRAPD, -0.1); c.lineWidth = 0.32; c.beginPath(); c.moveTo(...P2(0.27, 0)); c.lineTo(...P2(0.95, 0)); c.stroke();
@@ -5125,7 +5126,7 @@ function drawNinjaBody(c, t, ghost) {
   if (!ghost && !NJOLM) K.kmHw = [K.x + P.hA[0] * KS, K.y - z + P.hA[1] * KS];
   // the kama, its rope and the coil go down before any of him, so every body part is drawn over them
   // (outline and colour both go down in the first, outline pass, so his body's outline is drawn over the kama too)
-  const kmLayer = c => { if (!NJOLM) { c.save(); c.strokeStyle = '#b8945f'; c.lineWidth = 0.34; for (let i = 0; i < 3; i++) { c.beginPath(); c.ellipse(kmCoil[0] - f * 0.1 * i, kmCoil[1] + 0.35 + i * 0.12, 0.85, 0.55, f * 0.4, 0, 7); c.stroke(); } c.restore(); }
+  const kmLayer = c => { if (NOWPN) return; if (!NJOLM) { c.save(); c.strokeStyle = '#b8945f'; c.lineWidth = 0.34; for (let i = 0; i < 3; i++) { c.beginPath(); c.ellipse(kmCoil[0] - f * 0.1 * i, kmCoil[1] + 0.35 + i * 0.12, 0.85, 0.55, f * 0.4, 0, 7); c.stroke(); } c.restore(); }
     if (T.kmh) kmDraw(P.hA, c); else if (T.kmHip) kmDraw(kmHipP, c); else if (K.km >= 0) kmRopeTo(P.hA, c); };
   if (!ghost) { if (NJOLM) { kmLayer(c); NJOLM = false; const f0 = NJFLAT; NJFLAT = false; kmLayer(NJRAW); NJFLAT = f0; NJOLM = true; } else if (!NJFLAT) kmLayer(c); }
   njBack(c, P, f, t);
@@ -5834,7 +5835,7 @@ function ttHead(c, P, f, t) { const C = TTC, [hx, hy] = P.head, blink = (t % 5.3
   c.fillStyle = COL; c.fillRect(-1.5, -2.15, 3.0, 0.75); c.fillStyle = shade(COL, -0.3); c.fillRect(-1.5, -1.55, 3.0, 0.15);
   c.fillStyle = C.HAT; c.beginPath(); c.ellipse(0, -1.2, 2.35, 0.5, 0, 0, 7); c.fill(); c.strokeStyle = C.HATL; c.lineWidth = 0.12; c.beginPath(); c.ellipse(0, -1.2, 2.35, 0.5, 0, Math.PI * 0.05, Math.PI * 0.95); c.stroke();
   c.restore(); }
-function ttCane(c, k, a) { const d = [Math.cos(a), Math.sin(a)], L = TT.CLEN, tip = [k[0] + d[0] * L, k[1] + d[1] * L]; c.lineCap = 'round';
+function ttCane(c, k, a) { if (NOWPN) return; const d = [Math.cos(a), Math.sin(a)], L = TT.CLEN, tip = [k[0] + d[0] * L, k[1] + d[1] * L]; c.lineCap = 'round';
   c.strokeStyle = TTC.CANE; c.lineWidth = 0.55; c.beginPath(); c.moveTo(...k); c.lineTo(...tip); c.stroke(); c.strokeStyle = TTC.CANEL; c.lineWidth = 0.14; c.beginPath(); c.moveTo(k[0] + d[0] * 1.2 - d[1] * 0.12, k[1] + d[1] * 1.2 + d[0] * 0.12); c.lineTo(tip[0] - d[1] * 0.12, tip[1] + d[0] * 0.12); c.stroke();
   c.fillStyle = TTC.SILVER; c.beginPath(); c.arc(tip[0], tip[1], 0.3, 0, 7); c.fill(); c.fillStyle = TTC.SILVERD; c.beginPath(); c.arc(k[0] - d[0] * 0.35, k[1] - d[1] * 0.35, 0.62, 0, 7); c.fill(); c.fillStyle = TTC.SILVER; c.beginPath(); c.arc(k[0] - d[0] * 0.45 - 0.12, k[1] - d[1] * 0.45 - 0.12, 0.42, 0, 7); c.fill(); }
 // lightsaber: the blade's colour is his own colour, white-hot down the middle
@@ -7013,7 +7014,7 @@ function drawRooster(c, V, t, w, u, dv, fx, lz = -1) {
     // the hand: a chunky claw wrapped round the grip (feather tips on the real wing)
     if (robo) { cel(c, ellP(hd[0], hd[1] - 0.1, 0.58, 0.5, 0, 10), shade('#5d646f', dkk), { d: 0.25, lw: 0.14, hl: 0.35 }); for (let j = 0; j < 3; j++) { const fp = [hd[0] + 0.15 + j * 0.05, hd[1] - 0.45 + j * 0.3]; cel(c, ellP(fp[0] + 0.35, fp[1], 0.32, 0.16, 0.1, 8), shade('#4b515c', dkk), { d: 0.2, lw: 0.1 }); } }
     else { for (let j = 0; j < 3; j++) cel(c, bladeP([hd[0] - 0.2, hd[1] - 0.3 + j * 0.25], 0.15 + j * 0.25, 1.0 - j * 0.12, 0.28, 0.1), shade(V.body, -0.12 - j * 0.06), { d: 0.2, lw: 0.11 }); } };
-  const bazooka = () => { const R = 0.62, TP = [BA(-0.3, -R * 1.05), BA(BL * 0.5, -R), BA(BL + 0.15, -R * 1.18), BA(BL + 0.15, R * 1.18), BA(BL * 0.5, R), BA(-0.3, R * 1.05), BA(-0.6, R * 1.3), BA(-0.6, -R * 1.3)];
+  const bazooka = () => { if (NOWPN) return; const R = 0.62, TP = [BA(-0.3, -R * 1.05), BA(BL * 0.5, -R), BA(BL + 0.15, -R * 1.18), BA(BL + 0.15, R * 1.18), BA(BL * 0.5, R), BA(-0.3, R * 1.05), BA(-0.6, R * 1.3), BA(-0.6, -R * 1.3)];
     // grips and the sight
     cel(c, [BA(BL * 0.62, R * 0.6), BA(BL * 0.7, R * 0.6), BA(BL * 0.69, R + 0.75), BA(BL * 0.62, R + 0.7)], '#2e323a', { d: 0.2, lw: 0.12 }); cel(c, [BA(BL * 0.32, R * 0.6), BA(BL * 0.4, R * 0.6), BA(BL * 0.39, R + 0.75), BA(BL * 0.31, R + 0.7)], '#2e323a', { d: 0.2, lw: 0.12 });
     cel(c, [BA(BL * 0.45, -R * 0.8), BA(BL * 0.6, -R * 0.8), BA(BL * 0.6, -R - 0.55), BA(BL * 0.47, -R - 0.55)], '#2e323a', { d: 0.2, lw: 0.12 });
@@ -7396,7 +7397,7 @@ function drawGI0(c, P) {
   strap(5.6, -2.4, 0.6 + spd * 0.4);
   c.restore();
   // ---- rifle (M16) ----
-  function m16() { GITEM = 1; c.save(); c.translate(gB[0], gB[1]); c.rotate(ga); c.scale(gs, gs);
+  function m16() { if (NOWPN) return; GITEM = 1; c.save(); c.translate(gB[0], gB[1]); c.rotate(ga); c.scale(gs, gs);
     path(c, [[0, -1.6], [7.5, -1.2], [7.5, 1.4], [0, 2.6]]); fillO(c, GC.metal, 0.8); // stock
     path(c, [[7.4, -1.6], [16.5, -1.6], [16.5, 1.6], [7.4, 1.6]]); fillO(c, GC.metalL, 0.8); // receiver
     path(c, [[9, -1.6], [9.6, -4.4], [14.6, -4.4], [15, -1.6], [14, -1.6], [13.8, -3.4], [10.4, -3.4], [10, -1.6]]); fillO(c, GC.metal, 0.6); // carry handle
