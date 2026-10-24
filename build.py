@@ -40,14 +40,15 @@ def demist(im, kind=''):  # the painted portraits end in a white mist; fade the 
         W0 = cols[-1] - cols[0]; d = (np.arange(w, dtype=np.float32) - cols[0]) if side == 'l' else (cols[-1] - np.arange(w, dtype=np.float32))
         f = sm(np.clip(d / (W0 * 0.12), 0, 1)); a[..., 3] *= f[None, :]
     return Image.fromarray(a.clip(0, 255).astype(np.uint8), 'RGBA')
-def portraits():  # cutscene portraits: src/portraits/<kind>-<hex colour>.png -> 520px-tall webp data urls keyed 'kind|#hex'
+def portraits():  # cutscene portraits: src/portraits/<kind>-<hex colour>.png -> webp data urls (up to 1100px tall, sharp on 3x phone screens) data urls keyed 'kind|#hex'
     import io
     from PIL import Image
     out = {}
     for f in sorted((d / 'portraits').glob('*.png')):
         kind, col = f.stem.rsplit('-', 1)
-        im = demist(Image.open(f), f.stem.rsplit('-', 1)[0]); im = im.crop(im.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()); k = 520 / im.height  # trimmed to the figure
-        im = im.resize((round(im.width * k), 520), Image.LANCZOS); b = io.BytesIO(); im.save(b, 'WEBP', quality=82, method=6)
+        im = demist(Image.open(f), f.stem.rsplit('-', 1)[0]); im = im.crop(im.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()); H = min(1100, im.height); k = H / im.height  # trimmed to the figure
+        if H != im.height: im = im.resize((round(im.width * k), H), Image.LANCZOS)
+        b = io.BytesIO(); im.save(b, 'WEBP', quality=90, method=6)
         out[kind + '|#' + col.lower()] = 'data:image/webp;base64,' + base64.b64encode(b.getvalue()).decode()
     return json.dumps(out)
 (root / 'knights.html').write_text((d / 'knights.html').read_text().replace('/*@SURVIVAL@*/', (d / 'survival.js').read_text()).replace('/*@STAGEKIT@*/', (d / 'stagekit.js').read_text()).replace('/*@CAMPAIGN@*/', (d / 'campaign.js').read_text()).replace('/*@STAGEDIT@*/', (d / 'stagedit.js').read_text()).replace("'__PORTRAITS__'", portraits()).replace('__BUILD__', build).replace("['__HELI_LIST__']", json.dumps([base64.b64encode((d / 'assets' / f'heli{i}.mp3').read_bytes()).decode() for i in range(1, 11)])).replace("'__HITMARK__'", json.dumps(base64.b64encode((d / 'assets' / 'hitmarker.mp3').read_bytes()).decode())).replace("'__OGCLIP_STORM__'", (d / 'anims' / 'storm-hook-right.baked.json').read_text()))  # Knight Brawl: a separate co-op mode page
