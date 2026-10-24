@@ -324,9 +324,12 @@ function cpCutStep(dt) { if (AUTH() && CMP.ph === 1) { const S = cpS();
   csUI(); return CMP.cs >= 0 && CMP.ph === 1; }
 // ---- portraits: the character or enemy drawn big, cropped to head and shoulders ----
 const CSPIC = new Map();
+const PORTRAITS = '__PORTRAITS__'; // filled by build.py from src/portraits
 // close-up crop per character: [centre x, top, height] in his own units from his feet, facing right
 const CSHEAD = { knight: [1, 17.5, 11], fire: [0, 23.5, 17], priest: [2.5, 24.5, 17], time: [0.5, 22, 13.5], ninja: [0.5, 14.5, 10], ogre: [0, 32, 20], rooster: [3, 20.5, 12], gi: [0.5, 15, 9] };
 function csPic(w, col, kind) { const j = csSeat(w); if (j >= 0) { const k = KN[j]; kind = kind || (k && k.kind) || 'knight'; col = col || (k && k.col) || KCOLS[j]; w = kind; } if (w === 'narr') return '';
+  // painted portraits: the one in his colour, else the blue one (until every colour is painted)
+  if (CSCH.includes(w)) { const c0 = String(col || KCOLS[0]).toLowerCase(); const P = PORTRAITS[w + '|' + c0] || PORTRAITS[w + '|' + KCOLS[0]]; if (P) return P; }
   const isCh = CSCH.includes(w), key = w + '|' + (isCh ? col || KCOLS[0] : ''); if (CSPIC.has(key)) return CSPIC.get(key);
   const N = 520, cv0 = document.createElement('canvas'); cv0.width = cv0.height = N; const g = cv0.getContext('2d');
   try { if (isCh) { const k0 = K, kn = mkKnight(0); Object.assign(kn, { col: col || KCOLS[0], kind: w, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, f: 1, x: 0, y: 0 });
@@ -351,7 +354,7 @@ body.csOn>*:not(canvas):not(#cpCut):not(script):not(style){visibility:hidden !im
 #cpCut .bt,#cpCut .bb{position:absolute;left:0;right:0;background:#000;transition:height .45s ease}
 #cpCut .bt{top:0;height:0}#cpCut .bb{bottom:0;height:0}
 #cpCut.on .bt{height:min(13vh,90px)}#cpCut.on .bb{height:min(27vh,190px)}
-#cpCut .pt{position:absolute;bottom:min(27vh,190px);height:min(40vh,300px);max-width:42vw;object-fit:contain;object-position:bottom;transition:opacity .3s,transform .35s,filter .3s;opacity:0;filter:drop-shadow(0 0 10px rgba(0,0,0,.6))}
+#cpCut .pt{position:absolute;bottom:min(27vh,190px);height:min(56vh,430px);max-width:44vw;object-fit:contain;object-position:bottom;transition:opacity .3s,transform .35s,filter .3s;opacity:0;filter:drop-shadow(0 0 10px rgba(0,0,0,.6))}
 #cpCut .pl{left:4vw;transform:translateX(-30px)}#cpCut .pr{right:4vw;transform:translateX(30px) scaleX(-1)}
 #cpCut .pt.in{opacity:1;transform:none}#cpCut .pr.in{transform:scaleX(-1)}#cpCut .pt.dim{filter:brightness(.38) drop-shadow(0 0 10px rgba(0,0,0,.6))}
 #cpCut .tb{position:absolute;bottom:0;left:0;right:0;height:min(27vh,190px);box-sizing:border-box;padding:12px max(18px,6vw) 10px;display:flex;flex-direction:column;gap:6px;opacity:0;transition:opacity .3s .2s}
