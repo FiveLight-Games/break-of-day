@@ -22,12 +22,13 @@ import base64
 assets = 'window.TD_ASSETS = { buildLoop: "data:audio/mpeg;base64,' + base64.b64encode((d / 'assets' / 'build-loop.mp3').read_bytes()).decode() + '" };'
 out = tpl.replace('/*__LOG__*/[]', json.dumps([{'v': e['v'], 'date': e['date'], 'notes': e['notes']} for e in log], ensure_ascii=False).replace('</', '<\\/')).replace('__BUILD__', build).replace('__VER__', ver).replace('/*__GAME__*/', assets + '\n' + safe('game.js')).replace('/*__CLIENT__*/', safe('client.js').replace('const TD = window.TD;\n', 'const TD = window.TD;\n' + safe('tribe.js') + '\n', 1))
 (root / 'index.html').write_text(out)
-EDGEFADE = {'fire': 'lr', 'priest': 'lr'}
+EDGEFADE = {'fire': 'lr'}
+FADEBAND = {'priest': 0.4}  # how much of the figure (from the bottom) the fade covers; the Warpriest's starts at his elbows
 def demist(im, kind=''):  # the painted portraits end in a white mist; fade the bottom 26% of the figure out to transparent instead
     import numpy as np
     from PIL import Image
     a = np.asarray(im.convert('RGBA')).astype(np.float32)
-    rows = np.where((a[..., 3] > 12).any(axis=1))[0]; bot = rows[-1]; H = bot - rows[0]; b0 = bot - H * 0.26
+    rows = np.where((a[..., 3] > 12).any(axis=1))[0]; bot = rows[-1]; H = bot - rows[0]; b0 = bot - H * FADEBAND.get(kind, 0.26)
     t = np.clip((np.arange(a.shape[0])[:, None] - b0) / (bot - b0), 0, 1)
     a[..., 3] *= (1 - t * t * (3 - 2 * t)) ** 2.2
     # where the figure is cut off by the frame (EDGEFADE: the Firebreather's arms and headdress, the Warpriest's pauldrons), fade it out toward that side too,
@@ -45,7 +46,7 @@ def portraits():  # cutscene portraits: src/portraits/<kind>-<hex colour>.png ->
     out = {}
     for f in sorted((d / 'portraits').glob('*.png')):
         kind, col = f.stem.rsplit('-', 1)
-        im = demist(Image.open(f), f.stem.rsplit('-', 1)[0]); k = 520 / im.height
+        im = demist(Image.open(f), f.stem.rsplit('-', 1)[0]); im = im.crop(im.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()); k = 520 / im.height  # trimmed to the figure
         im = im.resize((round(im.width * k), 520), Image.LANCZOS); b = io.BytesIO(); im.save(b, 'WEBP', quality=82, method=6)
         out[kind + '|#' + col.lower()] = 'data:image/webp;base64,' + base64.b64encode(b.getvalue()).decode()
     return json.dumps(out)
