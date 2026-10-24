@@ -68,7 +68,7 @@ function bhPost(kn) { if (!BH.on || !BHPRE) return; const o = BHPRE; BHPRE = nul
 // moves that can't be hit: the ninja's leap and kama (from the throw until the slide ends)
 const bhSafe = kn => kn.kind === 'ninja' && (kn.nl >= 0 || (kn.km >= 0 && kn.km < njKmTL(kn).tE));
 function bhHurt(kn, d) { if (window.__bhGod || !BH.on || !AUTH() || !kn || kn.rDn || kn.rIv > 0 || BH.over || bhSafe(kn)) return; d = Math.max(1, d - bhN(kn, 'arm')); kn.rHp -= d; kn.rIv = BHC.IV; kn.hits = (kn.hits || 0) + 1;
-  if (kn.rHp <= 0) { kn.rHp = 0; kn.rDn = 1; kn.rRv = 0; for (let i = 0; i < 20; i++) { const a = rr(0, 6.28); sparks.push({ x: kn.x, y: kn.y - 6, vx: Math.cos(a) * rr(10, 40), vy: Math.sin(a) * rr(10, 30) - 10, t: 0, max: rr(0.4, 0.8) }); } } }
+  if (kn.rHp <= 0) { kn.rHp = 0; kn.rDn = 1; kn.rRv = 0; if (BH.cp) csFire('down', { s: KN.indexOf(kn) }); for (let i = 0; i < 20; i++) { const a = rr(0, 6.28); sparks.push({ x: kn.x, y: kn.y - 6, vx: Math.cos(a) * rr(10, 40), vy: Math.sin(a) * rr(10, 30) - 10, t: 0, max: rr(0.4, 0.8) }); } } }
 // ---- enemy fire: every volley is one event that every screen turns into the same bullets ----
 // [x, y, angle, count, spread (>= 6.2 = full ring), speed, damage, colour index]
 const BHCOL = ['#ff5a4a', '#c46bff', '#58d0ff', '#ffcf40', '#7dff6a'];

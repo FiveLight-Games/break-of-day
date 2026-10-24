@@ -36,6 +36,13 @@ const STAGESPEC = [
     groups: [[700, 0, 'foot*2'], [1700, 0, 'shield*1,foot*2'], [2850, -20, 'foot*3'], [3850, 0, 'zombie*3'], [4850, 20, 'skel*3'], [6000, 0, 'necro*1,skel*2']],
     extra: [['wall', 1790, -165, 1, 0, 0, 1], ['wall', 1790, 160, 1, 0, 0, 1], ['banner', 1815, -140, 1, 0, 0, 1], ['banner', 1815, 135, 1, 0, 0, 1]] }];
 const STAGES = STAGESPEC.map(skGen);
+// every stage starts with a short cutscene at the players' spawn (built-in lines per stage; a new or older stage without any cutscenes gets the plain one)
+const CSDEF = {
+  road: [{ w: 'narr', t: 'The Old Road. Deserters and sellswords hold it all the way east.' }, { w: 'p1', s: 0, t: 'Then we take it back, one screen at a time.' }, { w: 'p2', s: 1, t: 'Their warchief is mine.' }],
+  wood: [{ w: 'narr', t: 'The Darkwood. Something old is waking under the trees.' }, { w: 'p1', s: 0, t: 'Stay close. Nothing in here wants us alive.' }, { w: 'p2', s: 1, t: 'Then we don\'t give it the chance.' }],
+  fort: [{ w: 'narr', t: 'Ironhold. The garrison is gone, and the dead walk its halls.' }, { w: 'p1', s: 0, t: 'Whatever emptied this place is still inside.' }, { w: 'p2', s: 1, t: 'Then it\'s waiting for us.' }] };
+const csDefault = S => [{ tr: 'start', ln: JSON.parse(JSON.stringify(CSDEF[S.id] || [{ w: 'p1', s: 0, t: 'Ready?' }, { w: 'p2', s: 1, t: 'Ready.' }])) }];
+for (const S of STAGES) if (!S.CS) S.CS = csDefault(S);
 const cpS = () => STAGES[CMP.st] || STAGES[0];
 const ARY = 0.62; // ground ellipses (telegraph rings) are r x r*ARY
 // ---- save (this device): map progress, team level and experience, and my skill tree per character ----
@@ -165,24 +172,24 @@ function cpFlood(S, li, str) { const L = S.L[li], sps = cpSPof(S).filter(q => q[
     CPQ.push([li, k, x, y, tp, t]); } } }
 function cpBegin(i) { const S = STAGES[i]; if (!S) return; Object.assign(CMP, { ph: 1, st: i, clrT: 0, lk: -1 }); CMP.E = (S.L || []).map(() => ({ s: 0, w: 0, t: 0 })); CPQ = [];
   walkers = []; HDEAD = []; parts = []; blood = []; splats = []; BUL.length = 0; CPHZ = []; CPFX = []; BH.over = 0; BH.go = 1;
-  CMP.cs = -1; CMP.csD = []; CMP.csW = 0; CMP.won = 0; const PS = skPS(S); LIVE().forEach(kn => { const j = Math.max(0, KN.indexOf(kn)) % 4, sx = PS[j][0], sy = PS[j][1]; kn.x = sx; kn.y = sy; kn._px = sx; kn._py = sy; kn.cpLk = -1; kn.T = { x: sx - HOME.x, y: sy - HOME.y }; Object.assign(kn, { rDn: 0, rRv: 0, rHp: kn.rHm || BHC.HP, rIv: 1 }); });
+  CMP.cs = -1; CMP.csD = []; CMP.csW = 0; CMP.won = 0; CMP.csQ = []; CMP.kl = 0; CMP.tt = 0; const PS = skPS(S); LIVE().forEach(kn => { const j = Math.max(0, KN.indexOf(kn)) % 4, sx = PS[j][0], sy = PS[j][1]; kn.x = sx; kn.y = sy; kn._px = sx; kn._py = sy; kn.cpLk = -1; kn.T = { x: sx - HOME.x, y: sy - HOME.y }; Object.assign(kn, { rDn: 0, rRv: 0, rHp: kn.rHm || BHC.HP, rIv: 1 }); });
   // placed enemies: those on a lock's screen belong to it; the rest stand about in groups (anyone within 70 of another is in its group)
   const U = (S.U || []).filter(u => UK[u[0]]), gid = U.map(() => -1); let g = 0;
   U.forEach((u, a) => { if (gid[a] >= 0) return; gid[a] = ++g; const st = [a]; while (st.length) { const b = st.pop(); U.forEach((v, c) => { if (gid[c] < 0 && Math.hypot(v[1] - U[b][1], v[2] - U[b][2]) < 70) { gid[c] = g; st.push(c); } }); } });
   U.forEach((u, a) => { const w = cpSpawn(u[0], u[1], u[2]); w.idle = 1; w.grp = gid[a]; const li = (S.L || []).findIndex(L => lkIn(L, u[1], u[2])); if (li >= 0) { w.lk = li; w.grp = 'L' + li; } });
   camX = KN[ME].x; camY = KN[ME].y; const s0 = S.S || [260, 400]; for (let cy = Math.floor((s0[1] - 500) / SKCH); cy <= Math.floor((s0[1] + 500) / SKCH); cy++) for (let cx = Math.floor((s0[0] - 700) / SKCH); cx <= Math.floor((s0[0] + 900) / SKCH); cx++) skChunk(S, cx, cy);
-  if (AUTH()) csTrig('start'); }
+  if (AUTH()) csFire('start'); }
 function cpStep(dt) { if (!BH.cp) return; for (const f of CPFX) f.t += dt; CPFX = CPFX.filter(f => f.t < f.max);
   if (!AUTH() || CMP.ph !== 1) return; const S = cpS(), L = LIVE().filter(k => !k.rDn);
   // experience: every enemy killed by anyone, straight to the team
-  for (const w of walkers) if (w.hp <= 0 && !w.gm) { w.gm = 1; BH.xp += XPV(w.k) * (1 + 0.15 * Math.max(0, ...LIVE().map(k => bhN(k, 'xp')))); }
+  for (const w of walkers) if (w.hp <= 0 && !w.gm) { w.gm = 1; CMP.kl++; BH.xp += XPV(w.k) * (1 + 0.15 * Math.max(0, ...LIVE().map(k => bhN(k, 'xp')))); }
   cpHz(dt);
   // the flood: queued enemies step out of their spawn point (or in from the screen's edge) one after another
   for (const q of CPQ) q[5] -= dt; for (const q of CPQ) if (q[5] <= 0) { const w = cpSpawn(q[1], q[2], q[3]); w.lk = q[0]; w.idle = 0; cpEv(['s', w.x, w.y, CPSPK[q[4]] || 0]); } CPQ = CPQ.filter(q => q[5] > 0);
   (S.L || []).forEach((Lk, j) => { const st = CMP.E[j]; if (!st || st.s === 2) return;
     if (st.s === 0) { if (CMP.lk < 0 && L.some(k => lkIn(Lk, k.x, k.y, Math.min(Lk.w, Lk.h) * 0.18))) { st.s = 1; st.w = 0; st.t = 0; CMP.lk = j; for (const w of walkers) if (w.lk === j) w.idle = 0; cpFlood(S, j, Lk.wv[0] || ''); note(Lk.boss && UK[Lk.boss] ? 'Boss: ' + UK[Lk.boss].n : 'Locked in!', 2.5); snd('roar', Lk.x, Lk.y); csTrig('lock', j); } return; }
     const alive = walkers.filter(w => w.lk === j && w.hp > 0).length, more = st.w + 1 < Lk.wv.length, queued = CPQ.some(q => q[0] === j);
-    if (!queued && alive <= (more ? 2 : 0)) { st.t += dt; if (st.t > (alive ? 0.6 : 1.2)) { st.t = 0; if (more) { st.w++; cpFlood(S, j, Lk.wv[st.w]); } else { st.s = 2; CMP.lk = -1; snd('ult', Lk.x, Lk.y);
+    if (!queued && alive <= (more ? 2 : 0)) { st.t += dt; if (st.t > (alive ? 0.6 : 1.2)) { st.t = 0; if (more) { st.w++; cpFlood(S, j, Lk.wv[st.w]); csFire('wave', { i: j, w: st.w + 1 }); } else { st.s = 2; CMP.lk = -1; snd('ult', Lk.x, Lk.y);
       csTrig('clear', j); if (CMP.E.every(e => e.s === 2)) cpWin(); else note('GO!', 2); } } } else st.t = 0; });
   if (!(S.L || []).length && !walkers.some(w => w.hp > 0)) { CMP.clrT += dt; if (CMP.clrT > 2 && !CMP.won) { CMP.won = 1; cpWin(); } }
   if (BH.over && CMP.ph === 1) CMP.ph = 3; }
@@ -300,24 +307,45 @@ window.__cp = { CMP, STAGES, tp: (x, y) => { const k = KN[ME]; k.x = x; k.y = y;
 // ---- cutscenes: black bars top and bottom, close-up portraits of whoever is talking, text in the bottom bar ----
 // stage field CS = [{tr: 'start'|'lock'|'clear'|'spot'|'end', i: lock index, x, y, r (spot), ln: [{w: speaker, s: 0 left / 1 right, n: name, t: text}]}]
 // speakers: 'p1'..'p4' (that player's character, line skipped if nobody's there), a character kind, an enemy kind, or 'narr' (no picture)
-const CSTR = [['start', 'Stage starts'], ['lock', 'Locked screen starts'], ['clear', 'Locked screen cleared'], ['spot', 'Someone reaches a spot'], ['end', 'Stage cleared']];
+// ---- cutscene hooks: every moment in a stage a cutscene can be tied to ----
+// To add one: an entry here, then either a `poll` (checked by the host every frame for cutscenes not yet played) or a csFire('id', {..}) call where it happens (host).
+// p = its settings in the designer: 'lock' (which locked screen, c.i), 'kind' (an enemy kind, c.k), 'spot' (a circle on the map, c.x/c.y/c.r), or [field, label, default, min, max] for a number.
+// m(c, ev) = does cutscene c match the event fired (none = always).
+const CSHOOK = {
+  start: { n: 'Stage starts' },
+  spot: { n: 'Someone walks into a circle', p: ['spot'], poll: c => LIVE().some(k => !k.rDn && Math.hypot(k.x - c.x, k.y - c.y) < (c.r || 60)) },
+  lock: { n: 'A locked screen starts', p: ['lock'], m: (c, e) => (c.i | 0) === e.i },
+  wave: { n: 'A wave floods in', p: ['lock', ['w', 'Wave', 2, 2, 9]], m: (c, e) => (c.i | 0) === e.i && (c.w || 2) === e.w },
+  bosshp: { n: 'A boss is hurt', p: ['lock', ['hp', 'Below health %', 50, 1, 99]], poll: c => { const L = cpS().L[c.i | 0]; return !!L && !!L.boss && walkers.some(w => w.k === L.boss && w.lk === (c.i | 0) && w.hp > 0 && w.hp / w.max * 100 < (c.hp || 50)); } },
+  clear: { n: 'A locked screen is cleared', p: ['lock'], m: (c, e) => (c.i | 0) === e.i },
+  meet: { n: 'An enemy kind is first met', p: ['kind'], poll: c => walkers.some(w => w.k === c.k && w.hp > 0 && !w.idle && LIVE().some(k => Math.hypot(k.x - w.x, k.y - w.y) < 170)) },
+  kills: { n: 'Kills this stage reach', p: [['kl', 'Kills', 50, 1, 9999]], poll: c => (CMP.kl || 0) >= (c.kl || 50) },
+  time: { n: 'Time into the stage', p: [['sec', 'Seconds', 30, 1, 3600]], poll: c => (CMP.tt || 0) >= (c.sec || 30) },
+  level: { n: 'The team reaches a level', p: [['lv', 'Level', 5, 2, 99]], poll: c => BH.lvl >= (c.lv || 5) },
+  down: { n: 'A player goes down' },
+  end: { n: 'Stage cleared' } };
+const CSTR = Object.entries(CSHOOK).map(([k, h]) => [k, h.n]);
 const CSCH = ['knight', 'fire', 'priest', 'time', 'ninja', 'ogre', 'rooster', 'gi'];
-Object.assign(CMP, { cs: -1, cl: 0, csD: [], csW: 0 });
+Object.assign(CMP, { cs: -1, cl: 0, csD: [], csW: 0, csQ: [], kl: 0, tt: 0 });
 const csSeat = w => /^p[1-4]$/.test(w) ? +w[1] - 1 : -1;
 const csHere = j => { const k = KN[j]; return !!k && LIVE().includes(k); };
 const csOk = l => { const j = csSeat(l.w); return j < 0 || csHere(j); };
 function csName(l) { if (l.n) return l.n; const j = csSeat(l.w); if (j >= 0) { const k = KN[j]; return (NET && NET.names && NET.names[j]) || (k && CNAME[k.kind || 'knight']) || 'Player ' + (j + 1); } if (l.w === 'narr') return ''; return CNAME[l.w] || (UK[l.w] && UK[l.w].n) || l.w; }
-// host: start the first not-yet-played cutscene for this trigger
-function csTrig(tr, i) { const S = cpS(), C = S && S.CS; if (!C || CMP.cs >= 0) return false; const k = C.findIndex((c, q) => !CMP.csD.includes(q) && c.tr === tr && (tr === 'start' || tr === 'end' || tr === 'spot' || (c.i | 0) === i) && (c.ln || []).some(csOk)); if (k < 0) return false;
-  CMP.csD.push(k); CMP.cs = k; CMP.cl = (C[k].ln || []).findIndex(csOk); CMP.csT = 0; for (const kn of LIVE()) kn.csSeen = kn.in.csN || 0; return true; }
+// host: queue every not-yet-played cutscene this hook matches; the first starts now unless one is playing
+function csFire(tr, e = {}) { const S = cpS(), C = S && S.CS, H = CSHOOK[tr]; if (!C || !H) return false; let any = false;
+  C.forEach((c, q) => { if (c.tr !== tr || CMP.csD.includes(q) || (H.m && !H.m(c, e)) || !(c.ln || []).some(csOk)) return; CMP.csD.push(q); CMP.csQ.push(q); any = true; });
+  if (any && CMP.cs < 0) csPlayNext(); return any; }
+const csTrig = (tr, i) => csFire(tr, { i });
+function csPlayNext() { const C = cpS().CS; while (CMP.csQ.length) { const k = CMP.csQ.shift(), c = C && C[k]; if (!c) continue; const l0 = (c.ln || []).findIndex(csOk); if (l0 < 0) continue;
+    CMP.cs = k; CMP.cl = l0; CMP.csT = 0; for (const kn of LIVE()) kn.csSeen = kn.in.csN || 0; return true; } return false; }
 function csNext(skip) { const C = cpS().CS[CMP.cs], L = C ? C.ln || [] : []; let i = CMP.cl + 1; while (i < L.length && !csOk(L[i])) i++; CMP.csT = 0;
-  if (skip || i >= L.length) { CMP.cs = -1; const w = CMP.csW; CMP.csW = 0; if (w === 1) cpWinNow(); else if (w === 2) cpWin(); } else CMP.cl = i; }
+  if (skip || i >= L.length) { CMP.cs = -1; if (csPlayNext()) return; const w = CMP.csW; CMP.csW = 0; if (w === 1) cpWinNow(); else if (w === 2) cpWin(); } else CMP.cl = i; }
 // stage won: an 'end' cutscene plays first
-function cpWin() { if (CMP.cs >= 0) { CMP.csW = 2; return; } if (csTrig('end')) CMP.csW = 1; else cpWinNow(); }
+function cpWin() { if (CMP.cs >= 0) { CMP.csW = 2; return; } if (csFire('end')) CMP.csW = 1; else cpWinNow(); }
 function cpWinNow() { CMP.ph = 2; cpSave({ done: CMP.done |= 1 << CMP.st, lvl: BH.lvl, xp: BH.xp }); }
 // runs every frame in a campaign: host reads advance/skip presses; while one plays the game is paused for everyone
 function cpCutStep(dt) { if (AUTH() && CMP.ph === 1) { const S = cpS();
-    if (CMP.cs < 0 && S.CS) S.CS.forEach((c, q) => { if (c.tr === 'spot' && !CMP.csD.includes(q) && LIVE().some(k => !k.rDn && Math.hypot(k.x - c.x, k.y - c.y) < (c.r || 60))) csTrig('spot'); });
+    if (S.CS) { if (CMP.cs < 0) CMP.tt += dt; S.CS.forEach((c, q) => { const H = CSHOOK[c.tr]; if (H && H.poll && !CMP.csD.includes(q) && (c.ln || []).some(csOk) && H.poll(c)) { CMP.csD.push(q); CMP.csQ.push(q); } }); if (CMP.cs < 0 && CMP.csQ.length) csPlayNext(); }
     if (CMP.cs >= 0) { CMP.csT = (CMP.csT || 0) + dt; for (const kn of LIVE()) { if ((kn.in.csK || 0) !== (kn.csKS || 0)) { kn.csKS = kn.in.csK || 0; if (CMP.cs >= 0) csNext(1); }
       if ((kn.in.csN || 0) !== (kn.csSeen || 0)) { kn.csSeen = kn.in.csN || 0; if (CMP.cs >= 0 && CMP.csT > 0.25) csNext(); } } } }
   else if (CMP.ph !== 1 && AUTH()) CMP.cs = -1;

@@ -4,7 +4,7 @@
 // Locks (screens that lock with waves flooding in), Spawns (where the flood comes from), Start. Two fingers pan and zoom.
 // Saved on this device in localStorage 'kn_stages2' (the whole list); Copy gives the JSON to paste to Claude.
 const SEDDEF = STAGES.map(s => JSON.stringify(s));
-try { const s = JSON.parse(localStorage.getItem('kn_stages2') || 'null'); if (Array.isArray(s) && s.length && s.every(q => q && q.v === 2)) { STAGES.length = 0; s.forEach(x => STAGES.push(x)); } } catch (e) { }
+try { const s = JSON.parse(localStorage.getItem('kn_stages2') || 'null'); if (Array.isArray(s) && s.length && s.every(q => q && q.v === 2)) { STAGES.length = 0; s.forEach(x => { if (!x.CS) x.CS = csDefault(x); STAGES.push(x); }); } } catch (e) { }
 const SED = { on: 0, i: 0, tool: 'move', paint: 2, brush: 2, prop: 'tree', pbrush: 0, enemy: 'foot', cnt: 1, spawn: 'woods', sel: null, cam: { x: 600, y: 400, s: 0.6 }, ptr: new Map(), hist: [], fut: [], drag: null, pinch: null, dirty: 1, sheet: '' };
 const sedS = () => STAGES[SED.i];
 const SEDSP = { woods: ['Woods', '#7ad06a'], cave: ['Cave', '#c9a65a'], gate: ['Gate', '#a8b0c0'], grave: ['Grave', '#b07ad0'] };
@@ -82,7 +82,7 @@ function sedUI() { const $ = id => document.getElementById(id); document.querySe
   P.querySelectorAll('[data-b]').forEach(b => b.onclick = () => { SED.brush = +b.dataset.b; sedUI(); });
   P.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { SED.cnt = +b.dataset.c; sedUI(); });
   P.querySelectorAll('[data-s]').forEach(b => b.onclick = () => { SED.spawn = b.dataset.s; const s2 = SED.sel; if (s2 && s2.t === 'spawn') { sedPush(); sedS().SP[s2.i][0] = SED.spawn; sedDone(); } sedUI(); });
-  P.querySelectorAll('[data-cn]').forEach(b => b.onclick = () => { sedPush(); const S = sedS(); S.CS = S.CS || []; S.CS.push({ tr: 'start', i: 0, ln: [{ w: 'p1', s: 0, t: '' }] }); sedDone(); SED.ci = S.CS.length - 1; sedSheet('cut'); });
+  P.querySelectorAll('[data-cn]').forEach(b => b.onclick = () => { sedPush(); const S = sedS(); S.CS = S.CS || []; S.CS.push({ tr: 'start', i: 0, ln: [{ w: 'p1', s: 0, t: '' }] }); sedDone(); SED.ci = S.CS.length - 1; sedUI(); sedSheet('cut'); });
   P.querySelectorAll('[data-ci]').forEach(b => b.onclick = () => { SED.ci = +b.dataset.ci; sedSheet('cut'); });
   P.querySelectorAll('[data-pb]').forEach(b => b.onclick = () => { SED.pbrush = SED.pbrush ? 0 : 1; sedUI(); });
   sedSelBar(); SED.dirty = 1; }
@@ -114,8 +114,10 @@ function sedSheet(k) { SED.sheet = k; const el = document.getElementById('sedShe
     const esc = v => String(v || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
     h = `<h3>🎬 Cutscene ${SED.ci + 1}<span style="display:flex;gap:6px"><button id="cPrev" class="pri">▶ Preview</button><button data-x="1">Done</button></span></h3>
       <label>Plays when <select id="cTr">${CSTR.map(([v, n]) => `<option value="${v}" ${C.tr === v ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-      ${C.tr === 'lock' || C.tr === 'clear' ? `<label>Which <select id="cLk">${lk || '<option>No locked screens yet</option>'}</select></label>` : ''}
-      ${C.tr === 'spot' ? `<label>Circle size <input id="cR" type="number" min="15" max="400" step="5" value="${C.r || 60}"></label><div style="opacity:.7;font-weight:500">Drag its 🎬 circle on the map (Cutscenes tool) to place it.</div>` : ''}
+      ${((CSHOOK[C.tr] || {}).p || []).map(q => q === 'lock' ? `<label>Which <select id="cLk">${lk || '<option>No locked screens yet</option>'}</select></label>`
+        : q === 'kind' ? `<label>Enemy <select id="cKd">${SEDK().map(k => `<option value="${k}" ${(C.k || 'foot') === k ? 'selected' : ''}>${UK[k].n}</option>`).join('')}</select></label>`
+        : q === 'spot' ? `<label>Circle size <input id="cR" type="number" min="15" max="400" step="5" value="${C.r || 60}"></label><div style="opacity:.7;font-weight:500">Drag its 🎬 circle on the map (Cutscenes tool) to place it.</div>`
+        : `<label>${q[1]} <input data-cp="${q[0]}" data-mn="${q[3]}" data-mx="${q[4]}" type="number" min="${q[3]}" max="${q[4]}" value="${C[q[0]] ?? q[2]}"></label>`).join('')}
       <div style="opacity:.7;font-weight:500;margin:4px 0">The game pauses while it plays. Anyone can tap to go on or skip it.</div>
       ${(C.ln || []).map((l, i) => `<div class="wv cl"><b><span style="display:flex;align-items:center;gap:6px">${l.w !== 'narr' ? `<img src="${csPic(l.w, csSeat(l.w) > 0 ? KCOLS[csSeat(l.w)] : (MYCOL || KCOLS[0]), csSeat(l.w) >= 0 ? [CHAR || 'knight', 'fire', 'priest', 'time'][csSeat(l.w)] : undefined)}" style="width:40px;height:40px;object-fit:contain;${l.s ? 'transform:scaleX(-1)' : ''}">` : ''}Line ${i + 1}</span><span style="display:flex;gap:4px"><button data-lu="${i}">▲</button><button data-ld="${i}">▼</button><button data-lx="${i}">✕</button></span></b>
         <label>Who <select data-lw="${i}">${who(l.w)}</select></label>
@@ -139,10 +141,12 @@ function sedSheet(k) { SED.sheet = k; const el = document.getElementById('sedShe
     el.querySelectorAll('[data-aw]').forEach(b => b.onclick = () => chg(() => { const Lw = W[+b.dataset.aw], q = b.dataset.q, f = Lw.find(z => z[0] === q); if (f) f[1]++; else Lw.push([q, UK[q].heavy ? 1 : 3]); put(); })); }
   if (k === 'cut') { const C = S.CS[SED.ci], L = C.ln = C.ln || [];
     $('cPrev').onclick = () => { const a = document.activeElement; if (a && a.blur) a.blur(); setTimeout(() => csPreview(S.CS[SED.ci]), 0); };
-    $('cTr').onchange = e => chg(() => { C.tr = e.target.value; if (C.tr === 'spot' && C.x === undefined) { C.x = Math.round(SED.cam.x); C.y = Math.round(SED.cam.y); C.r = 60; } });
+    $('cTr').onchange = e => chg(() => { C.tr = e.target.value; if (C.tr === 'spot' && C.x === undefined) { C.x = Math.round(SED.cam.x); C.y = Math.round(SED.cam.y); C.r = 60; } for (const q of (CSHOOK[C.tr] || {}).p || []) { if (Array.isArray(q) && C[q[0]] === undefined) C[q[0]] = q[2]; if (q === 'kind' && !C.k) C.k = 'foot'; } sedUI(); });
+    if ($('cKd')) $('cKd').onchange = e => chg(() => C.k = e.target.value);
+    el.querySelectorAll('[data-cp]').forEach(b => b.onchange = e => chg(() => C[b.dataset.cp] = cl(Math.round(+e.target.value || 0), +b.dataset.mn, +b.dataset.mx)));
     if ($('cLk')) $('cLk').onchange = e => chg(() => C.i = +e.target.value || 0); if ($('cR')) $('cR').onchange = e => chg(() => C.r = cl(+e.target.value || 60, 15, 400));
     $('cAdd').onclick = () => chg(() => { const p = L[L.length - 1]; L.push({ w: p ? (p.w === 'p1' ? 'p2' : 'p1') : 'p1', s: p ? 1 - (p.s | 0) : 0, t: '' }); });
-    $('cDel').onclick = () => { sedPush(); S.CS.splice(SED.ci, 1); if (!S.CS.length) delete S.CS; sedDone(); sedSheet(''); sedUI(); };
+    $('cDel').onclick = () => { sedPush(); S.CS.splice(SED.ci, 1); sedDone(); sedSheet(''); sedUI(); };
     el.querySelectorAll('[data-lu]').forEach(b => b.onclick = () => chg(() => { const i = +b.dataset.lu; if (i > 0) [L[i - 1], L[i]] = [L[i], L[i - 1]]; }));
     el.querySelectorAll('[data-ld]').forEach(b => b.onclick = () => chg(() => { const i = +b.dataset.ld; if (i < L.length - 1) [L[i + 1], L[i]] = [L[i], L[i + 1]]; }));
     el.querySelectorAll('[data-lx]').forEach(b => b.onclick = () => chg(() => L.splice(+b.dataset.lx, 1)));
@@ -153,7 +157,7 @@ function sedSheet(k) { SED.sheet = k; const el = document.getElementById('sedShe
       b.oninput = e => { const l = L[+(b.dataset.ln ?? b.dataset.lt)]; if (b.dataset.lt !== undefined) l.t = e.target.value.slice(0, 400); else { const v = e.target.value.slice(0, 40); if (v) l.n = v; else delete l.n; } }; }); }
   if (k === 'stage') { $('sNm').onchange = e => chg(() => { S.name = e.target.value || 'Stage'; sedUI(); }); $('sBl').onchange = e => chg(() => S.blurb = e.target.value); $('sMul').onchange = e => chg(() => S.mul = cl(+e.target.value || 1, 0.2, 10));
     $('sTh').onchange = e => chg(() => { S.th = e.target.value; SKX.delete(S); SEDTH.clear(); sedUI(); });
-    $('sNew').onclick = () => { const n = STAGES.length; STAGES.push(skGen({ id: 'st' + Date.now().toString(36), name: 'Stage ' + (n + 1), blurb: '', th: 'grass', mul: 1, mp: [10 + (n * 22) % 80, n % 2 ? 36 : 66], seed: Date.now() % 9999, start: [260, 400], props: 160, pts: [[200, 400, 140], [1700, 400, 150]], locks: [{ x: 1200, y: 400, w: 540, h: 300, wv: ['foot*4'] }] })); SED.i = n; SED.sel = null; SED.hist = []; sedSave(); sedSheet(''); sedUI(); sedFit(); };
+    $('sNew').onclick = () => { const n = STAGES.length; STAGES.push(Object.assign(skGen({ id: 'st' + Date.now().toString(36), name: 'Stage ' + (n + 1), blurb: '', th: 'grass', mul: 1, mp: [10 + (n * 22) % 80, n % 2 ? 36 : 66], seed: Date.now() % 9999, start: [260, 400], props: 160, pts: [[200, 400, 140], [1700, 400, 150]], locks: [{ x: 1200, y: 400, w: 540, h: 300, wv: ['foot*4'] }] }), { CS: csDefault({}) })); SED.i = n; SED.sel = null; SED.hist = []; sedSave(); sedSheet(''); sedUI(); sedFit(); };
     $('sSend').onclick = () => sedSend();
     $('sCopy').onclick = () => { const j = JSON.stringify(STAGES); $('sedTa').value = j; $('sedTxt').style.display = 'flex'; $('sedTa').select(); try { navigator.clipboard.writeText(j); } catch (e) { } };
     $('sDelSt').onclick = () => { if (STAGES.length < 2) return; STAGES.splice(SED.i, 1); SED.i = Math.max(0, SED.i - 1); SED.hist = []; sedSave(); sedSheet(''); sedUI(); sedFit(); };
@@ -175,7 +179,8 @@ function sedKeys() { const now = performance.now(), dt = Math.min(0.05, ((now - 
   const dx = K('d') + K('arrowright') - K('a') - K('arrowleft'), dy = K('s') + K('arrowdown') - K('w') - K('arrowup'), z = K('e') + K('=') + K('+') - K('q') - K('-');
   const sp = 700 * (K('shift') ? 2.5 : 1) / SED.cam.s * dt; if (dx || dy) { const l = Math.hypot(dx, dy); SED.cam.x += dx / l * sp; SED.cam.y += dy / l * sp; SED.dirty = 1; }
   if (z) { const cv2 = document.getElementById('sedCv'); if (cv2) sedZoomAt(cv2.clientWidth / 2, cv2.clientHeight / 2, Math.exp(z * 1.6 * dt)); } }
-const sedCsWhen = c => c.tr === 'lock' ? 'Lock ' + ((c.i | 0) + 1) + ' starts' : c.tr === 'clear' ? 'Lock ' + ((c.i | 0) + 1) + ' cleared' : (CSTR.find(q => q[0] === c.tr) || ['', c.tr])[1];
+const sedCsWhen = c => { const H = CSHOOK[c.tr]; if (!H) return c.tr; const L = '#' + ((c.i | 0) + 1);
+  return ({ lock: 'Lock ' + L + ' starts', clear: 'Lock ' + L + ' cleared', wave: 'Lock ' + L + ' wave ' + (c.w || 2), bosshp: 'Boss ' + L + ' < ' + (c.hp || 50) + '%', meet: 'Meet ' + ((UK[c.k] || {}).n || c.k), kills: (c.kl || 50) + ' kills', time: (c.sec || 30) + 's in', level: 'Level ' + (c.lv || 5) })[c.tr] || H.n; };
 // ---- camera ----
 function sedFit() { const S = sedS(), cv2 = document.getElementById('sedCv'); if (!S || !cv2) return; const W = cv2.clientWidth || 400, H = cv2.clientHeight || 400;
   // start zoomed on the start point, at roughly the game's own zoom
