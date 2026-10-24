@@ -200,10 +200,22 @@ function cpClampK(kn) { if (!BH.cp || CMP.ph !== 1 || !kn) return; const S = cpS
   if (!(kn.z > 8)) { cpSlide(S, kn); skPush(S, kn, 2.5); }
   const Lk = S.L && S.L[CMP.lk]; if (Lk) { if (kn.cpLk === CMP.lk || lkIn(Lk, kn.x, kn.y)) { kn.cpLk = CMP.lk; kn.x = cl(kn.x, Lk.x - Lk.w / 2 + 6, Lk.x + Lk.w / 2 - 6); kn.y = cl(kn.y, Lk.y - Lk.h / 2 + 6, Lk.y + Lk.h / 2 - 6); } } else kn.cpLk = -1;
   kn._px = kn.x; kn._py = kn.y; }
-function cpClampW() { if (!BH.cp || CMP.ph !== 1) return; const S = cpS(); for (const w of walkers) { if (w.z > 1 || w.gr > 0) continue; cpSlide(S, w); skPush(S, w, UK[w.k].r * 0.6 || 1.5); w._px = w.x; w._py = w.y; } }
-// the camera stays on a locked screen while you're on it
-function cpCam(x, y, sc) { const K0 = KN[ME]; if (!BH.cp || CMP.ph !== 1 || !K0 || !(CMP.lk >= 0) || K0.cpLk !== CMP.lk) return [x, y]; const Lk = cpS().L[CMP.lk]; if (!Lk) return [x, y]; const hw = cv.width / 2 / sc, hh = cv.height / 2 / sc;
-  return [Lk.w > hw * 2 ? cl(x, Lk.x - Lk.w / 2 + hw, Lk.x + Lk.w / 2 - hw) : Lk.x, Lk.h > hh * 2 ? cl(y, Lk.y - Lk.h / 2 + hh, Lk.y + Lk.h / 2 - hh) : Lk.y]; }
+// enemies of a locked screen stay on it: the ones flooding in from past its edge are walked in, and once inside (or anyone else who wanders in) can't leave
+const CPLM = { side: 10, top: 18, bot: 6, IN: 55 };
+function cpClampW(dt = 1 / 60) { if (!BH.cp || CMP.ph !== 1) return; const S = cpS(), Lk = CMP.lk >= 0 && S.L && S.L[CMP.lk];
+  for (const w of walkers) { if (w.z > 1 || w.gr > 0) continue; cpSlide(S, w); skPush(S, w, UK[w.k].r * 0.6 || 1.5);
+    if (Lk && w.hp > 0) { const r = (UK[w.k] && UK[w.k].r) || 3, x0 = Lk.x - Lk.w / 2 + CPLM.side + r, x1 = Lk.x + Lk.w / 2 - CPLM.side - r, y0 = Lk.y - Lk.h / 2 + CPLM.top, y1 = Lk.y + Lk.h / 2 - CPLM.bot, inside = w.x > x0 && w.x < x1 && w.y > y0 && w.y < y1;
+      if (inside && (w.lk === CMP.lk || !w.idle)) w.lkIn = CMP.lk;
+      if (w.lkIn === CMP.lk) { w.x = cl(w.x, x0, x1); w.y = cl(w.y, y0, y1); }
+      else if (w.lk === CMP.lk) { const dx = cl(w.x, x0, x1) - w.x, dy = cl(w.y, y0, y1) - w.y, d = Math.hypot(dx, dy) || 1, st = Math.min(d, CPLM.IN * dt); w.x += dx / d * st; w.y += dy / d * st; } }
+    w._px = w.x; w._py = w.y; } }
+// the locked screen eases in and out (CPL.v 0..1, this screen only): the camera glides to its middle and zooms out until all of it fits, the dark outside and the dashed edge fade in
+const CPL = { v: 0, li: -1, t: 0 };
+function cpLockStep() { const K0 = KN[ME], on = BH.cp && CMP.ph === 1 && K0 && CMP.lk >= 0 && K0.cpLk === CMP.lk, now = performance.now() / 1000, dt = Math.min(0.1, now - (CPL.t || now)); CPL.t = now;
+  if (on) CPL.li = CMP.lk; CPL.v += ((on ? 1 : 0) - CPL.v) * (1 - Math.exp(-dt * (on ? 2.6 : 3.2))); if (!on && CPL.v < 0.002) { CPL.v = 0; CPL.li = -1; } }
+const cpLk = () => { const S = cpS(); return CPL.li >= 0 && S && S.L && S.L[CPL.li]; };
+function cpCam(x, y, sc) { cpLockStep(); const Lk = cpLk(); if (!Lk || !BH.cp) return [x, y]; const e = sm(CPL.v); return [lerp(x, Lk.x, e), lerp(y, Lk.y - 4, e)]; }
+function cpZoom() { const Lk = cpLk(); if (!Lk || !BH.cp) return 1; const base = viewScale() / ultZoom, fit = Math.min(cv.width / (Lk.w + 40), cv.height / (Lk.h + 60)) / base; return lerp(1, Math.min(1, fit), sm(CPL.v)); }
 // ---- sync ----
 const cpPack = () => BH.cp ? [CMP.ph, CMP.st, CMP.sel, CMP.done, CMP.E.map(e => e.s * 16 + e.w), CMP.lk, CMP.cs, CMP.cl] : undefined;
 const CPDEFJ = STAGES.map(s => JSON.stringify(s));
@@ -224,8 +236,8 @@ function cpProps(VL, VR) { if (!BH.cp || CMP.ph === 0) return []; const S = cpS(
   for (const p of skEdge(S)) if (p[1] > VL - 40 && p[1] < VR + 40 && p[2] > T && p[2] < B) o.push([p[2], 15, p]); return o; }
 const cpPropDraw = (c, p) => skDrawProp(c, cpS(), p);
 // a locked screen: everything off it darkened, its edge marked; when no screen is locked an arrow points the way to the next one
-function cpLockDraw(c, t) { if (!BH.cp || CMP.ph !== 1) return; const S = cpS(), Lk = S.L && S.L[CMP.lk], me = KN[ME];
-  if (Lk) { const x0 = Lk.x - Lk.w / 2, y0 = Lk.y - Lk.h / 2, p = 0.55 + 0.45 * Math.sin(t * 6); c.save(); c.fillStyle = 'rgba(6,5,4,.45)'; c.beginPath(); c.rect(x0 - 4000, y0 - 4000, Lk.w + 8000, Lk.h + 8000); c.rect(x0, y0, Lk.w, Lk.h); c.fill('evenodd');
+function cpLockDraw(c, t) { if (!BH.cp || CMP.ph !== 1) return; const Lk = cpLk(), e = sm(CPL.v);
+  if (Lk && e > 0.01) { const x0 = Lk.x - Lk.w / 2, y0 = Lk.y - Lk.h / 2, p = 0.55 + 0.45 * Math.sin(t * 6); c.save(); c.globalAlpha = e; c.fillStyle = 'rgba(6,5,4,.45)'; c.beginPath(); c.rect(x0 - 4000, y0 - 4000, Lk.w + 8000, Lk.h + 8000); c.rect(x0, y0, Lk.w, Lk.h); c.fill('evenodd');
     c.strokeStyle = `rgba(255,${Lk.boss ? 70 : 150},60,${0.3 + 0.35 * p})`; c.lineWidth = 1.4; c.setLineDash([10, 6]); c.lineDashOffset = -t * 30; c.strokeRect(x0, y0, Lk.w, Lk.h); c.restore(); return; } }
 const CPCOL = ['255,70,50', '255,230,140', '190,110,255', '255,170,40', '120,220,90'];
 function cpGround(c, t) { if (!BH.cp) return; c.save();
@@ -303,7 +315,7 @@ function cpInputs() { if (!AUTH()) return; for (const kn of LIVE()) { const ch =
     if ((kn.in.skN || 0) !== (kn.skSeen || 0)) { kn.skSeen = kn.in.skN || 0; cpRestore(kn, kn.in.skS); }
     if ((kn.in.upN || 0) !== (kn.upSeen || 0)) { kn.upSeen = kn.in.upN || 0; if (cpCan(kn, kn.in.upC)) cpBuy(kn, kn.in.upC); } } }
 addEventListener('keydown', e => { if (!BH.on || !BH.cp || e.repeat) return; if (e.code === 'KeyT' || e.code === 'KeyK') { cpTreeUI(CPUI.open ? 0 : 1); } else if (e.code === 'Escape' && CPUI.open) cpTreeUI(0); });
-window.__cp = { CMP, STAGES, tp: (x, y) => { const k = KN[ME]; k.x = x; k.y = y; k.T = { x: x - HOME.x, y: y - HOME.y }; }, W: () => walkers.map(w => [w.k, Math.round(w.x), Math.round(w.y), w.ea ? w.ea.k : '', w.idle ? 1 : 0]), FX: () => CPFX.length, sp: (k, dx, dy) => { const m = KN[ME], w = cpSpawn(k, m.x + dx, m.y + dy); return w.id; }, begin: i => cpBegin(i), skip: all => { for (const w of walkers) if (all || w.lk !== undefined) { w.hp = 0; if (all) w.dead = 1; } } };
+window.__cp = { cam: () => [camX, camY, ultZoom, CPL.v], CMP, STAGES, tp: (x, y) => { const k = KN[ME]; k.x = x; k.y = y; k._px = x; k._py = y; k.T = { x: x - HOME.x, y: y - HOME.y }; }, W: () => walkers.map(w => [w.k, Math.round(w.x), Math.round(w.y), w.ea ? w.ea.k : '', w.idle ? 1 : 0, w.lk ?? -1, w.hp > 0 ? 1 : 0]), FX: () => CPFX.length, sp: (k, dx, dy) => { const m = KN[ME], w = cpSpawn(k, m.x + dx, m.y + dy); return w.id; }, begin: i => cpBegin(i), skip: all => { for (const w of walkers) if (all || w.lk !== undefined) { w.hp = 0; if (all) w.dead = 1; } } };
 // ---- cutscenes: black bars top and bottom, close-up portraits of whoever is talking, text in the bottom bar ----
 // stage field CS = [{tr: 'start'|'lock'|'clear'|'spot'|'end', i: lock index, x, y, r (spot), ln: [{w: speaker, s: 0 left / 1 right, n: name, t: text}]}]
 // speakers: 'p1'..'p4' (that player's character, line skipped if nobody's there), a character kind, an enemy kind, or 'narr' (no picture)

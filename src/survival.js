@@ -125,7 +125,7 @@ function bhStep(dt) { if (!BH.on) return; const L = LIVE();
   for (const kn of KN) { if (kn.rIv > 0) kn.rIv -= dt; }
   if (!BH.go && !BH.cp && L.some(k => k.st && k.st !== 'kneel')) BH.go = 1;
   bhBullets(dt);
-  if (!AUTH()) return; if (BH.cp) cpClampW();
+  if (!AUTH()) return; if (BH.cp) cpClampW(dt);
   if (BH.go && !BH.over) BH.t += dt;
   for (const kn of L) { const dk = (kn.kills || 0) - (kn.kSeen || 0); kn.kSeen = kn.kills || 0; 
     if (!kn.rDn && kn.rHp < kn.rHm) kn.rHp = Math.min(kn.rHm, kn.rHp + 0.6 * bhN(kn, 'rgn') * dt);
