@@ -22,13 +22,21 @@ import base64
 assets = 'window.TD_ASSETS = { buildLoop: "data:audio/mpeg;base64,' + base64.b64encode((d / 'assets' / 'build-loop.mp3').read_bytes()).decode() + '" };'
 out = tpl.replace('/*__LOG__*/[]', json.dumps([{'v': e['v'], 'date': e['date'], 'notes': e['notes']} for e in log], ensure_ascii=False).replace('</', '<\\/')).replace('__BUILD__', build).replace('__VER__', ver).replace('/*__GAME__*/', assets + '\n' + safe('game.js')).replace('/*__CLIENT__*/', safe('client.js').replace('const TD = window.TD;\n', 'const TD = window.TD;\n' + safe('tribe.js') + '\n', 1))
 (root / 'index.html').write_text(out)
+def demist(im):  # the painted portraits end in a white mist; fade the bottom 26% of the figure out to transparent instead
+    import numpy as np
+    from PIL import Image
+    a = np.asarray(im.convert('RGBA')).astype(np.float32)
+    rows = np.where((a[..., 3] > 12).any(axis=1))[0]; bot = rows[-1]; H = bot - rows[0]; b0 = bot - H * 0.26
+    t = np.clip((np.arange(a.shape[0])[:, None] - b0) / (bot - b0), 0, 1)
+    a[..., 3] *= (1 - t * t * (3 - 2 * t)) ** 2.2
+    return Image.fromarray(a.clip(0, 255).astype(np.uint8), 'RGBA')
 def portraits():  # cutscene portraits: src/portraits/<kind>-<hex colour>.png -> 520px-tall webp data urls keyed 'kind|#hex'
     import io
     from PIL import Image
     out = {}
     for f in sorted((d / 'portraits').glob('*.png')):
         kind, col = f.stem.rsplit('-', 1)
-        im = Image.open(f).convert('RGBA'); k = 520 / im.height
+        im = demist(Image.open(f)); k = 520 / im.height
         im = im.resize((round(im.width * k), 520), Image.LANCZOS); b = io.BytesIO(); im.save(b, 'WEBP', quality=82, method=6)
         out[kind + '|#' + col.lower()] = 'data:image/webp;base64,' + base64.b64encode(b.getvalue()).decode()
     return json.dumps(out)
