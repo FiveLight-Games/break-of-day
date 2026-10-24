@@ -8349,7 +8349,7 @@ cv.addEventListener('pointermove', e => { if (!pinch.has(e.pointerId)) return; p
 const pinchEnd = e => { pinch.delete(e.pointerId); pinchD = 0; };
 cv.addEventListener('pointerup', pinchEnd); cv.addEventListener('pointercancel', pinchEnd);
 cv.addEventListener('wheel', e => { ZOOM = cl(ZOOM * Math.exp(-e.deltaY * 0.0012), ZMIN, 2.6); e.preventDefault(); }, { passive: false });
-document.addEventListener('touchmove', e => { if (e.target.closest && e.target.closest('.scrollOk')) return; if (LUI.style.display === 'none') e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', e => { if (e.target.closest && (e.target.closest('.scrollOk') || (e.target.closest('#sed') && e.target.tagName !== 'CANVAS'))) return; if (LUI.style.display === 'none') e.preventDefault(); }, { passive: false });
 document.addEventListener('gesturestart', e => e.preventDefault());
 document.addEventListener('dblclick', e => e.preventDefault());
 window.__horde = (r, k) => setHorde(r, k); window.__dash = v => doDash(typeof v === 'number' ? DIR8[v] : v); window.__aimDash = v => { DASHAIM = v; }; window.__DA = () => DASHAIM; window.__leap = doLeap; window.__aimLeap = v => { LEAPAIM = v; };

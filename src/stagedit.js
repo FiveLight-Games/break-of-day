@@ -36,7 +36,7 @@ body.live .sedBtn{display:none !important}
 #sed .pal .it{flex:0 0 auto;width:58px;height:58px;padding:2px;border-radius:10px;border:2px solid #3a3a2a;background:#1d2418;display:flex;flex-direction:column;align-items:center;justify-content:center;font:700 9px system-ui;color:#cfc6ae;gap:1px}
 #sed .pal .it img{width:40px;height:40px;object-fit:contain;image-rendering:auto}#sed .pal .it.on{border-color:#ffd36a;background:#3a3218}
 #sed .pal .lbl{flex:0 0 auto;font:700 11px system-ui;color:#cfc6ae;padding:0 4px;max-width:150px}
-#sed .tools{display:flex;gap:5px;padding:6px;overflow-x:auto;background:#1a2015;border-top:1px solid #3a3a2a;touch-action:pan-x}#sed .tools button{flex:1 0 auto;padding:9px 8px}
+#sed .tools{display:flex;gap:5px;padding:6px;overflow-x:auto;background:#1a2015;border-top:1px solid #3a3a2a;touch-action:pan-x}#sed .tools *{touch-action:pan-x}#sed .tools button{flex:1 0 auto;padding:9px 8px}
 #sedSheet{position:absolute;left:6px;right:6px;bottom:6px;max-height:70%;overflow:auto;display:none;background:#141a12f4;border:1px solid #c9a65a;border-radius:12px;padding:10px;touch-action:pan-y}#sedSheet *{touch-action:pan-y}
 #sedSheet h3{margin:0 0 8px;font:800 15px system-ui;display:flex;justify-content:space-between;align-items:center;gap:6px}
 #sedSheet .wv{border:1px solid #3a3a2a;border-radius:10px;padding:6px;margin:6px 0;background:#1d2418}#sedSheet .wv>b{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
@@ -60,8 +60,8 @@ function sedOpen(i) { sedCss(); SED.on = 1; SED.i = cl(i | 0, 0, STAGES.length -
     el.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { SED.tool = b.dataset.t; SED.sel = null; sedSheet(''); sedUI(); });
     const cv2 = $('sedCv'); cv2.addEventListener('pointerdown', sedDown); cv2.addEventListener('pointermove', sedMove); cv2.addEventListener('pointerup', sedUp); cv2.addEventListener('pointercancel', sedUp); cv2.addEventListener('contextmenu', e => e.preventDefault());
     cv2.addEventListener('wheel', e => { e.preventDefault(); sedZoomAt(e.offsetX, e.offsetY, Math.exp(-e.deltaY * 0.0015)); }, { passive: false }); }
-  el.style.display = 'flex'; sedUI(); sedFit(); requestAnimationFrame(sedDraw); }
-function sedClose() { SED.on = 0; const el = document.getElementById('sed'); if (el) el.style.display = 'none'; CPUI.last = ''; }
+  el.style.display = 'flex'; document.documentElement.style.touchAction = document.body.style.touchAction = 'auto'; sedUI(); sedFit(); requestAnimationFrame(sedDraw); }
+function sedClose() { SED.on = 0; document.documentElement.style.touchAction = document.body.style.touchAction = ''; const el = document.getElementById('sed'); if (el) el.style.display = 'none'; CPUI.last = ''; }
 function sedPlay() { const i = SED.i; sedClose();
   if (BH.on && BH.cp) { if (AUTH()) { CMP.sel = i; cpBegin(i); } return; }
   BHMODE = 'camp'; try { localStorage.setItem('kn_mode', 'camp'); } catch (e) { } startGame(1, 0); setTimeout(() => { if (BH.cp) { CMP.sel = i; cpBegin(i); } }, 80); }

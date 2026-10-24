@@ -367,6 +367,10 @@ const CSPIC = new Map();
 const PORTRAITS = '__PORTRAITS__'; // filled by build.py from src/portraits
 // close-up crop per character: [centre x, top, height] in his own units from his feet, facing right
 const CSHEAD = { knight: [1, 17.5, 11], fire: [0, 23.5, 17], priest: [2.5, 24.5, 17], time: [0.5, 22, 13.5], ninja: [0.5, 14.5, 10], ogre: [0, 32, 20], rooster: [3, 20.5, 12], gi: [0.5, 15, 9] };
+// painted portraits are framed differently (the ninja fills his, the warpriest shows his whole chest), so each is scaled to put
+// the heads at their in-game sizes: eye-to-chin measured on each painting (knight/time ~50px of 520), warpriest 1.3x, ogre 1.6x
+const PSC = { knight: 1, time: 1, gi: 1.1, fire: 1.2, ninja: 0.82, priest: 1.08, ogre: 1.22 };
+function csKind(w, kind) { const j = csSeat(w); if (j >= 0) { const k = KN[j]; return kind || (k && k.kind) || 'knight'; } return w; }
 function csPic(w, col, kind) { const j = csSeat(w); if (j >= 0) { const k = KN[j]; kind = kind || (k && k.kind) || 'knight'; col = col || (k && k.col) || KCOLS[j]; w = kind; } if (w === 'narr') return '';
   // painted portraits: the one in his colour, else the blue one (until every colour is painted)
   if (CSCH.includes(w)) { const c0 = String(col || KCOLS[0]).toLowerCase(); const P = PORTRAITS[w + '|' + c0] || PORTRAITS[w + '|' + KCOLS[0]]; if (P) return P; }
@@ -394,9 +398,9 @@ body.csOn>*:not(canvas):not(#cpCut):not(script):not(style){visibility:hidden !im
 #cpCut .bt,#cpCut .bb{position:absolute;left:0;right:0;background:#000;transition:height .45s ease}
 #cpCut .bt{top:0;height:0}#cpCut .bb{bottom:0;height:0}
 #cpCut.on .bt{height:min(13vh,90px)}#cpCut.on .bb{height:min(27vh,190px)}
-#cpCut .pt{position:absolute;bottom:min(27vh,190px);height:min(56vh,430px);max-width:44vw;object-fit:contain;object-position:bottom;transition:opacity .3s,transform .35s,filter .3s;opacity:0;filter:drop-shadow(0 0 10px rgba(0,0,0,.6))}
+#cpCut .pt{position:absolute;bottom:min(27vh,190px);height:calc(min(46vh,360px,56vw) * var(--ps,1));object-fit:contain;object-position:bottom;transition:opacity .3s,transform .35s,filter .3s;opacity:0;filter:drop-shadow(0 0 10px rgba(0,0,0,.6))}
 #cpCut .pl{left:4vw;transform:translateX(-30px)}#cpCut .pr{right:4vw;transform:translateX(30px) scaleX(-1)}
-#cpCut .pt.in{opacity:1;transform:none}#cpCut .pr.in{transform:scaleX(-1)}#cpCut .pt.dim{filter:brightness(.38) drop-shadow(0 0 10px rgba(0,0,0,.6))}
+#cpCut .pt{z-index:1}#cpCut .pt.dim{z-index:0}#cpCut .pt.in{opacity:1;transform:none}#cpCut .pr.in{transform:scaleX(-1)}#cpCut .pt.dim{filter:brightness(.38) drop-shadow(0 0 10px rgba(0,0,0,.6))}
 #cpCut .tb{position:absolute;bottom:0;left:0;right:0;height:min(27vh,190px);box-sizing:border-box;padding:12px max(18px,6vw) 10px;display:flex;flex-direction:column;gap:6px;opacity:0;transition:opacity .3s .2s}
 #cpCut.on .tb{opacity:1}#cpCut .nm{font:800 15px system-ui;letter-spacing:.06em;text-transform:uppercase;color:#ffd36a}#cpCut .nm.r{text-align:right}
 #cpCut .tx{font:600 clamp(15px,2.3vw,21px)/1.35 system-ui;white-space:pre-wrap;overflow:auto}
@@ -415,7 +419,7 @@ function csUI() { const cur = csCur(), el = document.getElementById('cpCut') || 
   if (CSV.k !== key) { CSV.k = key; CSV.at = performance.now();
     // each side shows the last speaker on it; the one talking now is lit, the other dimmed
     for (const sd of [0, 1]) { let q = -1; for (let z = i; z >= 0; z--) if ((L[z].s | 0) === sd && L[z].w !== 'narr' && (CSV.local || csOk(L[z]))) { q = z; break; } const im = el.querySelector(sd ? '.pr' : '.pl');
-      if (q < 0) { im.classList.remove('in'); continue; } const src = csPic(L[q].w, CSV.local && CSV.local.col, CSV.local && csSeat(L[q].w) >= 0 ? CSV.local.kinds[csSeat(L[q].w)] : undefined); if (src && im.getAttribute('src') !== src) im.src = src; im.classList.toggle('in', !!src); im.classList.toggle('dim', q !== i); }
+      if (q < 0) { im.classList.remove('in'); continue; } const src = csPic(L[q].w, CSV.local && CSV.local.col, CSV.local && csSeat(L[q].w) >= 0 ? CSV.local.kinds[csSeat(L[q].w)] : undefined); if (src && im.getAttribute('src') !== src) im.src = src; { const kd = csKind(L[q].w, CSV.local && csSeat(L[q].w) >= 0 ? CSV.local.kinds[csSeat(L[q].w)] : undefined); im.style.setProperty('--ps', src && src.startsWith('data:image/webp') ? PSC[kd] || 1 : 1.15); } im.classList.toggle('in', !!src); im.classList.toggle('dim', q !== i); }
     const nm = el.querySelector('.nm'); nm.textContent = CSV.local && csSeat(l.w) >= 0 && !l.n ? CNAME[CSV.local.kinds[csSeat(l.w)]] : csName(l); nm.classList.toggle('r', (l.s | 0) === 1); }
   const n = Math.floor((performance.now() - CSV.at) / 1000 * 45), tx = el.querySelector('.tx'), s = l.t || ''; CSV.done = n >= s.length; const v = s.slice(0, n); if (tx.textContent !== v) tx.textContent = v; }
 function csTap() { if (!CSV.done) { CSV.at = -1e9; return; } if (CSV.local) { const L = CSV.local; L.i++; if (L.i >= L.ln.length) csSkip(); return; }
