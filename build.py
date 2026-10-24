@@ -49,7 +49,10 @@ def pmask(im, kind):  # 0-255 weight of the base blue (#3a7bd5) by hue, saturati
     mx = np.maximum(np.maximum(r, g), b); mn = np.minimum(np.minimum(r, g), b); dd = mx - mn + 1e-6
     h = np.where(mx == r, ((g - b) / dd) % 6, np.where(mx == g, (b - r) / dd + 2, (r - g) / dd + 4)) * 60
     s = np.where(mx > 0, (mx - mn) / (mx + 1e-6), 0)
-    w = np.clip(1 - np.abs(h - 222) / 30, 0, 1) * np.clip((s - 0.25) / 0.2, 0, 1) * np.clip((mx - PMASKV.get(kind, 0.12)) / 0.1, 0, 1) * (a[..., 3] / 255)
+    w = np.clip(1 - np.abs(h - 222) / 30, 0, 1) * np.clip((s - 0.25) / 0.2, 0, 1) * np.clip((mx - PMASKV.get(kind, 0.12)) / 0.1, 0, 1) * (a[..., 3] > 8)
+    if kind == 'fire':  # his red waist sash too (below 75% of the figure, so the red paint on his cheek stays)
+        hr = np.minimum(np.abs(h - 355), np.abs(h + 5)); yy = np.arange(a.shape[0])[:, None] / a.shape[0]
+        w = np.maximum(w, np.clip(1 - hr / 22, 0, 1) * np.clip((s - 0.35) / 0.2, 0, 1) * np.clip((mx - 0.15) / 0.1, 0, 1) * np.clip((yy - 0.75) / 0.03, 0, 1) * (a[..., 3] > 8))
     return (w * 255).astype(np.uint8)
 def portraits():  # cutscene portraits: src/portraits/<kind>-<hex colour>.png -> webp data urls (up to 1100px tall, sharp on 3x phone screens) data urls keyed 'kind|#hex'
     import io

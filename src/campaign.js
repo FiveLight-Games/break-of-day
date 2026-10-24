@@ -373,6 +373,7 @@ const PSC = { knight: 1, time: 1, gi: 1.1, fire: 1.2, ninja: 0.82, priest: 1.08,
 // painted portraits are only stored in blue; each colour is made in the page: the build's mask marks where the player's
 // colour is painted, and those pixels get the target hue, its saturation scaled and the blue's lightness mapped onto the
 // target's (kept partly toward the painting's own for darker colours, so a brown skull still reads on black armour)
+const PRC = { fire: 1 };  // paintings with parts not yet in the base blue (the Firebreather's red sash): recoloured even for blue
 function csHls(h) { const r = parseInt(h.slice(1, 3), 16) / 255, g = parseInt(h.slice(3, 5), 16) / 255, b = parseInt(h.slice(5, 7), 16) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
   if (d < 1e-6) return [0, l, 0]; const s = d / (1 - Math.abs(2 * l - 1)); let hh = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [((hh / 6) + 1) % 1, l, s]; }
 function csRecolor(P, M, col, done) { const a = new Image(), m = new Image(); let n = 0; const go = () => { if (++n < 2) return; try {
@@ -392,8 +393,8 @@ function csWarm() { for (let j = 0; j < 4; j++) { const k = KN[j]; if (k && k.on
 function csKind(w, kind) { const j = csSeat(w); if (j >= 0) { const k = KN[j]; return kind || (k && k.kind) || 'knight'; } return w; }
 function csPic(w, col, kind) { const j = csSeat(w); if (j >= 0) { const k = KN[j]; kind = kind || (k && k.kind) || 'knight'; col = col || (k && k.col) || KCOLS[j]; w = kind; } if (w === 'narr') return '';
   // painted portraits: the one in his colour, else the blue one (until every colour is painted)
-  if (CSCH.includes(w)) { const c0 = String(col || KCOLS[0]).toLowerCase(); if (PORTRAITS[w + '|' + c0]) return PORTRAITS[w + '|' + c0]; const P = PORTRAITS[w + '|' + KCOLS[0]];
-    if (P) { const M = PORTRAITS[w + '|mask']; if (!M || c0 === KCOLS[0].toLowerCase()) return P; const k = w + '|' + c0 + '|rc'; if (CSPIC.has(k)) return CSPIC.get(k) || P; CSPIC.set(k, ''); csRecolor(P, M, c0, u => CSPIC.set(k, u)); return P; } }
+  if (CSCH.includes(w)) { const c0 = String(col || KCOLS[0]).toLowerCase(); if (PORTRAITS[w + '|' + c0] && !(PRC[w] && c0 === KCOLS[0].toLowerCase())) return PORTRAITS[w + '|' + c0]; const P = PORTRAITS[w + '|' + KCOLS[0]];
+    if (P) { const M = PORTRAITS[w + '|mask']; if (!M || (c0 === KCOLS[0].toLowerCase() && !PRC[w])) return P; const k = w + '|' + c0 + '|rc'; if (CSPIC.has(k)) return CSPIC.get(k) || P; CSPIC.set(k, ''); csRecolor(P, M, c0, u => CSPIC.set(k, u)); return P; } }
   const isCh = CSCH.includes(w), key = w + '|' + (isCh ? col || KCOLS[0] : ''); if (CSPIC.has(key)) return CSPIC.get(key);
   const N = 520, cv0 = document.createElement('canvas'); cv0.width = cv0.height = N; const g = cv0.getContext('2d');
   try { if (isCh) { const k0 = K, kn = mkKnight(0); Object.assign(kn, { col: col || KCOLS[0], kind: w, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, f: 1, x: 0, y: 0 });
