@@ -40,6 +40,17 @@ def demist(im, kind=''):  # the painted portraits end in a white mist; fade the 
         W0 = cols[-1] - cols[0]; d = (np.arange(w, dtype=np.float32) - cols[0]) if side == 'l' else (cols[-1] - np.arange(w, dtype=np.float32))
         f = sm(np.clip(d / (W0 * 0.12), 0, 1)); a[..., 3] *= f[None, :]
     return Image.fromarray(a.clip(0, 255).astype(np.uint8), 'RGBA')
+PMASKV = {'ninja': 0.33}  # brightest-only blues (his dark gi is blue-black)
+PMASKNO = {'ogre', 'gi'}  # nothing in their paintings is the player's colour (the ogre's ice and lightning are blue)
+def pmask(im, kind):  # 0-255 weight of the base blue (#3a7bd5) by hue, saturation and brightness
+    import numpy as np
+    if kind in PMASKNO: return None
+    a = np.asarray(im.convert('RGBA')).astype(np.float32); r, g, b = a[..., 0] / 255, a[..., 1] / 255, a[..., 2] / 255
+    mx = np.maximum(np.maximum(r, g), b); mn = np.minimum(np.minimum(r, g), b); dd = mx - mn + 1e-6
+    h = np.where(mx == r, ((g - b) / dd) % 6, np.where(mx == g, (b - r) / dd + 2, (r - g) / dd + 4)) * 60
+    s = np.where(mx > 0, (mx - mn) / (mx + 1e-6), 0)
+    w = np.clip(1 - np.abs(h - 222) / 30, 0, 1) * np.clip((s - 0.25) / 0.2, 0, 1) * np.clip((mx - PMASKV.get(kind, 0.12)) / 0.1, 0, 1) * (a[..., 3] / 255)
+    return (w * 255).astype(np.uint8)
 def portraits():  # cutscene portraits: src/portraits/<kind>-<hex colour>.png -> webp data urls (up to 1100px tall, sharp on 3x phone screens) data urls keyed 'kind|#hex'
     import io
     from PIL import Image
@@ -50,6 +61,10 @@ def portraits():  # cutscene portraits: src/portraits/<kind>-<hex colour>.png ->
         if H != im.height: im = im.resize((round(im.width * k), H), Image.LANCZOS)
         b = io.BytesIO(); im.save(b, 'WEBP', quality=90, method=6)
         out[kind + '|#' + col.lower()] = 'data:image/webp;base64,' + base64.b64encode(b.getvalue()).decode()
+        m = pmask(im, kind)  # where the player's colour is painted (the blue set only); the page recolours those parts
+        if m is not None and col.lower() == '3a7bd5':
+            mi = Image.fromarray(m).resize((im.width // 2, im.height // 2), Image.BILINEAR); b = io.BytesIO(); mi.save(b, 'PNG', optimize=True)
+            out[kind + '|mask'] = 'data:image/png;base64,' + base64.b64encode(b.getvalue()).decode()
     return json.dumps(out)
 (root / 'knights.html').write_text((d / 'knights.html').read_text().replace('/*@SURVIVAL@*/', (d / 'survival.js').read_text()).replace('/*@STAGEKIT@*/', (d / 'stagekit.js').read_text()).replace('/*@CAMPAIGN@*/', (d / 'campaign.js').read_text()).replace('/*@STAGEDIT@*/', (d / 'stagedit.js').read_text()).replace("'__PORTRAITS__'", portraits()).replace('__BUILD__', build).replace("['__HELI_LIST__']", json.dumps([base64.b64encode((d / 'assets' / f'heli{i}.mp3').read_bytes()).decode() for i in range(1, 11)])).replace("'__HITMARK__'", json.dumps(base64.b64encode((d / 'assets' / 'hitmarker.mp3').read_bytes()).decode())).replace("'__OGCLIP_STORM__'", (d / 'anims' / 'storm-hook-right.baked.json').read_text()))  # Knight Brawl: a separate co-op mode page
 

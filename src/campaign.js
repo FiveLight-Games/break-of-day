@@ -170,7 +170,7 @@ function cpFlood(S, li, str) { const L = S.L[li], sps = cpSPof(S).filter(q => q[
     if (sps.length && Math.random() < 0.65) { const s = sps[Math.floor(Math.random() * sps.length)]; x = s[1] + rr(-10, 10); y = s[2] + rr(-6, 6); tp = s[0]; }
     else { const sd = Math.floor(Math.random() * 4); if (sd < 2) { x = L.x + (sd ? 1 : -1) * (L.w / 2 + rr(10, 30)); y = L.y + rr(-0.4, 0.4) * L.h; } else { x = L.x + rr(-0.45, 0.45) * L.w; y = L.y + (sd === 2 ? 1 : -1) * (L.h / 2 + rr(8, 20)); } }
     CPQ.push([li, k, x, y, tp, t]); } } }
-function cpBegin(i) { const S = STAGES[i]; if (!S) return; Object.assign(CMP, { ph: 1, st: i, clrT: 0, lk: -1 }); CMP.E = (S.L || []).map(() => ({ s: 0, w: 0, t: 0 })); CPQ = [];
+function cpBegin(i) { setTimeout(() => { try { csWarm(); } catch (e) { } }, 300); const S = STAGES[i]; if (!S) return; Object.assign(CMP, { ph: 1, st: i, clrT: 0, lk: -1 }); CMP.E = (S.L || []).map(() => ({ s: 0, w: 0, t: 0 })); CPQ = [];
   walkers = []; HDEAD = []; parts = []; blood = []; splats = []; BUL.length = 0; CPHZ = []; CPFX = []; BH.over = 0; BH.go = 1;
   CMP.cs = -1; CMP.csD = []; CMP.csW = 0; CMP.won = 0; CMP.csQ = []; CMP.kl = 0; CMP.tt = 0; const PS = skPS(S); LIVE().forEach(kn => { const j = Math.max(0, KN.indexOf(kn)) % 4, sx = PS[j][0], sy = PS[j][1]; kn.x = sx; kn.y = sy; kn._px = sx; kn._py = sy; kn.cpLk = -1; kn.T = { x: sx - HOME.x, y: sy - HOME.y }; Object.assign(kn, { rDn: 0, rRv: 0, rHp: kn.rHm || BHC.HP, rIv: 1 }); });
   // placed enemies: those on a lock's screen belong to it; the rest stand about in groups (anyone within 70 of another is in its group)
@@ -370,10 +370,30 @@ const CSHEAD = { knight: [1, 17.5, 11], fire: [0, 23.5, 17], priest: [2.5, 24.5,
 // painted portraits are framed differently (the ninja fills his, the warpriest shows his whole chest), so each is scaled to put
 // the heads at their in-game sizes: eye-to-chin measured on each painting (knight/time ~50px of 520), warpriest 1.3x, ogre 1.6x
 const PSC = { knight: 1, time: 1, gi: 1.1, fire: 1.2, ninja: 0.82, priest: 1.08, ogre: 1.22 };
+// painted portraits are only stored in blue; each colour is made in the page: the build's mask marks where the player's
+// colour is painted, and those pixels get the target hue, its saturation scaled and the blue's lightness mapped onto the
+// target's (kept partly toward the painting's own for darker colours, so a brown skull still reads on black armour)
+function csHls(h) { const r = parseInt(h.slice(1, 3), 16) / 255, g = parseInt(h.slice(3, 5), 16) / 255, b = parseInt(h.slice(5, 7), 16) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  if (d < 1e-6) return [0, l, 0]; const s = d / (1 - Math.abs(2 * l - 1)); let hh = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; return [((hh / 6) + 1) % 1, l, s]; }
+function csRecolor(P, M, col, done) { const a = new Image(), m = new Image(); let n = 0; const go = () => { if (++n < 2) return; try {
+    const W = a.naturalWidth, H = a.naturalHeight, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const g = cv.getContext('2d'); g.drawImage(m, 0, 0, W, H); const mk = g.getImageData(0, 0, W, H).data;
+    g.clearRect(0, 0, W, H); g.drawImage(a, 0, 0); const id = g.getImageData(0, 0, W, H), p = id.data;
+    const [, lb, sb] = csHls(KCOLS[0]), [ht, lt0, st] = csHls(col), dark = lt0 < lb, H6 = ht * 6, sg = Math.floor(H6) % 6, fr = H6 % 2;
+    for (let i = 0; i < p.length; i += 4) { const wt = mk[i] / 255; if (wt < 0.004) continue;
+      const r = p[i] / 255, gg = p[i + 1] / 255, b = p[i + 2] / 255, mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), L = (mx + mn) / 2, Sx = mx - mn < 1e-6 ? 0 : (mx - mn) / (1 - Math.abs(2 * L - 1) + 1e-6);
+      let L2 = L < lb ? L * lt0 / lb : lt0 + (L - lb) * (1 - lt0) / (1 - lb); if (dark) L2 = L2 * 0.7 + L * 0.3;
+      const S2 = Math.min(1, Sx * st / sb), C = (1 - Math.abs(2 * L2 - 1)) * S2, X = C * (1 - Math.abs(fr - 1)), m0 = L2 - C / 2;
+      const q = [[C, X, 0], [X, C, 0], [0, C, X], [0, X, C], [X, 0, C], [C, 0, X]][sg];
+      p[i] = (r * (1 - wt) + (q[0] + m0) * wt) * 255; p[i + 1] = (gg * (1 - wt) + (q[1] + m0) * wt) * 255; p[i + 2] = (b * (1 - wt) + (q[2] + m0) * wt) * 255; }
+    g.putImageData(id, 0, 0); done(cv.toDataURL('image/webp', 0.9)); } catch (e) { } };
+  a.onload = m.onload = go; a.src = P; m.src = M; }
+// make the portraits for every seated player's colour ahead of the first cutscene line
+function csWarm() { for (let j = 0; j < 4; j++) { const k = KN[j]; if (k && k.on !== 0 && k.kind) csPic('p' + (j + 1)); } }
 function csKind(w, kind) { const j = csSeat(w); if (j >= 0) { const k = KN[j]; return kind || (k && k.kind) || 'knight'; } return w; }
 function csPic(w, col, kind) { const j = csSeat(w); if (j >= 0) { const k = KN[j]; kind = kind || (k && k.kind) || 'knight'; col = col || (k && k.col) || KCOLS[j]; w = kind; } if (w === 'narr') return '';
   // painted portraits: the one in his colour, else the blue one (until every colour is painted)
-  if (CSCH.includes(w)) { const c0 = String(col || KCOLS[0]).toLowerCase(); const P = PORTRAITS[w + '|' + c0] || PORTRAITS[w + '|' + KCOLS[0]]; if (P) return P; }
+  if (CSCH.includes(w)) { const c0 = String(col || KCOLS[0]).toLowerCase(); if (PORTRAITS[w + '|' + c0]) return PORTRAITS[w + '|' + c0]; const P = PORTRAITS[w + '|' + KCOLS[0]];
+    if (P) { const M = PORTRAITS[w + '|mask']; if (!M || c0 === KCOLS[0].toLowerCase()) return P; const k = w + '|' + c0 + '|rc'; if (CSPIC.has(k)) return CSPIC.get(k) || P; CSPIC.set(k, ''); csRecolor(P, M, c0, u => CSPIC.set(k, u)); return P; } }
   const isCh = CSCH.includes(w), key = w + '|' + (isCh ? col || KCOLS[0] : ''); if (CSPIC.has(key)) return CSPIC.get(key);
   const N = 520, cv0 = document.createElement('canvas'); cv0.width = cv0.height = N; const g = cv0.getContext('2d');
   try { if (isCh) { const k0 = K, kn = mkKnight(0); Object.assign(kn, { col: col || KCOLS[0], kind: w, st: 'fight', u: 1, kn: 0, hold: 1, pullUp: 1, f: 1, x: 0, y: 0 });
@@ -419,8 +439,9 @@ function csUI() { const cur = csCur(), el = document.getElementById('cpCut') || 
   if (CSV.k !== key) { CSV.k = key; CSV.at = performance.now();
     // each side shows the last speaker on it; the one talking now is lit, the other dimmed
     for (const sd of [0, 1]) { let q = -1; for (let z = i; z >= 0; z--) if ((L[z].s | 0) === sd && L[z].w !== 'narr' && (CSV.local || csOk(L[z]))) { q = z; break; } const im = el.querySelector(sd ? '.pr' : '.pl');
-      if (q < 0) { im.classList.remove('in'); continue; } const src = csPic(L[q].w, CSV.local && CSV.local.col, CSV.local && csSeat(L[q].w) >= 0 ? CSV.local.kinds[csSeat(L[q].w)] : undefined); if (src && im.getAttribute('src') !== src) im.src = src; { const kd = csKind(L[q].w, CSV.local && csSeat(L[q].w) >= 0 ? CSV.local.kinds[csSeat(L[q].w)] : undefined); im.style.setProperty('--ps', src && src.startsWith('data:image/webp') ? PSC[kd] || 1 : 1.15); } im.classList.toggle('in', !!src); im.classList.toggle('dim', q !== i); }
+      if (q < 0) { im.classList.remove('in'); continue; } const src = csPic(L[q].w, CSV.local && CSV.local.col, CSV.local && csSeat(L[q].w) >= 0 ? CSV.local.kinds[csSeat(L[q].w)] : undefined); if (src && im.getAttribute('src') !== src) im.src = src; im._cs = [L[q].w, CSV.local && CSV.local.col, CSV.local && csSeat(L[q].w) >= 0 ? CSV.local.kinds[csSeat(L[q].w)] : undefined]; { const kd = csKind(L[q].w, CSV.local && csSeat(L[q].w) >= 0 ? CSV.local.kinds[csSeat(L[q].w)] : undefined); im.style.setProperty('--ps', src && src.startsWith('data:image/webp') ? PSC[kd] || 1 : 1.15); } im.classList.toggle('in', !!src); im.classList.toggle('dim', q !== i); }
     const nm = el.querySelector('.nm'); nm.textContent = CSV.local && csSeat(l.w) >= 0 && !l.n ? CNAME[CSV.local.kinds[csSeat(l.w)]] : csName(l); nm.classList.toggle('r', (l.s | 0) === 1); }
+  for (const im of el.querySelectorAll('.pt')) if (im._cs && im.classList.contains('in')) { const u = csPic(...im._cs); if (u && im.getAttribute('src') !== u) im.src = u; }
   const n = Math.floor((performance.now() - CSV.at) / 1000 * 45), tx = el.querySelector('.tx'), s = l.t || ''; CSV.done = n >= s.length; const v = s.slice(0, n); if (tx.textContent !== v) tx.textContent = v; }
 function csTap() { if (!CSV.done) { CSV.at = -1e9; return; } if (CSV.local) { const L = CSV.local; L.i++; if (L.i >= L.ln.length) csSkip(); return; }
   if (performance.now() - (CSV.tap || 0) < 200) return; CSV.tap = performance.now(); const me = KN[ME]; me.in.csN = (me.in.csN || 0) + 1; if (NET) NET.inDirty = 1; }
