@@ -13,6 +13,7 @@ The previous game (Break of Day) was scrapped on 2026-10-13. Its full code (v0.1
 - Main menu: version bottom-left with a Changelog button next to it (`showLog`): build.py inlines every BUILDS.json entry (v, date, notes) as `window.TD_LOG`, shown newest first in the modal (title + Close button stay at the top, only the list scrolls). So ship notes are player-facing: keep them a short summary of the changes.
 - `version.json` carries the build id (for client auto-reload) and the version.
 - The page is served by GitHub Pages from `index.html` at the repo root.
+- The repo now lives at FiveLight-Games/break-of-day (2026-10-27). The remote stays `https://github.com/elijahwmaverick/break-of-day`: GitHub redirects it, and the session's git proxy only authorizes the old name (pushing to the new URL is refused).
 
 ## Current game: Hold the Line (working title) — 1vX tower defense
 - Main menu (2026-10-19): titled 'Break of Day' (page title too). Home (`homeScreen` 'home') = a big 'Play' button (opens Knight Brawl, the main mode) + 'Other Modes' ('other' screen: a Hold the Line button + Back). Hold the Line's own screen is 'htl' (Find Match, Host/Browse, Defend/Attack vs AI, Back to Other Modes); host/browse/search/leaving a lobby all return there. tests/lobby-test.js clicks Other Modes -> Hold the Line first.
